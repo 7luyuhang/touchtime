@@ -12,7 +12,7 @@ struct ContentView: View {
         TabView {
             HomeView()
                 .tabItem {
-                    Label("World Clock", systemImage: "clock")
+                    Label("Time", systemImage: "clock")
                 }
             
             SettingsView()

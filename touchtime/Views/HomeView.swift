@@ -96,12 +96,10 @@ struct HomeView: View {
                     
                 }
                 
-                // Scroll Time View at the bottom
+                // Scroll Time View
                 ScrollTimeView(timeOffset: $timeOffset)
                     .padding(.horizontal)
                     .padding(.bottom, 16)
-
-
 
             }
             .navigationTitle("Touch Time")
