@@ -80,10 +80,10 @@ struct ScrollTimeView: View {
                         .fontWeight(.medium)
                         .foregroundColor(.primary)
                         .frame(width: 52, height: 52)
-                        .glassEffect(.regular.interactive())
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
+                .glassEffect(.regular.interactive())
                 .transition(.blurReplace.combined(with: .scale))
             }
                 
@@ -113,7 +113,6 @@ struct ScrollTimeView: View {
                         }
                     }
                     .font(.subheadline)
-                    .foregroundColor(.accentColor)
                     .contentTransition(.numericText())
                     .animation(.spring(), value: totalHours)
                         
@@ -140,7 +139,6 @@ struct ScrollTimeView: View {
                         }
                     }
                     .font(.subheadline)
-                    .foregroundColor(.blue)
                         
                     } else {
                         HStack {
@@ -171,12 +169,12 @@ struct ScrollTimeView: View {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.system(size: 20))
                             .fontWeight(.medium)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.black)
                             .frame(width: 52, height: 52)
-                            .glassEffect(.regular.interactive())
                             .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive().tint(.yellow))
                     .transition(.blurReplace.combined(with: .scale))
                 }
             }

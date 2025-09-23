@@ -43,7 +43,7 @@ struct HomeView: View {
                             
                         VStack(alignment: .trailing, spacing: 2) {
                             Text(clock.currentTime(use24Hour: use24HourFormat, offset: timeOffset))
-                                .font(.title2)
+                                .font(.title)
                                 .monospacedDigit()
                                 .contentTransition(.numericText())
                             
@@ -53,7 +53,6 @@ struct HomeView: View {
                                 .contentTransition(.numericText())
                         }
                         }
-                        .padding(.vertical, 2)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
                                 if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
