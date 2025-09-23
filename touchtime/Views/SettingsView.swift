@@ -17,9 +17,7 @@ struct SettingsView: View {
             Form {
                 Section("General") {
                     HStack {
-                        Text("Appearance")
-                        Spacer()
-                        Picker("", selection: $appearanceMode) {
+                        Picker("Appearance", selection: $appearanceMode) {
                             Text("Light")
                                 .tag("light")
                             Text("Dark")

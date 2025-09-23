@@ -14,7 +14,7 @@ struct ScrollTimeView: View {
     
     // Calculate hours from drag offset
     func hoursFromOffset(_ offset: CGFloat) -> Double {
-        return Double(offset) / 30.0 // 30 points = 1 hour
+        return Double(offset) / 15.0 // 15 points = 1 hour
     }
     
     // Share the current time adjustment
@@ -27,19 +27,15 @@ struct ScrollTimeView: View {
         let sign = isPositive ? "+" : "-"
         
         var timeString = ""
-        if hours > 0 {
-            timeString += "\(hours) \(hours == 1 ? "hour" : "hours")"
-            if minutes > 0 {
-                timeString += " "
-            }
+        if hours > 0 && minutes > 0 {
+            timeString = "\(hours)h \(minutes)m"
+        } else if hours > 0 {
+            timeString = "\(hours)h"
+        } else if minutes > 0 {
+            timeString = "\(minutes)m"
+        } else {
+            timeString = "0m"
         }
-        if minutes > 0 {
-            timeString += "\(minutes) \(minutes == 1 ? "min" : "mins")"
-        }
-        if hours == 0 && minutes == 0 {
-            timeString = "0 mins"
-        }
-        
         let message = "Time adjusted by \(sign)\(timeString)"
         
         let activityController = UIActivityViewController(
@@ -98,20 +94,19 @@ struct ScrollTimeView: View {
                     let minutes = Int((absoluteHours - Double(hours)) * 60)
                     let sign = isPositive ? "+" : "-"
                     
-                    HStack(spacing: 4) {
-                        Text(sign)
-                        if hours > 0 {
-                            Text("\(hours)")
-                            Text(hours == 1 ? "hour" : "hours")
+                    Text({
+                        var result = sign
+                        if hours > 0 && minutes > 0 {
+                            result += "\(hours)h \(minutes)m"
+                        } else if hours > 0 {
+                            result += "\(hours)h"
+                        } else if minutes > 0 {
+                            result += "\(minutes)m"
+                        } else {
+                            result += "0m"
                         }
-                        if minutes > 0 {
-                            Text("\(minutes)")
-                            Text(minutes == 1 ? "min" : "mins")
-                        }
-                        if hours == 0 && minutes == 0 {
-                            Text("0 mins")
-                        }
-                    }
+                        return result
+                    }())
                     .font(.subheadline)
                     .contentTransition(.numericText())
                     .animation(.spring(), value: totalHours)
@@ -124,35 +119,40 @@ struct ScrollTimeView: View {
                     let minutes = Int((absoluteHours - Double(hours)) * 60)
                     let sign = isPositive ? "+" : "-"
                     
-                    HStack(spacing: 4) {
-                        Text(sign)
-                        if hours > 0 {
-                            Text("\(hours)")
-                            Text(hours == 1 ? "hour" : "hours")
+                    Text({
+                        var result = sign
+                        if hours > 0 && minutes > 0 {
+                            result += "\(hours)h \(minutes)m"
+                        } else if hours > 0 {
+                            result += "\(hours)h"
+                        } else if minutes > 0 {
+                            result += "\(minutes)m"
+                        } else {
+                            result += "0m"
                         }
-                        if minutes > 0 {
-                            Text("\(minutes)")
-                            Text(minutes == 1 ? "min" : "mins")
-                        }
-                        if hours == 0 && minutes == 0 {
-                            Text("0 mins")
-                        }
-                    }
+                        return result
+                    }())
                     .font(.subheadline)
                         
                     } else {
                         HStack {
                             Image(systemName: "chevron.backward")
                                 .fontWeight(.semibold)
+                                .foregroundStyle(.tertiary)
+                                
                             Spacer()
+                            
                             Text("Swipe to Adjust")
+                            .foregroundColor(.secondary)
+                            
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .fontWeight(.semibold)
+                                .foregroundStyle(.tertiary)
                         }
                         .padding(.horizontal)
                         .font(.subheadline)
-                        .foregroundColor(.secondary)
+                        
                     }
                 }
                 .frame(maxWidth: showButtons ? nil : .infinity)
@@ -178,6 +178,7 @@ struct ScrollTimeView: View {
                     .transition(.blurReplace.combined(with: .scale))
                 }
             }
+        // Overall composer
         .padding(.horizontal, 16)
         .animation(.spring(), value: showButtons)
         .gesture(
@@ -186,7 +187,14 @@ struct ScrollTimeView: View {
                     dragOffset = value.translation.width
                     let hours = hoursFromOffset(dragOffset)
                     
-                    withAnimation(.interactiveSpring()) {
+                    // Hide buttons when starting a new drag
+                    if showButtons {
+                        withAnimation(.spring()) {
+                            showButtons = false
+                        }
+                    }
+                    
+                    withAnimation(.spring()) {
                         timeOffset = hours * 3600 // Convert hours to seconds
                     }
                 }
@@ -197,18 +205,9 @@ struct ScrollTimeView: View {
                     impactFeedback.impactOccurred()
                     
                     // Show buttons after drag ends
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    withAnimation(.spring()) {
                         showButtons = true
                         dragOffset = 0
-                    }
-                    
-                    // Hide buttons after a delay if no offset
-                    if timeOffset == 0 {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                            withAnimation(.spring()) {
-                                showButtons = false
-                            }
-                        }
                     }
                 }
         )
