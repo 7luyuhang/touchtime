@@ -16,17 +16,84 @@ struct HomeView: View {
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
+    @AppStorage("showLocalTime") private var showLocalTime = true
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
     
+    // Get local city name from timezone
+    var localCityName: String {
+        let identifier = TimeZone.current.identifier
+        let components = identifier.split(separator: "/")
+        if components.count >= 2 {
+            return components.last!.replacingOccurrences(of: "_", with: " ")
+        } else {
+            return identifier
+        }
+    }
+    
     var body: some View {
         NavigationView {
             ZStack(alignment: .bottom) {
                 // Main List Content
                 List {
+                    // Local Time Section
+                    if showLocalTime {
+                        Section {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "location.fill")
+                                            .font(.caption)
+                                            .foregroundColor(.accentColor)
+                                        Text(localCityName)
+                                            .font(.headline)
+                                    }
+                                    Text("Local")
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                VStack(alignment: .trailing, spacing: 2) {
+                                    Text({
+                                        let formatter = DateFormatter()
+                                        formatter.timeZone = TimeZone.current
+                                        formatter.locale = Locale(identifier: "en_US_POSIX")
+                                        if use24HourFormat {
+                                            formatter.dateFormat = "HH:mm"
+                                        } else {
+                                            formatter.dateFormat = "h:mm a"
+                                            formatter.amSymbol = "am"
+                                            formatter.pmSymbol = "pm"
+                                        }
+                                        let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                        return formatter.string(from: adjustedDate)
+                                    }())
+                                    .font(.title)
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
+                                    
+                                    Text({
+                                        let formatter = DateFormatter()
+                                        formatter.timeZone = TimeZone.current
+                                        formatter.locale = Locale(identifier: "en_US_POSIX")
+                                        formatter.dateStyle = .medium
+                                        formatter.timeStyle = .none
+                                        let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                        return formatter.string(from: adjustedDate)
+                                    }())
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                                    .contentTransition(.numericText())
+                                }
+                            }
+                        }
+                    }
+                    
                     ForEach(worldClocks) { clock in
                         HStack {
                             VStack(alignment: .leading, spacing: 4) {

@@ -11,6 +11,7 @@ struct SettingsView: View {
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
     @AppStorage("appearanceMode") private var appearanceMode = "system"
+    @AppStorage("showLocalTime") private var showLocalTime = true
     
     var body: some View {
         NavigationView {
@@ -27,6 +28,16 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.menu)
                         .tint(.secondary)
+                    }
+                    
+                    Toggle(isOn: $showLocalTime) {
+                        HStack {
+                            Image(systemName: "location.fill")
+                                .fontWeight(.medium)
+                                .frame(width: 28)
+                                .foregroundStyle(.secondary)
+                            Text("Show Local Time")
+                        }
                     }
                 }
                 
