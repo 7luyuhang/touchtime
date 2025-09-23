@@ -19,9 +19,28 @@ struct ScrollTimeView: View {
     
     // Share the current time adjustment
     func shareTimeAdjustment() {
-        let hours = timeOffset / 3600
-        let sign = hours >= 0 ? "+" : ""
-        let message = "Time adjusted by \(sign)\(String(format: "%.1f", hours)) hours"
+        let totalHours = timeOffset / 3600
+        let isPositive = totalHours >= 0
+        let absoluteHours = abs(totalHours)
+        let hours = Int(absoluteHours)
+        let minutes = Int((absoluteHours - Double(hours)) * 60)
+        let sign = isPositive ? "+" : "-"
+        
+        var timeString = ""
+        if hours > 0 {
+            timeString += "\(hours) \(hours == 1 ? "hour" : "hours")"
+            if minutes > 0 {
+                timeString += " "
+            }
+        }
+        if minutes > 0 {
+            timeString += "\(minutes) \(minutes == 1 ? "min" : "mins")"
+        }
+        if hours == 0 && minutes == 0 {
+            timeString = "0 mins"
+        }
+        
+        let message = "Time adjusted by \(sign)\(timeString)"
         
         let activityController = UIActivityViewController(
             activityItems: [message],
@@ -49,79 +68,120 @@ struct ScrollTimeView: View {
     
     var body: some View {
         HStack(spacing: 16) {
-            // Share button (left side)
+            // More button with menu (left side)
             if showButtons {
-                Button(action: shareTimeAdjustment) {
-                    Image(systemName: "square.and.arrow.up")
+                Menu {
+                    Button(action: shareTimeAdjustment) {
+                        Label("Share", systemImage: "square.and.arrow.up")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
                         .font(.system(size: 20))
-                        .foregroundColor(.white)
+                        .fontWeight(.medium)
+                        .foregroundColor(.primary)
                         .frame(width: 52, height: 52)
-                        .glassEffect(.regular)
+                        .glassEffect(.regular.interactive())
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
                 .transition(.blurReplace.combined(with: .scale))
             }
-            
-            // Main content
-            HStack {
+                
+                // Main content
+                HStack {
                 // Time adjustment indicator
                 if dragOffset != 0 {
-                    let hours = hoursFromOffset(dragOffset)
-                    let sign = hours >= 0 ? "+" : ""
+                    let totalHours = hoursFromOffset(dragOffset)
+                    let isPositive = totalHours >= 0
+                    let absoluteHours = abs(totalHours)
+                    let hours = Int(absoluteHours)
+                    let minutes = Int((absoluteHours - Double(hours)) * 60)
+                    let sign = isPositive ? "+" : "-"
                     
-                    Text("\(sign)\(String(format: "%.1f", hours)) hours")
-                        .font(.subheadline)
-                        .foregroundColor(.accentColor)
-                        .contentTransition(.numericText())
-                        .animation(.spring(duration: 0.5), value: hours)
-            
-                } else if timeOffset != 0 && !showButtons {
-                    let hours = timeOffset / 3600
-                    let sign = hours >= 0 ? "+" : ""
-                    
-                    Text("\(sign)\(String(format: "%.1f", hours)) hours")
-                        .font(.subheadline)
-                        .foregroundColor(.accentColor.opacity(0.7))
-                        
-                } else {
-                    HStack {
-                        Image(systemName: "chevron.backward")
-                            .fontWeight(.semibold)
-                        Spacer()
-                        Text("Swipe to adjust")
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .fontWeight(.semibold)
+                    HStack(spacing: 4) {
+                        Text(sign)
+                        if hours > 0 {
+                            Text("\(hours)")
+                            Text(hours == 1 ? "hour" : "hours")
+                        }
+                        if minutes > 0 {
+                            Text("\(minutes)")
+                            Text(minutes == 1 ? "min" : "mins")
+                        }
+                        if hours == 0 && minutes == 0 {
+                            Text("0 mins")
+                        }
                     }
-                    .padding(.horizontal)
                     .font(.subheadline)
-                    .foregroundColor(.secondary)
+                    .foregroundColor(.accentColor)
+                    .contentTransition(.numericText())
+                    .animation(.spring(), value: totalHours)
+                        
+                } else if timeOffset != 0 {
+                    let totalHours = timeOffset / 3600
+                    let isPositive = totalHours >= 0
+                    let absoluteHours = abs(totalHours)
+                    let hours = Int(absoluteHours)
+                    let minutes = Int((absoluteHours - Double(hours)) * 60)
+                    let sign = isPositive ? "+" : "-"
+                    
+                    HStack(spacing: 4) {
+                        Text(sign)
+                        if hours > 0 {
+                            Text("\(hours)")
+                            Text(hours == 1 ? "hour" : "hours")
+                        }
+                        if minutes > 0 {
+                            Text("\(minutes)")
+                            Text(minutes == 1 ? "min" : "mins")
+                        }
+                        if hours == 0 && minutes == 0 {
+                            Text("0 mins")
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundColor(.blue)
+                        
+                    } else {
+                        HStack {
+                            Image(systemName: "chevron.backward")
+                                .fontWeight(.semibold)
+                            Spacer()
+                            Text("Swipe to Adjust")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .fontWeight(.semibold)
+                        }
+                        .padding(.horizontal)
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                    }
                 }
-            }
-            .frame(maxWidth: showButtons ? nil : .infinity)
-            .frame(height: 52)
-            .padding(.horizontal, showButtons ? 20 : 0)
-            .contentShape(Rectangle())
-            .glassEffect(.regular.interactive())
-            .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showButtons)
+                .frame(maxWidth: showButtons ? nil : .infinity)
+                .frame(height: 52)
+                .padding(.horizontal, showButtons ? 24 : 0)
+                .contentShape(Rectangle())
+                .glassEffect(.regular.interactive())
+                .animation(.spring(), value: showButtons)
             
-            // Reset button (right side)
-            if showButtons {
-                Button(action: resetTimeOffset) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 20))
-                        .foregroundColor(.white)
-                        .frame(width: 52, height: 52)
-                        .glassEffect(.regular)
-                        .clipShape(Circle())
+                
+                // Reset button (right side)
+                if showButtons {
+                    Button(action: resetTimeOffset) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.system(size: 20))
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                            .frame(width: 52, height: 52)
+                            .glassEffect(.regular.interactive())
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.blurReplace.combined(with: .scale))
                 }
-                .buttonStyle(.plain)
-                .transition(.blurReplace.combined(with: .scale))
             }
-        }
-        .padding(.horizontal, showButtons ? 8 : 0)
-        .animation(.spring(response: 0.4, dampingFraction: 0.8), value: showButtons)
+        .padding(.horizontal, 16)
+        .animation(.spring(), value: showButtons)
         .gesture(
             DragGesture()
                 .onChanged { value in

@@ -95,13 +95,17 @@ struct TimeZonePickerView: View {
                     }
                 }
             }
+            .listStyle(.plain)
             .searchable(text: $searchText, prompt: "Search")
             .navigationTitle("Choose a City")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    Button("Cancel") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .foregroundColor(.primary)
                     }
                 }
             }

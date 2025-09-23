@@ -36,7 +36,7 @@ struct SettingsView: View {
                     Toggle(isOn: $use24HourFormat) {
                         HStack {
                             Image(systemName: "24.circle")
-                                .font(.headline)
+                                .fontWeight(.medium)
                                 .frame(width: 28)
                                 .foregroundStyle(.secondary)
                             Text("24-Hour Format")
@@ -46,7 +46,7 @@ struct SettingsView: View {
                     Toggle(isOn: $showTimeDifference) {
                         HStack {
                             Image(systemName: "plusminus")
-                                .font(.headline)
+                                .fontWeight(.medium)
                                 .frame(width: 28)
                                 .foregroundStyle(.secondary)
                             Text("Show Time Difference")

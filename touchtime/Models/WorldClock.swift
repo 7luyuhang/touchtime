@@ -28,7 +28,13 @@ struct WorldClock: Identifiable, Codable, Equatable {
         formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
         formatter.locale = Locale(identifier: "en_US_POSIX") // 确保时间格式不受系统区域设置影响
         
-        formatter.dateFormat = use24Hour ? "HH:mm" : "h:mm a"
+        if use24Hour {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "h:mm a"
+            formatter.amSymbol = "am"
+            formatter.pmSymbol = "pm"
+        }
         
         let adjustedDate = Date().addingTimeInterval(offset)
         return formatter.string(from: adjustedDate)
