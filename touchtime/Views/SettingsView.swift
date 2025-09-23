@@ -29,16 +29,28 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.menu)
                         .tint(.secondary)
-                        .labelsHidden()
                     }
                 }
                 
                 Section("Time Display") {
                     Toggle(isOn: $use24HourFormat) {
-                        Label("24-Hour Format", systemImage: "24.circle")
+                        HStack {
+                            Image(systemName: "24.circle")
+                                .font(.headline)
+                                .frame(width: 28)
+                                .foregroundStyle(.secondary)
+                            Text("24-Hour Format")
+                        }
+                        
                     }
                     Toggle(isOn: $showTimeDifference) {
-                        Label("Show Time Difference", systemImage: "plusminus")
+                        HStack {
+                            Image(systemName: "plusminus")
+                                .font(.headline)
+                                .frame(width: 28)
+                                .foregroundStyle(.secondary)
+                            Text("Show Time Difference")
+                        }
                     }
                 }
                 
@@ -51,7 +63,7 @@ struct SettingsView: View {
                     }
                     
                     HStack {
-                        Label("Developer", systemImage: "person.circle")
+                        Text("Developer")
                         Spacer()
                         Text("yuhang")
                             .foregroundColor(.secondary)

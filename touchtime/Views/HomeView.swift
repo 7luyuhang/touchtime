@@ -23,70 +23,85 @@ struct HomeView: View {
     
     var body: some View {
         NavigationView {
-            List {
-                ForEach(worldClocks) { clock in
-                    HStack {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(clock.cityName)
-                                .font(.headline)
-                            if showTimeDifference && !clock.timeDifference.isEmpty {
-                                Text(clock.timeDifference)
+            ZStack(alignment: .bottom) {
+                // Main List Content
+                List {
+                    ForEach(worldClocks) { clock in
+                        HStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(clock.cityName)
+                                    .font(.headline)
+                                if showTimeDifference && !clock.timeDifference.isEmpty {
+                                    Text(clock.timeDifference)
+                                        .font(.subheadline)
+                                        .foregroundColor(.secondary)
+                                }
+                            }
+                            
+                            Spacer()
+                            
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(clock.currentTime(use24Hour: use24HourFormat))
+                                    .font(.title2)
+                                    .monospacedDigit()
+                                
+                                Text(clock.currentDate())
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
                         }
-                        
-                        Spacer()
-                        
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(clock.currentTime(use24Hour: use24HourFormat))
-                                .font(.title2)
-                                .monospacedDigit()
-                            
-                            Text(clock.currentDate())
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                    }
-                    .padding(.vertical, 2)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                worldClocks.remove(at: index)
-                                saveWorldClocks()
-                            }
-                        } label: {
-                            Label("", systemImage: "trash")
-                        }
-                    }
-                    .contextMenu {
-                        if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
-                            Button(action: {
-                                // Move to top
-                                withAnimation {
-                                    let clockToMove = worldClocks.remove(at: index)
-                                    worldClocks.insert(clockToMove, at: 0)
-                                    saveWorldClocks()
-                                }
-                            }) {
-                                Label("Move to Top", systemImage: "arrow.up.to.line")
-                            }
-                        }
-                        
-                        Button(role: .destructive, action: {
-                            // Delete
-                            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                withAnimation {
+                        .padding(.vertical, 2)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
                                     worldClocks.remove(at: index)
                                     saveWorldClocks()
                                 }
+                            } label: {
+                                Label("", systemImage: "trash")
                             }
-                        }) {
-                            Label("Delete", systemImage: "trash")
+                        }
+                        .contextMenu {
+                            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
+                                Button(action: {
+                                    // Move to top
+                                    withAnimation {
+                                        let clockToMove = worldClocks.remove(at: index)
+                                        worldClocks.insert(clockToMove, at: 0)
+                                        saveWorldClocks()
+                                    }
+                                }) {
+                                    Label("Move to Top", systemImage: "arrow.up.to.line")
+                                }
+                            }
+                            
+                            Button(role: .destructive, action: {
+                                // Delete
+                                if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
+                                    withAnimation {
+                                        worldClocks.remove(at: index)
+                                        saveWorldClocks()
+                                    }
+                                }
+                            }) {
+                                Label("Delete", systemImage: "trash")
+                            }
                         }
                     }
+                    .onMove(perform: moveClocks)
+                    
+                    // Add padding at the bottom to avoid overlap with ScrollTimeView
+                    Color.clear
+                        .frame(height: 120)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
-                .onMove(perform: moveClocks)
+                .listStyle(PlainListStyle())
+                
+                // Scroll Time View at the bottom
+                ScrollTimeView()
+                    .padding(.horizontal)
+                    .padding(.bottom, 10)
             }
             .navigationTitle("Touch Time")
             .navigationBarTitleDisplayMode(.inline)
