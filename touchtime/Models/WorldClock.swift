@@ -44,9 +44,9 @@ struct WorldClock: Identifiable, Codable, Equatable {
         if difference == 0 {
             return ""
         } else if difference > 0 {
-            return "+\(difference) hrs"
+            return "+\(difference)HRS"
         } else {
-            return "\(difference) hrs"
+            return "\(difference)HRS"
         }
     }
     

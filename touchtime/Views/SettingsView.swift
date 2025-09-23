@@ -16,33 +16,42 @@ struct SettingsView: View {
         NavigationView {
             Form {
                 Section("General") {
-                    Picker("Appearance", selection: $appearanceMode) {
-                        Text("Light")
-                            .tag("light")
-                        Text("Dark")
-                            .tag("dark")
-                        Text("System")
-                            .tag("system")
+                    HStack {
+                        Label("Appearance", systemImage: "moon.circle")
+                        Spacer()
+                        Picker("", selection: $appearanceMode) {
+                            Text("Light")
+                                .tag("light")
+                            Text("Dark")
+                                .tag("dark")
+                            Text("System")
+                                .tag("system")
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.secondary)
+                        .labelsHidden()
                     }
-                    .pickerStyle(.menu)
-                    .tint(.secondary)
                 }
                 
                 Section("Time Display") {
-                    Toggle("24-Hour Format", isOn: $use24HourFormat)
-                    Toggle("Show Time Difference", isOn: $showTimeDifference)
+                    Toggle(isOn: $use24HourFormat) {
+                        Label("24-Hour Format", systemImage: "clock")
+                    }
+                    Toggle(isOn: $showTimeDifference) {
+                        Label("Show Time Difference", systemImage: "arrow.left.arrow.right")
+                    }
                 }
                 
                 Section("About") {
                     HStack {
-                        Text("Version")
+                        Label("Version", systemImage: "info.circle")
                         Spacer()
                         Text("1.0.0")
                             .foregroundColor(.secondary)
                     }
                     
                     HStack {
-                        Text("Developer")
+                        Label("Developer", systemImage: "person.circle")
                         Spacer()
                         Text("yuhang")
                             .foregroundColor(.secondary)

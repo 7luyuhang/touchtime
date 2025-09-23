@@ -31,7 +31,7 @@ struct HomeView: View {
                                 .font(.headline)
                             if showTimeDifference && !clock.timeDifference.isEmpty {
                                 Text(clock.timeDifference)
-                                    .font(.caption)
+                                    .font(.subheadline)
                                     .foregroundColor(.secondary)
                             }
                         }
@@ -44,7 +44,7 @@ struct HomeView: View {
                                 .monospacedDigit()
                             
                             Text(clock.currentDate())
-                                .font(.caption)
+                                .font(.subheadline)
                                 .foregroundColor(.secondary)
                         }
                     }
