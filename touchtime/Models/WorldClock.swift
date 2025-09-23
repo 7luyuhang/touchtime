@@ -51,13 +51,60 @@ struct WorldClock: Identifiable, Codable, Equatable {
     }
     
     func currentDate() -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
-        formatter.locale = Locale(identifier: "en_US_POSIX") // 保持一致的区域设置
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
+            return ""
+        }
         
-        return formatter.string(from: Date())
+        let now = Date()
+        
+        // 创建用于本地时区的日历
+        let localCalendar = Calendar.current
+        
+        // 创建用于目标时区的日历
+        var targetCalendar = Calendar.current
+        targetCalendar.timeZone = targetTimeZone
+        
+        // 获取本地时区的今天
+        let localToday = localCalendar.dateComponents([.year, .month, .day], from: now)
+        
+        // 获取目标时区的当前日期
+        let targetDate = targetCalendar.dateComponents([.year, .month, .day], from: now)
+        
+        // 如果目标时区的日期与本地的今天相同，显示 "Today"
+        if targetDate.year == localToday.year &&
+           targetDate.month == localToday.month &&
+           targetDate.day == localToday.day {
+            return "Today"
+        } else {
+            // 检查是否是明天
+            if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: now) {
+                let localTomorrow = localCalendar.dateComponents([.year, .month, .day], from: tomorrow)
+                if targetDate.year == localTomorrow.year &&
+                   targetDate.month == localTomorrow.month &&
+                   targetDate.day == localTomorrow.day {
+                    return "Tomorrow"
+                }
+            }
+            
+            // 检查是否是昨天
+            if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: now) {
+                let localYesterday = localCalendar.dateComponents([.year, .month, .day], from: yesterday)
+                if targetDate.year == localYesterday.year &&
+                   targetDate.month == localYesterday.month &&
+                   targetDate.day == localYesterday.day {
+                    return "Yesterday"
+                }
+            }
+            
+            // 否则显示具体日期
+            let formatter = DateFormatter()
+            formatter.timeZone = targetTimeZone
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .none
+            
+            return formatter.string(from: now)
+        }
     }
 }
 

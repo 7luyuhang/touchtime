@@ -78,29 +78,19 @@ struct TimeZonePickerView: View {
                                 addClock(cityName: timeZone.cityName, identifier: timeZone.identifier)
                             }) {
                                 HStack {
-                                    Text(timeZone.cityName)
-                                        .foregroundColor(.primary)
-                                    
+                                        Text(timeZone.cityName)
+                                            .foregroundColor(.primary)
                                     Spacer()
-                                    
                                     // 显示当前时间预览
                                     if let tz = TimeZone(identifier: timeZone.identifier) {
                                         Text(currentTime(for: tz))
                                             .foregroundColor(.secondary)
                                             .monospacedDigit()
                                     }
-                                    
-                                    // 如果已添加，显示勾选标记
-                                    if worldClocks.contains(where: { $0.timeZoneIdentifier == timeZone.identifier }) {
-                                        Image(systemName: "checkmark")
-                                            .foregroundColor(.accentColor)
-                                            .font(.system(size: 14, weight: .semibold))
-                                    }
                                 }
                                 .contentShape(Rectangle())
                             }
                             .buttonStyle(PlainButtonStyle())
-                            .disabled(worldClocks.contains(where: { $0.timeZoneIdentifier == timeZone.identifier }))
                         }
                     }
                 }
