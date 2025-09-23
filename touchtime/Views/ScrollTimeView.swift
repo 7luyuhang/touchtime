@@ -8,28 +8,8 @@
 import SwiftUI
 
 struct ScrollTimeView: View {
-    @State private var timeOffset: TimeInterval = 0
+    @Binding var timeOffset: TimeInterval
     @State private var dragOffset: CGFloat = 0
-    @AppStorage("use24HourFormat") private var use24HourFormat = false
-    
-    // Calculate the adjusted time based on offset
-    var adjustedTime: Date {
-        Date().addingTimeInterval(timeOffset)
-    }
-    
-    // Format time for display
-    var timeString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = use24HourFormat ? "HH:mm" : "h:mm a"
-        return formatter.string(from: adjustedTime)
-    }
-    
-    // Format date for display
-    var dateString: String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "EEEE, MMMM d"
-        return formatter.string(from: adjustedTime)
-    }
     
     // Calculate hours from drag offset
     func hoursFromOffset(_ offset: CGFloat) -> Double {
@@ -37,49 +17,51 @@ struct ScrollTimeView: View {
     }
     
     var body: some View {
-        VStack(spacing: 8) {
-            // Date display
-            Text(dateString)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .contentTransition(.numericText())
-            
-            // Time display with scroll indicator
-            HStack(spacing: 20) {
+        VStack(spacing: 12) {
+            // Scroll indicator bar
+            HStack(spacing: 16) {
                 Image(systemName: "chevron.left")
-                    .font(.caption)
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
-                    .opacity(0.5)
+                    .opacity(0.6)
                 
-                Text(timeString)
-                    .font(.system(size: 48, weight: .medium, design: .rounded))
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .animation(.easeInOut(duration: 0.2), value: timeString)
+                // Visual drag indicator
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.secondary.opacity(0.3))
+                    .frame(width: 100, height: 4)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Color.accentColor)
+                            .frame(width: 40, height: 4)
+                            .offset(x: dragOffset / 5) // Move indicator based on drag
+                    )
                 
                 Image(systemName: "chevron.right")
-                    .font(.caption)
+                    .font(.system(size: 14))
                     .foregroundColor(.secondary)
-                    .opacity(0.5)
+                    .opacity(0.6)
             }
             
-            // Visual time adjustment indicator
+            // Time adjustment indicator
             if dragOffset != 0 {
                 let hours = hoursFromOffset(dragOffset)
                 let sign = hours >= 0 ? "+" : ""
                 Text("\(sign)\(String(format: "%.1f", hours)) hours")
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundColor(.accentColor)
                     .contentTransition(.numericText())
+                    .animation(.easeInOut(duration: 0.2), value: hours)
+            } else {
+                Text("Swipe to adjust time")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .opacity(0.6)
             }
         }
-        .padding(.vertical, 20)
-        .padding(.horizontal)
-        .background(
-            RoundedRectangle(cornerRadius: 20)
-                .fill(.ultraThinMaterial)
-                .shadow(color: .black.opacity(0.1), radius: 10, y: -5)
-        )
+        .padding(.vertical, 16)
+        .padding(.horizontal, 20)
+        .frame(maxWidth: .infinity)
+        .glassEffect(.clear)
         .gesture(
             DragGesture()
                 .onChanged { value in
@@ -95,7 +77,7 @@ struct ScrollTimeView: View {
                     impactFeedback.prepare()
                     impactFeedback.impactOccurred()
                     
-                    // Reset drag offset
+                    // Reset drag offset but keep timeOffset
                     withAnimation(.spring()) {
                         dragOffset = 0
                     }
@@ -105,6 +87,12 @@ struct ScrollTimeView: View {
 }
 
 #Preview {
-    ScrollTimeView()
-        .padding()
+    struct PreviewWrapper: View {
+        @State private var offset: TimeInterval = 0
+        var body: some View {
+            ScrollTimeView(timeOffset: $offset)
+                .padding()
+        }
+    }
+    return PreviewWrapper()
 }

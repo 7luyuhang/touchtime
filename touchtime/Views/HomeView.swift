@@ -12,6 +12,7 @@ struct HomeView: View {
     @State private var worldClocks: [WorldClock] = []
     @State private var currentDate = Date()
     @State private var showingAddClock = false
+    @State private var timeOffset: TimeInterval = 0
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
@@ -40,15 +41,17 @@ struct HomeView: View {
                             
                             Spacer()
                             
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text(clock.currentTime(use24Hour: use24HourFormat))
-                                    .font(.title2)
-                                    .monospacedDigit()
-                                
-                                Text(clock.currentDate())
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text(clock.currentTime(use24Hour: use24HourFormat, offset: timeOffset))
+                                .font(.title2)
+                                .monospacedDigit()
+                                .contentTransition(.numericText())
+                            
+                            Text(clock.currentDate(offset: timeOffset))
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                                .contentTransition(.numericText())
+                        }
                         }
                         .padding(.vertical, 2)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -90,18 +93,16 @@ struct HomeView: View {
                     }
                     .onMove(perform: moveClocks)
                     
-                    // Add padding at the bottom to avoid overlap with ScrollTimeView
-                    Color.clear
-                        .frame(height: 120)
-                        .listRowBackground(Color.clear)
-                        .listRowSeparator(.hidden)
+                    
                 }
-                .listStyle(PlainListStyle())
                 
                 // Scroll Time View at the bottom
-                ScrollTimeView()
+                ScrollTimeView(timeOffset: $timeOffset)
                     .padding(.horizontal)
-                    .padding(.bottom, 10)
+                    .padding(.bottom, 16)
+
+
+
             }
             .navigationTitle("Touch Time")
             .navigationBarTitleDisplayMode(.inline)
