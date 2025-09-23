@@ -17,7 +17,7 @@ struct SettingsView: View {
             Form {
                 Section("General") {
                     HStack {
-                        Label("Appearance", systemImage: "moon.circle")
+                        Text("Appearance")
                         Spacer()
                         Picker("", selection: $appearanceMode) {
                             Text("Light")
@@ -35,16 +35,16 @@ struct SettingsView: View {
                 
                 Section("Time Display") {
                     Toggle(isOn: $use24HourFormat) {
-                        Label("24-Hour Format", systemImage: "clock")
+                        Label("24-Hour Format", systemImage: "24.circle")
                     }
                     Toggle(isOn: $showTimeDifference) {
-                        Label("Show Time Difference", systemImage: "arrow.left.arrow.right")
+                        Label("Show Time Difference", systemImage: "plusminus")
                     }
                 }
                 
                 Section("About") {
                     HStack {
-                        Label("Version", systemImage: "info.circle")
+                        Text("Version")
                         Spacer()
                         Text("1.0.0")
                             .foregroundColor(.secondary)
