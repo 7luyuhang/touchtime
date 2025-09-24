@@ -84,23 +84,37 @@ struct HomeView: View {
                                     
                                     Spacer()
                                     
-                                    Text({
-                                        let formatter = DateFormatter()
-                                        formatter.timeZone = TimeZone.current
-                                        formatter.locale = Locale(identifier: "en_US_POSIX")
-                                        if use24HourFormat {
-                                            formatter.dateFormat = "HH:mm"
-                                        } else {
-                                            formatter.dateFormat = "h:mm a"
-                                            formatter.amSymbol = "am"
-                                            formatter.pmSymbol = "pm"
+                                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                                        Text({
+                                            let formatter = DateFormatter()
+                                            formatter.timeZone = TimeZone.current
+                                            formatter.locale = Locale(identifier: "en_US_POSIX")
+                                            if use24HourFormat {
+                                                formatter.dateFormat = "HH:mm"
+                                            } else {
+                                                formatter.dateFormat = "h:mm"
+                                            }
+                                            let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                            return formatter.string(from: adjustedDate)
+                                        }())
+                                        .font(.system(size: 36))
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                        
+                                        if !use24HourFormat {
+                                            Text({
+                                                let formatter = DateFormatter()
+                                                formatter.timeZone = TimeZone.current
+                                                formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                formatter.dateFormat = "a"
+                                                formatter.amSymbol = "am"
+                                                formatter.pmSymbol = "pm"
+                                                let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                                return formatter.string(from: adjustedDate)
+                                            }())
+                                            .font(.headline)
                                         }
-                                        let adjustedDate = Date().addingTimeInterval(timeOffset)
-                                        return formatter.string(from: adjustedDate)
-                                    }())
-                                    .font(.system(size: 36))
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText())
+                                    }
                                 }
                             }
                             .contextMenu {
@@ -150,10 +164,37 @@ struct HomeView: View {
                                 
                                 Spacer()
                                 
-                                Text(clock.currentTime(use24Hour: use24HourFormat, offset: timeOffset))
+                                HStack(alignment: .lastTextBaseline, spacing: 4) {
+                                    Text({
+                                        let formatter = DateFormatter()
+                                        formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
+                                        formatter.locale = Locale(identifier: "en_US_POSIX")
+                                        if use24HourFormat {
+                                            formatter.dateFormat = "HH:mm"
+                                        } else {
+                                            formatter.dateFormat = "h:mm"
+                                        }
+                                        let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                        return formatter.string(from: adjustedDate)
+                                    }())
                                     .font(.system(size: 36))
                                     .monospacedDigit()
                                     .contentTransition(.numericText())
+                                    
+                                    if !use24HourFormat {
+                                        Text({
+                                            let formatter = DateFormatter()
+                                            formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
+                                            formatter.locale = Locale(identifier: "en_US_POSIX")
+                                            formatter.dateFormat = "a"
+                                            formatter.amSymbol = "am"
+                                            formatter.pmSymbol = "pm"
+                                            let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                            return formatter.string(from: adjustedDate)
+                                        }())
+                                        .font(.headline)
+                                    }
+                                }
                             }
                         }
                         // Delete Time Row
@@ -167,6 +208,7 @@ struct HomeView: View {
                                 Label("", systemImage: "trash")
                             }
                         }
+                        // Context Menu
                         .contextMenu {
                             Button(action: {
                                 renamingLocalTime = false

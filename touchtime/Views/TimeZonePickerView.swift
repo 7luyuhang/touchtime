@@ -69,34 +69,41 @@ struct TimeZonePickerView: View {
     
     var body: some View {
         NavigationView {
-            List {
-                ForEach(sortedKeys, id: \.self) { key in
-                    Section(header: Text(key)
-                        .font(.headline)
-                        .foregroundColor(.secondary)) {
-                        ForEach(groupedTimeZones[key] ?? [], id: \.identifier) { timeZone in
-                            Button(action: {
-                                addClock(cityName: timeZone.cityName, identifier: timeZone.identifier)
-                            }) {
-                                HStack {
-                                        Text(timeZone.cityName)
-                                            .foregroundColor(.primary)
-                                    Spacer()
-                                    // 显示当前时间预览
-                                    if let tz = TimeZone(identifier: timeZone.identifier) {
-                                        Text(currentTime(for: tz))
-                                            .foregroundColor(.secondary)
-                                            .monospacedDigit()
+            Group {
+                if filteredTimeZones.isEmpty {
+                    // Empty state when no search results
+                    ContentUnavailableView.search(text: searchText)
+                } else {
+                    List {
+                        ForEach(sortedKeys, id: \.self) { key in
+                            Section(header: Text(key)
+                                .font(.headline)
+                                .foregroundColor(.secondary)) {
+                                ForEach(groupedTimeZones[key] ?? [], id: \.identifier) { timeZone in
+                                    Button(action: {
+                                        addClock(cityName: timeZone.cityName, identifier: timeZone.identifier)
+                                    }) {
+                                        HStack {
+                                                Text(timeZone.cityName)
+                                                    .foregroundColor(.primary)
+                                            Spacer()
+                                            // 显示当前时间预览
+                                            if let tz = TimeZone(identifier: timeZone.identifier) {
+                                                Text(currentTime(for: tz))
+                                                    .foregroundColor(.secondary)
+                                                    .monospacedDigit()
+                                            }
+                                        }
+                                        .contentShape(Rectangle())
                                     }
+                                    .buttonStyle(PlainButtonStyle())
                                 }
-                                .contentShape(Rectangle())
                             }
-                            .buttonStyle(PlainButtonStyle())
                         }
                     }
+                    .listStyle(.plain)
                 }
             }
-            .listStyle(.plain)
             .searchable(text: $searchText, prompt: "Search")
             .navigationTitle("Choose a City")
             .navigationBarTitleDisplayMode(.inline)
