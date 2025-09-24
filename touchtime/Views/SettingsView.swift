@@ -140,12 +140,11 @@ struct SettingsView: View {
                                 
                                 Spacer()
                                 
-                                HStack(alignment: .lastTextBaseline) {
+                                HStack(alignment: .lastTextBaseline, spacing: 4) {
                                     Text(formatTime(use24Hour: use24HourFormat))
                                         .font(.system(size: 36))
                                         .monospacedDigit()
                                         
-                                    
                                     if !use24HourFormat {
                                         Text(formatAMPM())
                                             .font(.headline)
