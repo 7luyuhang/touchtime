@@ -42,7 +42,7 @@ struct SettingsView: View {
                             Text("Show Local Time")
                         }
                     }
-                    
+
                     Toggle(isOn: $use24HourFormat) {
                         HStack {
                             Image(systemName: "24.circle")
@@ -69,13 +69,6 @@ struct SettingsView: View {
                         Text("Version")
                         Spacer()
                         Text("1.0.0")
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    HStack {
-                        Text("Developer")
-                        Spacer()
-                        Text("yuhang")
                             .foregroundColor(.secondary)
                     }
                 }

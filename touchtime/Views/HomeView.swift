@@ -48,23 +48,42 @@ struct HomeView: View {
                     // Local Time Section
                     if showLocalTime {
                         Section {
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack(spacing: 4) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                // Top row: "Local" label and Date
+                                HStack {
+                                    Text("Local")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                    
+                                    Spacer()
+                                    
+                                    Text({
+                                        let formatter = DateFormatter()
+                                        formatter.timeZone = TimeZone.current
+                                        formatter.locale = Locale(identifier: "en_US_POSIX")
+                                        formatter.dateStyle = .medium
+                                        formatter.timeStyle = .none
+                                        let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                        return formatter.string(from: adjustedDate)
+                                    }())
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .contentTransition(.numericText())
+                                }
+                                
+                                // Bottom row: Location and Time (baseline aligned)
+                                HStack(alignment: .lastTextBaseline) {
+                                    
+                                    HStack (spacing: 4) {
                                         Image(systemName: "location.fill")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                         Text(customLocalName.isEmpty ? localCityName : customLocalName)
                                             .font(.headline)
                                     }
-                                    Text("Local")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                VStack(alignment: .trailing, spacing: 2) {
+                                    
+                                    Spacer()
+                                    
                                     Text({
                                         let formatter = DateFormatter()
                                         formatter.timeZone = TimeZone.current
@@ -79,21 +98,8 @@ struct HomeView: View {
                                         let adjustedDate = Date().addingTimeInterval(timeOffset)
                                         return formatter.string(from: adjustedDate)
                                     }())
-                                    .font(.title)
+                                    .font(.system(size: 36))
                                     .monospacedDigit()
-                                    .contentTransition(.numericText())
-                                    
-                                    Text({
-                                        let formatter = DateFormatter()
-                                        formatter.timeZone = TimeZone.current
-                                        formatter.locale = Locale(identifier: "en_US_POSIX")
-                                        formatter.dateStyle = .medium
-                                        formatter.timeStyle = .none
-                                        let adjustedDate = Date().addingTimeInterval(timeOffset)
-                                        return formatter.string(from: adjustedDate)
-                                    }())
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
                                     .contentTransition(.numericText())
                                 }
                             }
@@ -111,30 +117,44 @@ struct HomeView: View {
                     }
                     
                     ForEach(worldClocks) { clock in
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text(clock.cityName)
-                                    .font(.headline)
-                                if showTimeDifference && !clock.timeDifference.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            // Top row: Time difference and Date
+                            if showTimeDifference && !clock.timeDifference.isEmpty {
+                                HStack {
                                     Text(clock.timeDifference)
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
+                                    
+                                    Spacer()
+                                    
+                                    Text(clock.currentDate(offset: timeOffset))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .contentTransition(.numericText())
+                                }
+                            } else {
+                                HStack {
+                                    Spacer()
+                                    
+                                    Text(clock.currentDate(offset: timeOffset))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .contentTransition(.numericText())
                                 }
                             }
                             
-                            Spacer()
-                            
-                        VStack(alignment: .trailing, spacing: 2) {
-                            Text(clock.currentTime(use24Hour: use24HourFormat, offset: timeOffset))
-                                .font(.title)
-                                .monospacedDigit()
-                                .contentTransition(.numericText())
-                            
-                            Text(clock.currentDate(offset: timeOffset))
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .contentTransition(.numericText())
-                        }
+                            // Bottom row: City name and Time (baseline aligned)
+                            HStack(alignment: .lastTextBaseline) {
+                                Text(clock.cityName)
+                                    .font(.headline)
+                                
+                                Spacer()
+                                
+                                Text(clock.currentTime(use24Hour: use24HourFormat, offset: timeOffset))
+                                    .font(.system(size: 36))
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
+                            }
                         }
                         // Delete Time Row
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -204,6 +224,7 @@ struct HomeView: View {
             }
             .navigationTitle("Touch Time")
             .navigationBarTitleDisplayMode(.inline)
+            
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
