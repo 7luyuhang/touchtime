@@ -29,11 +29,10 @@ struct SettingsView: View {
                         .pickerStyle(.menu)
                         .tint(.secondary)
                     }
-                    
                 }
                 
                 Section("Time Display") {
-                    
+
                     Toggle(isOn: $showLocalTime) {
                         HStack {
                             Image(systemName: "location.fill")
@@ -65,7 +64,7 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section("About") {
+                Section(header: Text("About"), footer: Text("Designed by yuhang in London.")) {
                     HStack {
                         Text("Version")
                         Spacer()

@@ -79,9 +79,9 @@ struct ScrollTimeView: View {
                             .fontWeight(.medium)
                             .foregroundColor(.primary)
                             .frame(width: 52, height: 52)
-                            .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .clipShape(Circle())
                     .glassEffect(.regular.interactive())
                     .glassEffectID("moreButton", in: glassNamespace)
                     .glassEffectTransition(.matchedGeometry)
@@ -176,15 +176,16 @@ struct ScrollTimeView: View {
                             .fontWeight(.medium)
                             .foregroundColor(.black)
                             .frame(width: 52, height: 52)
-                            .clipShape(Circle())
                     }
                     .buttonStyle(.plain)
+                    .clipShape(Circle())
                     .glassEffect(.regular.interactive().tint(.yellow))
                     .glassEffectID("resetButton", in: glassNamespace)
                     .glassEffectTransition(.matchedGeometry)
                 }
             }
         }
+        
         // Overall composer
         .padding(.horizontal, 16)
         .animation(.spring(), value: showButtons)
