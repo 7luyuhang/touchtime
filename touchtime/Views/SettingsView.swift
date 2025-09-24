@@ -30,6 +30,10 @@ struct SettingsView: View {
                         .tint(.secondary)
                     }
                     
+                }
+                
+                Section("Time Display") {
+                    
                     Toggle(isOn: $showLocalTime) {
                         HStack {
                             Image(systemName: "location.fill")
@@ -39,9 +43,7 @@ struct SettingsView: View {
                             Text("Show Local Time")
                         }
                     }
-                }
-                
-                Section("Time Display") {
+                    
                     Toggle(isOn: $use24HourFormat) {
                         HStack {
                             Image(systemName: "24.circle")

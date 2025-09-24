@@ -11,6 +11,7 @@ struct ScrollTimeView: View {
     @Binding var timeOffset: TimeInterval
     @State private var dragOffset: CGFloat = 0
     @State private var showButtons: Bool = false
+    @Namespace private var glassNamespace
     
     // Calculate hours from drag offset
     func hoursFromOffset(_ offset: CGFloat) -> Double {
@@ -55,6 +56,7 @@ struct ScrollTimeView: View {
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
         
+        // Hide buttons with morph animation after reset
         withAnimation(.spring()) {
             timeOffset = 0
             dragOffset = 0
@@ -63,28 +65,30 @@ struct ScrollTimeView: View {
     }
     
     var body: some View {
-        HStack(spacing: 16) {
-            // More button with menu (left side)
-            if showButtons {
-                Menu {
-                    Button(action: shareTimeAdjustment) {
-                        Label("Share", systemImage: "square.and.arrow.up")
+        GlassEffectContainer(spacing: 16) {
+            HStack(spacing: 16) {
+                // More button with menu (left side)
+                if showButtons {
+                    Menu {
+                        Button(action: shareTimeAdjustment) {
+                            Label("Share", systemImage: "square.and.arrow.up")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 20))
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                            .frame(width: 52, height: 52)
+                            .clipShape(Circle())
                     }
-                } label: {
-                    Image(systemName: "ellipsis")
-                        .font(.system(size: 20))
-                        .fontWeight(.medium)
-                        .foregroundColor(.primary)
-                        .frame(width: 52, height: 52)
-                        .clipShape(Circle())
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive())
+                    .glassEffectID("moreButton", in: glassNamespace)
+                    .glassEffectTransition(.matchedGeometry)
                 }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive())
-                .transition(.blurReplace.combined(with: .scale))
-            }
-                
-                // Main content
-                HStack {
+                    
+                    // Main content
+                    HStack {
                 // Time adjustment indicator
                 if dragOffset != 0 {
                     let totalHours = hoursFromOffset(dragOffset)
@@ -160,6 +164,7 @@ struct ScrollTimeView: View {
                 .padding(.horizontal, showButtons ? 24 : 0)
                 .contentShape(Rectangle())
                 .glassEffect(.regular.interactive())
+                .glassEffectID("mainContent", in: glassNamespace)
                 .animation(.spring(), value: showButtons)
             
                 
@@ -175,9 +180,11 @@ struct ScrollTimeView: View {
                     }
                     .buttonStyle(.plain)
                     .glassEffect(.regular.interactive().tint(.yellow))
-                    .transition(.blurReplace.combined(with: .scale))
+                    .glassEffectID("resetButton", in: glassNamespace)
+                    .glassEffectTransition(.matchedGeometry)
                 }
             }
+        }
         // Overall composer
         .padding(.horizontal, 16)
         .animation(.spring(), value: showButtons)
@@ -187,7 +194,7 @@ struct ScrollTimeView: View {
                     dragOffset = value.translation.width
                     let hours = hoursFromOffset(dragOffset)
                     
-                    // Hide buttons when starting a new drag
+                    // Hide buttons when starting a new drag with morph animation
                     if showButtons {
                         withAnimation(.spring()) {
                             showButtons = false
@@ -204,7 +211,7 @@ struct ScrollTimeView: View {
                     impactFeedback.prepare()
                     impactFeedback.impactOccurred()
                     
-                    // Show buttons after drag ends
+                    // Show buttons after drag ends with morph animation
                     withAnimation(.spring()) {
                         showButtons = true
                         dragOffset = 0

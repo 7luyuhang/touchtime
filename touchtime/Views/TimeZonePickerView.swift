@@ -11,6 +11,7 @@ struct TimeZonePickerView: View {
     @Environment(\.dismiss) var dismiss
     @Binding var worldClocks: [WorldClock]
     @State private var searchText = ""
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
     
     // 获取所有时区并创建城市名称
     var availableTimeZones: [(cityName: String, identifier: String)] {
@@ -129,7 +130,13 @@ struct TimeZonePickerView: View {
         let formatter = DateFormatter()
         formatter.timeZone = timeZone
         formatter.locale = Locale(identifier: "en_US_POSIX") // 确保时间格式一致
-        formatter.dateFormat = "HH:mm"
+        if use24HourFormat {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "h:mm a"
+            formatter.amSymbol = "am"
+            formatter.pmSymbol = "pm"
+        }
         return formatter.string(from: Date())
     }
 }

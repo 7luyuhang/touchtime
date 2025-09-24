@@ -9,7 +9,7 @@ import Foundation
 
 struct WorldClock: Identifiable, Codable, Equatable {
     let id: UUID
-    let cityName: String
+    var cityName: String
     let timeZoneIdentifier: String
     
     init(cityName: String, timeZoneIdentifier: String) {

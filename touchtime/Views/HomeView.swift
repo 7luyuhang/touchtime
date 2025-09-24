@@ -13,10 +13,16 @@ struct HomeView: View {
     @State private var currentDate = Date()
     @State private var showingAddClock = false
     @State private var timeOffset: TimeInterval = 0
+    @State private var showingRenameAlert = false
+    @State private var renamingClockId: UUID? = nil
+    @State private var renamingLocalTime = false
+    @State private var newClockName = ""
+    @State private var originalClockName = ""
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
     @AppStorage("showLocalTime") private var showLocalTime = true
+    @AppStorage("customLocalName") private var customLocalName = ""
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -44,16 +50,16 @@ struct HomeView: View {
                         Section {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    HStack(spacing: 6) {
+                                    HStack(spacing: 4) {
                                         Image(systemName: "location.fill")
-                                            .font(.caption)
-                                            .foregroundColor(.accentColor)
-                                        Text(localCityName)
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                        Text(customLocalName.isEmpty ? localCityName : customLocalName)
                                             .font(.headline)
                                     }
                                     Text("Local")
                                         .font(.subheadline)
-                                        .foregroundColor(.secondary)
+                                        .foregroundStyle(.secondary)
                                 }
                                 
                                 Spacer()
@@ -87,8 +93,18 @@ struct HomeView: View {
                                         return formatter.string(from: adjustedDate)
                                     }())
                                     .font(.subheadline)
-                                    .foregroundColor(.secondary)
+                                    .foregroundStyle(.secondary)
                                     .contentTransition(.numericText())
+                                }
+                            }
+                            .contextMenu {
+                                Button(action: {
+                                    renamingLocalTime = true
+                                    originalClockName = localCityName
+                                    newClockName = customLocalName.isEmpty ? localCityName : customLocalName
+                                    showingRenameAlert = true
+                                }) {
+                                    Label("Rename", systemImage: "pencil")
                                 }
                             }
                         }
@@ -102,7 +118,7 @@ struct HomeView: View {
                                 if showTimeDifference && !clock.timeDifference.isEmpty {
                                     Text(clock.timeDifference)
                                         .font(.subheadline)
-                                        .foregroundColor(.secondary)
+                                        .foregroundStyle(.secondary)
                                 }
                             }
                             
@@ -116,10 +132,11 @@ struct HomeView: View {
                             
                             Text(clock.currentDate(offset: timeOffset))
                                 .font(.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundStyle(.secondary)
                                 .contentTransition(.numericText())
                         }
                         }
+                        // Delete Time Row
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
                                 if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
@@ -131,6 +148,21 @@ struct HomeView: View {
                             }
                         }
                         .contextMenu {
+                            Button(action: {
+                                renamingLocalTime = false
+                                renamingClockId = clock.id
+                                // Get original name from timezone identifier
+                                let identifier = clock.timeZoneIdentifier
+                                let components = identifier.split(separator: "/")
+                                originalClockName = components.count >= 2 
+                                    ? String(components.last!).replacingOccurrences(of: "_", with: " ")
+                                    : String(identifier)
+                                newClockName = clock.cityName
+                                showingRenameAlert = true
+                            }) {
+                                Label("Rename", systemImage: "pencil")
+                            }
+                            
                             if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
                                 Button(action: {
                                     // Move to top
@@ -144,6 +176,8 @@ struct HomeView: View {
                                 }
                             }
                             
+                            Divider()
+
                             Button(role: .destructive, action: {
                                 // Delete
                                 if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
@@ -171,7 +205,7 @@ struct HomeView: View {
             .navigationTitle("Touch Time")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .navigationBarTrailing) {
                     Button(action: {
                         showingAddClock = true
                     }) {
@@ -179,7 +213,7 @@ struct HomeView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .navigationBarLeading) {
                     EditButton()
                 }
             }
@@ -194,6 +228,34 @@ struct HomeView: View {
             }
             .onAppear {
                 loadWorldClocks()
+            }
+            
+            // Rename
+            .alert("Rename", isPresented: $showingRenameAlert) {
+                TextField(originalClockName, text: $newClockName)
+                Button("Cancel", role: .cancel) {
+                    newClockName = ""
+                    originalClockName = ""
+                    renamingClockId = nil
+                    renamingLocalTime = false
+                }
+                Button("Save") {
+                    let nameToSave = newClockName.isEmpty ? originalClockName : newClockName
+                    
+                    if renamingLocalTime {
+                        customLocalName = nameToSave == localCityName ? "" : nameToSave
+                    } else if let clockId = renamingClockId,
+                              let index = worldClocks.firstIndex(where: { $0.id == clockId }) {
+                        worldClocks[index].cityName = nameToSave
+                        saveWorldClocks()
+                    }
+                    newClockName = ""
+                    originalClockName = ""
+                    renamingClockId = nil
+                    renamingLocalTime = false
+                }
+            } message: {
+                Text("Customize the name of this location")
             }
         }
     }
