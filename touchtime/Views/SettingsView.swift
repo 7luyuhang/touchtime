@@ -18,7 +18,7 @@ struct SettingsView: View {
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    // Format time for preview
+    // Format time for preview (time part only)
     func formatTime(use24Hour: Bool) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -27,11 +27,20 @@ struct SettingsView: View {
         if use24Hour {
             formatter.dateFormat = "HH:mm"
         } else {
-            formatter.dateFormat = "h:mm a"
-            formatter.amSymbol = "am"
-            formatter.pmSymbol = "pm"
+            formatter.dateFormat = "h:mm"
         }
         
+        return formatter.string(from: currentDate)
+    }
+    
+    // Format AM/PM for preview
+    func formatAMPM() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "Europe/London")
+        formatter.dateFormat = "a"
+        formatter.amSymbol = "am"
+        formatter.pmSymbol = "pm"
         return formatter.string(from: currentDate)
     }
     
@@ -55,7 +64,7 @@ struct SettingsView: View {
         let difference = (londonOffset - localOffset) / 3600
         
         if difference == 0 {
-            return "0HRS"
+            return "0h"
         } else if difference > 0 {
             return "+\(abs(difference))h"
         } else {
@@ -94,6 +103,7 @@ struct SettingsView: View {
                 }
                 
                 Section("Time Display") {
+                    
                     // Preview Section
                     VStack(alignment: .center, spacing: 8) {
                         
@@ -104,14 +114,13 @@ struct SettingsView: View {
                                     Text(timeDifference())
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
-                                        .contentTransition(.numericText())
                                     
                                     Spacer()
                                     
                                     Text(formatDate())
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
-                                        .contentTransition(.numericText())
+                                       
                                 }
                             } else {
                                 HStack {
@@ -120,29 +129,33 @@ struct SettingsView: View {
                                     Text(formatDate())
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
-                                        .contentTransition(.numericText())
+                                        
                                 }
                             }
                             
                             // Bottom row: City name and Time
                             HStack(alignment: .lastTextBaseline) {
-                                Text("London")
+                                Text("City")
                                     .font(.headline)
                                 
                                 Spacer()
                                 
-                                Text(formatTime(use24Hour: use24HourFormat))
-                                    .font(.system(size: 36))
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText())
-                                    .id(use24HourFormat)
+                                HStack(alignment: .lastTextBaseline) {
+                                    Text(formatTime(use24Hour: use24HourFormat))
+                                        .font(.system(size: 36))
+                                        .monospacedDigit()
+                                        
+                                    
+                                    if !use24HourFormat {
+                                        Text(formatAMPM())
+                                            .font(.headline)
+                                    }
+                                }
+                                .id(use24HourFormat)
                             }
-                            
-                            
-                            
                         }
                         .padding()
-                        .background(Color(UIColor.tertiarySystemGroupedBackground))
+                        .padding(.bottom, -4)
                         .clipShape(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
                         )
@@ -150,8 +163,7 @@ struct SettingsView: View {
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .stroke(Color.secondary.opacity(0.15), lineWidth: 1)
                         )
-                        
-                        
+
                         // Preview Text
                         Text("Preview")
                             .font(.caption)
@@ -161,6 +173,10 @@ struct SettingsView: View {
                     }
                     .padding(.bottom, -8)
                     .listRowSeparator(.hidden)
+                    
+                    
+                    
+                    
 
                     Toggle(isOn: $use24HourFormat) {
                         HStack {
@@ -184,7 +200,38 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section(header: Text("About"), footer: Text("Designed by yuhang in London.")) {
+                Section(header: Text("About"), footer: 
+                    HStack(spacing: 4) {
+                        Text("Designed by")
+                            .foregroundColor(.secondary)
+                            .font(.footnote)
+                        
+                        Menu {
+                            Link(destination: URL(string: "https://luyuhang.net")!) {
+                                Text("Website")
+                            }
+                            
+                            Link(destination: URL(string: "https://www.instagram.com/7ahang/")!) {
+                                Text("Instagram")
+                            }
+                            
+                            Link(destination: URL(string: "https://x.com/7luyuhang")!) {
+                                Text("X")
+                            }
+                        } label: {
+                            Text("yuhang")
+                                .font(.footnote)
+                                .fontWeight(.semibold)
+                        }
+                        .buttonStyle(.plain)
+                        
+                        Text("in London.")
+                            .foregroundColor(.secondary)
+                            .font(.footnote)
+                    }
+                    .foregroundStyle(.primary)
+                        
+                ) {
                     HStack {
                         Text("Version")
                         Spacer()

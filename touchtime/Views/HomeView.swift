@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import UIKit
 
 struct HomeView: View {
     @State private var worldClocks: [WorldClock] = []
@@ -40,6 +41,30 @@ struct HomeView: View {
         }
     }
     
+    // Copy time as text
+    func copyTimeAsText(cityName: String, timeZoneIdentifier: String) {
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        
+        if use24HourFormat {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "h:mma"
+        }
+        
+        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+        let timeString = formatter.string(from: adjustedDate).lowercased()
+        let textToCopy = "\(cityName) \(timeString)"
+        
+        UIPasteboard.general.string = textToCopy
+        
+        // Provide haptic feedback
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.prepare()
+        impactFeedback.impactOccurred()
+    }
+    
     var body: some View {
         NavigationView {
             ZStack(alignment: .bottom) {
@@ -51,9 +76,16 @@ struct HomeView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 // Top row: "Local" label and Date
                                 HStack {
-                                    Text("Local")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
+                                    
+                                    HStack (spacing: 4) {
+                                        Image(systemName: "location.fill")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                        
+                                        Text("Local")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                    }
                                     
                                     Spacer()
                                     
@@ -63,7 +95,7 @@ struct HomeView: View {
                                         formatter.locale = Locale(identifier: "en_US_POSIX")
                                         formatter.dateStyle = .medium
                                         formatter.timeStyle = .none
-                                        let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
                                         return formatter.string(from: adjustedDate)
                                     }())
                                     .font(.subheadline)
@@ -74,13 +106,11 @@ struct HomeView: View {
                                 // Bottom row: Location and Time (baseline aligned)
                                 HStack(alignment: .lastTextBaseline) {
                                     
-                                    HStack (spacing: 4) {
-                                        Image(systemName: "location.fill")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
+                                   
+                                
                                         Text(customLocalName.isEmpty ? localCityName : customLocalName)
                                             .font(.headline)
-                                    }
+                                    
                                     
                                     Spacer()
                                     
@@ -94,7 +124,7 @@ struct HomeView: View {
                                             } else {
                                                 formatter.dateFormat = "h:mm"
                                             }
-                                            let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                            let adjustedDate = currentDate.addingTimeInterval(timeOffset)
                                             return formatter.string(from: adjustedDate)
                                         }())
                                         .font(.system(size: 36))
@@ -109,7 +139,7 @@ struct HomeView: View {
                                                 formatter.dateFormat = "a"
                                                 formatter.amSymbol = "am"
                                                 formatter.pmSymbol = "pm"
-                                                let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
                                                 return formatter.string(from: adjustedDate)
                                             }())
                                             .font(.headline)
@@ -118,6 +148,13 @@ struct HomeView: View {
                                 }
                             }
                             .contextMenu {
+                                Button(action: {
+                                    let cityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                    copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
+                                }) {
+                                    Label("Copy as Text", systemImage: "quote.closing")
+                                }
+                                
                                 Button(action: {
                                     renamingLocalTime = true
                                     originalClockName = localCityName
@@ -141,7 +178,7 @@ struct HomeView: View {
                                     
                                     Spacer()
                                     
-                                    Text(clock.currentDate(offset: timeOffset))
+                                    Text(clock.currentDate(baseDate: currentDate, offset: timeOffset))
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                         .contentTransition(.numericText())
@@ -150,7 +187,7 @@ struct HomeView: View {
                                 HStack {
                                     Spacer()
                                     
-                                    Text(clock.currentDate(offset: timeOffset))
+                                    Text(clock.currentDate(baseDate: currentDate, offset: timeOffset))
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                         .contentTransition(.numericText())
@@ -174,7 +211,7 @@ struct HomeView: View {
                                         } else {
                                             formatter.dateFormat = "h:mm"
                                         }
-                                        let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
                                         return formatter.string(from: adjustedDate)
                                     }())
                                     .font(.system(size: 36))
@@ -189,7 +226,7 @@ struct HomeView: View {
                                             formatter.dateFormat = "a"
                                             formatter.amSymbol = "am"
                                             formatter.pmSymbol = "pm"
-                                            let adjustedDate = Date().addingTimeInterval(timeOffset)
+                                            let adjustedDate = currentDate.addingTimeInterval(timeOffset)
                                             return formatter.string(from: adjustedDate)
                                         }())
                                         .font(.headline)
@@ -210,6 +247,12 @@ struct HomeView: View {
                         }
                         // Context Menu
                         .contextMenu {
+                            Button(action: {
+                                copyTimeAsText(cityName: clock.cityName, timeZoneIdentifier: clock.timeZoneIdentifier)
+                            }) {
+                                Label("Copy as Text", systemImage: "quote.closing")
+                            }
+                            
                             Button(action: {
                                 renamingLocalTime = false
                                 renamingClockId = clock.id

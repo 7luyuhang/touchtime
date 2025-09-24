@@ -51,18 +51,18 @@ struct WorldClock: Identifiable, Codable, Equatable {
         if difference == 0 {
             return ""
         } else if difference > 0 {
-            return "+\(difference)HRS"
+            return "+\(difference)h"
         } else {
-            return "\(difference)HRS"
+            return "\(difference)h"
         }
     }
     
-    func currentDate(offset: TimeInterval = 0) -> String {
+    func currentDate(baseDate: Date = Date(), offset: TimeInterval = 0) -> String {
         guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
             return ""
         }
         
-        let now = Date().addingTimeInterval(offset)
+        let now = baseDate.addingTimeInterval(offset)
         
         // 创建用于本地时区的日历
         let localCalendar = Calendar.current
@@ -72,7 +72,7 @@ struct WorldClock: Identifiable, Codable, Equatable {
         targetCalendar.timeZone = targetTimeZone
         
         // 获取本地时区的今天
-        let localToday = localCalendar.dateComponents([.year, .month, .day], from: Date().addingTimeInterval(offset))
+        let localToday = localCalendar.dateComponents([.year, .month, .day], from: baseDate.addingTimeInterval(offset))
         
         // 获取目标时区的当前日期
         let targetDate = targetCalendar.dateComponents([.year, .month, .day], from: now)
@@ -84,7 +84,7 @@ struct WorldClock: Identifiable, Codable, Equatable {
             return "Today"
         } else {
             // 检查是否是明天
-            if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: Date().addingTimeInterval(offset)) {
+            if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: baseDate.addingTimeInterval(offset)) {
                 let localTomorrow = localCalendar.dateComponents([.year, .month, .day], from: tomorrow)
                 if targetDate.year == localTomorrow.year &&
                    targetDate.month == localTomorrow.month &&
@@ -94,7 +94,7 @@ struct WorldClock: Identifiable, Codable, Equatable {
             }
             
             // 检查是否是昨天
-            if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: Date().addingTimeInterval(offset)) {
+            if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: baseDate.addingTimeInterval(offset)) {
                 let localYesterday = localCalendar.dateComponents([.year, .month, .day], from: yesterday)
                 if targetDate.year == localYesterday.year &&
                    targetDate.month == localYesterday.month &&
