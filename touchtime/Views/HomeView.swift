@@ -334,16 +334,27 @@ struct HomeView: View {
                             isEditing.toggle()
                         }
                     }) {
-                        Text(isEditing ? "Done" : "Edit")
+                        Group {
+                            if isEditing {
+                                Image(systemName: "checkmark")
+                            } else {
+                                Text("Edit")
+                            }
+                        }
+                        .id(isEditing)
+                        .transition(.blurReplace)
+                        .animation(.spring(), value: isEditing)
                     }
                 }
             }
+            
             .sheet(isPresented: $showingAddClock) {
                 TimeZonePickerView(worldClocks: $worldClocks)
                     .onDisappear {
                         saveWorldClocks()
                     }
             }
+
             .onReceive(timer) { _ in
                 currentDate = Date()
             }
