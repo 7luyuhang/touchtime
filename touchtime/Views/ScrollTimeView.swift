@@ -10,8 +10,8 @@ import EventKit
 
 struct ScrollTimeView: View {
     @Binding var timeOffset: TimeInterval
+    @Binding var showButtons: Bool
     @State private var dragOffset: CGFloat = 0
-    @State private var showButtons: Bool = false
     @State private var eventStore = EKEventStore()
     @Namespace private var glassNamespace
     

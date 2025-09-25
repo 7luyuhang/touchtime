@@ -160,7 +160,7 @@ struct SettingsView: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                                .stroke(Color.secondary.opacity(0.15), lineWidth: 1)
+                                .stroke(Color.secondary.opacity(0.15), lineWidth: 1.5)
                         )
 
                         // Preview Text

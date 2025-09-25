@@ -19,6 +19,8 @@ struct HomeView: View {
     @State private var renamingLocalTime = false
     @State private var newClockName = ""
     @State private var originalClockName = ""
+    @State private var isEditing = false
+    @State private var showScrollTimeButtons = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
@@ -234,17 +236,19 @@ struct HomeView: View {
                                 }
                             }
                         }
-                        // Delete Time Row
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                    worldClocks.remove(at: index)
-                                    saveWorldClocks()
-                                }
-                            } label: {
-                                Label("", systemImage: "trash")
-                            }
-                        }
+                        
+                        // Swipe to delete time
+//                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+//                            Button(role: .destructive) {
+//                                if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
+//                                    worldClocks.remove(at: index)
+//                                    saveWorldClocks()
+//                                }
+//                            } label: {
+//                                Label("", systemImage: "trash")
+//                            }
+//                        }
+                        
                         // Context Menu
                         .contextMenu {
                             Button(action: {
@@ -301,12 +305,17 @@ struct HomeView: View {
                     
                 }
                 
-                // Scroll Time View
-                ScrollTimeView(timeOffset: $timeOffset)
-                    .padding(.horizontal)
-                    .padding(.bottom, 16)
-
+                // Scroll Time View - Hide when in edit mode
+                if !isEditing {
+                    ScrollTimeView(timeOffset: $timeOffset, showButtons: $showScrollTimeButtons)
+                        .padding(.horizontal)
+                        .padding(.bottom, 16)
+                        .transition(.blurReplace)
+                }
             }
+            .animation(.spring, value: isEditing)
+            .environment(\.editMode, .constant(isEditing ? .active : .inactive))
+            
             .navigationTitle("Touch Time")
             .navigationBarTitleDisplayMode(.inline)
             
@@ -320,7 +329,13 @@ struct HomeView: View {
                 }
                 
                 ToolbarItem(placement: .navigationBarLeading) {
-                    EditButton()
+                    Button(action: {
+                        withAnimation(.spring()) {
+                            isEditing.toggle()
+                        }
+                    }) {
+                        Text(isEditing ? "Done" : "Edit")
+                    }
                 }
             }
             .sheet(isPresented: $showingAddClock) {
