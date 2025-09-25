@@ -26,6 +26,7 @@ struct HomeView: View {
     @AppStorage("showTimeDifference") private var showTimeDifference = true
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("customLocalName") private var customLocalName = ""
+    @AppStorage("showSkyDot") private var showSkyDot = true
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -112,6 +113,8 @@ struct HomeView: View {
                                 
                                         Text(customLocalName.isEmpty ? localCityName : customLocalName)
                                             .font(.headline)
+                                            .lineLimit(1)
+                                            .truncationMode(.middle)
                                     
                                     
                                     Spacer()
@@ -174,6 +177,13 @@ struct HomeView: View {
                             // Top row: Time difference and Date
                             if showTimeDifference && !clock.timeDifference.isEmpty {
                                 HStack {
+                                    if showSkyDot {
+                                        SkyDotView(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZoneIdentifier: clock.timeZoneIdentifier
+                                        )
+                                    }
+                                    
                                     Text(clock.timeDifference)
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
@@ -187,6 +197,13 @@ struct HomeView: View {
                                 }
                             } else {
                                 HStack {
+                                    if showSkyDot {
+                                        SkyDotView(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZoneIdentifier: clock.timeZoneIdentifier
+                                        )
+                                    }
+                                    
                                     Spacer()
                                     
                                     Text(clock.currentDate(baseDate: currentDate, offset: timeOffset))
@@ -200,6 +217,8 @@ struct HomeView: View {
                             HStack(alignment: .lastTextBaseline) {
                                 Text(clock.cityName)
                                     .font(.headline)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
                                 
                                 Spacer()
                                 
@@ -326,6 +345,7 @@ struct HomeView: View {
                     }) {
                         Image(systemName: "plus")
                     }
+                    .disabled(isEditing)
                 }
                 
                 ToolbarItem(placement: .navigationBarLeading) {

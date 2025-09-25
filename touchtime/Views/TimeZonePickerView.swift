@@ -256,11 +256,20 @@ struct TimeZonePickerView: View {
                                                     .font(.subheadline)
                                             }
                                             Spacer()
-                                            // 显示当前时间预览
-                                            if let tz = TimeZone(identifier: timeZone.identifier) {
-                                                Text(currentTime(for: tz))
-                                                    .foregroundStyle(.secondary)
-                                                    .monospacedDigit()
+                                            // 显示当前时间预览和已添加标记
+                                            HStack(spacing: 8) {
+                                                if let tz = TimeZone(identifier: timeZone.identifier) {
+                                                    Text(currentTime(for: tz))
+                                                        .foregroundStyle(.secondary)
+                                                        .monospacedDigit()
+                                                }
+                                                
+                                                // 如果已经添加，显示勾选图标
+                                                if worldClocks.contains(where: { $0.timeZoneIdentifier == timeZone.identifier }) {
+                                                    Image(systemName: "checkmark")
+                                                        .font(.subheadline)
+                                                        .fontWeight(.medium)
+                                                }
                                             }
                                         }
                                         .contentShape(Rectangle())
@@ -274,6 +283,7 @@ struct TimeZonePickerView: View {
                 }
             }
             .searchable(text: $searchText, prompt: "Search")
+            
             // Title
             .navigationTitle("Choose a City")
             .navigationBarTitleDisplayMode(.inline)

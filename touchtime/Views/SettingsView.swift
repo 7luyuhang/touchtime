@@ -13,6 +13,7 @@ struct SettingsView: View {
     @AppStorage("showTimeDifference") private var showTimeDifference = true
     @AppStorage("appearanceMode") private var appearanceMode = "system"
     @AppStorage("showLocalTime") private var showLocalTime = true
+    @AppStorage("showSkyDot") private var showSkyDot = true
     @State private var currentDate = Date()
     
     // Timer for updating the preview
@@ -97,7 +98,7 @@ struct SettingsView: View {
                                 .fontWeight(.medium)
                                 .frame(width: 28)
                                 .foregroundStyle(.secondary)
-                            Text("Show Local Time")
+                            Text("Local Time")
                         }
                     }
                 }
@@ -111,6 +112,13 @@ struct SettingsView: View {
                             // Top row: Time difference and Date
                             if showTimeDifference {
                                 HStack {
+                                    if showSkyDot {
+                                        SkyDotView(
+                                            date: currentDate,
+                                            timeZoneIdentifier: "Europe/London"
+                                        )
+                                    }
+                                    
                                     Text(timeDifference())
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
@@ -124,6 +132,13 @@ struct SettingsView: View {
                                 }
                             } else {
                                 HStack {
+                                    if showSkyDot {
+                                        SkyDotView(
+                                            date: currentDate,
+                                            timeZoneIdentifier: "Europe/London"
+                                        )
+                                    }
+                                    
                                     Spacer()
                                     
                                     Text(formatDate())
@@ -173,10 +188,8 @@ struct SettingsView: View {
                     .padding(.bottom, -8)
                     .listRowSeparator(.hidden)
                     
-                    
-                    
-                    
 
+                    // Options in Settings
                     Toggle(isOn: $use24HourFormat) {
                         HStack {
                             Image(systemName: "24.circle")
@@ -188,15 +201,27 @@ struct SettingsView: View {
                         
                     }
                     
+                    Toggle(isOn: $showSkyDot) {
+                        HStack {
+                            Image(systemName: "sun.lefthalf.filled")
+                                .fontWeight(.medium)
+                                .frame(width: 28)
+                                .foregroundStyle(.secondary)
+                            Text("Sky Colour")
+                        }
+                    }
+                    
                     Toggle(isOn: $showTimeDifference) {
                         HStack {
                             Image(systemName: "plusminus")
                                 .fontWeight(.medium)
                                 .frame(width: 28)
                                 .foregroundStyle(.secondary)
-                            Text("Show Time Difference")
+                            Text("Time Difference")
                         }
                     }
+                    
+                    
                 }
                 
                 Section(header: Text("About"), footer: 

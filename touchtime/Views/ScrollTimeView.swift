@@ -143,6 +143,7 @@ struct ScrollTimeView: View {
     var body: some View {
         GlassEffectContainer(spacing: 16) {
             HStack(spacing: 16) {
+                
                 // More button with menu (left side)
                 if showButtons {
                     Menu {
@@ -171,86 +172,84 @@ struct ScrollTimeView: View {
                     
                     // Main content
                     HStack {
-                // Time adjustment indicator
-                if dragOffset != 0 {
-                    let totalHours = hoursFromOffset(dragOffset)
-                    let isPositive = totalHours >= 0
-                    let absoluteHours = abs(totalHours)
-                    let hours = Int(absoluteHours)
-                    let minutes = Int((absoluteHours - Double(hours)) * 60)
-                    let sign = isPositive ? "+" : "-"
-                    
-                    Text({
-                        var result = sign
-                        if hours > 0 && minutes > 0 {
-                            result += "\(hours)h \(minutes)m"
-                        } else if hours > 0 {
-                            result += "\(hours)h"
-                        } else if minutes > 0 {
-                            result += "\(minutes)m"
+                        // Time adjustment indicator
+                        if dragOffset != 0 {
+                            // During dragging - Chevron
+                            Image(systemName: "chevron.backward")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                                .id("chevron.left.dragging")
+                                .transition(.blurReplace)
+                            
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.primary)
+                                .id("chevron.right.dragging")
+                                .transition(.blurReplace)
+                            
+                        } else if timeOffset != 0 {
+                            let totalHours = timeOffset / 3600
+                            let isPositive = totalHours >= 0
+                            let absoluteHours = abs(totalHours)
+                            let hours = Int(absoluteHours)
+                            let minutes = Int((absoluteHours - Double(hours)) * 60)
+                            let sign = isPositive ? "+" : "-"
+                            
+                            Text({
+                                var result = sign
+                                if hours > 0 && minutes > 0 {
+                                    result += "\(hours)h \(minutes)m"
+                                } else if hours > 0 {
+                                    result += "\(hours)h"
+                                } else if minutes > 0 {
+                                    result += "\(minutes)m"
+                                } else {
+                                    result += "0m"
+                                }
+                                return result
+                            }())
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .transition(.blurReplace)
+                            
                         } else {
-                            result += "0m"
-                        }
-                        return result
-                    }())
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .contentTransition(.numericText())
-                    .animation(.spring(), value: totalHours)
-                        
-                } else if timeOffset != 0 {
-                    let totalHours = timeOffset / 3600
-                    let isPositive = totalHours >= 0
-                    let absoluteHours = abs(totalHours)
-                    let hours = Int(absoluteHours)
-                    let minutes = Int((absoluteHours - Double(hours)) * 60)
-                    let sign = isPositive ? "+" : "-"
-                    
-                    Text({
-                        var result = sign
-                        if hours > 0 && minutes > 0 {
-                            result += "\(hours)h \(minutes)m"
-                        } else if hours > 0 {
-                            result += "\(hours)h"
-                        } else if minutes > 0 {
-                            result += "\(minutes)m"
-                        } else {
-                            result += "0m"
-                        }
-                        return result
-                    }())
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                        
-                    } else {
-                        // Swipe to Adjust Time
-                        HStack {
+                            // Slide to Adjust Time
                             Image(systemName: "chevron.backward")
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.tertiary)
-                                
+                                .id("chevron.left.idle")
+                                .transition(.blurReplace)
+                            
                             Spacer()
                             
                             Text("Slide to Adjust")
-                            .foregroundColor(.secondary)
+                                .fontWeight(.medium)
+                                .foregroundColor(.secondary)
+                                .transition(.blurReplace)
                             
                             Spacer()
+                            
                             Image(systemName: "chevron.right")
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.tertiary)
+                                .id("chevron.right.idle")
+                                .transition(.blurReplace)
                         }
-                        .padding(.horizontal)
-                        .font(.subheadline)
-                        
                     }
-                }
+                    .padding(.horizontal)
+                    .font(.subheadline)
+                
+                    .animation(.spring(duration: 0.25), value: dragOffset)
+                    .animation(.spring(duration: 0.25), value: timeOffset)
+                
                 .frame(maxWidth: showButtons ? nil : .infinity)
                 .frame(height: 52)
                 .padding(.horizontal, showButtons ? 24 : 0)
                 .contentShape(Rectangle())
                 .glassEffect(.regular.interactive())
                 .glassEffectID("mainContent", in: glassNamespace)
-                .animation(.spring(), value: showButtons)
             
                 
                 // Reset button (right side)
@@ -269,29 +268,25 @@ struct ScrollTimeView: View {
                     .glassEffectTransition(.matchedGeometry)
                 }
             }
+            .animation(.spring(), value: showButtons)
         }
         
         // Overall composer
         .padding(.horizontal, 16)
-        .animation(.spring(), value: showButtons)
         .gesture(
             DragGesture()
                 .onChanged { value in
+                    // Prevent dragging after buttons appear
+                    guard !showButtons else { return }
+                    
                     dragOffset = value.translation.width
                     let hours = hoursFromOffset(dragOffset)
-                    
-                    // Hide buttons when starting a new drag with morph animation
-                    if showButtons {
-                        withAnimation(.spring()) {
-                            showButtons = false
-                        }
-                    }
-                    
-                    withAnimation(.spring()) {
-                        timeOffset = hours * 3600 // Convert hours to seconds
-                    }
+                    timeOffset = hours * 3600 // Convert hours to seconds
                 }
                 .onEnded { _ in
+                    // Prevent drag end action if buttons are already showing
+                    guard !showButtons else { return }
+                    
                     // Add haptic feedback when releasing
                     let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
                     impactFeedback.prepare()
