@@ -20,7 +20,7 @@ struct ContentView: View {
             }
             
             Tab("Settings", systemImage: "gear") {
-                SettingsView()
+                SettingsView(worldClocks: $worldClocks)
             }
             
             Tab(role: .search) {

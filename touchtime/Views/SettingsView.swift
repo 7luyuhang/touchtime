@@ -9,12 +9,14 @@ import SwiftUI
 import Combine
 
 struct SettingsView: View {
+    @Binding var worldClocks: [WorldClock]
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
     @AppStorage("appearanceMode") private var appearanceMode = "system"
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @State private var currentDate = Date()
+    @State private var showResetConfirmation = false
     
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -177,18 +179,19 @@ struct SettingsView: View {
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
                                 .stroke(Color.secondary.opacity(0.15), lineWidth: 1.5)
                         )
-
+                        
                         // Preview Text
                         Text("Preview")
                             .font(.caption)
                             .fontWeight(.semibold)
                             .foregroundStyle(.secondary)
                             .textCase(.uppercase)
+                            .multilineTextAlignment(.center)
+    
                     }
-                    .padding(.bottom, -8)
                     .listRowSeparator(.hidden)
                     
-
+                    
                     // Options in Settings
                     Toggle(isOn: $showSkyDot) {
                         HStack {
@@ -220,8 +223,23 @@ struct SettingsView: View {
                         }
                         
                     }
-                    
-                    
+
+                }
+                
+                // Reset Section
+                Section(footer: Text("Reset time list to default settings.")) {
+                    Button(action: {
+                        showResetConfirmation = true
+                    }) {
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                                .fontWeight(.medium)
+                                .frame(width: 28)
+                                .foregroundStyle(.secondary)
+                            Text("Reset")
+                        }
+                    }
+                    .foregroundStyle(.primary)
                 }
                 
                 Section(header: Text("About"), footer: 
@@ -280,10 +298,34 @@ struct SettingsView: View {
             .onReceive(timer) { _ in
                 currentDate = Date()
             }
+            
+            .confirmationDialog("Reset to Default", isPresented: $showResetConfirmation) {
+                Button("Reset", role: .destructive) {
+                    resetToDefault()
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This will reset all cities to the default list.")
+            }
         }
     }
-}
-
-#Preview {
-    SettingsView()
+    
+    // UserDefaults key for storing world clocks
+    private let worldClocksKey = "savedWorldClocks"
+    
+    // Reset to default clocks
+    func resetToDefault() {
+        // Set to default clocks
+        worldClocks = WorldClockData.defaultClocks
+        
+        // Save to UserDefaults
+        if let encoded = try? JSONEncoder().encode(worldClocks) {
+            UserDefaults.standard.set(encoded, forKey: worldClocksKey)
+        }
+        
+        // Provide haptic feedback
+        let impactFeedback = UINotificationFeedbackGenerator()
+        impactFeedback.prepare()
+        impactFeedback.notificationOccurred(.success)
+    }
 }

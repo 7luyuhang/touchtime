@@ -249,6 +249,7 @@ struct ScrollTimeView: View {
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                                 .foregroundColor(.primary)
+                                .monospacedDigit()
                             }
                             .buttonStyle(.plain)
                             .transition(.blurReplace)
@@ -299,12 +300,12 @@ struct ScrollTimeView: View {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.system(size: 20))
                             .fontWeight(.medium)
-                            .foregroundColor(.black)
+                            .foregroundColor(.primary)
                             .frame(width: 52, height: 52)
                     }
                     .buttonStyle(.plain)
                     .clipShape(Circle())
-                    .glassEffect(.regular.interactive().tint(.yellow))
+                    .glassEffect(.regular.interactive())
                     .glassEffectID("resetButton", in: glassNamespace)
                     .glassEffectTransition(.matchedGeometry)
                 }

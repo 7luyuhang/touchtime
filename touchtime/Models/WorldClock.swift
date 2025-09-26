@@ -62,7 +62,8 @@ struct WorldClock: Identifiable, Codable, Equatable {
             return ""
         }
         
-        let now = baseDate.addingTimeInterval(offset)
+        // The adjusted time for the target timezone
+        let adjustedTime = baseDate.addingTimeInterval(offset)
         
         // 创建用于本地时区的日历
         let localCalendar = Calendar.current
@@ -71,11 +72,11 @@ struct WorldClock: Identifiable, Codable, Equatable {
         var targetCalendar = Calendar.current
         targetCalendar.timeZone = targetTimeZone
         
-        // 获取本地时区的今天
-        let localToday = localCalendar.dateComponents([.year, .month, .day], from: baseDate.addingTimeInterval(offset))
+        // 获取本地时区的今天（基于原始 baseDate，不加 offset）
+        let localToday = localCalendar.dateComponents([.year, .month, .day], from: baseDate)
         
-        // 获取目标时区的当前日期
-        let targetDate = targetCalendar.dateComponents([.year, .month, .day], from: now)
+        // 获取目标时区的日期（基于调整后的时间）
+        let targetDate = targetCalendar.dateComponents([.year, .month, .day], from: adjustedTime)
         
         // 如果目标时区的日期与本地的今天相同，显示 "Today"
         if targetDate.year == localToday.year &&
@@ -83,8 +84,8 @@ struct WorldClock: Identifiable, Codable, Equatable {
            targetDate.day == localToday.day {
             return "Today"
         } else {
-            // 检查是否是明天
-            if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: baseDate.addingTimeInterval(offset)) {
+            // 检查是否是明天（基于原始 baseDate 计算）
+            if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: baseDate) {
                 let localTomorrow = localCalendar.dateComponents([.year, .month, .day], from: tomorrow)
                 if targetDate.year == localTomorrow.year &&
                    targetDate.month == localTomorrow.month &&
@@ -93,8 +94,8 @@ struct WorldClock: Identifiable, Codable, Equatable {
                 }
             }
             
-            // 检查是否是昨天
-            if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: baseDate.addingTimeInterval(offset)) {
+            // 检查是否是昨天（基于原始 baseDate 计算）
+            if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: baseDate) {
                 let localYesterday = localCalendar.dateComponents([.year, .month, .day], from: yesterday)
                 if targetDate.year == localYesterday.year &&
                    targetDate.month == localYesterday.month &&
@@ -110,7 +111,7 @@ struct WorldClock: Identifiable, Codable, Equatable {
             formatter.dateStyle = .medium
             formatter.timeStyle = .none
             
-            return formatter.string(from: now)
+            return formatter.string(from: adjustedTime)
         }
     }
 }
@@ -118,15 +119,10 @@ struct WorldClock: Identifiable, Codable, Equatable {
 // Default world clocks data
 struct WorldClockData {
     static let defaultClocks: [WorldClock] = [
-        WorldClock(cityName: "San Francisco", timeZoneIdentifier: "America/Los_Angeles"),
-        WorldClock(cityName: "New York", timeZoneIdentifier: "America/New_York"),
         WorldClock(cityName: "London", timeZoneIdentifier: "Europe/London"),
-        WorldClock(cityName: "Paris", timeZoneIdentifier: "Europe/Paris"),
+        WorldClock(cityName: "Shanghai", timeZoneIdentifier: "Asia/Shanghai"),
         WorldClock(cityName: "Tokyo", timeZoneIdentifier: "Asia/Tokyo"),
-        WorldClock(cityName: "Sydney", timeZoneIdentifier: "Australia/Sydney"),
-        WorldClock(cityName: "Beijing", timeZoneIdentifier: "Asia/Shanghai"),
-        WorldClock(cityName: "Dubai", timeZoneIdentifier: "Asia/Dubai"),
-        WorldClock(cityName: "Moscow", timeZoneIdentifier: "Europe/Moscow"),
-        WorldClock(cityName: "Singapore", timeZoneIdentifier: "Asia/Singapore")
+        WorldClock(cityName: "Los Angeles", timeZoneIdentifier: "America/Los_Angeles"),
+        WorldClock(cityName: "New York", timeZoneIdentifier: "America/New_York")
     ]
 }
