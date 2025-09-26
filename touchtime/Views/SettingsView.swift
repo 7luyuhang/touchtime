@@ -106,7 +106,7 @@ struct SettingsView: View {
                 Section("Time Display") {
                     
                     // Preview Section
-                    VStack(alignment: .center, spacing: 8) {
+                    VStack(alignment: .center, spacing: 10) {
                         
                         VStack(alignment: .leading, spacing: 4) {
                             // Top row: Time difference and Date
@@ -190,17 +190,6 @@ struct SettingsView: View {
                     
 
                     // Options in Settings
-                    Toggle(isOn: $use24HourFormat) {
-                        HStack {
-                            Image(systemName: "24.circle")
-                                .fontWeight(.medium)
-                                .frame(width: 28)
-                                .foregroundStyle(.secondary)
-                            Text("24-Hour Format")
-                        }
-                        
-                    }
-                    
                     Toggle(isOn: $showSkyDot) {
                         HStack {
                             Image(systemName: "sun.lefthalf.filled")
@@ -219,6 +208,17 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                             Text("Time Difference")
                         }
+                    }
+                    
+                    Toggle(isOn: $use24HourFormat) {
+                        HStack {
+                            Image(systemName: "24.circle")
+                                .fontWeight(.medium)
+                                .frame(width: 28)
+                                .foregroundStyle(.secondary)
+                            Text("24-Hour Format")
+                        }
+                        
                     }
                     
                     
@@ -262,6 +262,17 @@ struct SettingsView: View {
                         Text("1.0.0")
                             .foregroundColor(.secondary)
                     }
+                    
+                    
+                    Button(action: {
+                        if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=TouchTime%20Feedback") {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+
+                            Text("Send Feedback")
+                    }
+                    .foregroundColor(.primary)
                 }
             }
             .navigationTitle("Settings")

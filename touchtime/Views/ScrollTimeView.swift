@@ -13,6 +13,7 @@ struct ScrollTimeView: View {
     @Binding var showButtons: Bool
     @State private var dragOffset: CGFloat = 0
     @State private var eventStore = EKEventStore()
+    @State private var showTimePicker = false
     @Namespace private var glassNamespace
     
     // Calculate hours from drag offset
@@ -174,20 +175,49 @@ struct ScrollTimeView: View {
                     HStack {
                         // Time adjustment indicator
                         if dragOffset != 0 {
-                            // During dragging - Chevron
-                            Image(systemName: "chevron.backward")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
-                                .id("chevron.left.dragging")
-                                .transition(.blurReplace)
-                            
-                            Spacer()
-
-                            Image(systemName: "chevron.right")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.primary)
-                                .id("chevron.right.dragging")
-                                .transition(.blurReplace)
+                            // During dragging - ZStack with dots and chevrons
+                            ZStack {
+                                // Dots indicator in the background
+                                HStack(spacing: 8) {
+                                    ForEach(0..<24) { index in
+                                        Capsule()
+                                            .fill(.primary.opacity({
+                                                // Calculate opacity based on distance from center
+                                                let center = 11.5 // Center of 24 items (0-23)
+                                                let distance = abs(Double(index) - center)
+                                                let maxDistance = 11.5
+                                                let opacity = 1.0 * (1 - (distance / maxDistance)) // From 1 at center to 0 at edges
+                                                return opacity
+                                            }()))
+                                            .frame(width: 2, height: 12)
+                                            .blur(radius: {
+                                                // Calculate blur based on distance from center
+                                                let center = 11.5 // Center of 24 items (0-23)
+                                                let distance = abs(Double(index) - center)
+                                                let maxDistance = 11.5
+                                                let blurAmount = (distance / maxDistance) * 1 // Max blur of 1
+                                                return blurAmount
+                                            }())
+                                    }
+                                }
+                                
+                                // Chevrons in the foreground
+                                HStack {
+                                    Image(systemName: "chevron.backward")
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.primary)
+                                        .id("chevron.left.dragging")
+                                        .transition(.blurReplace)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.right")
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.primary)
+                                        .id("chevron.right.dragging")
+                                        .transition(.blurReplace)
+                                }
+                            }
                             
                         } else if timeOffset != 0 {
                             let totalHours = timeOffset / 3600
@@ -199,22 +229,28 @@ struct ScrollTimeView: View {
                             
                             Spacer()
                             
-                            // Final time text
-                            Text({
-                                var result = sign
-                                if hours > 0 && minutes > 0 {
-                                    result += "\(hours)h \(minutes)m"
-                                } else if hours > 0 {
-                                    result += "\(hours)h"
-                                } else if minutes > 0 {
-                                    result += "\(minutes)m"
-                                } else {
-                                    result += "0m"
-                                }
-                                return result
-                            }())
-                            .font(.subheadline)
-                            .fontWeight(.medium)
+                            // Final time text (tappable)
+                            Button(action: {
+                                showTimePicker = true
+                            }) {
+                                Text({
+                                    var result = sign
+                                    if hours > 0 && minutes > 0 {
+                                        result += "\(hours)h \(minutes)m"
+                                    } else if hours > 0 {
+                                        result += "\(hours)h"
+                                    } else if minutes > 0 {
+                                        result += "\(minutes)m"
+                                    } else {
+                                        result += "0m"
+                                    }
+                                    return result
+                                }())
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                            }
+                            .buttonStyle(.plain)
                             .transition(.blurReplace)
                             
                             Spacer()
@@ -304,5 +340,11 @@ struct ScrollTimeView: View {
                     }
                 }
         )
+        .sheet(isPresented: $showTimePicker) {
+            TimeOffsetPickerView(
+                timeOffset: $timeOffset,
+                showTimePicker: $showTimePicker
+            )
+        }
     }
 }
