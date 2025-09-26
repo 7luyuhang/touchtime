@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Combine
 
 struct SearchTabView: View {
     @Binding var worldClocks: [WorldClock]
@@ -22,6 +23,10 @@ struct TimeZonePickerViewWrapper: View {
     @Binding var worldClocks: [WorldClock]
     @State private var searchText = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @State private var currentDate = Date()
+    
+    // Timer to update time every second
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Get all time zones and create city name and country/region information
     var availableTimeZones: [(cityName: String, region: String, identifier: String)] {
@@ -254,7 +259,7 @@ struct TimeZonePickerViewWrapper: View {
                                     
                                 ForEach(groupedTimeZones[key] ?? [], id: \.identifier) { timeZone in
                                     Button(action: {
-                                        addClock(cityName: timeZone.cityName, identifier: timeZone.identifier)
+                                        toggleClock(cityName: timeZone.cityName, identifier: timeZone.identifier)
                                     }) {
                                         HStack {
                                             VStack(alignment: .leading) {
@@ -278,6 +283,7 @@ struct TimeZonePickerViewWrapper: View {
                                                     Image(systemName: "checkmark")
                                                         .font(.subheadline)
                                                         .fontWeight(.semibold)
+                                                        .transition(.blurReplace.combined(with: .scale))
                                                 }
                                             }
                                         }
@@ -291,23 +297,32 @@ struct TimeZonePickerViewWrapper: View {
                     .listStyle(.insetGrouped)
                 }
             }
-            .searchable(text: $searchText, prompt: "Search")
+            .searchable(text: $searchText, prompt: "Cities & Countries")
             .navigationTitle("Cities")
             .navigationBarTitleDisplayMode(.inline)
+        }
+        .onReceive(timer) { _ in
+            currentDate = Date()
         }
     }
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
     
-    // Add clock
-    func addClock(cityName: String, identifier: String) {
-        let newClock = WorldClock(cityName: cityName, timeZoneIdentifier: identifier)
-        
-        // Check if the same timezone already exists
-        if !worldClocks.contains(where: { $0.timeZoneIdentifier == identifier }) {
-            worldClocks.append(newClock)
-            saveWorldClocks()
+    // Toggle clock selection
+    func toggleClock(cityName: String, identifier: String) {
+        withAnimation(.spring(duration: 0.25)) {
+            // Check if the same timezone already exists
+            if let index = worldClocks.firstIndex(where: { $0.timeZoneIdentifier == identifier }) {
+                // If exists, remove it
+                worldClocks.remove(at: index)
+                saveWorldClocks()
+            } else {
+                // If doesn't exist, add it
+                let newClock = WorldClock(cityName: cityName, timeZoneIdentifier: identifier)
+                worldClocks.append(newClock)
+                saveWorldClocks()
+            }
         }
     }
     
@@ -330,7 +345,7 @@ struct TimeZonePickerViewWrapper: View {
             formatter.amSymbol = "am"
             formatter.pmSymbol = "pm"
         }
-        return formatter.string(from: Date())
+        return formatter.string(from: currentDate)
     }
 }
 

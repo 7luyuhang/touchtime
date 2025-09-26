@@ -256,23 +256,23 @@ struct SettingsView: View {
                     .foregroundStyle(.primary)
                         
                 ) {
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text("1.0.0")
-                            .foregroundColor(.secondary)
-                    }
-                    
                     
                     Button(action: {
                         if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=TouchTime%20Feedback") {
                             UIApplication.shared.open(url)
                         }
                     }) {
-
                             Text("Send Feedback")
                     }
-                    .foregroundColor(.primary)
+                    .foregroundStyle(.primary)
+                    
+                    HStack {
+                        Text("Version")
+                        Spacer()
+                        Text("1.0.0")
+                            .foregroundColor(.secondary)
+                    }
+
                 }
             }
             .navigationTitle("Settings")

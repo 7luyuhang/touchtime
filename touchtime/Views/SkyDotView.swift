@@ -120,9 +120,9 @@ struct SkyDotView: View {
     }
     
     var body: some View {
-        Circle()
+        Capsule(style: .continuous)
             .fill(skyGradient)
-            .frame(width: 16, height: 16)
+            .frame(width: 24, height: 16)
             .glassEffect(.regular)
             .animation(.spring(), value: Int(timeValue * 4)) // Animate every 15 minutes
     }
