@@ -197,6 +197,9 @@ struct ScrollTimeView: View {
                             let minutes = Int((absoluteHours - Double(hours)) * 60)
                             let sign = isPositive ? "+" : "-"
                             
+                            Spacer()
+                            
+                            // Final time text
                             Text({
                                 var result = sign
                                 if hours > 0 && minutes > 0 {
@@ -213,6 +216,8 @@ struct ScrollTimeView: View {
                             .font(.subheadline)
                             .fontWeight(.medium)
                             .transition(.blurReplace)
+                            
+                            Spacer()
                             
                         } else {
                             // Slide to Adjust Time
