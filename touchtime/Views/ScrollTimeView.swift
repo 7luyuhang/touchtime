@@ -279,7 +279,7 @@ struct ScrollTimeView: View {
                                 .transition(.blurReplace)
                         }
                     }
-                    .padding(.horizontal)
+                    .padding(.horizontal) // Chevron paddings
                     .font(.subheadline)
                 
                     .animation(.spring(duration: 0.25), value: dragOffset)
@@ -313,7 +313,7 @@ struct ScrollTimeView: View {
         }
         
         // Overall composer
-        .padding(.horizontal, 16)
+        .padding(.horizontal,5)
         .gesture(
             DragGesture()
                 .onChanged { value in

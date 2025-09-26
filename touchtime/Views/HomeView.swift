@@ -10,9 +10,8 @@ import Combine
 import UIKit
 
 struct HomeView: View {
-    @State private var worldClocks: [WorldClock] = []
+    @Binding var worldClocks: [WorldClock]
     @State private var currentDate = Date()
-    @State private var showingAddClock = false
     @State private var timeOffset: TimeInterval = 0
     @State private var showingRenameAlert = false
     @State private var renamingClockId: UUID? = nil
@@ -320,9 +319,8 @@ struct HomeView: View {
                         }
                     }
                     .onMove(perform: moveClocks)
-                    
-                    
                 }
+                .scrollIndicators(.hidden)
                 
                 // Scroll Time View - Hide when in edit mode
                 if !isEditing {
@@ -339,15 +337,6 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: {
-                        showingAddClock = true
-                    }) {
-                        Image(systemName: "plus")
-                    }
-                    .disabled(isEditing)
-                }
-                
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: {
                         withAnimation(.spring()) {
@@ -367,19 +356,9 @@ struct HomeView: View {
                     }
                 }
             }
-            
-            .sheet(isPresented: $showingAddClock) {
-                TimeZonePickerView(worldClocks: $worldClocks)
-                    .onDisappear {
-                        saveWorldClocks()
-                    }
-            }
 
             .onReceive(timer) { _ in
                 currentDate = Date()
-            }
-            .onAppear {
-                loadWorldClocks()
             }
             
             // Rename
@@ -425,19 +404,4 @@ struct HomeView: View {
         }
     }
     
-    // Load world clocks from UserDefaults
-    func loadWorldClocks() {
-        if let data = UserDefaults.standard.data(forKey: worldClocksKey),
-           let decoded = try? JSONDecoder().decode([WorldClock].self, from: data) {
-            worldClocks = decoded
-        } else {
-            // 如果没有保存的数据，使用默认时钟
-            worldClocks = WorldClockData.defaultClocks
-            saveWorldClocks() // 保存默认数据
-        }
-    }
-}
-
-#Preview {
-    HomeView()
 }

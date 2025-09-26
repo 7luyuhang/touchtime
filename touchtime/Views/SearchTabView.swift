@@ -1,34 +1,44 @@
 //
-//  TimeZonePickerView.swift
+//  SearchTabView.swift
 //  touchtime
 //
-//  Created on 23/09/2025.
+//  Created on 26/09/2025.
 //
 
 import SwiftUI
 
-struct TimeZonePickerView: View {
-    @Environment(\.dismiss) var dismiss
+struct SearchTabView: View {
+    @Binding var worldClocks: [WorldClock]
+    @State private var isShowingPicker = false
+    
+    var body: some View {
+        // Directly embed TimeZonePickerView for the search tab
+        TimeZonePickerViewWrapper(worldClocks: $worldClocks)
+    }
+}
+
+// Wrapper to adapt TimeZonePickerView for tab usage
+struct TimeZonePickerViewWrapper: View {
     @Binding var worldClocks: [WorldClock]
     @State private var searchText = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     
-    // 获取所有时区并创建城市名称和国家/地区信息
+    // Get all time zones and create city name and country/region information
     var availableTimeZones: [(cityName: String, region: String, identifier: String)] {
         TimeZone.knownTimeZoneIdentifiers.compactMap { identifier in
-            // 从时区标识符中提取城市名称和地区信息
+            // Extract city name and region info from timezone identifier
             let components = identifier.split(separator: "/")
             if components.count >= 2 {
-                // 替换下划线为空格，让名称更易读
+                // Replace underscore with space for readability
                 let cityName = components.last!
                     .replacingOccurrences(of: "_", with: " ")
                 
-                // 获取地区/国家信息
+                // Get region/country info
                 let region = getRegionForTimeZone(identifier: identifier)
                 
                 return (cityName: cityName, region: region, identifier: identifier)
             } else if components.count == 1 {
-                // 处理没有斜杠的时区（如 UTC, GMT）
+                // Handle timezones without slashes (like UTC, GMT)
                 return (cityName: String(components[0]), region: "Standard Time", identifier: identifier)
             }
             return nil
@@ -36,96 +46,96 @@ struct TimeZonePickerView: View {
         .sorted { $0.cityName < $1.cityName }
     }
     
-    // 获取时区对应的国家/地区名称
+    // Get country/region name for timezone
     func getRegionForTimeZone(identifier: String) -> String {
         let components = identifier.split(separator: "/")
         
-        // 处理有国家信息的时区 (如 America/Argentina/Buenos_Aires)
+        // Handle timezones with country info (e.g. America/Argentina/Buenos_Aires)
         if components.count >= 3 {
             let country = String(components[1]).replacingOccurrences(of: "_", with: " ")
             
-            // 特殊处理一些国家名称
+            // Special handling for some country names
             switch country {
             case "Indiana", "Kentucky", "North Dakota": return "United States"
             default: return country
             }
         }
         
-        // 根据时区标识符直接映射国家
+        // Map country directly based on timezone identifier
         switch identifier {
-        // 美国
+        // United States
         case let id where id.starts(with: "America/") && 
             ["New_York", "Chicago", "Denver", "Los_Angeles", "Phoenix", "Anchorage", "Honolulu", "Detroit", "Indianapolis"].contains(where: { id.contains($0) }):
             return "United States"
             
-        // 加拿大
+        // Canada
         case let id where id.starts(with: "America/") &&
             ["Toronto", "Vancouver", "Montreal", "Edmonton", "Winnipeg", "Halifax", "St_Johns", "Regina"].contains(where: { id.contains($0) }):
             return "Canada"
             
-        // 中国
+        // China
         case "Asia/Shanghai", "Asia/Urumqi", "Asia/Harbin", "Asia/Chongqing":
             return "China"
             
-        // 日本
+        // Japan
         case "Asia/Tokyo":
             return "Japan"
             
-        // 韩国
+        // South Korea
         case "Asia/Seoul":
             return "South Korea"
             
-        // 印度
+        // India
         case "Asia/Kolkata", "Asia/Calcutta":
             return "India"
             
-        // 澳大利亚
+        // Australia
         case let id where id.starts(with: "Australia/"):
             return "Australia"
             
-        // 英国
+        // United Kingdom
         case "Europe/London", "Europe/Belfast":
             return "United Kingdom"
             
-        // 法国
+        // France
         case "Europe/Paris":
             return "France"
             
-        // 德国
+        // Germany
         case "Europe/Berlin":
             return "Germany"
             
-        // 俄罗斯
+        // Russia
         case let id where id.starts(with: "Europe/") &&
             ["Moscow", "Kaliningrad", "Samara", "Volgograd"].contains(where: { id.contains($0) }):
             return "Russia"
             
-        // 巴西
+        // Brazil
         case let id where id.starts(with: "America/") && id.contains("Brazil"):
             return "Brazil"
             
-        // 墨西哥
+        // Mexico
         case let id where id.starts(with: "America/") && 
             ["Mexico_City", "Cancun", "Tijuana", "Monterrey"].contains(where: { id.contains($0) }):
             return "Mexico"
             
-        // 新加坡
+        // Singapore
         case "Asia/Singapore":
             return "Singapore"
             
-        // 香港
+        // Hong Kong
         case "Asia/Hong_Kong":
             return "Hong Kong"
             
-        // 台北
+        // Taiwan
         case "Asia/Taipei":
             return "Taiwan"
             
-        // 迪拜
+        // Dubai
         case "Asia/Dubai":
             return "United Arab Emirates"
             
-        // 其他主要城市
+        // Other major cities
         case "Europe/Rome": return "Italy"
         case "Europe/Madrid": return "Spain"
         case "Europe/Amsterdam": return "Netherlands"
@@ -172,7 +182,7 @@ struct TimeZonePickerView: View {
         case "America/Havana": return "Cuba"
         case "America/Jamaica": return "Jamaica"
             
-        // 其他情况，返回大洲名称
+        // Other cases, return continent name
         default:
             if components.count >= 1 {
                 let continent = String(components[0])
@@ -194,7 +204,7 @@ struct TimeZonePickerView: View {
         }
     }
     
-    // 过滤搜索结果
+    // Filter search results
     var filteredTimeZones: [(cityName: String, region: String, identifier: String)] {
         if searchText.isEmpty {
             return availableTimeZones
@@ -207,11 +217,11 @@ struct TimeZonePickerView: View {
         }
     }
     
-    // 将时区按首字母分组
+    // Group timezones by first letter
     var groupedTimeZones: [String: [(cityName: String, region: String, identifier: String)]] {
         Dictionary(grouping: filteredTimeZones) { timeZone in
             let firstChar = timeZone.cityName.prefix(1).uppercased()
-            // 确保是字母，否则归类到 "#"
+            // Ensure it's a letter, otherwise categorize as "#"
             if firstChar.rangeOfCharacter(from: .letters) != nil {
                 return firstChar
             } else {
@@ -220,10 +230,10 @@ struct TimeZonePickerView: View {
         }
     }
     
-    // 获取排序后的分组键
+    // Get sorted group keys
     var sortedKeys: [String] {
         groupedTimeZones.keys.sorted { key1, key2 in
-            // "#" 符号排在最后
+            // "#" symbol comes last
             if key1 == "#" { return false }
             if key2 == "#" { return true }
             return key1 < key2
@@ -240,8 +250,7 @@ struct TimeZonePickerView: View {
                     List {
                         ForEach(sortedKeys, id: \.self) { key in
                             Section(header: Text(key)
-                                .font(.headline)
-                                .foregroundStyle(.secondary)) {
+                                ) {
                                     
                                 ForEach(groupedTimeZones[key] ?? [], id: \.identifier) { timeZone in
                                     Button(action: {
@@ -256,7 +265,7 @@ struct TimeZonePickerView: View {
                                                     .font(.subheadline)
                                             }
                                             Spacer()
-                                            // 显示当前时间预览和已添加标记
+                                            // Show current time preview and added indicator
                                             HStack(spacing: 8) {
                                                 if let tz = TimeZone(identifier: timeZone.identifier) {
                                                     Text(currentTime(for: tz))
@@ -264,11 +273,11 @@ struct TimeZonePickerView: View {
                                                         .monospacedDigit()
                                                 }
                                                 
-                                                // 如果已经添加，显示勾选图标
+                                                // Show checkmark if already added
                                                 if worldClocks.contains(where: { $0.timeZoneIdentifier == timeZone.identifier }) {
                                                     Image(systemName: "checkmark")
                                                         .font(.subheadline)
-                                                        .fontWeight(.medium)
+                                                        .fontWeight(.semibold)
                                                 }
                                             }
                                         }
@@ -279,43 +288,41 @@ struct TimeZonePickerView: View {
                             }
                         }
                     }
-                    .listStyle(.plain)
+                    .listStyle(.insetGrouped)
                 }
             }
             .searchable(text: $searchText, prompt: "Search")
-            
-            // Title
-            .navigationTitle("Choose a City")
+            .navigationTitle("Cities")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
-            }
         }
     }
     
-    // 添加时钟
+    // UserDefaults key for storing world clocks
+    private let worldClocksKey = "savedWorldClocks"
+    
+    // Add clock
     func addClock(cityName: String, identifier: String) {
         let newClock = WorldClock(cityName: cityName, timeZoneIdentifier: identifier)
         
-        // 检查是否已存在相同的时区
+        // Check if the same timezone already exists
         if !worldClocks.contains(where: { $0.timeZoneIdentifier == identifier }) {
             worldClocks.append(newClock)
+            saveWorldClocks()
         }
-        
-        dismiss()
     }
     
-    // 获取时区的当前时间（用于预览）
+    // Save world clocks to UserDefaults
+    func saveWorldClocks() {
+        if let encoded = try? JSONEncoder().encode(worldClocks) {
+            UserDefaults.standard.set(encoded, forKey: worldClocksKey)
+        }
+    }
+    
+    // Get current time for timezone (for preview)
     func currentTime(for timeZone: TimeZone) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = timeZone
-        formatter.locale = Locale(identifier: "en_US_POSIX") // 确保时间格式一致
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         if use24HourFormat {
             formatter.dateFormat = "HH:mm"
         } else {
@@ -328,5 +335,5 @@ struct TimeZonePickerView: View {
 }
 
 #Preview {
-    TimeZonePickerView(worldClocks: .constant(WorldClockData.defaultClocks))
+    SearchTabView(worldClocks: .constant(WorldClockData.defaultClocks))
 }

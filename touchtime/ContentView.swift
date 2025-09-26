@@ -8,17 +8,47 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var worldClocks: [WorldClock] = []
+    
+    // UserDefaults key for storing world clocks
+    private let worldClocksKey = "savedWorldClocks"
+    
     var body: some View {
         TabView {
-            HomeView()
-                .tabItem {
-                    Label("Time", systemImage: "clock")
-                }
+            Tab("Time", systemImage: "clock") {
+                HomeView(worldClocks: $worldClocks)
+            }
             
-            SettingsView()
-                .tabItem {
-                    Label("Settings", systemImage: "gear")
-                }
+            Tab("Settings", systemImage: "gear") {
+                SettingsView()
+            }
+            
+            Tab(role: .search) {
+                SearchTabView(worldClocks: $worldClocks)
+            }
+        }
+        .tabViewStyle(.automatic)
+        .onAppear {
+            loadWorldClocks()
+        }
+    }
+    
+    // Load world clocks from UserDefaults
+    func loadWorldClocks() {
+        if let data = UserDefaults.standard.data(forKey: worldClocksKey),
+           let decoded = try? JSONDecoder().decode([WorldClock].self, from: data) {
+            worldClocks = decoded
+        } else {
+            // If no saved data, use default clocks
+            worldClocks = WorldClockData.defaultClocks
+            saveWorldClocks()
+        }
+    }
+    
+    // Save world clocks to UserDefaults
+    func saveWorldClocks() {
+        if let encoded = try? JSONEncoder().encode(worldClocks) {
+            UserDefaults.standard.set(encoded, forKey: worldClocksKey)
         }
     }
 }
