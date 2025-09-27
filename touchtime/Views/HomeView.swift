@@ -324,7 +324,7 @@ struct HomeView: View {
                 
                 // Scroll Time View - Hide when in edit mode
                 if !isEditing {
-                    ScrollTimeView(timeOffset: $timeOffset, showButtons: $showScrollTimeButtons)
+                    ScrollTimeView(timeOffset: $timeOffset, showButtons: $showScrollTimeButtons, worldClocks: $worldClocks)
                         .padding(.horizontal)
                         .padding(.bottom, 16)
                         .transition(.blurReplace)

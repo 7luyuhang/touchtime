@@ -11,9 +11,12 @@ import EventKit
 struct ScrollTimeView: View {
     @Binding var timeOffset: TimeInterval
     @Binding var showButtons: Bool
+    @Binding var worldClocks: [WorldClock]
     @State private var dragOffset: CGFloat = 0
     @State private var eventStore = EKEventStore()
     @State private var showTimePicker = false
+    @State private var showShareSheet = false
+    @State private var currentDate = Date()
     @Namespace private var glassNamespace
     
     // Calculate hours from drag offset
@@ -21,36 +24,12 @@ struct ScrollTimeView: View {
         return Double(offset) / 15.0 // 15 points = 1 hour
     }
     
-    // Share the current time adjustment
-    func shareTimeAdjustment() {
-        let totalHours = timeOffset / 3600
-        let isPositive = totalHours >= 0
-        let absoluteHours = abs(totalHours)
-        let hours = Int(absoluteHours)
-        let minutes = Int((absoluteHours - Double(hours)) * 60)
-        let sign = isPositive ? "+" : "-"
-        
-        var timeString = ""
-        if hours > 0 && minutes > 0 {
-            timeString = "\(hours)h \(minutes)m"
-        } else if hours > 0 {
-            timeString = "\(hours)h"
-        } else if minutes > 0 {
-            timeString = "\(minutes)m"
-        } else {
-            timeString = "0m"
-        }
-        let message = "Time adjusted by \(sign)\(timeString)"
-        
-        let activityController = UIActivityViewController(
-            activityItems: [message],
-            applicationActivities: nil
-        )
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-           let rootViewController = windowScene.windows.first?.rootViewController {
-            rootViewController.present(activityController, animated: true)
-        }
+    // Show share sheet with city selection
+    func showShareCities() {
+        // Update current date
+        currentDate = Date()
+        // Show the share sheet
+        showShareSheet = true
     }
     
     // Add to Calendar
@@ -148,7 +127,7 @@ struct ScrollTimeView: View {
                 // More button with menu (left side)
                 if showButtons {
                     Menu {
-                        Button(action: shareTimeAdjustment) {
+                        Button(action: showShareCities) {
                             Label("Share", systemImage: "square.and.arrow.up")
                         }
                         
@@ -345,6 +324,14 @@ struct ScrollTimeView: View {
             TimeOffsetPickerView(
                 timeOffset: $timeOffset,
                 showTimePicker: $showTimePicker
+            )
+        }
+        .sheet(isPresented: $showShareSheet) {
+            ShareCitiesSheet(
+                worldClocks: $worldClocks,
+                showSheet: $showShareSheet,
+                currentDate: currentDate,
+                timeOffset: timeOffset
             )
         }
     }

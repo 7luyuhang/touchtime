@@ -95,11 +95,8 @@ struct SettingsView: View {
                 
                 Section(footer: Text("Enable showing local time at the top of the list.")) {
                     Toggle(isOn: $showLocalTime) {
-                        HStack {
-                            Image(systemName: "location.fill")
-                                .fontWeight(.medium)
-                                .frame(width: 28)
-                                .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
                             Text("Local Time")
                         }
                     }
@@ -194,36 +191,25 @@ struct SettingsView: View {
                     
                     // Options in Settings
                     Toggle(isOn: $showSkyDot) {
-                        HStack {
-                            Image(systemName: "sun.lefthalf.filled")
-                                .fontWeight(.medium)
-                                .frame(width: 28)
-                                .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "cloud.fill", topColor: .blue, bottomColor: .white)
                             Text("Sky Colour")
                         }
                     }
                     
                     Toggle(isOn: $showTimeDifference) {
-                        HStack {
-                            Image(systemName: "plusminus")
-                                .fontWeight(.medium)
-                                .frame(width: 28)
-                                .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "plusminus", topColor: .indigo, bottomColor: .pink)
                             Text("Time Difference")
                         }
                     }
                     
                     Toggle(isOn: $use24HourFormat) {
-                        HStack {
-                            Image(systemName: "24.circle")
-                                .fontWeight(.medium)
-                                .frame(width: 28)
-                                .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "24.circle", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
                             Text("24-Hour Format")
                         }
-                        
                     }
-
                 }
                 
                 // Reset Section
@@ -231,11 +217,8 @@ struct SettingsView: View {
                     Button(action: {
                         showResetConfirmation = true
                     }) {
-                        HStack {
-                            Image(systemName: "arrow.counterclockwise")
-                                .fontWeight(.medium)
-                                .frame(width: 28)
-                                .foregroundStyle(.secondary)
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .red, bottomColor: .yellow)
                             Text("Reset Cities")
                         }
                     }
