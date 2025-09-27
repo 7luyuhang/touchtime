@@ -251,7 +251,7 @@ struct SettingsView: View {
                 
                 Section(header: Text("About"), footer: 
                     HStack(spacing: 4) {
-                        Text("Designed by")
+                        Text("Designed & built by")
                             .foregroundColor(.secondary)
                             .font(.footnote)
                         
@@ -291,6 +291,16 @@ struct SettingsView: View {
                     }
                     .foregroundStyle(.primary)
                     
+                    
+                    HStack {
+                        Text("Leave a Review")
+                    }
+                    
+                    HStack {
+                        Text("Share with Friends")
+                    }
+                    
+                    // Version
                     HStack {
                         Text("Version")
                         Spacer()
