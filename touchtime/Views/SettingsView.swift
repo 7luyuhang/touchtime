@@ -109,42 +109,25 @@ struct SettingsView: View {
                         
                         VStack(alignment: .leading, spacing: 4) {
                             // Top row: Time difference and Date
-                            if showTimeDifference {
-                                HStack {
-                                    if showSkyDot {
-                                        SkyDotView(
-                                            date: currentDate,
-                                            timeZoneIdentifier: "Europe/London"
-                                        )
-                                    }
-                                    
+                            HStack {
+                                if showSkyDot {
+                                    SkyDotView(
+                                        date: currentDate,
+                                        timeZoneIdentifier: "Europe/London"
+                                    )
+                                }
+                                
+                                if showTimeDifference {
                                     Text(timeDifference())
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
-                                    
-                                    Spacer()
-                                    
-                                    Text(formatDate())
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                       
                                 }
-                            } else {
-                                HStack {
-                                    if showSkyDot {
-                                        SkyDotView(
-                                            date: currentDate,
-                                            timeZoneIdentifier: "Europe/London"
-                                        )
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    Text(formatDate())
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        
-                                }
+                                
+                                Spacer()
+                                
+                                Text(formatDate())
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
                             }
                             
                             // Bottom row: City name and Time
@@ -168,7 +151,7 @@ struct SettingsView: View {
                             }
                         }
                         .padding()
-                        .padding(.bottom, -4)
+                        .padding(.bottom, -8)
                         .clipShape(
                             RoundedRectangle(cornerRadius: 16, style: .continuous)
                         )
@@ -234,7 +217,7 @@ struct SettingsView: View {
                 
                 Section(header: Text("About"), footer: 
                     HStack(spacing: 4) {
-                        Text("Designed & built by")
+                        Text("Designed by")
                             .foregroundColor(.secondary)
                             .font(.footnote)
                         

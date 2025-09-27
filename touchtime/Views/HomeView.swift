@@ -113,7 +113,7 @@ struct HomeView: View {
                                         Text(customLocalName.isEmpty ? localCityName : customLocalName)
                                             .font(.headline)
                                             .lineLimit(1)
-                                            .truncationMode(.middle)
+                                            .truncationMode(.tail)
                                     
                                     
                                     Spacer()
@@ -217,7 +217,7 @@ struct HomeView: View {
                                 Text(clock.cityName)
                                     .font(.headline)
                                     .lineLimit(1)
-                                    .truncationMode(.middle)
+                                    .truncationMode(.tail)
                                 
                                 Spacer()
                                 

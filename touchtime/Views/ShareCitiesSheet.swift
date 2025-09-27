@@ -108,6 +108,8 @@ struct ShareCitiesSheet: View {
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                     Text(customLocalName.isEmpty ? localCityName : customLocalName)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
                                 }
                                 
                                 Spacer()
@@ -158,6 +160,8 @@ struct ShareCitiesSheet: View {
                                 
                                 // City name
                                 Text(clock.cityName)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
                                 
                                 Spacer()
                                 

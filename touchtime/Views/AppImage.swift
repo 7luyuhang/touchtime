@@ -15,7 +15,7 @@ struct SystemIconImage: View {
     
     var body: some View {
         Image(systemName: systemName)
-            .font(.system(size: 17))
+            .font(.system(size: 16))
             .fontWeight(.medium)
             .foregroundStyle(.white)
             .frame(width: 28, height: 28)
@@ -30,10 +30,5 @@ struct SystemIconImage: View {
                 )
             )
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay {
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
-                    .blendMode(.plusLighter)
-            }
     }
 }
