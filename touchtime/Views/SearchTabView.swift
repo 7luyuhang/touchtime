@@ -350,6 +350,3 @@ struct TimeZonePickerViewWrapper: View {
     }
 }
 
-#Preview {
-    SearchTabView(worldClocks: .constant(WorldClockData.defaultClocks))
-}

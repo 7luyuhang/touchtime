@@ -105,52 +105,50 @@ struct ShareCitiesSheet: View {
                     VStack(spacing: 0) {
                         // Local time card
                         if showLocalTimeInHome {
-                            Button(action: {
+                            HStack(spacing: 16) {
+                                
+                                // Selection indicator
+                                ZStack {
+                                    if showLocalTime {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.title3)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(Color.primary)
+                                            .transition(.blurReplace.combined(with: .scale))
+                                    } else {
+                                        Image(systemName: "circle")
+                                            .font(.title3)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(Color.primary.opacity(0.25))
+                                            .transition(.blurReplace.combined(with: .scale))
+                                    }
+                                }
+                                
+                                // City name
+                                    Text(customLocalName.isEmpty ? localCityName : customLocalName)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                           
+                                Spacer()
+                                
+                                // Time
+                                HStack {
+                                    Image(systemName: "location.fill")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                    Text(formatTime(for: TimeZone.current))
+                                        .monospacedDigit()
+                                    .foregroundStyle(.secondary)}
+
+                            }
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
                                 withAnimation(.spring()) {
                                     showLocalTime.toggle()
                                 }
-                            }) {
-                                HStack(spacing: 16) {
-                                    
-                                    // Selection indicator
-                                    ZStack {
-                                        if showLocalTime {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .font(.title3)
-                                                .fontWeight(.semibold)
-                                                .foregroundStyle(Color.primary)
-                                                .transition(.blurReplace.combined(with: .scale))
-                                        } else {
-                                            Image(systemName: "circle")
-                                                .font(.title3)
-                                                .fontWeight(.semibold)
-                                                .foregroundStyle(Color.primary.opacity(0.25))
-                                                .transition(.blurReplace.combined(with: .scale))
-                                        }
-                                    }
-                                    
-                                    // City name
-                                    HStack {
-                                        Image(systemName: "location.fill")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                        Text(customLocalName.isEmpty ? localCityName : customLocalName)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    // Time
-                                    Text(formatTime(for: TimeZone.current))
-                                        .monospacedDigit()
-                                        .foregroundStyle(.secondary)
-
-                                }
                             }
-                            .padding(.vertical, 12)
-                            .contentShape(.rect)
-                            .buttonStyle(.plain)
                             
                             Divider()
                                 .padding(.vertical, 12)
@@ -158,7 +156,42 @@ struct ShareCitiesSheet: View {
                         
                         // World clocks cards
                         ForEach(worldClocks) { clock in
-                            Button(action: {
+                            HStack(spacing: 16) {
+                                // Selection indicator
+                                ZStack {
+                                    if selectedCities.contains(clock.id) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.title3)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(Color.primary)
+                                            .transition(.blurReplace.combined(with: .scale))
+                                    } else {
+                                        Image(systemName: "circle")
+                                            .font(.title3)
+                                            .fontWeight(.semibold)
+                                            .foregroundStyle(Color.primary.opacity(0.25))
+                                            .transition(.blurReplace.combined(with: .scale))
+                                    }
+                                }
+                                
+                                // City name
+                                Text(clock.cityName)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                
+                                Spacer()
+                                
+                                // Time on the right
+                                if let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) {
+                                    Text(formatTime(for: timeZone))
+                                        .monospacedDigit()
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                            .padding(.vertical, 12)
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
                                 withAnimation(.spring()) {
                                     if selectedCities.contains(clock.id) {
                                         selectedCities.remove(clock.id)
@@ -166,43 +199,7 @@ struct ShareCitiesSheet: View {
                                         selectedCities.insert(clock.id)
                                     }
                                 }
-                            }) {
-                                HStack(spacing: 16) {
-                                    // Selection indicator
-                                    ZStack {
-                                        if selectedCities.contains(clock.id) {
-                                            Image(systemName: "checkmark.circle.fill")
-                                                .font(.title3)
-                                                .fontWeight(.semibold)
-                                                .foregroundStyle(Color.primary)
-                                                .transition(.blurReplace.combined(with: .scale))
-                                        } else {
-                                            Image(systemName: "circle")
-                                                .font(.title3)
-                                                .fontWeight(.semibold)
-                                                .foregroundStyle(Color.primary.opacity(0.25))
-                                                .transition(.blurReplace.combined(with: .scale))
-                                        }
-                                    }
-                                    
-                                    // City name
-                                    Text(clock.cityName)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                    
-                                    Spacer()
-                                    
-                                    // Time on the right
-                                    if let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) {
-                                        Text(formatTime(for: timeZone))
-                                            .monospacedDigit()
-                                            .foregroundStyle(.secondary)
-                                    }
-                                }
                             }
-                            .padding(.vertical, 12)
-                            .contentShape(.rect)
-                            .buttonStyle(.plain)
                         }
                     }
                     // Overall List
