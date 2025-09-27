@@ -227,7 +227,7 @@ struct SettingsView: View {
                 }
                 
                 // Reset Section
-                Section(footer: Text("Reset time list to default settings.")) {
+                Section{
                     Button(action: {
                         showResetConfirmation = true
                     }) {
@@ -236,10 +236,17 @@ struct SettingsView: View {
                                 .fontWeight(.medium)
                                 .frame(width: 28)
                                 .foregroundStyle(.secondary)
-                            Text("Reset")
+                            Text("Reset Cities")
                         }
                     }
                     .foregroundStyle(.primary)
+                    .confirmationDialog("", isPresented: $showResetConfirmation) {
+                        Button("Reset", role: .destructive) {
+                            resetToDefault()
+                        }
+                    } message: {
+                        Text("This will reset all cities to the default list.")
+                    }
                 }
                 
                 Section(header: Text("About"), footer: 
@@ -297,15 +304,6 @@ struct SettingsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .onReceive(timer) { _ in
                 currentDate = Date()
-            }
-            
-            .confirmationDialog("Reset to Default", isPresented: $showResetConfirmation) {
-                Button("Reset", role: .destructive) {
-                    resetToDefault()
-                }
-                Button("Cancel", role: .cancel) {}
-            } message: {
-                Text("This will reset all cities to the default list.")
             }
         }
     }
