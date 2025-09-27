@@ -72,113 +72,157 @@ struct ShareCitiesSheet: View {
         return shareLines.joined(separator: "\n")
     }
     
+    // Check if all cities are selected
+    var allCitiesSelected: Bool {
+        let allWorldClocksSelected = worldClocks.allSatisfy { selectedCities.contains($0.id) }
+        let localTimeSelected = !showLocalTimeInHome || showLocalTime
+        return allWorldClocksSelected && localTimeSelected
+    }
+    
+    // Toggle all selections
+    func toggleSelectAll() {
+        withAnimation(.spring()) {
+            if allCitiesSelected {
+                // Deselect all
+                selectedCities.removeAll()
+                if showLocalTimeInHome {
+                    showLocalTime = false
+                }
+            } else {
+                // Select all
+                selectedCities = Set(worldClocks.map { $0.id })
+                if showLocalTimeInHome {
+                    showLocalTime = true
+                }
+            }
+        }
+    }
+    
     var body: some View {
         NavigationView {
-            ScrollView {
-                VStack(spacing: 0) {
-                    // Local time card
-                    if showLocalTimeInHome {
-                        Button(action: {
-                            withAnimation(.spring()) {
-                                showLocalTime.toggle()
-                            }
-                        }) {
-                            HStack(spacing: 16) {
-                                
-                                // Selection indicator
-                                ZStack {
-                                    if showLocalTime {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.title3)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(Color.primary)
-                                            .transition(.blurReplace.combined(with: .scale))
-                                    } else {
-                                        Image(systemName: "circle")
-                                            .font(.title3)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(Color.primary.opacity(0.25))
-                                            .transition(.blurReplace.combined(with: .scale))
+            ZStack {
+                ScrollView {
+                    VStack(spacing: 0) {
+                        // Local time card
+                        if showLocalTimeInHome {
+                            Button(action: {
+                                withAnimation(.spring()) {
+                                    showLocalTime.toggle()
+                                }
+                            }) {
+                                HStack(spacing: 16) {
+                                    
+                                    // Selection indicator
+                                    ZStack {
+                                        if showLocalTime {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.title3)
+                                                .fontWeight(.semibold)
+                                                .foregroundStyle(Color.primary)
+                                                .transition(.blurReplace.combined(with: .scale))
+                                        } else {
+                                            Image(systemName: "circle")
+                                                .font(.title3)
+                                                .fontWeight(.semibold)
+                                                .foregroundStyle(Color.primary.opacity(0.25))
+                                                .transition(.blurReplace.combined(with: .scale))
+                                        }
                                     }
-                                }
-                                
-                                // City name
-                                HStack {
-                                    Image(systemName: "location.fill")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                    Text(customLocalName.isEmpty ? localCityName : customLocalName)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                }
-                                
-                                Spacer()
-                                
-                                // Time
-                                Text(formatTime(for: TimeZone.current))
-                                    .monospacedDigit()
-                                    .foregroundStyle(.secondary)
-
-                            }
-                        }
-                        .padding(.vertical, 10)
-                        .contentShape(.rect)
-                        .buttonStyle(.plain)
-                        
-                        Divider()
-                            .padding(.vertical, 10)
-                    }
-                    
-                    // World clocks cards
-                    ForEach(worldClocks) { clock in
-                        Button(action: {
-                            withAnimation(.spring()) {
-                                if selectedCities.contains(clock.id) {
-                                    selectedCities.remove(clock.id)
-                                } else {
-                                    selectedCities.insert(clock.id)
-                                }
-                            }
-                        }) {
-                            HStack(spacing: 16) {
-                                // Selection indicator
-                                ZStack {
-                                    if selectedCities.contains(clock.id) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.title3)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(Color.primary)
-                                            .transition(.blurReplace.combined(with: .scale))
-                                    } else {
-                                        Image(systemName: "circle")
-                                            .font(.title3)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(Color.primary.opacity(0.25))
-                                            .transition(.blurReplace.combined(with: .scale))
+                                    
+                                    // City name
+                                    HStack {
+                                        Image(systemName: "location.fill")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                        Text(customLocalName.isEmpty ? localCityName : customLocalName)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
                                     }
-                                }
-                                
-                                // City name
-                                Text(clock.cityName)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                                
-                                Spacer()
-                                
-                                // Time on the right
-                                if let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) {
-                                    Text(formatTime(for: timeZone))
+                                    
+                                    Spacer()
+                                    
+                                    // Time
+                                    Text(formatTime(for: TimeZone.current))
                                         .monospacedDigit()
                                         .foregroundStyle(.secondary)
+
                                 }
                             }
+                            .padding(.vertical, 12)
+                            .contentShape(.rect)
+                            .buttonStyle(.plain)
+                            
+                            Divider()
+                                .padding(.vertical, 12)
                         }
-                        .padding(.vertical, 10)
-                        .contentShape(.rect)
-                        .buttonStyle(.plain)
+                        
+                        // World clocks cards
+                        ForEach(worldClocks) { clock in
+                            Button(action: {
+                                withAnimation(.spring()) {
+                                    if selectedCities.contains(clock.id) {
+                                        selectedCities.remove(clock.id)
+                                    } else {
+                                        selectedCities.insert(clock.id)
+                                    }
+                                }
+                            }) {
+                                HStack(spacing: 16) {
+                                    // Selection indicator
+                                    ZStack {
+                                        if selectedCities.contains(clock.id) {
+                                            Image(systemName: "checkmark.circle.fill")
+                                                .font(.title3)
+                                                .fontWeight(.semibold)
+                                                .foregroundStyle(Color.primary)
+                                                .transition(.blurReplace.combined(with: .scale))
+                                        } else {
+                                            Image(systemName: "circle")
+                                                .font(.title3)
+                                                .fontWeight(.semibold)
+                                                .foregroundStyle(Color.primary.opacity(0.25))
+                                                .transition(.blurReplace.combined(with: .scale))
+                                        }
+                                    }
+                                    
+                                    // City name
+                                    Text(clock.cityName)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                    
+                                    Spacer()
+                                    
+                                    // Time on the right
+                                    if let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) {
+                                        Text(formatTime(for: timeZone))
+                                            .monospacedDigit()
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 12)
+                            .contentShape(.rect)
+                            .buttonStyle(.plain)
+                        }
                     }
+                    // Overall List
+                    .padding(.horizontal)
                 }
-                .padding()
+                
+                // Select All button
+                VStack {
+                    Spacer()
+                    
+                Button(action: toggleSelectAll) {
+                    Text(allCitiesSelected ? "Deselect All" : "Select All")
+                        .font(.headline)
+                        .padding(.vertical, 12)
+                        .padding(.horizontal, 16)
+                        .contentTransition(.numericText())
+                }
+                .buttonStyle(.glass)
+                }
+                
             }
             .navigationTitle("Share Cities")
             .navigationBarTitleDisplayMode(.inline)
@@ -189,18 +233,20 @@ struct ShareCitiesSheet: View {
                     // Only show share button if at least one city is selected
                     if !selectedCities.isEmpty || (showLocalTimeInHome && showLocalTime) {
                         ShareLink(item: generateShareText()) {
-                            Text("Share")
+                            Image(systemName: "square.and.arrow.up")
                         }
                     }
                 }
                 
                 ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
+                    Button(action: {
                         showSheet = false
+                    }) {
+                        Image(systemName: "xmark")
                     }
                 }
             }
         }
-        .presentationDetents([.height(280)])
+        .presentationDetents([.medium])
     }
 }

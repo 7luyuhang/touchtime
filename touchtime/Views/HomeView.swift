@@ -156,7 +156,7 @@ struct HomeView: View {
                                     let cityName = customLocalName.isEmpty ? localCityName : customLocalName
                                     copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
                                 }) {
-                                    Label("Copy as Text", systemImage: "quote.closing")
+                                    Label("Copy as Text", systemImage: "quote.opening")
                                 }
                                 
                                 Button(action: {
@@ -165,7 +165,7 @@ struct HomeView: View {
                                     newClockName = customLocalName.isEmpty ? localCityName : customLocalName
                                     showingRenameAlert = true
                                 }) {
-                                    Label("Rename", systemImage: "pencil")
+                                    Label("Rename", systemImage: "pencil.tip.crop.circle")
                                 }
                             }
                         }
@@ -255,24 +255,24 @@ struct HomeView: View {
                             }
                         }
                         
-                        // Swipe to delete time
-//                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-//                            Button(role: .destructive) {
-//                                if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-//                                    worldClocks.remove(at: index)
-//                                    saveWorldClocks()
-//                                }
-//                            } label: {
-//                                Label("", systemImage: "trash")
-//                            }
-//                        }
+                        //Swipe to delete time
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
+                                    worldClocks.remove(at: index)
+                                    saveWorldClocks()
+                                }
+                            } label: {
+                                Label("", systemImage: "trash")
+                            }
+                        }
                         
                         // Context Menu
                         .contextMenu {
                             Button(action: {
                                 copyTimeAsText(cityName: clock.cityName, timeZoneIdentifier: clock.timeZoneIdentifier)
                             }) {
-                                Label("Copy as Text", systemImage: "quote.closing")
+                                Label("Copy as Text", systemImage: "quote.opening")
                             }
                             
                             Button(action: {
@@ -287,7 +287,7 @@ struct HomeView: View {
                                 newClockName = clock.cityName
                                 showingRenameAlert = true
                             }) {
-                                Label("Rename", systemImage: "pencil")
+                                Label("Rename", systemImage: "pencil.tip.crop.circle")
                             }
                             
                             if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
