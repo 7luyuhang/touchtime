@@ -121,8 +121,8 @@ struct ScrollTimeView: View {
     }
     
     var body: some View {
-        GlassEffectContainer(spacing: 16) {
-            HStack(spacing: 16) {
+        GlassEffectContainer(spacing: 10) {
+            HStack(spacing: 10) {
                 
                 // More button with menu (left side)
                 if showButtons {
@@ -204,24 +204,28 @@ struct ScrollTimeView: View {
                             let absoluteHours = abs(totalHours)
                             let hours = Int(absoluteHours)
                             let minutes = Int((absoluteHours - Double(hours)) * 60)
-                            let sign = isPositive ? "+" : "-"
+                            
+                            // Plus symbol on the far left
+                            Image(systemName: "plus")
+                                .font(.headline)
+                                .foregroundColor(isPositive ? .primary : .primary.opacity(0.5))
                             
                             Spacer()
                             
-                            // Final time text (tappable)
+                            // Final time text (tappable) - without sign
                             Button(action: {
                                 showTimePicker = true
                             }) {
                                 Text({
-                                    var result = sign
+                                    var result = ""
                                     if hours > 0 && minutes > 0 {
-                                        result += "\(hours)h \(minutes)m"
+                                        result = "\(hours)h \(minutes)m"
                                     } else if hours > 0 {
-                                        result += "\(hours)h"
+                                        result = "\(hours)h"
                                     } else if minutes > 0 {
-                                        result += "\(minutes)m"
+                                        result = "\(minutes)m"
                                     } else {
-                                        result += "0m"
+                                        result = "0m"
                                     }
                                     return result
                                 }())
@@ -229,11 +233,17 @@ struct ScrollTimeView: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(.primary)
                                 .monospacedDigit()
+                                .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.plain)
                             .transition(.blurReplace)
                             
                             Spacer()
+                            
+                            // Minus symbol on the far right
+                            Image(systemName: "minus")
+                                .font(.headline)
+                                .foregroundColor(!isPositive ? .primary : .primary.opacity(0.5))
                             
                         } else {
                             // Slide to Adjust Time
@@ -259,7 +269,7 @@ struct ScrollTimeView: View {
                                 .transition(.blurReplace)
                         }
                     }
-                    .padding(.horizontal) // Chevron paddings
+                    .padding(.horizontal, (timeOffset == 0 || dragOffset != 0) ? 16 : 0)
                     .font(.subheadline)
                 
                     .animation(.spring(duration: 0.25), value: dragOffset)

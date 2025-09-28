@@ -63,7 +63,7 @@ struct TimeOffsetPickerView: View {
                 .environment(\.locale, Locale(identifier: use24HourFormat ? "de_DE" : "en_US"))
                 
             }
-            .navigationTitle("Set Current Time")
+            .navigationTitle("Set Time")
             .navigationBarTitleDisplayMode(.inline)
         }
         .presentationDetents([.height(280)])

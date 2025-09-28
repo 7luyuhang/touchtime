@@ -56,7 +56,7 @@ struct ShareCitiesSheet: View {
         if showLocalTimeInHome && showLocalTime {
             let localName = customLocalName.isEmpty ? localCityName : customLocalName
             let localTime = formatTime(for: TimeZone.current)
-            shareLines.append("\(localName): \(localTime)")
+            shareLines.append("\(localName) \(localTime)")
         }
         
         // Add selected world clocks
@@ -132,7 +132,7 @@ struct ShareCitiesSheet: View {
                                 Spacer()
                                 
                                 // Time
-                                HStack {
+                                HStack(spacing: 6) {
                                     Image(systemName: "location.fill")
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
@@ -226,7 +226,7 @@ struct ShareCitiesSheet: View {
             .scrollIndicators(.hidden)
             
             .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
+                ToolbarItem(placement: .topBarTrailing) {
                     // Only show share button if at least one city is selected
                     if !selectedCities.isEmpty || (showLocalTimeInHome && showLocalTime) {
                         ShareLink(item: generateShareText()) {
@@ -235,7 +235,7 @@ struct ShareCitiesSheet: View {
                     }
                 }
                 
-                ToolbarItem(placement: .navigationBarLeading) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
                         showSheet = false
                     }) {

@@ -337,22 +337,27 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button(action: {
-                        withAnimation(.spring()) {
-                            isEditing.toggle()
-                        }
-                    }) {
-                        Group {
-                            if isEditing {
-                                Image(systemName: "checkmark")
-                            } else {
-                                Text("Edit")
+                ToolbarItem(placement: .topBarTrailing) {
+                    if isEditing {
+                        Button(role: .confirm, action: {
+                            withAnimation(.spring()) {
+                                isEditing.toggle()
                             }
+                        }) {
+                            Image(systemName: "checkmark")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.white)
+                                .animation(.spring(), value: isEditing)
                         }
-                        .id(isEditing)
-                        .transition(.blurReplace)
-                        .animation(.spring(), value: isEditing)
+                    } else {
+                        Button(action: {
+                            withAnimation(.spring()) {
+                                isEditing.toggle()
+                            }
+                        }) {
+                            Text("Edit")
+                                .animation(.spring(), value: isEditing)
+                        }
                     }
                 }
             }
