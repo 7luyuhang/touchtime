@@ -14,21 +14,25 @@ struct SystemIconImage: View {
     let bottomColor: Color
     
     var body: some View {
-        Image(systemName: systemName)
-            .font(.system(size: 16))
-            .fontWeight(.medium)
-            .foregroundStyle(.white)
-            .frame(width: 28, height: 28)
-            .background(
-                LinearGradient(
-                    colors: [
-                        topColor,
-                        bottomColor
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            topColor,
+                            bottomColor
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
                 )
-            )
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .frame(width: 28, height: 28)
+                .glassEffect(.regular)
+                
+            Image(systemName: systemName)
+                .font(.system(size: 16))
+                .fontWeight(.medium)
+                .foregroundStyle(.white)
+        }
     }
 }

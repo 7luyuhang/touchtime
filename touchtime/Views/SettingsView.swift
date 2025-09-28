@@ -167,6 +167,7 @@ struct SettingsView: View {
                             .foregroundStyle(.secondary)
                             .textCase(.uppercase)
                             .multilineTextAlignment(.center)
+                            .padding(.bottom, -16)
     
                     }
                     .listRowSeparator(.hidden)
@@ -270,7 +271,7 @@ struct SettingsView: View {
                     HStack {
                         Text("Version")
                         Spacer()
-                        Text("1.0.0")
+                        Text(getVersionString())
                             .foregroundColor(.secondary)
                     }
 
@@ -301,5 +302,12 @@ struct SettingsView: View {
         let impactFeedback = UINotificationFeedbackGenerator()
         impactFeedback.prepare()
         impactFeedback.notificationOccurred(.success)
+    }
+    
+    // Get version and build number string
+    func getVersionString() -> String {
+        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
+        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+        return "\(version) (\(build))"
     }
 }

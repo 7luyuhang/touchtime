@@ -294,12 +294,11 @@ struct TimeZonePickerViewWrapper: View {
                             }
                         }
                     }
-                    .listStyle(.insetGrouped)
                 }
             }
             .searchable(text: $searchText, prompt: "Cities & Countries")
             .navigationTitle("Cities")
-            .navigationSubtitle(worldClocks.isEmpty ? "" : "\(worldClocks.count) added")
+            .navigationSubtitle(worldClocks.isEmpty ? "" : "\(worldClocks.count) Added")
             .navigationBarTitleDisplayMode(.inline)
         }
         .onReceive(timer) { _ in
