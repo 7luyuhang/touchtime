@@ -108,7 +108,7 @@ struct ScrollTimeView: View {
     
     // Reset time offset
     func resetTimeOffset() {
-        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
         
@@ -121,8 +121,8 @@ struct ScrollTimeView: View {
     }
     
     var body: some View {
-        GlassEffectContainer(spacing: 10) {
-            HStack(spacing: 10) {
+        GlassEffectContainer(spacing: 12) {
+            HStack(spacing: 12) {
                 
                 // More button with menu (left side)
                 if showButtons {
@@ -209,6 +209,7 @@ struct ScrollTimeView: View {
                             Image(systemName: "plus")
                                 .font(.headline)
                                 .foregroundColor(isPositive ? .primary : .primary.opacity(0.5))
+                                .padding(.leading, -8)
                             
                             Spacer()
                             
@@ -244,6 +245,7 @@ struct ScrollTimeView: View {
                             Image(systemName: "minus")
                                 .font(.headline)
                                 .foregroundColor(!isPositive ? .primary : .primary.opacity(0.5))
+                                .padding(.trailing, -8)
                             
                         } else {
                             // Slide to Adjust Time

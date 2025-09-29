@@ -246,7 +246,7 @@ struct TimeZonePickerViewWrapper: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Group {
                 if filteredTimeZones.isEmpty {
                     // Empty state when no search results

@@ -76,7 +76,7 @@ struct SettingsView: View {
     }
     
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section("General") {
                     HStack {
@@ -216,57 +216,75 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section(header: Text("About"), footer: 
-                    HStack(spacing: 4) {
-                        Text("Designed by")
-                            .foregroundColor(.secondary)
-                            .font(.footnote)
-                        
-                        Menu {
-                            Link(destination: URL(string: "https://luyuhang.net")!) {
-                                Text("Website")
-                            }
-                            
-                            Link(destination: URL(string: "https://www.instagram.com/7ahang/")!) {
-                                Text("Instagram")
-                            }
-                            
-                            Link(destination: URL(string: "https://x.com/7luyuhang")!) {
-                                Text("X")
-                            }
-                        } label: {
-                            Text("yuhang")
-                                .font(.footnote)
-                                .fontWeight(.semibold)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Text("in London.")
-                            .foregroundColor(.secondary)
-                            .font(.footnote)
-                    }
-                    .foregroundStyle(.primary)
-                        
-                ) {
+                Section(header: Text("Others")) {
                     
                     Button(action: {
                         if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=TouchTime%20Feedback") {
                             UIApplication.shared.open(url)
                         }
                     }) {
+                        HStack {
                             Text("Send Feedback")
+     
+                        }
                     }
                     .foregroundStyle(.primary)
                     
                     
-                    HStack {
-                        Text("Leave a Review")
+                    Link(destination: URL(string: "https://apps.apple.com/app/touchtime/id123456789?action=write-review")!) {
+                        HStack {
+                            Text("Leave a Review")
+
+                        }
                     }
+                    .foregroundStyle(.primary)
                     
-                    HStack {
-                        Text("Share with Friends")
+                    ShareLink(
+                        item: URL(string: "https://apps.apple.com/app/touchtime")!,
+                        message: Text("Download Touch Time.")
+                    ) {
+                        HStack {
+                            Text("Share with Friends")
+                        }
                     }
+                    .foregroundStyle(.primary)
                     
+                    
+
+                }
+                
+                Section(footer:
+                            HStack(spacing: 4) {
+                                Text("Designed by")
+                                    .foregroundColor(.secondary)
+                                    .font(.footnote)
+                                
+                                Menu {
+                                    Link(destination: URL(string: "https://luyuhang.net")!) {
+                                        Text("Website")
+                                    }
+                                    
+                                    Link(destination: URL(string: "https://www.instagram.com/7ahang/")!) {
+                                        Text("Instagram")
+                                    }
+                                    
+                                    Link(destination: URL(string: "https://x.com/7luyuhang")!) {
+                                        Text("X")
+                                    }
+                                } label: {
+                                    Text("yuhang")
+                                        .font(.footnote)
+                                        .fontWeight(.semibold)
+                                }
+                                .buttonStyle(.plain)
+                                
+                                Text("in London.")
+                                    .foregroundColor(.secondary)
+                                    .font(.footnote)
+                            }
+                            .foregroundStyle(.primary)
+                                
+                        ) {
                     // Version
                     HStack {
                         Text("Version")
@@ -274,8 +292,9 @@ struct SettingsView: View {
                         Text(getVersionString())
                             .foregroundColor(.secondary)
                     }
-
                 }
+                
+                
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
