@@ -290,6 +290,8 @@ struct HomeView: View {
                                 Label("Rename", systemImage: "pencil.tip.crop.circle")
                             }
                             
+                            Divider()
+                            
                             if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
                                 Button(action: {
                                     // Move to top

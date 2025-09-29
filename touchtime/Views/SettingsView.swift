@@ -141,7 +141,7 @@ struct SettingsView: View {
                                     Text(formatTime(use24Hour: use24HourFormat))
                                         .font(.system(size: 36))
                                         .monospacedDigit()
-                                        
+                                    
                                     if !use24HourFormat {
                                         Text(formatAMPM())
                                             .font(.headline)
@@ -168,7 +168,7 @@ struct SettingsView: View {
                             .textCase(.uppercase)
                             .multilineTextAlignment(.center)
                             .padding(.bottom, -16)
-    
+                        
                     }
                     .listRowSeparator(.hidden)
                     
@@ -217,7 +217,6 @@ struct SettingsView: View {
                 }
                 
                 Section(header: Text("Others")) {
-                    
                     Button(action: {
                         if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=TouchTime%20Feedback") {
                             UIApplication.shared.open(url)
@@ -225,7 +224,7 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             Text("Send Feedback")
-     
+                            
                         }
                     }
                     .foregroundStyle(.primary)
@@ -234,7 +233,6 @@ struct SettingsView: View {
                     Link(destination: URL(string: "https://apps.apple.com/app/touchtime/id123456789?action=write-review")!) {
                         HStack {
                             Text("Leave a Review")
-
                         }
                     }
                     .foregroundStyle(.primary)
@@ -248,10 +246,17 @@ struct SettingsView: View {
                         }
                     }
                     .foregroundStyle(.primary)
-                    
-                    
-
                 }
+                
+                
+                Section {
+                    HStack{
+                        Text("Terms of Use")}
+                    HStack{
+                        Text("Privacy Policy")
+                    }
+                }
+                
                 
                 Section(footer:
                             HStack(spacing: 4) {

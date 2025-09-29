@@ -335,7 +335,8 @@ struct ScrollTimeView: View {
         .sheet(isPresented: $showTimePicker) {
             TimeOffsetPickerView(
                 timeOffset: $timeOffset,
-                showTimePicker: $showTimePicker
+                showTimePicker: $showTimePicker,
+                showButtons: $showButtons
             )
         }
         .sheet(isPresented: $showShareSheet) {
