@@ -69,6 +69,11 @@ struct TimeOffsetPickerView: View {
                             }
                             
                             timeOffset = TimeInterval(minuteDifference * 60)
+                            
+                            // Show buttons when time is adjusted
+                            if minuteDifference != 0 {
+                                showButtons = true
+                            }
                         }
                     ),
                     displayedComponents: [.hourAndMinute]
@@ -81,7 +86,7 @@ struct TimeOffsetPickerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    if timeOffset != 0 {
+                    if showButtons {
                         Button(action: resetTime) {
                             Image(systemName: "arrow.counterclockwise")
                         }
