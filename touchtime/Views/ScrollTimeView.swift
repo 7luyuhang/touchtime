@@ -7,6 +7,7 @@
 
 import SwiftUI
 import EventKit
+import EventKitUI
 import CoreHaptics
 
 struct ScrollTimeView: View {
@@ -17,6 +18,8 @@ struct ScrollTimeView: View {
     @State private var eventStore = EKEventStore()
     @State private var showTimePicker = false
     @State private var showShareSheet = false
+    @State private var showEventEditor = false
+    @State private var eventToEdit: EKEvent?
     @State private var currentDate = Date()
     @State private var hapticEngine: CHHapticEngine?
     @State private var lastHapticOffset: CGFloat = 0
@@ -86,71 +89,29 @@ struct ScrollTimeView: View {
         showShareSheet = true
     }
     
-    // Add to Calendar
+    // Add to Calendar - opens system event editor
     func addToCalendar() {
         // Request calendar permission
         eventStore.requestFullAccessToEvents { granted, error in
             if granted && error == nil {
-                // Create event
-                let event = EKEvent(eventStore: eventStore)
-                
-                // Set event properties
-                event.title = "Adjusted Time Event"
-                
-                // Calculate the adjusted start time
-                let currentDate = Date()
-                let startDate = currentDate.addingTimeInterval(timeOffset)
-                event.startDate = startDate
-                
-                // Set end date (1 hour duration by default)
-                event.endDate = startDate.addingTimeInterval(3600)
-                
-                // Add notes about the time adjustment
-                let totalHours = timeOffset / 3600
-                let isPositive = totalHours >= 0
-                let absoluteHours = abs(totalHours)
-                let hours = Int(absoluteHours)
-                let minutes = Int((absoluteHours - Double(hours)) * 60)
-                let sign = isPositive ? "+" : "-"
-                
-                var timeString = ""
-                if hours > 0 && minutes > 0 {
-                    timeString = "\(hours)h \(minutes)m"
-                } else if hours > 0 {
-                    timeString = "\(hours)h"
-                } else if minutes > 0 {
-                    timeString = "\(minutes)m"
-                } else {
-                    timeString = "0m"
-                }
-                
-                event.notes = "Time adjusted by \(sign)\(timeString) from current time"
-                
-                // Set calendar (default calendar)
-                event.calendar = eventStore.defaultCalendarForNewEvents
-                
-                // Save event
-                do {
-                    try eventStore.save(event, span: .thisEvent)
+                DispatchQueue.main.async {
+                    // Create event with adjusted time
+                    let event = EKEvent(eventStore: self.eventStore)
                     
-                    // Provide haptic feedback on success if enabled
-                    if hapticEnabled {
-                        DispatchQueue.main.async {
-                            let impactFeedback = UINotificationFeedbackGenerator()
-                            impactFeedback.prepare()
-                            impactFeedback.notificationOccurred(.success)
-                        }
-                    }
-                } catch {
-                    print("Failed to save event: \(error.localizedDescription)")
-                    // Provide haptic feedback on error if enabled
-                    if hapticEnabled {
-                        DispatchQueue.main.async {
-                            let impactFeedback = UINotificationFeedbackGenerator()
-                            impactFeedback.prepare()
-                            impactFeedback.notificationOccurred(.error)
-                        }
-                    }
+                    // Calculate the adjusted start time
+                    let currentDate = Date()
+                    let startDate = currentDate.addingTimeInterval(self.timeOffset)
+                    event.startDate = startDate
+                    
+                    // Set end date (1 hour duration by default)
+                    event.endDate = startDate.addingTimeInterval(3600)
+                    
+                    // Set calendar (default calendar)
+                    event.calendar = self.eventStore.defaultCalendarForNewEvents
+                    
+                    // Store the event and show the editor
+                    self.eventToEdit = event
+                    self.showEventEditor = true
                 }
             } else {
                 print("Calendar access denied or error: \(String(describing: error))")
@@ -423,6 +384,71 @@ struct ScrollTimeView: View {
                 currentDate: currentDate,
                 timeOffset: timeOffset
             )
+        }
+        .sheet(isPresented: $showEventEditor) {
+            EventEditView(
+                event: $eventToEdit,
+                isPresented: $showEventEditor,
+                eventStore: eventStore
+            )
+            .ignoresSafeArea()
+        }
+    }
+}
+
+// MARK: - Event Editor View
+struct EventEditView: UIViewControllerRepresentable {
+    @Binding var event: EKEvent?
+    @Binding var isPresented: Bool
+    let eventStore: EKEventStore
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
+    
+    func makeUIViewController(context: Context) -> EKEventEditViewController {
+        let eventEditViewController = EKEventEditViewController()
+        eventEditViewController.event = event
+        eventEditViewController.eventStore = eventStore
+        eventEditViewController.editViewDelegate = context.coordinator
+        
+        return eventEditViewController
+    }
+    
+    func updateUIViewController(_ uiViewController: EKEventEditViewController, context: Context) {
+        // No updates needed
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, EKEventEditViewDelegate {
+        let parent: EventEditView
+        
+        init(_ parent: EventEditView) {
+            self.parent = parent
+        }
+        
+        func eventEditViewController(_ controller: EKEventEditViewController, didCompleteWith action: EKEventEditViewAction) {
+            parent.isPresented = false
+            
+            // Provide haptic feedback based on action if enabled
+            if parent.hapticEnabled {
+                DispatchQueue.main.async {
+                    let impactFeedback = UINotificationFeedbackGenerator()
+                    impactFeedback.prepare()
+                    
+                    switch action {
+                    case .saved:
+                        impactFeedback.notificationOccurred(.success)
+                    case .deleted:
+                        impactFeedback.notificationOccurred(.warning)
+                    case .canceled:
+                        // No haptic for cancel
+                        break
+                    @unknown default:
+                        break
+                    }
+                }
+            }
         }
     }
 }
