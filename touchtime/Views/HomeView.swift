@@ -26,6 +26,7 @@ struct HomeView: View {
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("customLocalName") private var customLocalName = ""
     @AppStorage("showSkyDot") private var showSkyDot = true
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -61,10 +62,12 @@ struct HomeView: View {
         
         UIPasteboard.general.string = textToCopy
         
-        // Provide haptic feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-        impactFeedback.prepare()
-        impactFeedback.impactOccurred()
+        // Provide haptic feedback if enabled
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
     }
     
     var body: some View {

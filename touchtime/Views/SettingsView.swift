@@ -10,11 +10,12 @@ import Combine
 
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
-    @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("use24HourFormat") private var use24HourFormat = true
     @AppStorage("showTimeDifference") private var showTimeDifference = true
     @AppStorage("appearanceMode") private var appearanceMode = "system"
-    @AppStorage("showLocalTime") private var showLocalTime = true
+    @AppStorage("showLocalTime") private var showLocalTime = false
     @AppStorage("showSkyDot") private var showSkyDot = true
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     
@@ -78,21 +79,23 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // General
                 Section("General") {
                     HStack {
                         Picker("Appearance", selection: $appearanceMode) {
+                            Text("System")
+                                .tag("system")
                             Text("Light")
                                 .tag("light")
                             Text("Dark")
                                 .tag("dark")
-                            Text("System")
-                                .tag("system")
                         }
                         .pickerStyle(.menu)
                         .tint(.secondary)
                     }
                 }
                 
+                // Local Time
                 Section(footer: Text("Enable showing local time at the top of the list.")) {
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
@@ -103,6 +106,19 @@ struct SettingsView: View {
                     .frame(height: 0)
                 }
                 
+                // Haptic
+                Section(footer: Text("Only for the haptics of the custom control.")) {
+                    Toggle(isOn: $hapticEnabled) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "wave.3.down", topColor: .blue, bottomColor: .cyan)
+                            Text("Haptic")
+                        }
+                    }
+                    .frame(height: 0)
+                }
+                
+                
+                // Time Display
                 Section("Time Display") {
                     
                     // Preview Section
@@ -195,6 +211,7 @@ struct SettingsView: View {
                             Text("24-Hour Format")
                         }
                     }
+                    
                 }
                 
                 // Reset Section
@@ -235,7 +252,7 @@ struct SettingsView: View {
                     
                     Link(destination: URL(string: "https://apps.apple.com/app/touchtime/id123456789?action=write-review")!) {
                         HStack {
-                            Text("Leave a Review")
+                            Text("Review on App Store")
                         }
                     }
                     .foregroundStyle(.primary)
@@ -326,10 +343,12 @@ struct SettingsView: View {
             UserDefaults.standard.set(encoded, forKey: worldClocksKey)
         }
         
-        // Provide haptic feedback
-        let impactFeedback = UINotificationFeedbackGenerator()
-        impactFeedback.prepare()
-        impactFeedback.notificationOccurred(.success)
+        // Provide haptic feedback if enabled
+        if hapticEnabled {
+            let impactFeedback = UINotificationFeedbackGenerator()
+            impactFeedback.prepare()
+            impactFeedback.notificationOccurred(.success)
+        }
     }
     
     // Get version and build number string

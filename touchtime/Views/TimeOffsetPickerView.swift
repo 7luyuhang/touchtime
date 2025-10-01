@@ -13,6 +13,7 @@ struct TimeOffsetPickerView: View {
     @Binding var showButtons: Bool
     @State private var selectedTime: Date
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     
     init(timeOffset: Binding<TimeInterval>, showTimePicker: Binding<Bool>, showButtons: Binding<Bool>) {
         self._timeOffset = timeOffset
@@ -25,9 +26,12 @@ struct TimeOffsetPickerView: View {
     
     // Reset to current time
     func resetTime() {
-        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-        impactFeedback.prepare()
-        impactFeedback.impactOccurred()
+        // Provide haptic feedback if enabled
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
         
         withAnimation(.spring()) {
             timeOffset = 0
@@ -82,19 +86,27 @@ struct TimeOffsetPickerView: View {
                 .labelsHidden()
                 .environment(\.locale, Locale(identifier: use24HourFormat ? "de_DE" : "en_US"))
             }
-            .navigationTitle("Set Time")
+            .navigationTitle("Current Time")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     if showButtons {
                         Button(action: resetTime) {
                             Image(systemName: "arrow.counterclockwise")
                         }
                     }
                 }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
+                        showTimePicker = false
+                    }) {
+                        Image(systemName: "checkmark")
+                            .fontWeight(.medium)
+                    }
+                }
             }
         }
         .presentationDetents([.height(280)])
-        .presentationDragIndicator(.visible)
     }
 }

@@ -20,6 +20,7 @@ struct ScrollTimeView: View {
     @State private var currentDate = Date()
     @State private var hapticEngine: CHHapticEngine?
     @State private var lastHapticOffset: CGFloat = 0
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     @Namespace private var glassNamespace
     
     // Calculate hours from drag offset
@@ -29,7 +30,7 @@ struct ScrollTimeView: View {
     
     // Prepare haptic engine
     func prepareHaptics() {
-        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
         
         do {
             hapticEngine = try CHHapticEngine()
@@ -41,7 +42,7 @@ struct ScrollTimeView: View {
     
     // Play tick haptic feedback (simulating physical detent/notch)
     func playTickHaptic(intensity: Float = 0.5) {
-        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
         
         do {
             // Create a sharp, short haptic event to simulate a tick/detent
@@ -62,8 +63,7 @@ struct ScrollTimeView: View {
     
     // Check if we should play haptic based on offset change
     func checkAndPlayHapticTick() {
-        // Define tick interval - play haptic every 3.75 points (15 minutes)
-        // Since 15 points = 1 hour, 3.75 points = 15 minutes
+        // Since 15 points = 1 hour
         let tickInterval: CGFloat = 7.5
         
         // Calculate how many ticks we've passed
@@ -133,28 +133,34 @@ struct ScrollTimeView: View {
                 do {
                     try eventStore.save(event, span: .thisEvent)
                     
-                    // Provide haptic feedback on success
-                    DispatchQueue.main.async {
-                        let impactFeedback = UINotificationFeedbackGenerator()
-                        impactFeedback.prepare()
-                        impactFeedback.notificationOccurred(.success)
+                    // Provide haptic feedback on success if enabled
+                    if hapticEnabled {
+                        DispatchQueue.main.async {
+                            let impactFeedback = UINotificationFeedbackGenerator()
+                            impactFeedback.prepare()
+                            impactFeedback.notificationOccurred(.success)
+                        }
                     }
                 } catch {
                     print("Failed to save event: \(error.localizedDescription)")
-                    // Provide haptic feedback on error
-                    DispatchQueue.main.async {
-                        let impactFeedback = UINotificationFeedbackGenerator()
-                        impactFeedback.prepare()
-                        impactFeedback.notificationOccurred(.error)
+                    // Provide haptic feedback on error if enabled
+                    if hapticEnabled {
+                        DispatchQueue.main.async {
+                            let impactFeedback = UINotificationFeedbackGenerator()
+                            impactFeedback.prepare()
+                            impactFeedback.notificationOccurred(.error)
+                        }
                     }
                 }
             } else {
                 print("Calendar access denied or error: \(String(describing: error))")
-                // Provide haptic feedback on permission denied
-                DispatchQueue.main.async {
-                    let impactFeedback = UINotificationFeedbackGenerator()
-                    impactFeedback.prepare()
-                    impactFeedback.notificationOccurred(.warning)
+                // Provide haptic feedback on permission denied if enabled
+                if hapticEnabled {
+                    DispatchQueue.main.async {
+                        let impactFeedback = UINotificationFeedbackGenerator()
+                        impactFeedback.prepare()
+                        impactFeedback.notificationOccurred(.warning)
+                    }
                 }
             }
         }
@@ -162,10 +168,12 @@ struct ScrollTimeView: View {
     
     // Reset time offset
     func resetTimeOffset() {
-        // Provide haptic feedback
-        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-        impactFeedback.prepare()
-        impactFeedback.impactOccurred()
+        // Provide haptic feedback if enabled
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
         
         // Reset all states and hide buttons
         withAnimation(.spring()) {
@@ -383,10 +391,12 @@ struct ScrollTimeView: View {
                     // Reset last haptic offset
                     lastHapticOffset = 0
                     
-                    // Add final impact feedback when releasing
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-                    impactFeedback.prepare()
-                    impactFeedback.impactOccurred()
+                    // Add final impact feedback when releasing if enabled
+                    if hapticEnabled {
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                        impactFeedback.prepare()
+                        impactFeedback.impactOccurred()
+                    }
                     
                     // Show buttons after drag ends with morph animation
                     withAnimation(.spring()) {
