@@ -323,6 +323,7 @@ struct HomeView: View {
                     .onMove(perform: moveClocks)
                 }
                 .scrollIndicators(.hidden)
+                .safeAreaPadding(.bottom, 64)
                 
                 // Scroll Time View - Hide when in edit mode
                 if !isEditing {
@@ -395,7 +396,9 @@ struct HomeView: View {
             } message: {
                 Text("Customize the name of this location")
             }
+        
         }
+        
     }
     
     // Move function

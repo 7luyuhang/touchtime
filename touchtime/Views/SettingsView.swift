@@ -100,6 +100,7 @@ struct SettingsView: View {
                             Text("Local Time")
                         }
                     }
+                    .frame(height: 0)
                 }
                 
                 Section("Time Display") {
@@ -205,6 +206,8 @@ struct SettingsView: View {
                             SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .red, bottomColor: .yellow)
                             Text("Reset Cities")
                         }
+                        .frame(height: 0)
+                        
                     }
                     .foregroundStyle(.primary)
                     .confirmationDialog("", isPresented: $showResetConfirmation) {
@@ -306,6 +309,7 @@ struct SettingsView: View {
             .onReceive(timer) { _ in
                 currentDate = Date()
             }
+            .safeAreaPadding(.bottom, 24)
         }
     }
     

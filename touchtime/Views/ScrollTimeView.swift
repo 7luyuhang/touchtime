@@ -7,6 +7,7 @@
 
 import SwiftUI
 import EventKit
+import CoreHaptics
 
 struct ScrollTimeView: View {
     @Binding var timeOffset: TimeInterval
@@ -17,11 +18,64 @@ struct ScrollTimeView: View {
     @State private var showTimePicker = false
     @State private var showShareSheet = false
     @State private var currentDate = Date()
+    @State private var hapticEngine: CHHapticEngine?
+    @State private var lastHapticOffset: CGFloat = 0
     @Namespace private var glassNamespace
     
     // Calculate hours from drag offset
     func hoursFromOffset(_ offset: CGFloat) -> Double {
         return Double(offset) / 15.0 // 15 points = 1 hour
+    }
+    
+    // Prepare haptic engine
+    func prepareHaptics() {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        
+        do {
+            hapticEngine = try CHHapticEngine()
+            try hapticEngine?.start()
+        } catch {
+            print("There was an error creating the haptic engine: \(error.localizedDescription)")
+        }
+    }
+    
+    // Play tick haptic feedback (simulating physical detent/notch)
+    func playTickHaptic(intensity: Float = 0.5) {
+        guard CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        
+        do {
+            // Create a sharp, short haptic event to simulate a tick/detent
+            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25)
+            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity)
+            
+            let tickEvent = CHHapticEvent(eventType: .hapticTransient,
+                                          parameters: [sharpness, intensity],
+                                          relativeTime: 0)
+            
+            let pattern = try CHHapticPattern(events: [tickEvent], parameters: [])
+            let player = try hapticEngine?.makePlayer(with: pattern)
+            try player?.start(atTime: CHHapticTimeImmediate)
+        } catch {
+            print("Failed to play tick haptic: \(error.localizedDescription)")
+        }
+    }
+    
+    // Check if we should play haptic based on offset change
+    func checkAndPlayHapticTick() {
+        // Define tick interval - play haptic every 3.75 points (15 minutes)
+        // Since 15 points = 1 hour, 3.75 points = 15 minutes
+        let tickInterval: CGFloat = 7.5
+        
+        // Calculate how many ticks we've passed
+        let currentTicks = Int(dragOffset / tickInterval)
+        let lastTicks = Int(lastHapticOffset / tickInterval)
+        
+        // If we've crossed a tick boundary
+        if currentTicks != lastTicks {
+            // Play consistent haptic for all ticks
+            playTickHaptic(intensity: 0.5)
+            lastHapticOffset = dragOffset
+        }
     }
     
     // Show share sheet with city selection
@@ -108,14 +162,16 @@ struct ScrollTimeView: View {
     
     // Reset time offset
     func resetTimeOffset() {
+        // Provide haptic feedback
         let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
         
-        // Hide buttons with morph animation after reset
+        // Reset all states and hide buttons
         withAnimation(.spring()) {
             timeOffset = 0
             dragOffset = 0
+            lastHapticOffset = 0
             showButtons = false
         }
     }
@@ -145,6 +201,7 @@ struct ScrollTimeView: View {
                     }
                     .buttonStyle(.plain)
                     .clipShape(Circle())
+                    .contentShape(Circle()) // Ensure the entire circle is tappable
                     .glassEffect(.regular.interactive())
                     .glassEffectID("moreButton", in: glassNamespace)
                     .glassEffectTransition(.matchedGeometry)
@@ -287,7 +344,12 @@ struct ScrollTimeView: View {
                 
                 // Reset button (right side)
                 if showButtons {
-                    Button(action: resetTimeOffset) {
+                    Button(action: {
+                        // Ensure the action is called on the main thread
+                        DispatchQueue.main.async {
+                            resetTimeOffset()
+                        }
+                    }) {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.system(size: 20))
                             .fontWeight(.medium)
@@ -296,6 +358,7 @@ struct ScrollTimeView: View {
                     }
                     .buttonStyle(.plain)
                     .clipShape(Circle())
+                    .contentShape(Circle()) // Ensure the entire circle is tappable
                     .glassEffect(.regular.interactive())
                     .glassEffectID("resetButton", in: glassNamespace)
                     .glassEffectTransition(.matchedGeometry)
@@ -307,21 +370,21 @@ struct ScrollTimeView: View {
         // Overall composer
         .padding(.horizontal,5)
         .gesture(
-            DragGesture()
+            showButtons ? nil : DragGesture()
                 .onChanged { value in
-                    // Prevent dragging after buttons appear
-                    guard !showButtons else { return }
-                    
                     dragOffset = value.translation.width
                     let hours = hoursFromOffset(dragOffset)
                     timeOffset = hours * 3600 // Convert hours to seconds
+                    
+                    // Check and play haptic tick when crossing time marks
+                    checkAndPlayHapticTick()
                 }
                 .onEnded { _ in
-                    // Prevent drag end action if buttons are already showing
-                    guard !showButtons else { return }
+                    // Reset last haptic offset
+                    lastHapticOffset = 0
                     
-                    // Add haptic feedback when releasing
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                    // Add final impact feedback when releasing
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
                     impactFeedback.prepare()
                     impactFeedback.impactOccurred()
                     
@@ -332,6 +395,10 @@ struct ScrollTimeView: View {
                     }
                 }
         )
+        .onAppear {
+            // Prepare haptic engine when view appears
+            prepareHaptics()
+        }
         .sheet(isPresented: $showTimePicker) {
             TimeOffsetPickerView(
                 timeOffset: $timeOffset,
