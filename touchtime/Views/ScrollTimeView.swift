@@ -231,8 +231,8 @@ struct ScrollTimeView: View {
                             let hours = Int(absoluteHours)
                             let minutes = Int((absoluteHours - Double(hours)) * 60)
                             
-                            // Plus symbol on the far left
-                            Image(systemName: "plus")
+                            // Minus symbol on the far left
+                            Image(systemName: "minus")
                                 .font(.headline)
                                 .foregroundColor(isPositive ? .primary : .primary.opacity(0.5))
                                 .padding(.leading, -8)
@@ -267,8 +267,8 @@ struct ScrollTimeView: View {
                             
                             Spacer()
                             
-                            // Minus symbol on the far right
-                            Image(systemName: "minus")
+                            // Plus symbol on the far right
+                            Image(systemName: "plus")
                                 .font(.headline)
                                 .foregroundColor(!isPositive ? .primary : .primary.opacity(0.5))
                                 .padding(.trailing, -8)
