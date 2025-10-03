@@ -12,16 +12,16 @@ import Combine
 struct EarthView: View {
     @Binding var worldClocks: [WorldClock]
     @State private var position = MapCameraPosition.region(MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 20, longitude: 0),
-        span: MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 180)
+        center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
+        span: MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
     ))
     @State private var currentDate = Date()
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     
     // 設置地圖縮放限制
     private let cameraBounds = MapCameraBounds(
-        minimumDistance: 10000000,    // 最小高度 100km（最大放大）
-        maximumDistance: 50000000   // 最大高度 50,000km（最大縮小）
+        minimumDistance: 20000000,     // 最小高度 1,000km（最大放大）
+        maximumDistance: nil     // 最大高度 80,000km（最大縮小，可看到整個地球並有更多空間）
     )
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -455,15 +455,32 @@ struct EarthView: View {
         return cityCoordinates[timeZoneIdentifier]
     }
     
+    // Get coordinate for local timezone
+    var localCoordinate: CLLocationCoordinate2D? {
+        getCoordinate(for: TimeZone.current.identifier)
+    }
+    
+    // Function to center map on local time
+    func centerOnLocalTime() {
+        if let localCoord = localCoordinate {
+            withAnimation(.spring()) {
+                position = MapCameraPosition.region(MKCoordinateRegion(
+                    center: localCoord,
+                    span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50)
+                ))
+            }
+        }
+    }
+    
     var body: some View {
-        ZStack {
+        NavigationStack {
             Map(position: $position, bounds: cameraBounds) {
                 // Show world clock markers
                 ForEach(worldClocks) { clock in
                     if let coordinate = getCoordinate(for: clock.timeZoneIdentifier) {
                         Annotation(clock.cityName, coordinate: coordinate) {
                             
-                            VStack(spacing: 8) {
+                            VStack(spacing: 6) {
                                 // Time bubble with SkyDot
                                 HStack(spacing: 8) {
                                     SkyDotView(
@@ -491,13 +508,13 @@ struct EarthView: View {
                                     .font(.caption)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
+                                    .contentTransition(.numericText())
                                 }
                                 .padding(.leading, 4)
                                 .padding(.trailing, 8)
                                 .padding(.vertical, 4)
                                 .clipShape(Capsule())
-                                .glassEffect(.clear)
-                                                
+                                .glassEffect(.clear.interactive())
                             }
                         }
                     }
@@ -505,11 +522,17 @@ struct EarthView: View {
             }
             .mapStyle(.imagery(elevation: .realistic))
             .mapControls {
-                MapCompass()
                 MapScaleView()
             }
             .onReceive(timer) { _ in
                 currentDate = Date()
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: centerOnLocalTime) {
+                        Image(systemName: "location.fill.viewfinder")
+                    }
+                }
             }
         }
     }
