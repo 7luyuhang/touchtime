@@ -343,6 +343,12 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink(destination: EarthView(worldClocks: $worldClocks)) {
+                        Image(systemName: "globe.americas.fill")
+                    }
+                }
+                
                 ToolbarItem(placement: .topBarTrailing) {
                     if isEditing {
                         Button(role: .confirm, action: {
