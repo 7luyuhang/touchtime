@@ -20,7 +20,7 @@ struct EarthView: View {
     
     // 設置地圖縮放限制
     private let cameraBounds = MapCameraBounds(
-        minimumDistance: 20000000,     // 最小高度 1,000km（最大放大）
+        minimumDistance: 5000000,     // 最小高度 1,000km（最大放大）
         maximumDistance: nil     // 最大高度 80,000km（最大縮小，可看到整個地球並有更多空間）
     )
     

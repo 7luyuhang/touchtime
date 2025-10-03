@@ -107,7 +107,7 @@ struct SettingsView: View {
                 }
                 
                 // Haptic
-                Section(footer: Text("Only for the haptics of the custom control.")) {
+                Section {
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "wave.3.down", topColor: .blue, bottomColor: .cyan)
@@ -123,7 +123,7 @@ struct SettingsView: View {
                     
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
-                        
+
                         VStack(alignment: .leading, spacing: 4) {
                             // Top row: Time difference and Date
                             HStack {

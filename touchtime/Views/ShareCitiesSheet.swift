@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 
 struct ShareCitiesSheet: View {
     @Binding var worldClocks: [WorldClock]
@@ -15,6 +16,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showLocalTime") private var showLocalTimeInHome = true
     @AppStorage("customLocalName") private var customLocalName = ""
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     
     let currentDate: Date
     let timeOffset: TimeInterval
@@ -148,6 +150,10 @@ struct ShareCitiesSheet: View {
                                 withAnimation(.spring()) {
                                     showLocalTime.toggle()
                                 }
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.impactOccurred()
+                                }
                             }
                             
                             Divider()
@@ -198,6 +204,10 @@ struct ShareCitiesSheet: View {
                                     } else {
                                         selectedCities.insert(clock.id)
                                     }
+                                }
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.impactOccurred()
                                 }
                             }
                         }
