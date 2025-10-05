@@ -118,8 +118,8 @@ struct SettingsView: View {
                 
                 
                 
-                // Time Display
-                Section("Time Display") {
+                // Display
+                Section("Display") {
                     
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {

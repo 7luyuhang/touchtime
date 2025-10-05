@@ -24,6 +24,7 @@ struct TimeZonePickerViewWrapper: View {
     @Binding var worldClocks: [WorldClock]
     @State private var searchText = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var currentDate = Date()
     
     // Timer to update time every second
@@ -270,7 +271,7 @@ struct TimeZonePickerViewWrapper: View {
                                             }
                                             Spacer()
                                             // Show current time preview and added indicator
-                                            HStack(spacing: 8) {
+                                            HStack(spacing: 4) {
                                                 if let tz = TimeZone(identifier: timeZone.identifier) {
                                                     Text(currentTime(for: tz))
                                                         .foregroundStyle(.secondary)
@@ -282,7 +283,7 @@ struct TimeZonePickerViewWrapper: View {
                                                     Image(systemName: "checkmark")
                                                         .font(.subheadline)
                                                         .fontWeight(.semibold)
-                                                        .transition(.blurReplace.combined(with: .scale))
+                                                        .transition(.blurReplace)
                                                 }
                                             }
                                         }
@@ -291,10 +292,10 @@ struct TimeZonePickerViewWrapper: View {
                                     .buttonStyle(PlainButtonStyle())
                                 }
                             }
-                            .sectionIndexLabel(key)
+                            .sectionIndexLabel(searchText.isEmpty ? key : nil)
                         }
                     }
-                    .listSectionIndexVisibility(.visible)
+                    .listSectionIndexVisibility(searchText.isEmpty ? .visible : .hidden)
                     // .tint(.primary)
                 }
             }
@@ -313,6 +314,13 @@ struct TimeZonePickerViewWrapper: View {
     
     // Toggle clock selection
     func toggleClock(cityName: String, identifier: String) {
+        // Provide haptic feedback if enabled
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+        
         withAnimation(.spring(duration: 0.25)) {
             // Check if the same timezone already exists
             if let index = worldClocks.firstIndex(where: { $0.timeZoneIdentifier == identifier }) {
