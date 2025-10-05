@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UIKit
 import Combine
 
 struct SearchTabView: View {
@@ -254,9 +255,7 @@ struct TimeZonePickerViewWrapper: View {
                 } else {
                     List {
                         ForEach(sortedKeys, id: \.self) { key in
-                            Section(header: Text(key)
-                                ) {
-                                    
+                            Section(header: Text(key)) {
                                 ForEach(groupedTimeZones[key] ?? [], id: \.identifier) { timeZone in
                                     Button(action: {
                                         toggleClock(cityName: timeZone.cityName, identifier: timeZone.identifier)
@@ -292,8 +291,11 @@ struct TimeZonePickerViewWrapper: View {
                                     .buttonStyle(PlainButtonStyle())
                                 }
                             }
+                            .sectionIndexLabel(key)
                         }
                     }
+                    .listSectionIndexVisibility(.visible)
+                    // .tint(.primary)
                 }
             }
             .searchable(text: $searchText, prompt: "Cities & Countries")

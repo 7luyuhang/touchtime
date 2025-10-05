@@ -7,7 +7,6 @@
 
 import SwiftUI
 
-
 struct SystemIconImage: View {
     let systemName: String
     let topColor: Color

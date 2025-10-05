@@ -134,6 +134,7 @@ struct HomeView: View {
                                             .font(.headline)
                                             .lineLimit(1)
                                             .truncationMode(.tail)
+                                            .contentTransition(.numericText())
                                     
                                     
                                     Spacer()
@@ -238,6 +239,7 @@ struct HomeView: View {
                                     .font(.headline)
                                     .lineLimit(1)
                                     .truncationMode(.tail)
+                                    .contentTransition(.numericText())
                                 
                                 Spacer()
                                 
@@ -283,7 +285,7 @@ struct HomeView: View {
                                     saveWorldClocks()
                                 }
                             } label: {
-                                Label("", systemImage: "trash")
+                                Label("", systemImage: "xmark.circle")
                             }
                         }
                         
@@ -336,7 +338,7 @@ struct HomeView: View {
                                     }
                                 }
                             }) {
-                                Label("Delete", systemImage: "trash")
+                                Label("Delete", systemImage: "xmark.circle")
                             }
                         }
                     }
@@ -355,6 +357,8 @@ struct HomeView: View {
             }
             .animation(.spring, value: isEditing)
             .animation(.spring, value: showingRenameAlert)
+            .animation(.spring, value: customLocalName)
+            .animation(.spring, value: worldClocks)
             .environment(\.editMode, .constant(isEditing ? .active : .inactive))
             
             .navigationTitle("Touch Time")
@@ -370,14 +374,13 @@ struct HomeView: View {
                 
                 ToolbarItem(placement: .topBarLeading) {
                     if isEditing {
-                        Button(role: .confirm, action: {
+                        Button(action: {
                             withAnimation(.spring()) {
                                 isEditing.toggle()
                             }
                         }) {
                             Image(systemName: "checkmark")
                                 .fontWeight(.semibold)
-                                .foregroundStyle(.white)
                                 .animation(.spring(), value: isEditing)
                         }
                     } else {
