@@ -36,6 +36,7 @@ struct HomeView: View {
     @State private var originalClockName = ""
     @State private var isEditing = false
     @State private var showScrollTimeButtons = false
+    @State private var showShareSheet = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
@@ -380,12 +381,24 @@ struct HomeView: View {
                                 .animation(.spring(), value: isEditing)
                         }
                     } else {
-                        Button(action: {
-                            withAnimation(.spring()) {
-                                isEditing.toggle()
+                        Menu {
+                            Button(action: {
+                                withAnimation(.spring()) {
+                                    isEditing.toggle()
+                                }
+                            }) {
+                                Label("Edit List", systemImage: "list.bullet")
                             }
-                        }) {
-                            Text("Edit")
+                            
+                            Divider()
+                            
+                            Button(action: {
+                                showShareSheet = true
+                            }) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
                                 .animation(.spring(), value: isEditing)
                         }
                     }
@@ -422,6 +435,16 @@ struct HomeView: View {
                 }
             } message: {
                 Text("Customize the name of this city")
+            }
+            
+            // Share Cities Sheet
+            .sheet(isPresented: $showShareSheet) {
+                ShareCitiesSheet(
+                    worldClocks: $worldClocks,
+                    showSheet: $showShareSheet,
+                    currentDate: currentDate,
+                    timeOffset: timeOffset
+                )
             }
         
         }

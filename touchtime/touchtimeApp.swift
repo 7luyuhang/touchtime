@@ -15,7 +15,7 @@ struct touchtimeApp: App {
     init() {
         // Initialize TipKit
         try? Tips.configure([
-            .displayFrequency(.immediate),
+            .displayFrequency(.daily),
             .datastoreLocation(.applicationDefault)
         ])
     }
