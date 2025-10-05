@@ -16,15 +16,15 @@ struct EarthView: View {
         span: MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
     ))
     @State private var currentDate = Date()
+    @State private var timerCancellable: AnyCancellable?
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("showSkyDot") private var showSkyDot = true
     
     // 設置地圖縮放限制
     private let cameraBounds = MapCameraBounds(
         minimumDistance: 5000000,     // 最小高度 1,000km（最大放大）
-        maximumDistance: nil     // 最大高度 80,000km（最大縮小，可看到整個地球並有更多空間）
+        maximumDistance: nil
     )
-    
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Convert timezone identifier to coordinate
     func getCoordinate(for timeZoneIdentifier: String) -> CLLocationCoordinate2D? {
@@ -472,6 +472,28 @@ struct EarthView: View {
         }
     }
     
+    // Start the timer
+    func startTimer() {
+        // Immediately update the current date
+        currentDate = Date()
+        
+        // Cancel any existing timer
+        timerCancellable?.cancel()
+        
+        // Create a new timer
+        timerCancellable = Timer.publish(every: 1, on: .main, in: .common)
+            .autoconnect()
+            .sink { _ in
+                currentDate = Date()
+            }
+    }
+    
+    // Stop the timer
+    func stopTimer() {
+        timerCancellable?.cancel()
+        timerCancellable = nil
+    }
+    
     var body: some View {
         NavigationStack {
             Map(position: $position, bounds: cameraBounds) {
@@ -483,16 +505,18 @@ struct EarthView: View {
                             VStack(spacing: 6) {
                                 // Time bubble with SkyDot
                                 HStack(spacing: 8) {
-                                    SkyDotView(
-                                        date: currentDate,
-                                        timeZoneIdentifier: clock.timeZoneIdentifier
-                                    )
-                                    .overlay(
-                                        Capsule(style: .continuous)
-                                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    
+                                    if showSkyDot {
+                                        SkyDotView(
+                                            date: currentDate,
+                                            timeZoneIdentifier: clock.timeZoneIdentifier
+                                        )
+                                        .overlay(
+                                            Capsule(style: .continuous)
+                                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                                .blendMode(.plusLighter)
+                                        )
+                                        .transition(.blurReplace)
+                                    }
                                     
                                     Text({
                                         let formatter = DateFormatter()
@@ -508,9 +532,13 @@ struct EarthView: View {
                                     .font(.caption)
                                     .fontWeight(.bold)
                                     .foregroundColor(.white)
+                                    .monospacedDigit()
                                     .contentTransition(.numericText())
+                                    .animation(.spring(), value: currentDate)
+                        
                                 }
-                                .padding(.leading, 4)
+                                .animation(.spring(), value: showSkyDot)
+                                .padding(.leading, showSkyDot ? 4 : 8)
                                 .padding(.trailing, 8)
                                 .padding(.vertical, 4)
                                 .clipShape(Capsule())
@@ -524,13 +552,16 @@ struct EarthView: View {
             .mapControls {
                 MapScaleView()
             }
-            .onReceive(timer) { _ in
-                currentDate = Date()
+            .onAppear {
+                startTimer()
+            }
+            .onDisappear {
+                stopTimer()
             }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: centerOnLocalTime) {
-                        Image(systemName: "location.fill.viewfinder")
+                        Image(systemName: "location.fill")
                     }
                 }
             }

@@ -6,10 +6,19 @@
 //
 
 import SwiftUI
+import TipKit
 
 @main
 struct touchtimeApp: App {
     @AppStorage("appearanceMode") private var appearanceMode = "system"
+    
+    init() {
+        // Initialize TipKit
+        try? Tips.configure([
+            .displayFrequency(.immediate),
+            .datastoreLocation(.applicationDefault)
+        ])
+    }
     
     var preferredColorScheme: ColorScheme? {
         switch appearanceMode {

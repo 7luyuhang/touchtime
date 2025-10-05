@@ -81,7 +81,9 @@ struct SettingsView: View {
             Form {
                 // General
                 Section("General") {
-                    HStack {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "circle.lefthalf.filled", topColor: .orange, bottomColor: .indigo)
+                        
                         Picker("Appearance", selection: $appearanceMode) {
                             Text("System")
                                 .tag("system")
@@ -92,6 +94,13 @@ struct SettingsView: View {
                         }
                         .pickerStyle(.menu)
                         .tint(.secondary)
+                    }
+                    
+                    Toggle(isOn: $hapticEnabled) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "wave.3.down", topColor: .blue, bottomColor: .cyan)
+                            Text("Haptics")
+                        }
                     }
                 }
                 
@@ -106,16 +115,7 @@ struct SettingsView: View {
                     .frame(height: 0)
                 }
                 
-                // Haptic
-                Section {
-                    Toggle(isOn: $hapticEnabled) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "wave.3.down", topColor: .blue, bottomColor: .cyan)
-                            Text("Haptic")
-                        }
-                    }
-                    .frame(height: 0)
-                }
+                
                 
                 
                 // Time Display
@@ -128,11 +128,13 @@ struct SettingsView: View {
                             // Top row: Time difference and Date
                             HStack {
                                 if showSkyDot {
-                                    SkyDotView(
-                                        date: currentDate,
-                                        timeZoneIdentifier: "Europe/London"
-                                    )
+                                        SkyDotView(
+                                            date: currentDate,
+                                            timeZoneIdentifier: "Europe/London"
+                                        )
+                                        .transition(.blurReplace)
                                 }
+                                
                                 
                                 if showTimeDifference {
                                     Text(timeDifference())
@@ -142,10 +144,15 @@ struct SettingsView: View {
                                 
                                 Spacer()
                                 
+                                // Date
                                 Text(formatDate())
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
+                                    .contentTransition(.numericText())
+                                    .animation(.spring(), value: currentDate)
+                                
                             }
+                            .animation(.spring(), value: showSkyDot)
                             
                             // Bottom row: City name and Time
                             HStack(alignment: .lastTextBaseline) {
@@ -158,10 +165,13 @@ struct SettingsView: View {
                                     Text(formatTime(use24Hour: use24HourFormat))
                                         .font(.system(size: 36))
                                         .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                        .animation(.spring(), value: currentDate)
                                     
                                     if !use24HourFormat {
                                         Text(formatAMPM())
                                             .font(.headline)
+                                            .contentTransition(.numericText())
                                     }
                                 }
                                 .id(use24HourFormat)
@@ -232,7 +242,7 @@ struct SettingsView: View {
                             resetToDefault()
                         }
                     } message: {
-                        Text("This will reset all cities to the default list.")
+                        Text("This will reset all cities to the default list and clear any custom city names.")
                     }
                 }
                 
@@ -270,11 +280,19 @@ struct SettingsView: View {
                 
                 
                 Section {
-                    HStack{
-                        Text("Terms of Use")}
-                    HStack{
-                        Text("Privacy Policy")
+                    Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
+                        HStack {
+                            Text("Terms of Use")
+                        }
                     }
+                    .foregroundStyle(.primary)
+                    
+                    Link(destination: URL(string: "https://www.handstime.app/privacy")!) {
+                        HStack {
+                            Text("Privacy Policy")
+                        }
+                    }
+                    .foregroundStyle(.primary)
                 }
                 
                 

@@ -8,6 +8,22 @@
 import SwiftUI
 import Combine
 import UIKit
+import TipKit
+
+// Earth View Tip
+struct EarthViewTip: Tip {
+    var title: Text {
+        Text("View Time on Earth")
+    }
+    
+    var message: Text? {
+        Text("Tap to view time around the earth.")
+    }
+    
+    var image: Image? {
+        Image(systemName: "globe.americas.fill")
+    }
+}
 
 struct HomeView: View {
     @Binding var worldClocks: [WorldClock]
@@ -328,8 +344,8 @@ struct HomeView: View {
                 .scrollIndicators(.hidden)
                 .safeAreaPadding(.bottom, 64)
                 
-                // Scroll Time View - Hide when in edit mode
-                if !isEditing {
+                // Scroll Time View - Hide when in edit mode or renaming
+                if !isEditing && !showingRenameAlert {
                     ScrollTimeView(timeOffset: $timeOffset, showButtons: $showScrollTimeButtons, worldClocks: $worldClocks)
                         .padding(.horizontal)
                         .padding(.bottom, 16)
@@ -337,19 +353,21 @@ struct HomeView: View {
                 }
             }
             .animation(.spring, value: isEditing)
+            .animation(.spring, value: showingRenameAlert)
             .environment(\.editMode, .constant(isEditing ? .active : .inactive))
             
             .navigationTitle("Touch Time")
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     NavigationLink(destination: EarthView(worldClocks: $worldClocks)) {
                         Image(systemName: "globe.americas.fill")
+                            .popoverTip(EarthViewTip())
                     }
                 }
                 
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     if isEditing {
                         Button(role: .confirm, action: {
                             withAnimation(.spring()) {
@@ -403,7 +421,7 @@ struct HomeView: View {
                     renamingLocalTime = false
                 }
             } message: {
-                Text("Customize the name of this location")
+                Text("Customize the name of this city")
             }
         
         }
