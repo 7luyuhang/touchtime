@@ -561,7 +561,7 @@ struct EarthView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: centerOnLocalTime) {
-                        Image(systemName: "location.fill")
+                        Image(systemName: "location.magnifyingglass")
                     }
                 }
             }

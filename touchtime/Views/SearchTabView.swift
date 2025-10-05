@@ -294,8 +294,23 @@ struct TimeZonePickerViewWrapper: View {
                             }
                             .sectionIndexLabel(searchText.isEmpty ? key : nil)
                         }
+                        
+                        // Earth image at the bottom (only show when not searching)
+                        if searchText.isEmpty {
+                            Section {
+                                HStack {
+                                    Spacer()
+                                    EarthImageView()
+                                        .glassEffect(.clear)
+                                    Spacer()
+                                }
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 16, trailing: 0))
+                            }
+                        }
                     }
                     .listSectionIndexVisibility(searchText.isEmpty ? .visible : .hidden)
+                    .safeAreaPadding(.bottom, searchText.isEmpty ? 0 : 48)
                     // .tint(.primary)
                 }
             }
