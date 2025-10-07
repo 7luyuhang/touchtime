@@ -321,13 +321,13 @@ struct ScrollTimeView: View {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.system(size: 20))
                             .fontWeight(.medium)
-                            .foregroundColor(.primary)
+                            .foregroundStyle(.white)
                             .frame(width: 52, height: 52)
                     }
                     .buttonStyle(.plain)
                     .clipShape(Circle())
                     .contentShape(Circle()) // Ensure the entire circle is tappable
-                    .glassEffect(.regular.interactive())
+                    .glassEffect(.regular.interactive().tint(.blue))
                     .glassEffectID("resetButton", in: glassNamespace)
                     .glassEffectTransition(.matchedGeometry)
                 }

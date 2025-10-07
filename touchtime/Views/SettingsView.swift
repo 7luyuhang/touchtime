@@ -98,7 +98,7 @@ struct SettingsView: View {
                     
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "wave.3.down", topColor: .blue, bottomColor: .cyan)
+                            SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .blue)
                             Text("Haptics")
                         }
                     }
@@ -114,13 +114,9 @@ struct SettingsView: View {
                     }
                     .frame(height: 0)
                 }
-                
-                
-                
-                
+ 
                 // Display
                 Section("Display") {
-                    
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
 
@@ -328,6 +324,28 @@ struct SettingsView: View {
                             .foregroundStyle(.primary)
                                 
                         ) {
+                    // App Info Section
+                    HStack(alignment: .center, spacing: 12) {
+                        
+                        // Icon
+                        Image("TouchTimeIcon")
+                            .resizable()
+                            .renderingMode(.template)
+                            .foregroundStyle(.tertiary)
+                            .frame(width: 64, height: 64)
+                        
+                        // Text Info
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Touch Time")
+                                .font(.headline)
+                            
+                            Text("Copyright © 2025 Negative Time Limited. \nAll rights reserved.") // "\n" 换行
+                                .font(.caption)
+                                .fontWeight(.medium)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+ 
                     // Version
                     HStack {
                         Text("Version")

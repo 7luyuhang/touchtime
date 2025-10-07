@@ -301,7 +301,6 @@ struct TimeZonePickerViewWrapper: View {
                                 HStack {
                                     Spacer()
                                     EarthImageView()
-                                        .glassEffect(.clear)
                                     Spacer()
                                 }
                                 .listRowBackground(Color.clear)
