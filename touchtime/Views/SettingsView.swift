@@ -10,7 +10,7 @@ import Combine
 
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
-    @AppStorage("use24HourFormat") private var use24HourFormat = true
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
     @AppStorage("appearanceMode") private var appearanceMode = "system"
     @AppStorage("showLocalTime") private var showLocalTime = false
@@ -332,7 +332,7 @@ struct SettingsView: View {
                             .resizable()
                             .renderingMode(.template)
                             .foregroundStyle(.tertiary)
-                            .frame(width: 64, height: 64)
+                            .frame(width: 60, height: 60)
                         
                         // Text Info
                         VStack(alignment: .leading, spacing: 4) {

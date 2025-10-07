@@ -365,14 +365,15 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     NavigationLink(destination: EarthView(worldClocks: $worldClocks)) {
                         Image(systemName: "globe.americas.fill")
+                            .frame(width: 24) // Make the shape as circle
                             .popoverTip(EarthViewTip())
                     }
                 }
                 
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     if isEditing {
                         Button(action: {
                             withAnimation(.spring()) {
