@@ -17,10 +17,8 @@ struct ScrollTimeView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var eventStore = EKEventStore()
     @State private var showTimePicker = false
-    @State private var showShareSheet = false
     @State private var showEventEditor = false
     @State private var eventToEdit: EKEvent?
-    @State private var currentDate = Date()
     @State private var hapticEngine: CHHapticEngine?
     @State private var lastHapticOffset: CGFloat = 0
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -79,14 +77,6 @@ struct ScrollTimeView: View {
             playTickHaptic(intensity: 0.5)
             lastHapticOffset = dragOffset
         }
-    }
-    
-    // Show share sheet with city selection
-    func showShareCities() {
-        // Update current date
-        currentDate = Date()
-        // Show the share sheet
-        showShareSheet = true
     }
     
     // Add to Calendar - opens system event editor
@@ -149,20 +139,10 @@ struct ScrollTimeView: View {
         GlassEffectContainer(spacing: 12) {
             HStack(spacing: 12) {
                 
-                // More button with menu (left side)
+                // Add to Calendar button (left side)
                 if showButtons {
-                    Menu {
-                        Button(action: showShareCities) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                        }
-                        
-                        Divider()
-                        
-                        Button(action: addToCalendar) {
-                            Label("Add to Calendar", systemImage: "calendar.badge.plus")
-                        }
-                    } label: {
-                        Image(systemName: "ellipsis")
+                    Button(action: addToCalendar) {
+                        Image(systemName: "plus")
                             .font(.system(size: 20))
                             .fontWeight(.medium)
                             .foregroundColor(.primary)
@@ -172,7 +152,7 @@ struct ScrollTimeView: View {
                     .clipShape(Circle())
                     .contentShape(Circle()) // Ensure the entire circle is tappable
                     .glassEffect(.regular.interactive())
-                    .glassEffectID("moreButton", in: glassNamespace)
+                    .glassEffectID("calendarButton", in: glassNamespace)
                     .glassEffectTransition(.matchedGeometry)
                 }
                     
@@ -208,7 +188,7 @@ struct ScrollTimeView: View {
                                 
                                 // Chevrons in the foreground
                                 HStack {
-                                    Image(systemName: "chevron.backward")
+                                    Image(systemName: "chevron.left")
                                         .fontWeight(.semibold)
                                         .foregroundStyle(.primary)
                                         .id("chevron.left.dragging")
@@ -231,8 +211,8 @@ struct ScrollTimeView: View {
                             let hours = Int(absoluteHours)
                             let minutes = Int((absoluteHours - Double(hours)) * 60)
                             
-                            Image(systemName: "minus")
-                                .font(.headline)
+                            Image(systemName: "chevron.left")
+                                .fontWeight(.semibold)
                                 .foregroundColor(isPositive ? .primary.opacity(0.5) : .primary)
                                 .padding(.leading, -8)
                             
@@ -267,14 +247,14 @@ struct ScrollTimeView: View {
                             Spacer()
                             
                             // Right Icon
-                            Image(systemName: "plus")
-                                .font(.headline)
+                            Image(systemName: "chevron.right")
+                                .fontWeight(.semibold)
                                 .foregroundColor(isPositive ?  .primary : .primary.opacity(0.5))
                                 .padding(.trailing, -8)
                             
                         } else {
                             // Slide to Adjust Time
-                            Image(systemName: "chevron.backward")
+                            Image(systemName: "chevron.left")
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.tertiary)
                                 .id("chevron.left.idle")
@@ -374,14 +354,6 @@ struct ScrollTimeView: View {
                 timeOffset: $timeOffset,
                 showTimePicker: $showTimePicker,
                 showButtons: $showButtons
-            )
-        }
-        .sheet(isPresented: $showShareSheet) {
-            ShareCitiesSheet(
-                worldClocks: $worldClocks,
-                showSheet: $showShareSheet,
-                currentDate: currentDate,
-                timeOffset: timeOffset
             )
         }
         .sheet(isPresented: $showEventEditor) {
