@@ -21,7 +21,9 @@ struct ScrollTimeView: View {
     @State private var eventToEdit: EKEvent?
     @State private var hapticEngine: CHHapticEngine?
     @State private var lastHapticOffset: CGFloat = 0
+    @State private var hapticPlayer: CHHapticPatternPlayer?
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
     @Namespace private var glassNamespace
     
     // Calculate hours from drag offset
@@ -29,15 +31,88 @@ struct ScrollTimeView: View {
         return Double(offset) / 15.0 // 15 points = 1 hour
     }
     
-    // Prepare haptic engine
+    // Prepare haptic engine with proper lifecycle management
     func prepareHaptics() {
         guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
         
         do {
-            hapticEngine = try CHHapticEngine()
+            // Create engine if it doesn't exist
+            if hapticEngine == nil {
+                hapticEngine = try CHHapticEngine()
+                
+                // Set up handlers for engine lifecycle events
+                // Note: We capture the engine itself, not self (since self is a struct)
+                let engine = hapticEngine
+                
+                hapticEngine?.stoppedHandler = { reason in
+                    print("Haptic engine stopped: \(reason.rawValue)")
+                    // Try to restart the engine
+                    DispatchQueue.main.async {
+                        do {
+                            try engine?.start()
+                            print("Haptic engine restarted after stop")
+                        } catch {
+                            print("Failed to restart haptic engine: \(error.localizedDescription)")
+                        }
+                    }
+                }
+                
+                hapticEngine?.resetHandler = {
+                    print("Haptic engine reset")
+                    // Try to restart the engine after reset  
+                    DispatchQueue.main.async {
+                        do {
+                            try engine?.start()
+                            print("Haptic engine restarted after reset")
+                        } catch {
+                            print("Failed to restart haptic engine: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            }
+            
+            // Start the engine
             try hapticEngine?.start()
+            
+            // Pre-create the haptic pattern player for better performance
+            prepareHapticPlayer()
+            
         } catch {
-            print("There was an error creating the haptic engine: \(error.localizedDescription)")
+            print("Error creating/starting haptic engine: \(error.localizedDescription)")
+        }
+    }
+    
+    // Restart haptic engine when it stops
+    func restartHapticEngine() {
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        
+        do {
+            try hapticEngine?.start()
+            // Recreate the player after restart
+            prepareHapticPlayer()
+            print("Haptic engine restarted successfully")
+        } catch {
+            print("Failed to restart haptic engine: \(error.localizedDescription)")
+        }
+    }
+    
+    // Pre-create haptic pattern player for reuse
+    func prepareHapticPlayer() {
+        guard let engine = hapticEngine else { return }
+        
+        do {
+            // Create a reusable pattern for tick feedback
+            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25)
+            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5)
+            
+            let tickEvent = CHHapticEvent(eventType: .hapticTransient,
+                                          parameters: [sharpness, intensity],
+                                          relativeTime: 0)
+            
+            let pattern = try CHHapticPattern(events: [tickEvent], parameters: [])
+            hapticPlayer = try engine.makePlayer(with: pattern)
+        } catch {
+            print("Failed to create haptic player: \(error.localizedDescription)")
         }
     }
     
@@ -45,20 +120,51 @@ struct ScrollTimeView: View {
     func playTickHaptic(intensity: Float = 0.5) {
         guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
         
+        // Ensure engine is running before playing
+        ensureHapticEngineRunning()
+        
         do {
-            // Create a sharp, short haptic event to simulate a tick/detent
-            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25)
-            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity)
-            
-            let tickEvent = CHHapticEvent(eventType: .hapticTransient,
-                                          parameters: [sharpness, intensity],
-                                          relativeTime: 0)
-            
-            let pattern = try CHHapticPattern(events: [tickEvent], parameters: [])
-            let player = try hapticEngine?.makePlayer(with: pattern)
-            try player?.start(atTime: CHHapticTimeImmediate)
+            if let player = hapticPlayer {
+                // Use existing player for better performance
+                try player.start(atTime: CHHapticTimeImmediate)
+            } else {
+                // Fallback: Create new player if needed
+                guard let engine = hapticEngine else { return }
+                
+                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25)
+                let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity)
+                
+                let tickEvent = CHHapticEvent(eventType: .hapticTransient,
+                                              parameters: [sharpness, intensityParam],
+                                              relativeTime: 0)
+                
+                let pattern = try CHHapticPattern(events: [tickEvent], parameters: [])
+                let newPlayer = try engine.makePlayer(with: pattern)
+                try newPlayer.start(atTime: CHHapticTimeImmediate)
+            }
         } catch {
             print("Failed to play tick haptic: \(error.localizedDescription)")
+            // Try to recover by restarting the engine
+            restartHapticEngine()
+        }
+    }
+    
+    // Ensure haptic engine is running before use
+    func ensureHapticEngineRunning() {
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        
+        // Check if engine exists and is running
+        if hapticEngine == nil {
+            prepareHaptics()
+        } else {
+            // Check if engine is stopped and restart if needed
+            do {
+                // This will throw if engine is not running
+                try hapticEngine?.start()
+            } catch {
+                // Engine was stopped, restart it
+                restartHapticEngine()
+            }
         }
     }
     
@@ -93,8 +199,8 @@ struct ScrollTimeView: View {
                     let startDate = currentDate.addingTimeInterval(self.timeOffset)
                     event.startDate = startDate
                     
-                    // Set end date (1 hour duration by default)
-                    event.endDate = startDate.addingTimeInterval(3600)
+                    // Set end date with user-configured default duration
+                    event.endDate = startDate.addingTimeInterval(self.defaultEventDuration)
                     
                     // Set calendar (default calendar)
                     event.calendar = self.eventStore.defaultCalendarForNewEvents
@@ -348,6 +454,20 @@ struct ScrollTimeView: View {
         .onAppear {
             // Prepare haptic engine when view appears
             prepareHaptics()
+        }
+        .onDisappear {
+            // Stop the haptic engine to save resources
+            hapticEngine?.stop()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            // Restart haptic engine when app comes to foreground
+            if hapticEnabled {
+                restartHapticEngine()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            // Stop haptic engine when app goes to background
+            hapticEngine?.stop()
         }
         .sheet(isPresented: $showTimePicker) {
             TimeOffsetPickerView(

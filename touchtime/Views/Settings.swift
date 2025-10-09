@@ -16,6 +16,7 @@ struct SettingsView: View {
     @AppStorage("showLocalTime") private var showLocalTime = false
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     
@@ -98,7 +99,7 @@ struct SettingsView: View {
                     
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .blue)
+                            SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
                             Text("Haptics")
                         }
                     }
@@ -220,6 +221,23 @@ struct SettingsView: View {
                     
                 }
                 
+                // Calendar
+                Section("Calendar") {
+                    Picker(selection: $defaultEventDuration) {
+                        Text("15 min").tag(900.0)
+                        Text("30 min").tag(1800.0)
+                        Text("1 hr").tag(3600.0)
+                    } label: {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "clock.fill", topColor: .blue, bottomColor: .cyan)
+                            Text("Event Duration")
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.secondary)
+                    .frame(height: 0)
+                }
+                
                 // Reset Section
                 Section{
                     Button(action: {
@@ -327,12 +345,12 @@ struct SettingsView: View {
                     // App Info Section
                     HStack(alignment: .center, spacing: 12) {
                         
-                        // Icon
-                        Image("TouchTimeIcon")
-                            .resizable()
-                            .renderingMode(.template)
-                            .foregroundStyle(.tertiary)
-                            .frame(width: 60, height: 60)
+//                        // Icon
+//                        Image("TouchTimeIcon")
+//                            .resizable()
+//                            .renderingMode(.template)
+//                            .foregroundStyle(.tertiary)
+//                            .frame(width: 60, height: 60)
                         
                         // Text Info
                         VStack(alignment: .leading, spacing: 4) {
@@ -340,7 +358,7 @@ struct SettingsView: View {
                                 .font(.headline)
                             
                             Text("Copyright © 2025 Negative Time Limited. \nAll rights reserved.") // "\n" 换行
-                                .font(.caption)
+                                .font(.footnote)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.secondary)
                         }
