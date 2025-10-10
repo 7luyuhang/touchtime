@@ -24,6 +24,9 @@ struct ScrollTimeView: View {
     @State private var hapticPlayer: CHHapticPatternPlayer?
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
+    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
+    @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
     @Namespace private var glassNamespace
     
     // Calculate hours from drag offset
@@ -185,6 +188,45 @@ struct ScrollTimeView: View {
         }
     }
     
+    // Generate notes text with selected cities and their times
+    func generateCityNotesText() -> String? {
+        guard showCitiesInNotes && !selectedCitiesForNotes.isEmpty else { return nil }
+        
+        let selectedIds = selectedCitiesForNotes.split(separator: ",").map { String($0) }
+        let selectedClocks = worldClocks.filter { clock in
+            selectedIds.contains(clock.id.uuidString)
+        }
+        
+        guard !selectedClocks.isEmpty else { return nil }
+        
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        
+        let adjustedDate = Date().addingTimeInterval(timeOffset)
+        
+        var notesText = "Time in other cities:\n"
+        
+        for clock in selectedClocks {
+            formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
+            
+            if use24HourFormat {
+                formatter.dateFormat = "HH:mm"
+            } else {
+                formatter.dateFormat = "h:mm a"
+            }
+            
+            let timeString = formatter.string(from: adjustedDate)
+            
+            // Format date
+            formatter.dateFormat = "E, d MMM"
+            let dateString = formatter.string(from: adjustedDate)
+            
+            notesText += "\n\(clock.cityName): \(timeString) • \(dateString)"
+        }
+        
+        return notesText
+    }
+    
     // Add to Calendar - opens system event editor
     func addToCalendar() {
         // Request calendar permission
@@ -204,6 +246,11 @@ struct ScrollTimeView: View {
                     
                     // Set calendar (default calendar)
                     event.calendar = self.eventStore.defaultCalendarForNewEvents
+                    
+                    // Add notes with selected cities and their times
+                    if let notesText = self.generateCityNotesText() {
+                        event.notes = notesText
+                    }
                     
                     // Store the event and show the editor
                     self.eventToEdit = event
@@ -257,7 +304,7 @@ struct ScrollTimeView: View {
                     .buttonStyle(.plain)
                     .clipShape(Circle())
                     .contentShape(Circle()) // Ensure the entire circle is tappable
-                    .glassEffect(.regular.interactive())
+                    .glassEffect(.regular.interactive().tint(.blue))
                     .glassEffectID("calendarButton", in: glassNamespace)
                     .glassEffectTransition(.matchedGeometry)
                 }
@@ -413,7 +460,7 @@ struct ScrollTimeView: View {
                     .buttonStyle(.plain)
                     .clipShape(Circle())
                     .contentShape(Circle()) // Ensure the entire circle is tappable
-                    .glassEffect(.regular.interactive().tint(.blue))
+                    .glassEffect(.regular.interactive())
                     .glassEffectID("resetButton", in: glassNamespace)
                     .glassEffectTransition(.matchedGeometry)
                 }

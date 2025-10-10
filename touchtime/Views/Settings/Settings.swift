@@ -17,6 +17,8 @@ struct SettingsView: View {
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
+    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
+    @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     
@@ -113,7 +115,6 @@ struct SettingsView: View {
                             Text("Local Time")
                         }
                     }
-                    .frame(height: 0)
                 }
  
                 // Display
@@ -222,11 +223,13 @@ struct SettingsView: View {
                 }
                 
                 // Calendar
-                Section("Calendar") {
+                Section("Calender") {
                     Picker(selection: $defaultEventDuration) {
                         Text("15 min").tag(900.0)
                         Text("30 min").tag(1800.0)
+                        Text("45 min").tag(2700.0)
                         Text("1 hr").tag(3600.0)
+                        Text("2 hrs").tag(7200.0)
                     } label: {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "clock.fill", topColor: .blue, bottomColor: .cyan)
@@ -235,9 +238,39 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .frame(height: 0)
+                    
+                    // Show cities in note
+                    NavigationLink(destination: CitySelectionSheet(
+                        worldClocks: worldClocks,
+                        selectedCitiesForNotes: $selectedCitiesForNotes,
+                        showCitiesInNotes: $showCitiesInNotes
+                    )) {
+                        HStack {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "pencil.tip", topColor: .orange, bottomColor: .yellow)
+                                Text("City in Notes")
+                            }
+                            Spacer()
+                            Text({
+                                if !showCitiesInNotes {
+                                    return ""
+                                } else {
+                                    let selectedIds = selectedCitiesForNotes.split(separator: ",").map { String($0) }
+                                    let count = selectedIds.filter { !$0.isEmpty }.count
+                                    if count == 0 {
+                                        return ""
+                                    } else if count == 1 {
+                                        return "1 City"
+                                    } else {
+                                        return "\(count) Cities"
+                                    }
+                                }
+                            }())
+                            .foregroundStyle(.secondary)
+                        }
+                    }
                 }
-                
+     
                 // Reset Section
                 Section{
                     Button(action: {
@@ -247,7 +280,6 @@ struct SettingsView: View {
                             SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .red, bottomColor: .yellow)
                             Text("Reset Cities")
                         }
-                        .frame(height: 0)
                         
                     }
                     .foregroundStyle(.primary)
@@ -343,26 +375,10 @@ struct SettingsView: View {
                                 
                         ) {
                     // App Info Section
-                    HStack(alignment: .center, spacing: 12) {
-                        
-//                        // Icon
-//                        Image("TouchTimeIcon")
-//                            .resizable()
-//                            .renderingMode(.template)
-//                            .foregroundStyle(.tertiary)
-//                            .frame(width: 60, height: 60)
-                        
-                        // Text Info
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Touch Time")
-                                .font(.headline)
-                            
-                            Text("Copyright © 2025 Negative Time Limited. \nAll rights reserved.") // "\n" 换行
+                    Text("Copyright © 2025 Negative Time Limited. \nAll rights reserved.") // "\n" 换行
                                 .font(.footnote)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.secondary)
-                        }
-                    }
  
                     // Version
                     HStack {

@@ -29,7 +29,7 @@ struct SystemIconImage: View {
                 .glassEffect(.regular)
                 
             Image(systemName: systemName)
-                .font(.system(size: 16))
+                .font(.system(size: 15))
                 .fontWeight(.medium)
                 .foregroundStyle(.white)
         }
