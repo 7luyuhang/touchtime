@@ -344,7 +344,7 @@ struct SettingsView: View {
                 
                 Section(footer:
                             HStack(spacing: 4) {
-                                Text("Designed by")
+                                Text("Designed & built by")
                                     .foregroundColor(.secondary)
                                     .font(.footnote)
                                 

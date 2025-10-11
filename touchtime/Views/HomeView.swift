@@ -8,22 +8,6 @@
 import SwiftUI
 import Combine
 import UIKit
-import TipKit
-
-// Earth View Tip
-struct EarthViewTip: Tip {
-    var title: Text {
-        Text("View Time on Earth")
-    }
-    
-    var message: Text? {
-        Text("Tap to view time around the earth.")
-    }
-    
-    var image: Image? {
-        Image(systemName: "globe.americas.fill")
-    }
-}
 
 struct HomeView: View {
     @Binding var worldClocks: [WorldClock]
@@ -366,14 +350,6 @@ struct HomeView: View {
             
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    NavigationLink(destination: EarthView(worldClocks: $worldClocks)) {
-                        Image(systemName: "globe.americas.fill")
-                            .frame(width: 24) // Make the shape as circle
-                            .popoverTip(EarthViewTip())
-                    }
-                }
-                
-                ToolbarItem(placement: .topBarTrailing) {
                     if isEditing {
                         Button(action: {
                             withAnimation(.spring()) {
@@ -405,6 +381,13 @@ struct HomeView: View {
                             Image(systemName: "ellipsis")
                                 .animation(.spring(), value: isEditing)
                         }
+                    }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    NavigationLink(destination: SettingsView(worldClocks: $worldClocks)) {
+                        Image(systemName: "gear")
+                            .frame(width: 24)
                     }
                 }
             }

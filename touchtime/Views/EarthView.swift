@@ -17,6 +17,8 @@ struct EarthView: View {
     ))
     @State private var currentDate = Date()
     @State private var timerCancellable: AnyCancellable?
+    @State private var timeOffset: TimeInterval = 0
+    @State private var showScrollTimeButtons = false
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
     
@@ -455,23 +457,6 @@ struct EarthView: View {
         return cityCoordinates[timeZoneIdentifier]
     }
     
-    // Get coordinate for local timezone
-    var localCoordinate: CLLocationCoordinate2D? {
-        getCoordinate(for: TimeZone.current.identifier)
-    }
-    
-    // Function to center map on local time
-    func centerOnLocalTime() {
-        if let localCoord = localCoordinate {
-            withAnimation(.spring()) {
-                position = MapCameraPosition.region(MKCoordinateRegion(
-                    center: localCoord,
-                    span: MKCoordinateSpan(latitudeDelta: 50, longitudeDelta: 50)
-                ))
-            }
-        }
-    }
-    
     // Start the timer
     func startTimer() {
         // Immediately update the current date
@@ -496,7 +481,8 @@ struct EarthView: View {
     
     var body: some View {
         NavigationStack {
-            Map(position: $position, bounds: cameraBounds) {
+            ZStack(alignment: .bottom) {
+                Map(position: $position, bounds: cameraBounds) {
                 // Show world clock markers
                 ForEach(worldClocks) { clock in
                     if let coordinate = getCoordinate(for: clock.timeZoneIdentifier) {
@@ -507,7 +493,7 @@ struct EarthView: View {
                                 HStack(spacing: 8) {
                                     if showSkyDot {
                                         SkyDotView(
-                                            date: currentDate,
+                                            date: currentDate.addingTimeInterval(timeOffset),
                                             timeZoneIdentifier: clock.timeZoneIdentifier
                                         )
                                         .overlay(
@@ -527,7 +513,8 @@ struct EarthView: View {
                                         } else {
                                             formatter.dateFormat = "h:mma"
                                         }
-                                        return formatter.string(from: currentDate).lowercased()
+                                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                        return formatter.string(from: adjustedDate).lowercased()
                                     }())
                                     .font(.caption)
                                     .fontWeight(.bold)
@@ -535,6 +522,7 @@ struct EarthView: View {
                                     .monospacedDigit()
                                     .contentTransition(.numericText())
                                     .animation(.spring(), value: currentDate)
+                                    .animation(.spring(), value: timeOffset)
                         
                                 }
                                 .animation(.spring(), value: showSkyDot)
@@ -552,16 +540,31 @@ struct EarthView: View {
             .mapControls {
                 MapScaleView()
             }
-            .onAppear {
-                startTimer()
-            }
-            .onDisappear {
-                stopTimer()
-            }
+            .safeAreaPadding(.bottom, 64)
+            
+            // Scroll Time View
+            ScrollTimeView(
+                timeOffset: $timeOffset,
+                showButtons: $showScrollTimeButtons,
+                worldClocks: $worldClocks
+            )
+            .padding(.horizontal)
+            .padding(.bottom, 16)
+            .transition(.blurReplace)
+        }
+        .animation(.spring(), value: showScrollTimeButtons)
+        .animation(.spring(), value: timeOffset)
+        .onAppear {
+            startTimer()
+        }
+        .onDisappear {
+            stopTimer()
+        }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: centerOnLocalTime) {
-                        Image(systemName: "location.magnifyingglass")
+                    NavigationLink(destination: SettingsView(worldClocks: $worldClocks)) {
+                        Image(systemName: "gear")
+                            .frame(width: 24)
                     }
                 }
             }

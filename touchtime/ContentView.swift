@@ -15,12 +15,12 @@ struct ContentView: View {
     
     var body: some View {
         TabView {
-            Tab("Time", systemImage: "clock") {
+            Tab("List", systemImage: "clock") {
                 HomeView(worldClocks: $worldClocks)
             }
             
-            Tab("Settings", systemImage: "gear") {
-                SettingsView(worldClocks: $worldClocks)
+            Tab("Earth", systemImage: "globe.americas.fill") {
+                EarthView(worldClocks: $worldClocks)
             }
             
             Tab(role: .search) {

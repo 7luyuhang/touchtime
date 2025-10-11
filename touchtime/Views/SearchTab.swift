@@ -283,7 +283,7 @@ struct TimeZonePickerViewWrapper: View {
                                                     Image(systemName: "checkmark")
                                                         .font(.subheadline)
                                                         .fontWeight(.semibold)
-                                                        .transition(.blurReplace)
+                                                        .transition(.identity)
                                                 }
                                             }
                                         }
