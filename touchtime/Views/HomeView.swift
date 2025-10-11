@@ -75,11 +75,20 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                // Main List Content
-                List {
-                    // Local Time Section
-                    if showLocalTime {
-                        Section {
+                // Check if there are no world clocks
+                if worldClocks.isEmpty && !showLocalTime {
+                    // Empty state view
+                    ContentUnavailableView {
+                        Label("Nothing here", systemImage: "location.magnifyingglass")
+                    } description: {
+                        Text("Add cities to track time.")
+                    }
+                } else {
+                    // Main List Content
+                    List {
+                        // Local Time Section
+                        if showLocalTime {
+                            Section {
                             VStack(alignment: .leading, spacing: 4) {
                                 // Top row: "Local" label and Date
                                 HStack {
@@ -178,7 +187,8 @@ struct HomeView: View {
                     }
                     
                     ForEach(worldClocks) { clock in
-                        VStack(alignment: .leading, spacing: 4) {
+                        Section {
+                            VStack(alignment: .leading, spacing: 4) {
                             // Top row: Time difference and Date
                             if showTimeDifference && !clock.timeDifference.isEmpty {
                                 HStack {
@@ -326,14 +336,17 @@ struct HomeView: View {
                                 Label("Delete", systemImage: "xmark.circle")
                             }
                         }
+                        }
                     }
                     .onMove(perform: moveClocks)
+                    }
+                    .listSectionSpacing(8)
+                    .scrollIndicators(.hidden)
+                    .safeAreaPadding(.bottom, 64)
                 }
-                .scrollIndicators(.hidden)
-                .safeAreaPadding(.bottom, 64)
                 
-                // Scroll Time View - Hide when in edit mode or renaming
-                if !isEditing && !showingRenameAlert {
+                // Scroll Time View - Hide when in edit mode, renaming, or when there's no content to display
+                if !isEditing && !showingRenameAlert && !(worldClocks.isEmpty && !showLocalTime) {
                     ScrollTimeView(timeOffset: $timeOffset, showButtons: $showScrollTimeButtons, worldClocks: $worldClocks)
                         .padding(.horizontal)
                         .padding(.bottom, 16)
@@ -351,36 +364,42 @@ struct HomeView: View {
             
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    if isEditing {
-                        Button(action: {
-                            withAnimation(.spring()) {
-                                isEditing.toggle()
-                            }
-                        }) {
-                            Image(systemName: "checkmark")
-                                .fontWeight(.semibold)
-                                .animation(.spring(), value: isEditing)
-                        }
-                    } else {
-                        Menu {
+                    // Hide more button when in empty state
+                    if !(worldClocks.isEmpty && !showLocalTime) {
+                        if isEditing {
                             Button(action: {
                                 withAnimation(.spring()) {
                                     isEditing.toggle()
                                 }
                             }) {
-                                Label("Edit List", systemImage: "list.bullet")
+                                Image(systemName: "checkmark")
+                                    .fontWeight(.semibold)
+                                    .animation(.spring(), value: isEditing)
                             }
-                            
-                            Divider()
-                            
-                            Button(action: {
-                                showShareSheet = true
-                            }) {
-                                Label("Share", systemImage: "square.and.arrow.up")
+                        } else {
+                            Menu {
+                                Button(action: {
+                                    withAnimation(.spring()) {
+                                        isEditing.toggle()
+                                    }
+                                }) {
+                                    Label("Edit List", systemImage: "list.bullet")
+                                }
+                                
+                                // Only show Share option if there are world clocks to share
+                                if !worldClocks.isEmpty {
+                                    Divider()
+                                    
+                                    Button(action: {
+                                        showShareSheet = true
+                                    }) {
+                                        Label("Share", systemImage: "square.and.arrow.up")
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                                    .animation(.spring(), value: isEditing)
                             }
-                        } label: {
-                            Image(systemName: "ellipsis")
-                                .animation(.spring(), value: isEditing)
                         }
                     }
                 }

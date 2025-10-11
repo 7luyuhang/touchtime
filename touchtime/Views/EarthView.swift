@@ -542,20 +542,23 @@ struct EarthView: View {
             .mapControls {
                 MapScaleView()
             }
-            .safeAreaPadding(.bottom, 64)
+            .safeAreaPadding(.bottom, worldClocks.isEmpty ? 0 : 64)
             
-            // Scroll Time View
-            ScrollTimeView(
-                timeOffset: $timeOffset,
-                showButtons: $showScrollTimeButtons,
-                worldClocks: $worldClocks
-            )
-            .padding(.horizontal)
-            .padding(.bottom, 16)
-            .transition(.blurReplace)
+            // Scroll Time View - Hide when no world clocks
+            if !worldClocks.isEmpty {
+                ScrollTimeView(
+                    timeOffset: $timeOffset,
+                    showButtons: $showScrollTimeButtons,
+                    worldClocks: $worldClocks
+                )
+                .padding(.horizontal)
+                .padding(.bottom, 16)
+                .transition(.blurReplace)
+            }
         }
         .animation(.spring(), value: showScrollTimeButtons)
         .animation(.spring(), value: timeOffset)
+        .animation(.spring(), value: worldClocks)
         .onAppear {
             startTimer()
         }
@@ -564,10 +567,13 @@ struct EarthView: View {
         }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button(action: {
-                        showShareSheet = true
-                    }) {
-                        Image(systemName: "square.and.arrow.up")
+                    // Hide share button when no cities
+                    if !worldClocks.isEmpty {
+                        Button(action: {
+                            showShareSheet = true
+                        }) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
                     }
                 }
                 
@@ -592,5 +598,7 @@ struct EarthView: View {
                 SettingsView(worldClocks: $worldClocks)
             }
         }
+        .preferredColorScheme(.dark)
     }
+        
 }

@@ -22,12 +22,22 @@ struct CitySelectionSheet: View {
                 Toggle(isOn: $showCitiesInNotes) {
                     Text("Show Time in Notes")
                 }
+                .disabled(worldClocks.isEmpty)
             } footer: {
-                Text("Add selected cities and times to event notes.")
+                if worldClocks.isEmpty {
+                    HStack(spacing: 4) {
+                        Text("Tap")
+                        Image(systemName: "magnifyingglass")
+                            .fontWeight(.medium)
+                        Text("and add cities first to enable.")
+                    }
+                } else {
+                    Text("Add selected cities and times to event notes.")
+                }
             }
             
             // City Selection Section
-            if showCitiesInNotes {
+            if showCitiesInNotes && !worldClocks.isEmpty {
                 Section {
                     ForEach(worldClocks) { clock in
                         Button(action: {
@@ -61,6 +71,10 @@ struct CitySelectionSheet: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadSelection()
+            // Auto-disable if no cities available
+            if worldClocks.isEmpty && showCitiesInNotes {
+                showCitiesInNotes = false
+            }
         }
         .onChange(of: selectedIds) {
             saveSelection()
