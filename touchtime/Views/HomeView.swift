@@ -21,6 +21,7 @@ struct HomeView: View {
     @State private var isEditing = false
     @State private var showScrollTimeButtons = false
     @State private var showShareSheet = false
+    @State private var showSettingsSheet = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
@@ -385,7 +386,9 @@ struct HomeView: View {
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: SettingsView(worldClocks: $worldClocks)) {
+                    Button(action: {
+                        showSettingsSheet = true
+                    }) {
                         Image(systemName: "gear")
                             .frame(width: 24)
                     }
@@ -432,6 +435,11 @@ struct HomeView: View {
                     currentDate: currentDate,
                     timeOffset: timeOffset
                 )
+            }
+            
+            // Settings Sheet
+            .sheet(isPresented: $showSettingsSheet) {
+                SettingsView(worldClocks: $worldClocks)
             }
         
         }

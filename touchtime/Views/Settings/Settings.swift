@@ -21,6 +21,7 @@ struct SettingsView: View {
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
+    @Environment(\.dismiss) private var dismiss
     
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -29,7 +30,7 @@ struct SettingsView: View {
     func formatTime(use24Hour: Bool) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "Europe/London")
+        formatter.timeZone = TimeZone.current
         
         if use24Hour {
             formatter.dateFormat = "HH:mm"
@@ -44,7 +45,7 @@ struct SettingsView: View {
     func formatAMPM() -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "Europe/London")
+        formatter.timeZone = TimeZone.current
         formatter.dateFormat = "a"
         formatter.amSymbol = "am"
         formatter.pmSymbol = "pm"
@@ -55,27 +56,35 @@ struct SettingsView: View {
     func formatDate() -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone(identifier: "Europe/London")
+        formatter.timeZone = TimeZone.current
         formatter.dateFormat = "E, d MMM"
         return formatter.string(from: currentDate)
     }
     
     // Calculate time difference
     func timeDifference() -> String {
-        guard let londonTimeZone = TimeZone(identifier: "Europe/London") else { return "" }
-        let localTimeZone = TimeZone.current
+        // Since we're showing local time, there's no time difference
+        return "0h"
+    }
+    
+    // Get city count text for Notes setting
+    func getCityCountText() -> String {
+        if !showCitiesInNotes {
+            return ""
+        }
         
-        let londonOffset = londonTimeZone.secondsFromGMT(for: currentDate)
-        let localOffset = localTimeZone.secondsFromGMT(for: currentDate)
+        let selectedIds = selectedCitiesForNotes.split(separator: ",").map { String($0) }
+        // Filter to only count cities that still exist in worldClocks
+        let existingIds = worldClocks.map { $0.id.uuidString }
+        let validSelectedIds = selectedIds.filter { !$0.isEmpty && existingIds.contains($0) }
+        let count = validSelectedIds.count
         
-        let difference = (londonOffset - localOffset) / 3600
-        
-        if difference == 0 {
-            return "0h"
-        } else if difference > 0 {
-            return "+\(abs(difference))h"
+        if count == 0 {
+            return ""
+        } else if count == 1 {
+            return "1 City"
         } else {
-            return "-\(abs(difference))h"
+            return "\(count) Cities"
         }
     }
     
@@ -128,7 +137,7 @@ struct SettingsView: View {
                                 if showSkyDot {
                                         SkyDotView(
                                             date: currentDate,
-                                            timeZoneIdentifier: "Europe/London"
+                                            timeZoneIdentifier: TimeZone.current.identifier
                                         )
                                         .transition(.blurReplace)
                                 }
@@ -248,24 +257,10 @@ struct SettingsView: View {
                         HStack {
                             HStack(spacing: 12) {
                                 SystemIconImage(systemName: "pencil.tip", topColor: .orange, bottomColor: .yellow)
-                                Text("City in Notes")
+                                Text("Time in Notes")
                             }
                             Spacer()
-                            Text({
-                                if !showCitiesInNotes {
-                                    return ""
-                                } else {
-                                    let selectedIds = selectedCitiesForNotes.split(separator: ",").map { String($0) }
-                                    let count = selectedIds.filter { !$0.isEmpty }.count
-                                    if count == 0 {
-                                        return ""
-                                    } else if count == 1 {
-                                        return "1 City"
-                                    } else {
-                                        return "\(count) Cities"
-                                    }
-                                }
-                            }())
+                            Text(getCityCountText())
                             .foregroundStyle(.secondary)
                         }
                     }
@@ -393,6 +388,16 @@ struct SettingsView: View {
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .fontWeight(.semibold)
+                    }
+                }
+            }
             .onReceive(timer) { _ in
                 currentDate = Date()
             }

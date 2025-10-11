@@ -298,7 +298,7 @@ struct ScrollTimeView: View {
                         Image(systemName: "plus")
                             .font(.system(size: 20))
                             .fontWeight(.medium)
-                            .foregroundColor(.primary)
+                            .foregroundColor(.white)
                             .frame(width: 52, height: 52)
                     }
                     .buttonStyle(.plain)
@@ -454,7 +454,7 @@ struct ScrollTimeView: View {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.system(size: 20))
                             .fontWeight(.medium)
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.primary)
                             .frame(width: 52, height: 52)
                     }
                     .buttonStyle(.plain)

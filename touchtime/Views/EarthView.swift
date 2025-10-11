@@ -19,6 +19,8 @@ struct EarthView: View {
     @State private var timerCancellable: AnyCancellable?
     @State private var timeOffset: TimeInterval = 0
     @State private var showScrollTimeButtons = false
+    @State private var showShareSheet = false
+    @State private var showSettingsSheet = false
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
     
@@ -561,12 +563,33 @@ struct EarthView: View {
             stopTimer()
         }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        showShareSheet = true
+                    }) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                
                 ToolbarItem(placement: .topBarTrailing) {
-                    NavigationLink(destination: SettingsView(worldClocks: $worldClocks)) {
+                    Button(action: {
+                        showSettingsSheet = true
+                    }) {
                         Image(systemName: "gear")
                             .frame(width: 24)
                     }
                 }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                ShareCitiesSheet(
+                    worldClocks: $worldClocks,
+                    showSheet: $showShareSheet,
+                    currentDate: currentDate,
+                    timeOffset: timeOffset
+                )
+            }
+            .sheet(isPresented: $showSettingsSheet) {
+                SettingsView(worldClocks: $worldClocks)
             }
         }
     }

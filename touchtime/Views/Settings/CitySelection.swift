@@ -20,7 +20,7 @@ struct CitySelectionSheet: View {
             // Master Toggle Section
             Section {
                 Toggle(isOn: $showCitiesInNotes) {
-                    Text("Show City in Notes")
+                    Text("Show Time in Notes")
                 }
             } footer: {
                 Text("Add selected cities and times to event notes.")
@@ -57,7 +57,7 @@ struct CitySelectionSheet: View {
                 }
             }
         }
-        .navigationTitle("City in Notes")
+        .navigationTitle("Time in Notes")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadSelection()
