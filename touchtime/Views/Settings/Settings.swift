@@ -127,6 +127,7 @@ struct SettingsView: View {
                                     Text(timeDifference())
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
                                 }
                                 
                                 Spacer()
@@ -136,6 +137,7 @@ struct SettingsView: View {
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                     .contentTransition(.numericText())
+                                    .blendMode(.plusLighter)
                                     .animation(.spring(), value: currentDate)
                                 
                             }
@@ -148,7 +150,7 @@ struct SettingsView: View {
                                 
                                 Spacer()
                                 
-                                HStack(alignment: .lastTextBaseline, spacing: 4) {
+                                HStack(alignment: .lastTextBaseline, spacing: 2) {
                                     Text(formatTime(use24Hour: use24HourFormat))
                                         .font(.system(size: 36))
                                         .fontWeight(.light)
@@ -167,13 +169,21 @@ struct SettingsView: View {
                         }
                         .padding()
                         .padding(.bottom, -8)
+                        .background(
+                            showSkyDot ? SkyBackgroundView(
+                                date: currentDate,
+                                timeZoneIdentifier: TimeZone.current.identifier
+                            ) : nil
+                        )
                         .clipShape(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                            RoundedRectangle(cornerRadius: 20, style: .continuous)
                                 .stroke(Color.secondary.opacity(0.15), lineWidth: 1.5)
+                                .blendMode(.plusLighter)
                         )
+                        .animation(.spring(), value: showSkyDot)
                         
                         // Preview Text
                         Text("Preview")
@@ -382,7 +392,6 @@ struct SettingsView: View {
             .onReceive(timer) { _ in
                 currentDate = Date()
             }
-            .safeAreaPadding(.bottom, 24)
         }
     }
     

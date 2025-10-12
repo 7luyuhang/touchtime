@@ -23,10 +23,10 @@ struct SkyDotView: View {
         return Double(hour) + Double(minute) / 60.0
     }
     
-    // Calculate the color based on the time of day
+    // Calculate physically accurate sky colors based on atmospheric scattering
     private var skyGradient: LinearGradient {
         
-        // Define colors for different times of day
+        // Define colors for different times of day based on physical sky observations
         let colors: [Color]
         let startPoint = UnitPoint.top
         let endPoint = UnitPoint.bottom
@@ -35,80 +35,126 @@ struct SkyDotView: View {
         let normalizedTime = timeValue.truncatingRemainder(dividingBy: 24)
         
         switch normalizedTime {
-        case 0..<3:
-            // Deep night (0:00 - 3:00)
+        case 0..<4:
+            // Night (0:00 - 4:00) - Very dark blue to black
+            let progress = normalizedTime / 4
             colors = [
-                Color(red: 0.05, green: 0.05, blue: 0.15),
-                Color(red: 0.08, green: 0.08, blue: 0.2)
+                Color(red: 0.01, green: 0.01, blue: 0.05 + 0.03 * (1 - progress)),
+                Color(red: 0.02, green: 0.02, blue: 0.08 + 0.04 * (1 - progress)),
+                Color(red: 0.03, green: 0.03, blue: 0.12 + 0.06 * (1 - progress))
             ]
-        case 3..<5:
-            // Late night to early dawn (3:00 - 5:00)
-            let progress = (normalizedTime - 3) / 2
+            
+        case 4..<5:
+            // Astronomical twilight (4:00 - 5:00) - Deep blue beginning
+            let progress = (normalizedTime - 4)
             colors = [
-                Color(red: 0.05 + 0.1 * progress, green: 0.05 + 0.1 * progress, blue: 0.15 + 0.2 * progress),
-                Color(red: 0.1 + 0.15 * progress, green: 0.1 + 0.1 * progress, blue: 0.25 + 0.15 * progress)
+                Color(red: 0.03 + 0.05 * progress, green: 0.03 + 0.05 * progress, blue: 0.12 + 0.18 * progress),
+                Color(red: 0.05 + 0.07 * progress, green: 0.05 + 0.07 * progress, blue: 0.18 + 0.22 * progress),
+                Color(red: 0.07 + 0.1 * progress, green: 0.07 + 0.08 * progress, blue: 0.25 + 0.25 * progress)
             ]
-        case 5..<6.5:
-            // Dawn approaching (5:00 - 6:30)
-            let progress = (normalizedTime - 5) / 1.5
+            
+        case 5..<6:
+            // Nautical twilight (5:00 - 6:00) - Deep blue with purple hints
+            let progress = (normalizedTime - 5)
             colors = [
-                Color(red: 0.15 + 0.25 * progress, green: 0.15 + 0.15 * progress, blue: 0.35 + 0.15 * progress),
-                Color(red: 0.25 + 0.35 * progress, green: 0.2 + 0.2 * progress, blue: 0.4 + 0.1 * progress),
-                Color(red: 0.3 + 0.5 * progress, green: 0.25 + 0.25 * progress, blue: 0.35 + 0.05 * progress)
+                Color(red: 0.08 + 0.12 * progress, green: 0.08 + 0.07 * progress, blue: 0.3 + 0.15 * progress),
+                Color(red: 0.12 + 0.18 * progress, green: 0.12 + 0.08 * progress, blue: 0.4 + 0.1 * progress),
+                Color(red: 0.17 + 0.23 * progress, green: 0.15 + 0.05 * progress, blue: 0.5)
             ]
-        case 6.5..<8:
-            // Sunrise (6:30 - 8:00)
-            let progress = (normalizedTime - 6.5) / 1.5
+            
+        case 6..<7:
+            // Civil twilight / Dawn (6:00 - 7:00) - Blue hour with warm horizon
+            let progress = (normalizedTime - 6)
             colors = [
-                Color(red: 0.6 + 0.3 * progress, green: 0.4 + 0.3 * progress, blue: 0.5 + 0.1 * progress),
-                Color(red: 0.8 + 0.2 * progress, green: 0.5 + 0.3 * progress, blue: 0.5 + 0.2 * progress),
-                Color(red: 0.9 + 0.1 * progress, green: 0.6 + 0.3 * progress, blue: 0.4 + 0.4 * progress)
+                Color(red: 0.2 + 0.15 * progress, green: 0.15 + 0.25 * progress, blue: 0.45 + 0.25 * progress),
+                Color(red: 0.3 + 0.2 * progress, green: 0.2 + 0.3 * progress, blue: 0.5 + 0.3 * progress),
+                Color(red: 0.4 + 0.3 * progress, green: 0.2 + 0.2 * progress, blue: 0.5 + 0.2 * progress),
+                Color(red: 0.6 + 0.3 * progress, green: 0.35 + 0.15 * progress, blue: 0.4 + 0.1 * progress)
             ]
-        case 8..<12:
-            // Morning to noon (8:00 - 12:00)
-            let progress = (normalizedTime - 8) / 4
+            
+        case 7..<8:
+            // Sunrise (7:00 - 8:00) - Golden/orange to blue transition
+            let progress = (normalizedTime - 7)
             colors = [
-                Color(red: 0.5 - 0.1 * progress, green: 0.7 - 0.1 * progress, blue: 0.95 - 0.05 * progress),
-                Color(red: 0.6 - 0.1 * progress, green: 0.8 - 0.1 * progress, blue: 1.0 - 0.05 * progress),
-                Color(red: 0.7 - 0.1 * progress, green: 0.85 - 0.1 * progress, blue: 1.0 - 0.05 * progress)
+                Color(red: 0.35 + 0.05 * progress, green: 0.4 + 0.3 * progress, blue: 0.7 + 0.2 * progress),
+                Color(red: 0.5 - 0.05 * progress, green: 0.5 + 0.25 * progress, blue: 0.8 + 0.15 * progress),
+                Color(red: 0.7 - 0.15 * progress, green: 0.55 + 0.2 * progress, blue: 0.7 + 0.2 * progress),
+                Color(red: 0.9 - 0.3 * progress, green: 0.5 + 0.2 * progress, blue: 0.5 + 0.3 * progress)
             ]
-        case 12..<15:
-            // Afternoon (12:00 - 15:00)
+            
+        case 8..<11:
+            // Morning (8:00 - 11:00) - Clear blue sky
+            let progress = (normalizedTime - 8) / 3
             colors = [
-                Color(red: 0.4, green: 0.6, blue: 0.9),
-                Color(red: 0.5, green: 0.7, blue: 0.95),
-                Color(red: 0.6, green: 0.75, blue: 0.95)
+                Color(red: 0.4 - 0.1 * progress, green: 0.7 - 0.05 * progress, blue: 0.9),
+                Color(red: 0.45 - 0.1 * progress, green: 0.75 - 0.05 * progress, blue: 0.95),
+                Color(red: 0.55 - 0.15 * progress, green: 0.8 - 0.1 * progress, blue: 1.0)
             ]
-        case 15..<17:
-            // Late afternoon (15:00 - 17:00)
-            let progress = (normalizedTime - 15) / 2
+            
+        case 11..<14:
+            // Noon (11:00 - 14:00) - Deep blue (zenith), less atmospheric scattering
             colors = [
-                Color(red: 0.4 + 0.4 * progress, green: 0.6 + 0.1 * progress, blue: 0.9 - 0.3 * progress),
-                Color(red: 0.5 + 0.4 * progress, green: 0.7 + 0.05 * progress, blue: 0.95 - 0.45 * progress),
-                Color(red: 0.6 + 0.4 * progress, green: 0.75 + 0.05 * progress, blue: 0.95 - 0.45 * progress)
+                Color(red: 0.3, green: 0.65, blue: 0.9),
+                Color(red: 0.35, green: 0.7, blue: 0.95),
+                Color(red: 0.4, green: 0.75, blue: 1.0)
             ]
-        case 17..<19:
-            // Sunset (17:00 - 19:00)
-            let progress = (normalizedTime - 17) / 2
+            
+        case 14..<17:
+            // Afternoon (14:00 - 17:00) - Slightly warmer blue
+            let progress = (normalizedTime - 14) / 3
             colors = [
-                Color(red: 0.8 + 0.1 * progress, green: 0.7 - 0.2 * progress, blue: 0.6 - 0.3 * progress),
-                Color(red: 0.9 + 0.05 * progress, green: 0.75 - 0.15 * progress, blue: 0.5 - 0.1 * progress),
-                Color(red: 1.0, green: 0.8 - 0.1 * progress, blue: 0.5)
+                Color(red: 0.3 + 0.1 * progress, green: 0.65, blue: 0.9 - 0.05 * progress),
+                Color(red: 0.35 + 0.15 * progress, green: 0.7 + 0.05 * progress, blue: 0.95 - 0.05 * progress),
+                Color(red: 0.4 + 0.2 * progress, green: 0.75 + 0.05 * progress, blue: 1.0 - 0.1 * progress)
             ]
-        case 19..<21:
-            // Dusk to evening (19:00 - 21:00)
-            let progress = (normalizedTime - 19) / 2
+            
+        case 17..<18:
+            // Golden hour beginning (17:00 - 18:00)
+            let progress = (normalizedTime - 17)
             colors = [
-                Color(red: 0.5 - 0.3 * progress, green: 0.3 - 0.15 * progress, blue: 0.4),
-                Color(red: 0.4 - 0.25 * progress, green: 0.25 - 0.15 * progress, blue: 0.5 - 0.15 * progress),
-                Color(red: 0.3 - 0.2 * progress, green: 0.2 - 0.12 * progress, blue: 0.6 - 0.3 * progress)
+                Color(red: 0.4 + 0.1 * progress, green: 0.65 + 0.05 * progress, blue: 0.85 - 0.15 * progress),
+                Color(red: 0.5 + 0.2 * progress, green: 0.75 - 0.05 * progress, blue: 0.9 - 0.2 * progress),
+                Color(red: 0.6 + 0.3 * progress, green: 0.8 - 0.15 * progress, blue: 0.9 - 0.3 * progress),
+                Color(red: 0.8 + 0.15 * progress, green: 0.7 - 0.1 * progress, blue: 0.5 - 0.1 * progress)
             ]
+            
+        case 18..<19:
+            // Sunset (18:00 - 19:00) - Full golden hour
+            let progress = (normalizedTime - 18)
+            colors = [
+                Color(red: 0.5, green: 0.7 - 0.2 * progress, blue: 0.7 - 0.1 * progress),
+                Color(red: 0.7 + 0.2 * progress, green: 0.7 - 0.15 * progress, blue: 0.7 - 0.2 * progress),
+                Color(red: 0.9 + 0.05 * progress, green: 0.65 - 0.15 * progress, blue: 0.6 - 0.2 * progress),
+                Color(red: 0.95 + 0.05 * progress, green: 0.6 - 0.2 * progress, blue: 0.4 - 0.15 * progress),
+                Color(red: 1.0, green: 0.5 - 0.1 * progress, blue: 0.25 - 0.05 * progress)
+            ]
+            
+        case 19..<20:
+            // Civil twilight / Blue hour (19:00 - 20:00)
+            let progress = (normalizedTime - 19)
+            colors = [
+                Color(red: 0.5 - 0.3 * progress, green: 0.5 - 0.25 * progress, blue: 0.6 + 0.1 * progress),
+                Color(red: 0.6 - 0.4 * progress, green: 0.4 - 0.2 * progress, blue: 0.5 + 0.15 * progress),
+                Color(red: 0.7 - 0.5 * progress, green: 0.35 - 0.2 * progress, blue: 0.4 + 0.2 * progress),
+                Color(red: 0.4 - 0.25 * progress, green: 0.2 - 0.1 * progress, blue: 0.25 + 0.25 * progress)
+            ]
+            
+        case 20..<21:
+            // Nautical twilight (20:00 - 21:00)
+            let progress = (normalizedTime - 20)
+            colors = [
+                Color(red: 0.2 - 0.1 * progress, green: 0.25 - 0.15 * progress, blue: 0.7 - 0.3 * progress),
+                Color(red: 0.2 - 0.12 * progress, green: 0.2 - 0.12 * progress, blue: 0.65 - 0.35 * progress),
+                Color(red: 0.15 - 0.1 * progress, green: 0.15 - 0.1 * progress, blue: 0.6 - 0.4 * progress)
+            ]
+            
         default:
-            // Night (21:00 - 24:00)
+            // Astronomical twilight to Night (21:00 - 24:00)
             let progress = min((normalizedTime - 21) / 3, 1)
             colors = [
-                Color(red: 0.2 - 0.12 * progress, green: 0.15 - 0.07 * progress, blue: 0.4 - 0.2 * progress),
-                Color(red: 0.15 - 0.1 * progress, green: 0.1 - 0.05 * progress, blue: 0.35 - 0.2 * progress)
+                Color(red: 0.1 - 0.08 * progress, green: 0.1 - 0.08 * progress, blue: 0.4 - 0.28 * progress),
+                Color(red: 0.08 - 0.06 * progress, green: 0.08 - 0.06 * progress, blue: 0.3 - 0.18 * progress),
+                Color(red: 0.05 - 0.04 * progress, green: 0.05 - 0.04 * progress, blue: 0.2 - 0.12 * progress)
             ]
         }
         

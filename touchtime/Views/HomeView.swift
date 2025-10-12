@@ -102,6 +102,7 @@ struct HomeView: View {
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
+                                    .blendMode(.plusLighter)
                                     
                                     Spacer()
                                     
@@ -117,6 +118,7 @@ struct HomeView: View {
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                     .contentTransition(.numericText())
+                                    .blendMode(.plusLighter)
                                 }
                                 
                                 // Bottom row: Location and Time (baseline aligned)
@@ -131,7 +133,7 @@ struct HomeView: View {
                                     
                                     Spacer()
                                     
-                                    HStack(alignment: .lastTextBaseline, spacing: 4) {
+                                    HStack(alignment: .lastTextBaseline, spacing: 2) {
                                         Text({
                                             let formatter = DateFormatter()
                                             formatter.timeZone = TimeZone.current
@@ -167,11 +169,12 @@ struct HomeView: View {
                             }
                             // Sky Background
                             .listRowBackground(
-                                SkyBackgroundView(
+                                showSkyDot ? SkyBackgroundView(
                                     date: currentDate.addingTimeInterval(timeOffset),
                                     timeZoneIdentifier: TimeZone.current.identifier
-                                )
+                                ) : nil
                             )
+                            .id("local-\(showSkyDot)")
                             // Menu
                             .contextMenu {
                                 Button(action: {
@@ -209,6 +212,7 @@ struct HomeView: View {
                                     Text(clock.timeDifference)
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
                                     
                                     Spacer()
                                     
@@ -216,6 +220,7 @@ struct HomeView: View {
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                         .contentTransition(.numericText())
+                                        .blendMode(.plusLighter)
                                 }
                             } else {
                                 HStack {
@@ -245,7 +250,7 @@ struct HomeView: View {
                                 
                                 Spacer()
                                 
-                                HStack(alignment: .lastTextBaseline, spacing: 4) {
+                                HStack(alignment: .lastTextBaseline, spacing: 2) {
                                     Text({
                                         let formatter = DateFormatter()
                                         formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
@@ -282,11 +287,12 @@ struct HomeView: View {
 
                         // Sky Background
                         .listRowBackground(
-                            SkyBackgroundView(
+                            showSkyDot ? SkyBackgroundView(
                                 date: currentDate.addingTimeInterval(timeOffset),
                                 timeZoneIdentifier: clock.timeZoneIdentifier
-                            )
+                            ) : nil
                         )
+                        .id("\(clock.id)-\(showSkyDot)")
                         
                         //Swipe to delete time
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -374,6 +380,7 @@ struct HomeView: View {
             .animation(.spring, value: showingRenameAlert)
             .animation(.spring, value: customLocalName)
             .animation(.spring, value: worldClocks)
+            .animation(.spring, value: showSkyDot)
             .environment(\.editMode, .constant(isEditing ? .active : .inactive))
             
             .navigationTitle("Touch Time")
@@ -477,7 +484,6 @@ struct HomeView: View {
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(worldClocks: $worldClocks)
             }
-        
         }
         
     }
