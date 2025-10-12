@@ -542,7 +542,8 @@ struct EarthView: View {
             .mapControls {
                 MapScaleView()
             }
-            .safeAreaPadding(.bottom, worldClocks.isEmpty ? 0 : 64)
+            .safeAreaPadding(.bottom, worldClocks.isEmpty ? 0 : 72)
+                
             
             // Scroll Time View - Hide when no world clocks
             if !worldClocks.isEmpty {
@@ -598,7 +599,6 @@ struct EarthView: View {
                 SettingsView(worldClocks: $worldClocks)
             }
         }
-        .preferredColorScheme(.dark)
     }
         
 }

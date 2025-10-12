@@ -117,11 +117,11 @@ struct SettingsView: View {
                 }
                 
                 // Local Time
-                Section(footer: Text("Enable showing local time at the top of the list.")) {
+                Section(footer: Text("Enable showing system time at the top of the list.")) {
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                            Text("Local Time")
+                            Text("System Time")
                         }
                     }
                 }

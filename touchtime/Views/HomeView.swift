@@ -98,7 +98,7 @@ struct HomeView: View {
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                         
-                                        Text("Local")
+                                        Text("System")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                     }
@@ -122,8 +122,6 @@ struct HomeView: View {
                                 // Bottom row: Location and Time (baseline aligned)
                                 HStack(alignment: .lastTextBaseline) {
                                     
-                                   
-                                
                                         Text(customLocalName.isEmpty ? localCityName : customLocalName)
                                             .font(.headline)
                                             .lineLimit(1)
@@ -147,6 +145,7 @@ struct HomeView: View {
                                             return formatter.string(from: adjustedDate)
                                         }())
                                         .font(.system(size: 36))
+                                        .fontWeight(.light)
                                         .monospacedDigit()
                                         .contentTransition(.numericText())
                                         
@@ -252,6 +251,7 @@ struct HomeView: View {
                                         return formatter.string(from: adjustedDate)
                                     }())
                                     .font(.system(size: 36))
+                                    .fontWeight(.light)
                                     .monospacedDigit()
                                     .contentTransition(.numericText())
                                     
