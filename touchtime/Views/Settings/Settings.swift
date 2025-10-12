@@ -170,10 +170,13 @@ struct SettingsView: View {
                         .padding()
                         .padding(.bottom, -8)
                         .background(
-                            showSkyDot ? SkyBackgroundView(
-                                date: currentDate,
-                                timeZoneIdentifier: TimeZone.current.identifier
-                            ) : nil
+                            ZStack {
+                                Color.black
+                                showSkyDot ? SkyBackgroundView(
+                                    date: currentDate,
+                                    timeZoneIdentifier: TimeZone.current.identifier
+                                ) : nil
+                            }
                         )
                         .clipShape(
                             RoundedRectangle(cornerRadius: 20, style: .continuous)

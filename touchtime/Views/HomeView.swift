@@ -500,5 +500,4 @@ struct HomeView: View {
             UserDefaults.standard.set(encoded, forKey: worldClocksKey)
         }
     }
-    
 }

@@ -159,7 +159,7 @@ struct SkyBackgroundView: View {
         }
         
         // Apply opacity to all colors for background usage
-        let backgroundColors = colors.map { $0.opacity(0.65) }
+        let backgroundColors = colors.map { $0.opacity(0.65) } // Opacity
         
         return LinearGradient(
             colors: backgroundColors,
