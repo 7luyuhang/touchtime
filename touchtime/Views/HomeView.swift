@@ -165,6 +165,14 @@ struct HomeView: View {
                                     }
                                 }
                             }
+                            // Sky Background
+                            .listRowBackground(
+                                SkyBackgroundView(
+                                    date: currentDate.addingTimeInterval(timeOffset),
+                                    timeZoneIdentifier: TimeZone.current.identifier
+                                )
+                            )
+                            // Menu
                             .contextMenu {
                                 Button(action: {
                                     let cityName = customLocalName.isEmpty ? localCityName : customLocalName
@@ -271,6 +279,14 @@ struct HomeView: View {
                                 }
                             }
                         }
+
+                        // Sky Background
+                        .listRowBackground(
+                            SkyBackgroundView(
+                                date: currentDate.addingTimeInterval(timeOffset),
+                                timeZoneIdentifier: clock.timeZoneIdentifier
+                            )
+                        )
                         
                         //Swipe to delete time
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -342,6 +358,7 @@ struct HomeView: View {
                     }
                     .listSectionSpacing(8)
                     .scrollIndicators(.hidden)
+                    .listStyle(InsetGroupedListStyle())
                     .safeAreaPadding(.bottom, 64)
                 }
                 

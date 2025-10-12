@@ -1,13 +1,13 @@
 //
-//  SkyDotView.swift
+//  SkyBackgroundView.swift
 //  touchtime
 //
-//  Created on 25/09/2025.
+//  Created for background usage
 //
 
 import SwiftUI
 
-struct SkyDotView: View {
+struct SkyBackgroundView: View {
     let date: Date
     let timeZoneIdentifier: String
     
@@ -26,7 +26,7 @@ struct SkyDotView: View {
     // Calculate the color based on the time of day
     private var skyGradient: LinearGradient {
         
-        // Define colors for different times of day
+        // Define colors for different times of day (same as SkyDotView)
         let colors: [Color]
         let startPoint = UnitPoint.top
         let endPoint = UnitPoint.bottom
@@ -112,18 +112,20 @@ struct SkyDotView: View {
             ]
         }
         
+        // Apply opacity to all colors for background usage
+        let backgroundColors = colors.map { $0.opacity(0.50) }
+        
         return LinearGradient(
-            colors: colors,
+            colors: backgroundColors,
             startPoint: startPoint,
             endPoint: endPoint
         )
     }
     
     var body: some View {
-        Capsule(style: .continuous)
+        RoundedRectangle(cornerRadius: 0, style: .continuous)
             .fill(skyGradient)
-            .frame(width: 24, height: 16)
-            .glassEffect(.regular)
+            .blendMode(.plusLighter)
             .animation(.spring(), value: Int(timeValue * 4))
     }
 }

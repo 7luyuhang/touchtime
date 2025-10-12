@@ -7,11 +7,23 @@
 
 import SwiftUI
 import TipKit
+import UIKit
+
+// Custom UIHostingController to force dark mode
+class DarkModeHostingController<Content: View>: UIHostingController<Content> {
+    override var preferredStatusBarStyle: UIStatusBarStyle {
+        return .lightContent
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Force dark mode for this view controller
+        overrideUserInterfaceStyle = .dark
+    }
+}
 
 @main
 struct touchtimeApp: App {
-    @AppStorage("appearanceMode") private var appearanceMode = "system"
-    
     init() {
         // Initialize TipKit
         try? Tips.configure([
@@ -20,21 +32,20 @@ struct touchtimeApp: App {
         ])
     }
     
-    var preferredColorScheme: ColorScheme? {
-        switch appearanceMode {
-        case "light":
-            return .light
-        case "dark":
-            return .dark
-        default:
-            return nil // System default
-        }
-    }
-    
     var body: some Scene {
         WindowGroup {
             ContentView()
-                .preferredColorScheme(preferredColorScheme)
+                .environment(\.colorScheme, .dark) // Force dark theme
+                .onAppear {
+                    // Force dark mode for all windows when app appears
+                    DispatchQueue.main.async {
+                        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
+                            windowScene.windows.forEach { window in
+                                window.overrideUserInterfaceStyle = .dark
+                            }
+                        }
+                    }
+                }
         }
     }
 }

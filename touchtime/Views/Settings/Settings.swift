@@ -12,7 +12,6 @@ struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
-    @AppStorage("appearanceMode") private var appearanceMode = "system"
     @AppStorage("showLocalTime") private var showLocalTime = false
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -90,34 +89,15 @@ struct SettingsView: View {
     
     var body: some View {
         NavigationStack {
-            Form {
+            List {
                 // General
-                Section("General") {
-                    HStack(spacing: 12) {
-                        SystemIconImage(systemName: "circle.lefthalf.filled", topColor: .orange, bottomColor: .indigo)
-                        
-                        Picker("Appearance", selection: $appearanceMode) {
-                            Text("System")
-                                .tag("system")
-                            Text("Light")
-                                .tag("light")
-                            Text("Dark")
-                                .tag("dark")
-                        }
-                        .pickerStyle(.menu)
-                        .tint(.secondary)
-                    }
-                    
+                Section(header: Text("General"), footer: Text("Enable showing system time at the top of the list.")) {
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
                             Text("Haptics")
                         }
                     }
-                }
-                
-                // Local Time
-                Section(footer: Text("Enable showing system time at the top of the list.")) {
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
@@ -171,6 +151,7 @@ struct SettingsView: View {
                                 HStack(alignment: .lastTextBaseline, spacing: 4) {
                                     Text(formatTime(use24Hour: use24HourFormat))
                                         .font(.system(size: 36))
+                                        .fontWeight(.light)
                                         .monospacedDigit()
                                         .contentTransition(.numericText())
                                         .animation(.spring(), value: currentDate)
@@ -371,7 +352,7 @@ struct SettingsView: View {
                         ) {
                     // App Info Section
                     Text("Copyright © 2025 Negative Time Limited. \nAll rights reserved.") // "\n" 换行
-                                .font(.footnote)
+                                .font(.subheadline)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.secondary)
  
