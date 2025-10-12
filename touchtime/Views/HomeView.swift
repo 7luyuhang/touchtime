@@ -166,6 +166,7 @@ struct HomeView: View {
                                         }
                                     }
                                 }
+                                .padding(.bottom, -4)
                             }
                             // Sky Background
                             .listRowBackground(
@@ -283,6 +284,7 @@ struct HomeView: View {
                                     }
                                 }
                             }
+                            .padding(.bottom, -4)
                         }
 
                         // Sky Background
