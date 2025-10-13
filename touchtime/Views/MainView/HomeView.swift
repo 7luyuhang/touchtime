@@ -18,7 +18,6 @@ struct HomeView: View {
     @State private var renamingLocalTime = false
     @State private var newClockName = ""
     @State private var originalClockName = ""
-    @State private var isEditing = false
     @State private var showScrollTimeButtons = false
     @State private var showShareSheet = false
     @State private var showSettingsSheet = false
@@ -75,7 +74,8 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                // Check if there are no world clocks
+                
+                // Blank View
                 if worldClocks.isEmpty && !showLocalTime {
                     // Empty state view
                     ContentUnavailableView {
@@ -176,6 +176,8 @@ struct HomeView: View {
                                 ) : nil
                             )
                             .id("local-\(showSkyDot)")
+                                
+                                
                             // Menu
                             .contextMenu {
                                 Button(action: {
@@ -362,70 +364,38 @@ struct HomeView: View {
                         }
                         }
                     }
-                    .onMove(perform: moveClocks)
+                    
                     }
-                    .listSectionSpacing(8)
+                    .listSectionSpacing(12)
                     .scrollIndicators(.hidden)
-                    .listStyle(InsetGroupedListStyle())
+                    .listStyle(.insetGrouped)
                     .safeAreaPadding(.bottom, 64)
                 }
                 
-                // Scroll Time View - Hide when in edit mode, renaming, or when there's no content to display
-                if !isEditing && !showingRenameAlert && !(worldClocks.isEmpty && !showLocalTime) {
+                // Scroll Time View - Hide when renaming or when there's no content to display
+                if !showingRenameAlert && !(worldClocks.isEmpty && !showLocalTime) {
                     ScrollTimeView(timeOffset: $timeOffset, showButtons: $showScrollTimeButtons, worldClocks: $worldClocks)
                         .padding(.horizontal)
                         .padding(.bottom, 16)
                         .transition(.blurReplace)
                 }
             }
-            .animation(.spring, value: isEditing)
             .animation(.spring, value: showingRenameAlert)
             .animation(.spring, value: customLocalName)
             .animation(.spring, value: worldClocks)
             .animation(.spring, value: showSkyDot)
-            .environment(\.editMode, .constant(isEditing ? .active : .inactive))
             
             .navigationTitle("Touch Time")
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    // Hide more button when in empty state
-                    if !(worldClocks.isEmpty && !showLocalTime) {
-                        if isEditing {
-                            Button(action: {
-                                withAnimation(.spring()) {
-                                    isEditing.toggle()
-                                }
-                            }) {
-                                Image(systemName: "checkmark")
-                                    .fontWeight(.semibold)
-                                    .animation(.spring(), value: isEditing)
-                            }
-                        } else {
-                            Menu {
-                                Button(action: {
-                                    withAnimation(.spring()) {
-                                        isEditing.toggle()
-                                    }
-                                }) {
-                                    Label("Edit List", systemImage: "list.bullet")
-                                }
-                                
-                                // Only show Share option if there are world clocks to share
-                                if !worldClocks.isEmpty {
-                                    Divider()
-                                    
-                                    Button(action: {
-                                        showShareSheet = true
-                                    }) {
-                                        Label("Share", systemImage: "square.and.arrow.up")
-                                    }
-                                }
-                            } label: {
-                                Image(systemName: "ellipsis")
-                                    .animation(.spring(), value: isEditing)
-                            }
+                    // Only show Share button if there are world clocks to share
+                    if !worldClocks.isEmpty {
+                        Button(action: {
+                            showShareSheet = true
+                        }) {
+                            Image(systemName: "square.and.arrow.up")
                         }
                     }
                 }
@@ -488,12 +458,6 @@ struct HomeView: View {
             }
         }
         
-    }
-    
-    // Move function
-    func moveClocks(from source: IndexSet, to destination: Int) {
-        worldClocks.move(fromOffsets: source, toOffset: destination)
-        saveWorldClocks()
     }
     
     // Save world clocks to UserDefaults

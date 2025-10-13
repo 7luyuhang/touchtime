@@ -180,10 +180,10 @@ struct SettingsView: View {
                             } : nil
                         )
                         .clipShape(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
                         )
                         .overlay(
-                            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
                                 .stroke(Color.secondary.opacity(0.15), lineWidth: 1.5)
                                 .blendMode(.plusLighter)
                         )
