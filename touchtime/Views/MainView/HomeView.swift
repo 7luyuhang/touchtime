@@ -8,6 +8,8 @@
 import SwiftUI
 import Combine
 import UIKit
+import EventKit
+import EventKitUI
 
 struct HomeView: View {
     @Binding var worldClocks: [WorldClock]
@@ -21,6 +23,10 @@ struct HomeView: View {
     @State private var showScrollTimeButtons = false
     @State private var showShareSheet = false
     @State private var showSettingsSheet = false
+    @State private var eventStore = EKEventStore()
+    @State private var showEventEditor = false
+    @State private var eventToEdit: EKEvent?
+    @State private var scheduleForTimeZone: String = TimeZone.current.identifier
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
@@ -28,6 +34,8 @@ struct HomeView: View {
     @AppStorage("customLocalName") private var customLocalName = ""
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
+    @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -42,6 +50,75 @@ struct HomeView: View {
             return components.last!.replacingOccurrences(of: "_", with: " ")
         } else {
             return identifier
+        }
+    }
+    
+    // Add to Calendar - opens system event editor for a specific time zone
+    func addToCalendar(timeZoneIdentifier: String, cityName: String) {
+        // Request calendar permission
+        eventStore.requestFullAccessToEvents { granted, error in
+            if granted && error == nil {
+                DispatchQueue.main.async {
+                    // Create event with adjusted time
+                    let event = EKEvent(eventStore: self.eventStore)
+                    
+                    // Calculate the adjusted start time for the selected timezone
+                    let currentDate = Date()
+                    let formatter = DateFormatter()
+                    formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                    
+                    // Get the current time in the target timezone
+                    let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+                    
+                    // Calculate time in target timezone adjusted by the offset
+                    let adjustedDate = currentDate.addingTimeInterval(self.timeOffset)
+                    
+                    // Set the start date
+                    event.startDate = adjustedDate
+                    
+                    // Set end date with user-configured default duration
+                    event.endDate = adjustedDate.addingTimeInterval(self.defaultEventDuration)
+                    
+                    // Set calendar - use selected calendar if available, otherwise default
+                    if !self.selectedCalendarIdentifier.isEmpty,
+                       let selectedCalendar = self.eventStore.calendars(for: .event).first(where: { $0.calendarIdentifier == self.selectedCalendarIdentifier }) {
+                        event.calendar = selectedCalendar
+                    } else {
+                        event.calendar = self.eventStore.defaultCalendarForNewEvents
+                    }
+                    
+                    // Add notes with the city and time information
+                    formatter.timeZone = targetTimeZone
+                    if self.use24HourFormat {
+                        formatter.dateFormat = "HH:mm"
+                    } else {
+                        formatter.dateFormat = "h:mm a"
+                    }
+                    let timeString = formatter.string(from: adjustedDate)
+                    
+                    // Format date
+                    formatter.dateFormat = "E, d MMM"
+                    let dateString = formatter.string(from: adjustedDate)
+                    
+                    event.notes = "Time in \(cityName): \(timeString) · \(dateString)"
+                    
+                    // Store the event and show the editor
+                    self.eventToEdit = event
+                    self.scheduleForTimeZone = timeZoneIdentifier
+                    self.showEventEditor = true
+                }
+            } else {
+                print("Calendar access denied or error: \(String(describing: error))")
+                // Provide haptic feedback on permission denied if enabled
+                if self.hapticEnabled {
+                    DispatchQueue.main.async {
+                        let impactFeedback = UINotificationFeedbackGenerator()
+                        impactFeedback.prepare()
+                        impactFeedback.notificationOccurred(.warning)
+                    }
+                }
+            }
         }
     }
     
@@ -182,6 +259,13 @@ struct HomeView: View {
                             .contextMenu {
                                 Button(action: {
                                     let cityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                    addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
+                                }) {
+                                    Label("Schedule Event", systemImage: "calendar.badge.plus")
+                                }
+                                
+                                Button(action: {
+                                    let cityName = customLocalName.isEmpty ? localCityName : customLocalName
                                     copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
                                 }) {
                                     Label("Copy as Text", systemImage: "quote.opening")
@@ -312,12 +396,22 @@ struct HomeView: View {
                         
                         // Context Menu
                         .contextMenu {
+                            
+                            // Schedule event
+                            Button(action: {
+                                addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.cityName)
+                            }) {
+                                Label("Schedule Event", systemImage: "plus.circle")
+                            }
+
+                            // Copy as Text
                             Button(action: {
                                 copyTimeAsText(cityName: clock.cityName, timeZoneIdentifier: clock.timeZoneIdentifier)
                             }) {
                                 Label("Copy as Text", systemImage: "quote.opening")
                             }
                             
+                            // Rename
                             Button(action: {
                                 renamingLocalTime = false
                                 renamingClockId = clock.id
@@ -335,6 +429,7 @@ struct HomeView: View {
                             
                             Divider()
                             
+                            // Move to Top
                             if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
                                 Button(action: {
                                     // Move to top
@@ -376,7 +471,7 @@ struct HomeView: View {
                 if !showingRenameAlert && !(worldClocks.isEmpty && !showLocalTime) {
                     ScrollTimeView(timeOffset: $timeOffset, showButtons: $showScrollTimeButtons, worldClocks: $worldClocks)
                         .padding(.horizontal)
-                        .padding(.bottom, 16)
+                        .padding(.bottom, 8)
                         .transition(.blurReplace)
                 }
             }
@@ -455,6 +550,16 @@ struct HomeView: View {
             // Settings Sheet
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(worldClocks: $worldClocks)
+            }
+            
+            // Event Editor Sheet
+            .sheet(isPresented: $showEventEditor) {
+                EventEditView(
+                    event: $eventToEdit,
+                    isPresented: $showEventEditor,
+                    eventStore: eventStore
+                )
+                .ignoresSafeArea()
             }
         }
         

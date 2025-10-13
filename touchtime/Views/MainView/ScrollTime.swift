@@ -27,6 +27,7 @@ struct ScrollTimeView: View {
     @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @Namespace private var glassNamespace
     
     // Calculate hours from drag offset
@@ -244,8 +245,13 @@ struct ScrollTimeView: View {
                     // Set end date with user-configured default duration
                     event.endDate = startDate.addingTimeInterval(self.defaultEventDuration)
                     
-                    // Set calendar (default calendar)
-                    event.calendar = self.eventStore.defaultCalendarForNewEvents
+                    // Set calendar - use selected calendar if available, otherwise default
+                    if !self.selectedCalendarIdentifier.isEmpty,
+                       let selectedCalendar = self.eventStore.calendars(for: .event).first(where: { $0.calendarIdentifier == self.selectedCalendarIdentifier }) {
+                        event.calendar = selectedCalendar
+                    } else {
+                        event.calendar = self.eventStore.defaultCalendarForNewEvents
+                    }
                     
                     // Add notes with selected cities and their times
                     if let notesText = self.generateCityNotesText() {
@@ -289,8 +295,8 @@ struct ScrollTimeView: View {
     }
     
     var body: some View {
-        GlassEffectContainer(spacing: 12) {
-            HStack(spacing: 12) {
+        GlassEffectContainer(spacing: 8) {
+            HStack(spacing: 8) {
                 
                 // Add to Calendar button (left side)
                 if showButtons {
@@ -469,7 +475,7 @@ struct ScrollTimeView: View {
         }
         
         // Overall composer
-        .padding(.horizontal,5)
+        .padding(.horizontal, 5)
         .gesture(
             showButtons ? nil : DragGesture()
                 .onChanged { value in

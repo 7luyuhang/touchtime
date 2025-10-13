@@ -17,8 +17,6 @@ struct EarthView: View {
     ))
     @State private var currentDate = Date()
     @State private var timerCancellable: AnyCancellable?
-    @State private var timeOffset: TimeInterval = 0
-    @State private var showScrollTimeButtons = false
     @State private var showShareSheet = false
     @State private var showSettingsSheet = false
     @AppStorage("use24HourFormat") private var use24HourFormat = false
@@ -495,7 +493,7 @@ struct EarthView: View {
                                 HStack(spacing: 8) {
                                     if showSkyDot {
                                         SkyDotView(
-                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            date: currentDate,
                                             timeZoneIdentifier: clock.timeZoneIdentifier
                                         )
                                         .overlay(
@@ -515,8 +513,7 @@ struct EarthView: View {
                                         } else {
                                             formatter.dateFormat = "h:mma"
                                         }
-                                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                        return formatter.string(from: adjustedDate).lowercased()
+                                        return formatter.string(from: currentDate).lowercased()
                                     }())
                                     .font(.caption)
                                     .fontWeight(.bold)
@@ -524,7 +521,6 @@ struct EarthView: View {
                                     .monospacedDigit()
                                     .contentTransition(.numericText())
                                     .animation(.spring(), value: currentDate)
-                                    .animation(.spring(), value: timeOffset)
                         
                                 }
                                 .animation(.spring(), value: showSkyDot)
@@ -542,23 +538,10 @@ struct EarthView: View {
             .mapControls {
                 MapScaleView()
             }
-            .safeAreaPadding(.bottom, worldClocks.isEmpty ? 0 : 72)
-                
-            
-            // Scroll Time View - Hide when no world clocks
-            if !worldClocks.isEmpty {
-                ScrollTimeView(
-                    timeOffset: $timeOffset,
-                    showButtons: $showScrollTimeButtons,
-                    worldClocks: $worldClocks
-                )
-                .padding(.horizontal)
-                .padding(.bottom, 16)
-                .transition(.blurReplace)
-            }
         }
-        .animation(.spring(), value: showScrollTimeButtons)
-        .animation(.spring(), value: timeOffset)
+            .navigationTitle("Touch Time")
+            .navigationBarTitleDisplayMode(.inline)
+            
         .animation(.spring(), value: worldClocks)
         .onAppear {
             startTimer()
@@ -592,13 +575,12 @@ struct EarthView: View {
                     worldClocks: $worldClocks,
                     showSheet: $showShareSheet,
                     currentDate: currentDate,
-                    timeOffset: timeOffset
+                    timeOffset: 0
                 )
             }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(worldClocks: $worldClocks)
             }
         }
-    }
-        
+    }  
 }

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import EventKit
 
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
@@ -18,8 +19,12 @@ struct SettingsView: View {
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
     @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
+    @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
+    @State private var eventStore = EKEventStore()
+    @State private var availableCalendars: [EKCalendar] = []
+    @State private var hasCalendarPermission = false
     @Environment(\.dismiss) private var dismiss
     
     // Timer for updating the preview
@@ -85,6 +90,43 @@ struct SettingsView: View {
         } else {
             return "\(count) Cities"
         }
+    }
+    
+    // Load available calendars
+    func loadCalendars() {
+        eventStore.requestFullAccessToEvents { granted, error in
+            DispatchQueue.main.async {
+                self.hasCalendarPermission = granted
+                if granted {
+                    self.availableCalendars = self.eventStore.calendars(for: .event)
+                        .filter { $0.allowsContentModifications }
+                        .sorted { 
+                            // Sort by source title first, then by calendar title
+                            if $0.source.title == $1.source.title {
+                                return $0.title < $1.title
+                            }
+                            return $0.source.title < $1.source.title
+                        }
+                    
+                    // If no calendar is selected, set to default
+                    if self.selectedCalendarIdentifier.isEmpty || !self.availableCalendars.contains(where: { $0.calendarIdentifier == self.selectedCalendarIdentifier }) {
+                        if let defaultCalendar = self.eventStore.defaultCalendarForNewEvents {
+                            self.selectedCalendarIdentifier = defaultCalendar.calendarIdentifier
+                        }
+                    }
+                } else {
+                    self.availableCalendars = []
+                }
+            }
+        }
+    }
+    
+    // Get selected calendar or default
+    var selectedCalendar: EKCalendar? {
+        if let calendar = availableCalendars.first(where: { $0.calendarIdentifier == selectedCalendarIdentifier }) {
+            return calendar
+        }
+        return eventStore.defaultCalendarForNewEvents
     }
     
     var body: some View {
@@ -227,7 +269,26 @@ struct SettingsView: View {
                 }
                 
                 // Calendar
-                Section("Calender") {
+                Section("Calendar") {
+                    // Default Calendar Selection
+                    if hasCalendarPermission && !availableCalendars.isEmpty {
+                        NavigationLink(destination: CalendarSelectionView(
+                            availableCalendars: availableCalendars,
+                            selectedCalendarIdentifier: $selectedCalendarIdentifier
+                        )) {
+                            HStack {
+                                HStack(spacing: 12) {
+                                    SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                                    Text("Default Calendar")
+                                }
+                                Spacer()
+                                Text(selectedCalendar?.title ?? "None")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    
+                    // Event Duration Picker
                     Picker(selection: $defaultEventDuration) {
                         Text("15 min").tag(900.0)
                         Text("30 min").tag(1800.0)
@@ -395,6 +456,9 @@ struct SettingsView: View {
             }
             .onReceive(timer) { _ in
                 currentDate = Date()
+            }
+            .onAppear {
+                loadCalendars()
             }
         }
     }
