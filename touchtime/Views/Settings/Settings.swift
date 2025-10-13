@@ -288,7 +288,7 @@ struct SettingsView: View {
                         }
                     }
                     
-                    // Event Duration Picker
+                    // Event Duration
                     Picker(selection: $defaultEventDuration) {
                         Text("15 min").tag(900.0)
                         Text("30 min").tag(1800.0)
@@ -334,7 +334,8 @@ struct SettingsView: View {
                         
                     }
                     .foregroundStyle(.primary)
-                    .confirmationDialog("", isPresented: $showResetConfirmation) {
+                    .alert("Reset Cities", isPresented: $showResetConfirmation) {
+                        Button("Cancel", role: .cancel) {}
                         Button("Reset", role: .destructive) {
                             resetToDefault()
                         }
@@ -343,6 +344,7 @@ struct SettingsView: View {
                     }
                 }
                 
+                // Others
                 Section(header: Text("Others")) {
                     Button(action: {
                         if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=TouchTime%20Feedback") {

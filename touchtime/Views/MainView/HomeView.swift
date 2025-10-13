@@ -160,6 +160,7 @@ struct HomeView: View {
                     } description: {
                         Text("Add cities to track time.")
                     }
+                    .background(Color.clear)
                 } else {
                     // Main List Content
                     List {
@@ -464,6 +465,7 @@ struct HomeView: View {
                     .listSectionSpacing(12)
                     .scrollIndicators(.hidden)
                     .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
                     .safeAreaPadding(.bottom, 64)
                 }
                 
@@ -475,11 +477,38 @@ struct HomeView: View {
                         .transition(.blurReplace)
                 }
             }
+            .background(
+                ZStack {
+                    // Base system background
+                    Color(UIColor.systemGroupedBackground)
+                        .ignoresSafeArea()
+                    
+                    // Sky Background Effect for System Time
+                    if showLocalTime && showSkyDot {
+                        VStack {
+                            SkyBackgroundView(
+                                date: currentDate.addingTimeInterval(timeOffset),
+                                timeZoneIdentifier: TimeZone.current.identifier
+                            )
+                            .frame(height: 500)
+                            .blur(radius: 50)
+                            .offset(y: -250)
+                            .opacity(0.35)
+                            
+                            Spacer()
+                        }
+                        .ignoresSafeArea()
+                    }
+                }
+            )
+            // Animations
             .animation(.spring, value: showingRenameAlert)
             .animation(.spring, value: customLocalName)
             .animation(.spring, value: worldClocks)
             .animation(.spring, value: showSkyDot)
+            .animation(.spring, value: showLocalTime)
             
+            // Navigation Title
             .navigationTitle("Touch Time")
             .navigationBarTitleDisplayMode(.inline)
             
