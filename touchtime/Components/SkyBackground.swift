@@ -12,7 +12,18 @@ struct StarParticle: View {
     let size: CGFloat
     let twinkleDelay: Double
     let twinkleDuration: Double
-    @State private var opacity: Double = 1.0
+    @State private var isTwinkling = false
+    
+    // Calculate target opacity based on star size
+    private var targetOpacity: Double {
+        if size > 1.5 {
+            return 0.3  // Bright stars twinkle to 30% opacity
+        } else if size > 0.8 {
+            return 0.2  // Medium stars twinkle to 20% opacity
+        } else {
+            return 0.1  // Small stars twinkle to 10% opacity
+        }
+    }
     
     var body: some View {
         Circle()
@@ -23,24 +34,24 @@ struct StarParticle: View {
                 Color(white: 0.95, opacity: 1.0)  // Smaller stars slightly dimmer
             )
             .frame(width: size, height: size)
-            .opacity(opacity)
+            .opacity(isTwinkling ? targetOpacity : 1.0)
             .blur(radius: size > 1.5 ? 0.3 : 0)
-            .shadow(color: Color(white: 0.9).opacity(opacity), radius: size > 1.2 ? 3 : 1)  // Dynamic glow
+            .shadow(color: Color(white: 0.9).opacity(isTwinkling ? 0.3 : 0.9), radius: size > 1.2 ? 3 : 1)  // Dynamic glow
+            .animation(
+                Animation.spring(duration: twinkleDuration)
+                    .repeatForever(autoreverses: true)
+                    .delay(twinkleDelay),
+                value: isTwinkling
+            )
             .onAppear {
-                withAnimation(
-                    Animation.easeInOut(duration: twinkleDuration)
-                        .repeatForever(autoreverses: true)
-                        .delay(twinkleDelay)
-                ) {
-                    opacity = Double.random(in: 0.1...0.5)  // More dramatic opacity change
-                }
+                isTwinkling = true
             }
     }
 }
 
 // Container for multiple stars
 struct StarsView: View {
-    let starCount: Int = 30  // Number of stars
+    let starCount: Int = 50  // Number of stars
     @State private var stars: [(id: Int, x: CGFloat, y: CGFloat, size: CGFloat, twinkleDelay: Double, twinkleDuration: Double)] = []
     
     var body: some View {
@@ -90,7 +101,6 @@ struct StarsView: View {
                 twinkleDuration: twinkleDuration
             ))
         }
-        
         stars = newStars
     }
 }
@@ -109,7 +119,6 @@ struct SkyBackgroundView: View {
             // Background sky gradient with opacity for background usage
             RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .fill(skyColorGradient.linearGradient(opacity: 0.65))
-//                .blendMode(.plusLighter)
                 .animation(.spring(), value: skyColorGradient.animationValue)
             
             // Stars overlay for nighttime
