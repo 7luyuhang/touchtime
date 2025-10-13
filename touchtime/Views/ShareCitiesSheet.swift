@@ -83,6 +83,13 @@ struct ShareCitiesSheet: View {
     
     // Toggle all selections
     func toggleSelectAll() {
+        // Provide haptic feedback if enabled
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+        
         withAnimation(.spring()) {
             if allCitiesSelected {
                 // Deselect all
@@ -240,7 +247,8 @@ struct ShareCitiesSheet: View {
                     // Only show share button if at least one city is selected
                     if !selectedCities.isEmpty || (showLocalTimeInHome && showLocalTime) {
                         ShareLink(item: generateShareText()) {
-                            Image(systemName: "square.and.arrow.up")
+                            Text("Share")
+                                .font(.headline)
                         }
                     }
                 }

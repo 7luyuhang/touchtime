@@ -8,6 +8,7 @@
 import SwiftUI
 import MapKit
 import Combine
+import UIKit
 
 struct EarthView: View {
     @Binding var worldClocks: [WorldClock]
@@ -21,6 +22,7 @@ struct EarthView: View {
     @State private var showSettingsSheet = false
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     
     // 設置地圖縮放限制
     private let cameraBounds = MapCameraBounds(
@@ -554,6 +556,12 @@ struct EarthView: View {
                     // Hide share button when no cities
                     if !worldClocks.isEmpty {
                         Button(action: {
+                            // Provide haptic feedback if enabled
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
                             showShareSheet = true
                         }) {
                             Image(systemName: "square.and.arrow.up")
@@ -563,6 +571,12 @@ struct EarthView: View {
                 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
+                        // Provide haptic feedback if enabled
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.prepare()
+                            impactFeedback.impactOccurred()
+                        }
                         showSettingsSheet = true
                     }) {
                         Image(systemName: "gear")

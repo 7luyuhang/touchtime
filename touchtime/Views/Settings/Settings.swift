@@ -133,19 +133,21 @@ struct SettingsView: View {
         NavigationStack {
             List {
                 // General
-                Section(header: Text("General"), footer: Text("Enable showing system time at the top of the list.")) {
+                Section(header: Text("General"), footer: Text("Enable showing system time at the top of the list with ambient background.")) {
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
                             Text("Haptics")
                         }
                     }
+                    .tint(.blue)
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
                             Text("System Time")
                         }
                     }
+                    .tint(.blue)
                 }
  
                 // Display
@@ -251,6 +253,7 @@ struct SettingsView: View {
                             Text("Sky Colour")
                         }
                     }
+                    .tint(.blue)
                     
                     Toggle(isOn: $showTimeDifference) {
                         HStack(spacing: 12) {
@@ -258,6 +261,7 @@ struct SettingsView: View {
                             Text("Time Difference")
                         }
                     }
+                    .tint(.blue)
                     
                     Toggle(isOn: $use24HourFormat) {
                         HStack(spacing: 12) {
@@ -265,6 +269,7 @@ struct SettingsView: View {
                             Text("24-Hour Format")
                         }
                     }
+                    .tint(.blue)
                     
                 }
                 

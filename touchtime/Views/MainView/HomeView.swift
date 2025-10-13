@@ -170,18 +170,11 @@ struct HomeView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 // Top row: "Local" label and Date
                                 HStack {
-                                    
-                                    HStack (spacing: 4) {
                                         Image(systemName: "location.fill")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
-                                        
-                                        Text("System")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                    }
-                                    .blendMode(.plusLighter)
-                                    
+                                            .blendMode(.plusLighter)
+
                                     Spacer()
                                     
                                     Text({
@@ -517,6 +510,12 @@ struct HomeView: View {
                     // Only show Share button if there are world clocks to share
                     if !worldClocks.isEmpty {
                         Button(action: {
+                            // Provide haptic feedback if enabled
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
                             showShareSheet = true
                         }) {
                             Image(systemName: "square.and.arrow.up")
@@ -526,6 +525,12 @@ struct HomeView: View {
                 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
+                        // Provide haptic feedback if enabled
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.prepare()
+                            impactFeedback.impactOccurred()
+                        }
                         showSettingsSheet = true
                     }) {
                         Image(systemName: "gear")
