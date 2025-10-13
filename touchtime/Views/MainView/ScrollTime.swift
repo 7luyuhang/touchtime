@@ -310,7 +310,7 @@ struct ScrollTimeView: View {
                     .buttonStyle(.plain)
                     .clipShape(Circle())
                     .contentShape(Circle()) // Ensure the entire circle is tappable
-                    .glassEffect(.regular.interactive().tint(.blue))
+                    .glassEffect(.regular.interactive().tint(.blue.opacity(0.85)))
                     .glassEffectID("calendarButton", in: glassNamespace)
                     .glassEffectTransition(.matchedGeometry)
                 }

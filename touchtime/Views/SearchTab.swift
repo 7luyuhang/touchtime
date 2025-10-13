@@ -315,7 +315,7 @@ struct TimeZonePickerViewWrapper: View {
             }
             .searchable(text: $searchText, prompt: "Cities & Countries")
             .navigationTitle("Cities")
-            .navigationSubtitle(worldClocks.isEmpty ? "" : "\(worldClocks.count) Added")
+            .navigationSubtitle(worldClocks.isEmpty ? "" : "\(worldClocks.count) added")
             .navigationBarTitleDisplayMode(.inline)
         }
         .onReceive(timer) { _ in
