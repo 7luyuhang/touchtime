@@ -87,7 +87,11 @@ struct AvailableTimePicker: View {
                     }
                     .tint(.blue)
                 } footer: {
-                    Text("Enable showing indicator inside system time.")
+                    HStack(spacing: 4) {
+                        Text("Enable showing")
+                        Image(systemName: "circlebadge.fill")
+                        Text("indicator inside system time.")
+                    }
                 }
                 
                 // Time Range Selection

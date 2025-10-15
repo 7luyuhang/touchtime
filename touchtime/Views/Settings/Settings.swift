@@ -298,9 +298,14 @@ struct SettingsView: View {
                                     SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
                                     Text("Default Calendar")
                                 }
-                                Spacer()
+                                .layoutPriority(1)
+                                
+                                Spacer(minLength: 8)
+                                
                                 Text(selectedCalendar?.title ?? "None")
                                     .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
                             }
                         }
                     }

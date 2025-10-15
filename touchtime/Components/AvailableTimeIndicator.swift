@@ -114,7 +114,7 @@ struct AvailableTimeIndicator: View {
             // Start Time
             Text(formatAvailableTime(availableStartTime))
                 .font(.caption)
-                .fontWeight(.semibold)
+                .fontWeight(.medium)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
                 .blendMode(.plusLighter)
@@ -134,7 +134,7 @@ struct AvailableTimeIndicator: View {
             // End Time
             Text(formatAvailableTime(availableEndTime))
                 .font(.caption)
-                .fontWeight(.semibold)
+                .fontWeight(.medium)
                 .foregroundStyle(.secondary)
                 .monospacedDigit()
                 .blendMode(.plusLighter)

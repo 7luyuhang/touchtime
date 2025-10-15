@@ -373,6 +373,7 @@ struct ScrollTimeView: View {
                             Image(systemName: "chevron.left")
                                 .fontWeight(.semibold)
                                 .foregroundColor(isPositive ? .primary.opacity(0.5) : .primary)
+                                .blendMode(.plusLighter)
                                 .padding(.leading, -8)
                             
                             Spacer()
@@ -409,15 +410,18 @@ struct ScrollTimeView: View {
                             Image(systemName: "chevron.right")
                                 .fontWeight(.semibold)
                                 .foregroundColor(isPositive ?  .primary : .primary.opacity(0.5))
+                                .blendMode(.plusLighter)
                                 .padding(.trailing, -8)
                             
                         } else {
+                            // Default State
                             // Slide to Adjust Time
                             Image(systemName: "chevron.left")
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.tertiary)
                                 .id("chevron.left.idle")
                                 .transition(.blurReplace)
+                                .blendMode(.plusLighter)
                             
                             Spacer()
                             
@@ -425,6 +429,7 @@ struct ScrollTimeView: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
                                 .transition(.blurReplace)
+                                .blendMode(.plusLighter)
                             
                             Spacer()
                             
@@ -433,6 +438,7 @@ struct ScrollTimeView: View {
                                 .foregroundStyle(.tertiary)
                                 .id("chevron.right.idle")
                                 .transition(.blurReplace)
+                                .blendMode(.plusLighter)
                         }
                     }
                     .padding(.horizontal, (timeOffset == 0 || dragOffset != 0) ? 16 : 0)
