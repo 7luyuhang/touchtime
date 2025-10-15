@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct AvailableTimePicker: View {
+    let worldClocks: [WorldClock]
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
@@ -86,11 +87,22 @@ struct AvailableTimePicker: View {
                             Text("Show Available Time")
                     }
                     .tint(.blue)
+                    .disabled(worldClocks.isEmpty)
+                    
                 } footer: {
-                    HStack(spacing: 4) {
-                        Text("Enable showing")
-                        Image(systemName: "circlebadge.fill")
-                        Text("indicator inside system time.")
+                    if worldClocks.isEmpty {
+                        HStack(spacing: 4) {
+                            Text("Tap")
+                            Image(systemName: "magnifyingglass")
+                                .fontWeight(.medium)
+                            Text("and add cities first to enable.")
+                        }
+                    } else {
+                        HStack(spacing: 4) {
+                            Text("Enable showing")
+                            Image(systemName: "circlebadge.fill")
+                            Text("indicator inside system time.")
+                        }
                     }
                 }
                 
@@ -151,6 +163,10 @@ struct AvailableTimePicker: View {
                 // Initialize dates from stored values
                 startDate = timeStringToDate(availableStartTime)
                 endDate = timeStringToDate(availableEndTime)
+                // Auto-disable if no cities available
+                if worldClocks.isEmpty && availableTimeEnabled {
+                    availableTimeEnabled = false
+                }
             }
         }
     }

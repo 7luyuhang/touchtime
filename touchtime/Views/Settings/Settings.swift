@@ -155,7 +155,7 @@ struct SettingsView: View {
                 }
                 
                 // Available Time
-                NavigationLink(destination: AvailableTimePicker()) {
+                NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
                             Text("Available Time")
