@@ -249,7 +249,7 @@ struct HomeView: View {
                             .id("local-\(showSkyDot)")
                                 
                                 
-                            // Menu
+                            // Menu Local Time
                             .contextMenu {
                                 Button(action: {
                                     let cityName = customLocalName.isEmpty ? localCityName : customLocalName
@@ -257,6 +257,8 @@ struct HomeView: View {
                                 }) {
                                     Label("Schedule Event", systemImage: "calendar.badge.plus")
                                 }
+                                
+                                Divider()
                                 
                                 Button(action: {
                                     let cityName = customLocalName.isEmpty ? localCityName : customLocalName
@@ -397,6 +399,8 @@ struct HomeView: View {
                             }) {
                                 Label("Schedule Event", systemImage: "plus.circle")
                             }
+                            
+                            Divider()
 
                             // Copy as Text
                             Button(action: {

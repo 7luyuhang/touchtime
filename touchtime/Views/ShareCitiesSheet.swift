@@ -246,6 +246,7 @@ struct ShareCitiesSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     // Only show share button if at least one city is selected
                     if !selectedCities.isEmpty || (showLocalTimeInHome && showLocalTime) {
+                        
                         ShareLink(item: generateShareText()) {
                             Text("Share")
                                 .font(.headline)
@@ -255,6 +256,12 @@ struct ShareCitiesSheet: View {
                 
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
+                        
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                        }
+
                         showSheet = false
                     }) {
                         Image(systemName: "xmark")
