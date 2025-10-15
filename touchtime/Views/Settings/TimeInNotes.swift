@@ -22,7 +22,9 @@ struct CitySelectionSheet: View {
                 Toggle(isOn: $showCitiesInNotes) {
                     Text("Show Time in Notes")
                 }
+                .tint(.blue)
                 .disabled(worldClocks.isEmpty)
+                
             } footer: {
                 if worldClocks.isEmpty {
                     HStack(spacing: 4) {

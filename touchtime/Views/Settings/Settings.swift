@@ -20,6 +20,9 @@ struct SettingsView: View {
     @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
+    @AppStorage("availableStartTime") private var availableStartTime = "09:00"
+    @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     @State private var eventStore = EKEventStore()
@@ -141,6 +144,7 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
+                    
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
@@ -148,6 +152,14 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
+                }
+                
+                // Available Time
+                NavigationLink(destination: AvailableTimePicker()) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
+                            Text("Available Time")
+                        }
                 }
  
                 // Display
@@ -488,6 +500,25 @@ struct SettingsView: View {
             let impactFeedback = UINotificationFeedbackGenerator()
             impactFeedback.prepare()
             impactFeedback.notificationOccurred(.success)
+        }
+    }
+    
+    // Format time for settings display
+    func formatTimeForSetting(_ timeString: String) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "HH:mm"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        
+        guard let date = formatter.date(from: timeString) else {
+            return timeString
+        }
+        
+        if use24HourFormat {
+            return timeString
+        } else {
+            formatter.dateFormat = "h:mm a"
+            return formatter.string(from: date).lowercased()
         }
     }
     

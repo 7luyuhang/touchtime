@@ -36,6 +36,9 @@ struct HomeView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
+    @AppStorage("availableStartTime") private var availableStartTime = "09:00"
+    @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -238,6 +241,17 @@ struct HomeView: View {
                                     }
                                 }
                                 .padding(.bottom, -4)
+                                
+                                // Available Time Display with Progress Indicator
+                                if availableTimeEnabled {
+                                    AvailableTimeIndicator(
+                                        currentDate: currentDate,
+                                        timeOffset: timeOffset,
+                                        availableStartTime: availableStartTime,
+                                        availableEndTime: availableEndTime,
+                                        use24HourFormat: use24HourFormat
+                                    )
+                                }
                             }
                             // Sky Background
                             .listRowBackground(
@@ -504,6 +518,7 @@ struct HomeView: View {
             .animation(.spring, value: worldClocks)
             .animation(.spring, value: showSkyDot)
             .animation(.spring, value: showLocalTime)
+            .animation(.spring, value: availableTimeEnabled)
             
             // Navigation Title
             .navigationTitle("Touch Time")
