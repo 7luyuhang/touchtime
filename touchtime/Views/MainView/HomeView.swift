@@ -244,6 +244,7 @@ struct HomeView: View {
                                 
                                 // Available Time Display with Progress Indicator
                                 if availableTimeEnabled {
+                                        
                                     AvailableTimeIndicator(
                                         currentDate: currentDate,
                                         timeOffset: timeOffset,

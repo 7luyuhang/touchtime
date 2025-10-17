@@ -162,9 +162,8 @@ struct ShareCitiesSheet: View {
                                     impactFeedback.impactOccurred()
                                 }
                             }
-                            
-                            Divider()
-                                .padding(.vertical, 12)
+//                            Divider()
+//                                .padding(.vertical, 12)
                         }
                         
                         // World clocks cards

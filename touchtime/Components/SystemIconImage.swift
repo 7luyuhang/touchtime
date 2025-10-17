@@ -14,7 +14,7 @@ struct SystemIconImage: View {
     
     var body: some View {
         ZStack {
-            Circle()
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [
@@ -26,7 +26,9 @@ struct SystemIconImage: View {
                     )
                 )
                 .frame(width: 28, height: 28)
-                .glassEffect(.regular)
+                .glassEffect(.regular, in:
+                                RoundedRectangle(cornerRadius: 8, style: .continuous)
+                )
                 
             Image(systemName: systemName)
                 .font(.system(size: 15))

@@ -277,7 +277,7 @@ struct SettingsView: View {
                     
                     Toggle(isOn: $use24HourFormat) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "24.circle", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
                             Text("24-Hour Format")
                         }
                     }
@@ -287,60 +287,80 @@ struct SettingsView: View {
                 
                 // Calendar
                 Section("Calendar") {
-                    // Default Calendar Selection
-                    if hasCalendarPermission && !availableCalendars.isEmpty {
-                        NavigationLink(destination: CalendarSelectionView(
-                            availableCalendars: availableCalendars,
-                            selectedCalendarIdentifier: $selectedCalendarIdentifier
+                    if hasCalendarPermission {
+                        // Default Calendar Selection
+                        if !availableCalendars.isEmpty {
+                            NavigationLink(destination: CalendarSelectionView(
+                                availableCalendars: availableCalendars,
+                                selectedCalendarIdentifier: $selectedCalendarIdentifier
+                            )) {
+                                HStack {
+                                    HStack(spacing: 12) {
+                                        SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                                        Text("Default Calendar")
+                                    }
+                                    .layoutPriority(1)
+                                    
+                                    Spacer(minLength: 8)
+                                    
+                                    Text(selectedCalendar?.title ?? "None")
+                                        .foregroundStyle(.secondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+                            }
+                        }
+                        
+                        // Event Duration
+                        Picker(selection: $defaultEventDuration) {
+                            Text("15 min").tag(900.0)
+                            Text("30 min").tag(1800.0)
+                            Text("45 min").tag(2700.0)
+                            Text("1 hr").tag(3600.0)
+                            Text("2 hrs").tag(7200.0)
+                        } label: {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "clock.fill", topColor: .blue, bottomColor: .cyan)
+                                Text("Event Duration")
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.secondary)
+                        
+                        // Show cities in note
+                        NavigationLink(destination: CitySelectionSheet(
+                            worldClocks: worldClocks,
+                            selectedCitiesForNotes: $selectedCitiesForNotes,
+                            showCitiesInNotes: $showCitiesInNotes
                         )) {
                             HStack {
                                 HStack(spacing: 12) {
-                                    SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                                    Text("Default Calendar")
+                                    SystemIconImage(systemName: "pencil.tip", topColor: .orange, bottomColor: .yellow)
+                                    Text("Time in Notes")
                                 }
-                                .layoutPriority(1)
-                                
-                                Spacer(minLength: 8)
-                                
-                                Text(selectedCalendar?.title ?? "None")
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
+                                Spacer()
+                                Text(getCityCountText())
+                                .foregroundStyle(.secondary)
                             }
                         }
-                    }
-                    
-                    // Event Duration
-                    Picker(selection: $defaultEventDuration) {
-                        Text("15 min").tag(900.0)
-                        Text("30 min").tag(1800.0)
-                        Text("45 min").tag(2700.0)
-                        Text("1 hr").tag(3600.0)
-                        Text("2 hrs").tag(7200.0)
-                    } label: {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "clock.fill", topColor: .blue, bottomColor: .cyan)
-                            Text("Event Duration")
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.secondary)
-                    
-                    // Show cities in note
-                    NavigationLink(destination: CitySelectionSheet(
-                        worldClocks: worldClocks,
-                        selectedCitiesForNotes: $selectedCitiesForNotes,
-                        showCitiesInNotes: $showCitiesInNotes
-                    )) {
-                        HStack {
-                            HStack(spacing: 12) {
-                                SystemIconImage(systemName: "pencil.tip", topColor: .orange, bottomColor: .yellow)
-                                Text("Time in Notes")
-                            }
-                            Spacer()
-                            Text(getCityCountText())
+                    } else {
+                        // No calendar permission
+                        Text("Need calendar access to add events from Touch Time.")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
                             .foregroundStyle(.secondary)
+                        
+                        Button(action: {
+                            if let url = URL(string: UIApplication.openSettingsURLString) {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                                HStack(spacing: 12) {
+                                    SystemIconImage(systemName: "gear", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                                    Text("Go to Settings")
+                                }
                         }
+                        .foregroundStyle(.primary)
                     }
                 }
      
