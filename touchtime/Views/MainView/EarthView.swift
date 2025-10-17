@@ -34,12 +34,25 @@ struct EarthView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
+    @AppStorage("showLocalTime") private var showLocalTime = true
+    @AppStorage("customLocalName") private var customLocalName = ""
     
     // 設置地圖縮放限制
     private let cameraBounds = MapCameraBounds(
         minimumDistance: 5000000,     // 最小高度 1,000km（最大放大）
         maximumDistance: nil
     )
+    
+    // Get local city name from timezone
+    var localCityName: String {
+        let identifier = TimeZone.current.identifier
+        let components = identifier.split(separator: "/")
+        if components.count >= 2 {
+            return components.last!.replacingOccurrences(of: "_", with: " ")
+        } else {
+            return identifier
+        }
+    }
     
     // Convert timezone identifier to coordinate
     func getCoordinate(for timeZoneIdentifier: String) -> CLLocationCoordinate2D? {
@@ -556,9 +569,87 @@ struct EarthView: View {
         NavigationStack {
             ZStack(alignment: .bottom) {
                 Map(position: $position, bounds: cameraBounds) {
+                // Show local time marker
+                if showLocalTime {
+                    if let coordinate = getCoordinate(for: TimeZone.current.identifier) {
+                        Annotation(customLocalName.isEmpty ? localCityName : customLocalName, coordinate: coordinate) {
+                            VStack(spacing: 6) {
+                                // Time bubble with SkyDot - wrapped in Menu
+                                Menu {
+                                    Button(action: {
+                                        let cityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                        addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
+                                    }) {
+                                        Label("Schedule Event", systemImage: "calendar.badge.plus")
+                                    }
+                                    
+                                    Button(action: {
+                                        renamingClockId = nil // Use nil to indicate local time
+                                        originalClockName = localCityName
+                                        newClockName = customLocalName.isEmpty ? localCityName : customLocalName
+                                        showingRenameAlert = true
+                                    }) {
+                                        Label("Rename", systemImage: "pencil.tip.crop.circle")
+                                    }
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        
+                                        if showSkyDot {
+                                            SkyDotView(
+                                                date: currentDate,
+                                                timeZoneIdentifier: TimeZone.current.identifier
+                                            )
+                                            .overlay(
+                                                Capsule(style: .continuous)
+                                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                                    .blendMode(.plusLighter)
+                                            )
+                                            .transition(.blurReplace)
+                                        }
+                                        
+                                        HStack(spacing: 4) {
+                                            Text({
+                                                let formatter = DateFormatter()
+                                                formatter.timeZone = TimeZone.current
+                                                formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                if use24HourFormat {
+                                                    formatter.dateFormat = "HH:mm"
+                                                } else {
+                                                    formatter.dateFormat = "h:mma"
+                                                }
+                                                return formatter.string(from: currentDate).lowercased()
+                                            }())
+                                            .font(.caption)
+                                            .fontWeight(.bold)
+                                            .foregroundStyle(.white)
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
+                                            .animation(.spring(), value: currentDate)
+                                            
+                                            Image(systemName: "location.fill")
+                                                .font(.caption2)
+                                                .foregroundStyle(.white)
+                                        }
+
+                                    }
+                                    .animation(.spring(), value: showSkyDot)
+                                    .padding(.leading, showSkyDot ? 2 : 8)
+                                    .padding(.trailing, 8)
+                                    .padding(.vertical, 4)
+                                    .clipShape(Capsule())
+                                    .glassEffect(.clear.interactive())
+                                }
+                            }
+                        }
+                    }
+                }
+                
                 // Show world clock markers
                 ForEach(worldClocks) { clock in
-                    if let coordinate = getCoordinate(for: clock.timeZoneIdentifier) {
+                    // Skip if this clock has the same timezone as local time and local time is shown
+                    if showLocalTime && clock.timeZoneIdentifier == TimeZone.current.identifier {
+                        // Don't show duplicate of local time
+                    } else if let coordinate = getCoordinate(for: clock.timeZoneIdentifier) {
                         Annotation(clock.cityName, coordinate: coordinate) {
                             
                             VStack(spacing: 6) {
@@ -710,8 +801,13 @@ struct EarthView: View {
                 }
                 Button("Save") {
                     let nameToSave = newClockName.isEmpty ? originalClockName : newClockName
-                    if let clockId = renamingClockId,
-                       let index = worldClocks.firstIndex(where: { $0.id == clockId }) {
+                    
+                    if renamingClockId == nil {
+                        // Renaming local time
+                        customLocalName = nameToSave == localCityName ? "" : nameToSave
+                    } else if let clockId = renamingClockId,
+                              let index = worldClocks.firstIndex(where: { $0.id == clockId }) {
+                        // Renaming a world clock
                         worldClocks[index].cityName = nameToSave
                         saveWorldClocks()
                     }

@@ -13,7 +13,7 @@ struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
-    @AppStorage("showLocalTime") private var showLocalTime = false
+    @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
@@ -345,9 +345,9 @@ struct SettingsView: View {
                         }
                     } else {
                         // No calendar permission
-                        Text("Need calendar access to add events from Touch Time.")
+                        Text("Need full calendar access.")
                             .font(.subheadline)
-                            .fontWeight(.semibold)
+                            .fontWeight(.medium)
                             .foregroundStyle(.secondary)
                         
                         Button(action: {
@@ -486,6 +486,7 @@ struct SettingsView: View {
                 
                 
             }
+            .scrollIndicators(.hidden)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
