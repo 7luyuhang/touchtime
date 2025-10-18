@@ -633,7 +633,8 @@ struct EarthView: View {
 
                                     }
                                     .animation(.spring(), value: showSkyDot)
-                                    .padding(.leading, showSkyDot ? 2 : 8)
+                                    // Overall Paddings
+                                    .padding(.leading, showSkyDot ? 4 : 8)
                                     .padding(.trailing, 8)
                                     .padding(.vertical, 4)
                                     .clipShape(Capsule())
@@ -740,7 +741,9 @@ struct EarthView: View {
             .navigationBarTitleDisplayMode(.inline)
             
         .animation(.spring(), value: worldClocks)
-        .onAppear {
+        .task {
+            // 立即更新时间，避免显示缓存的时间
+            currentDate = Date()
             startTimer()
         }
         .onDisappear {

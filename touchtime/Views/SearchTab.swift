@@ -310,7 +310,7 @@ struct TimeZonePickerViewWrapper: View {
                     }
                     .listSectionIndexVisibility(searchText.isEmpty ? .visible : .hidden)
                     .safeAreaPadding(.bottom, searchText.isEmpty ? 0 : 48)
-                    // .tint(.primary)
+                    .tint(.primary) // A-Z Colour
                 }
             }
             .searchable(text: $searchText, prompt: "Cities & Countries")

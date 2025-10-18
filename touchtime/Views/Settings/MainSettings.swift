@@ -261,7 +261,14 @@ struct SettingsView: View {
                     // Options in Settings
                     Toggle(isOn: $showSkyDot) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "cloud.fill", topColor: .blue, bottomColor: .white)
+                            // Use SkyColorGradient colors for the background
+                            let gradient = SkyColorGradient(date: currentDate, timeZoneIdentifier: TimeZone.current.identifier)
+                            let colors = gradient.colors
+                            SystemIconImage(
+                                systemName: "cloud.fill",
+                                topColor: colors.first ?? .blue,
+                                bottomColor: colors.last ?? .white
+                            )
                             Text("Sky Colour")
                         }
                     }
@@ -401,7 +408,7 @@ struct SettingsView: View {
                     .foregroundStyle(.primary)
                     
                     
-                    Link(destination: URL(string: "https://apps.apple.com/app/touchtime/id123456789?action=write-review")!) {
+                    Link(destination: URL(string: "https://apps.apple.com/app/touchtime/id6753721487?action=write-review")!) {
                         HStack {
                             Text("Review on App Store")
                         }
@@ -454,6 +461,12 @@ struct SettingsView: View {
                                     
                                     Link(destination: URL(string: "https://x.com/7luyuhang")!) {
                                         Text("X")
+                                    }
+                                    
+                                    Section("More apps from team") {
+                                        Link(destination: URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720")!) {
+                                                Text("Hands Time - Minimalist Widget")
+                                        }
                                     }
                                 } label: {
                                     Text("yuhang")
