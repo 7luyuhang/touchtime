@@ -29,6 +29,8 @@ struct EarthView: View {
     @State private var eventStore = EKEventStore()
     @State private var showEventEditor = false
     @State private var eventToEdit: EKEvent?
+    @State private var isUsingExploreMode = false
+    @State private var showMapMenu = false
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -732,15 +734,69 @@ struct EarthView: View {
                     }
                 }
             }
-            .mapStyle(.imagery(elevation: .realistic))
+            .mapStyle(isUsingExploreMode ? .standard(elevation: .realistic) : .imagery(elevation: .realistic))
             .mapControls {
                 MapScaleView()
+                MapCompass()
             }
+            
+            // Bottom Control Bar
+            HStack(spacing: 0) {
+                
+                // Back to Local Time Button
+                Button(action: {
+                    if hapticEnabled {
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                        impactFeedback.prepare()
+                        impactFeedback.impactOccurred()
+                    }
+                    
+                    // Navigate to local time location
+                    if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
+                        withAnimation(.smooth()) {
+                            position = MapCameraPosition.region(MKCoordinateRegion(
+                                center: localCoordinate,
+                                span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
+                            ))
+                        }
+                    }
+                }) {
+                    Image(systemName: "location.fill")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(width: 52, height: 52)
+                        
+                }
+                
+                // Map Mode Toggle Button
+                Button(action: {
+                    if hapticEnabled {
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                        impactFeedback.prepare()
+                        impactFeedback.impactOccurred()
+                    }
+                    
+                    withAnimation(.smooth()) {
+                        isUsingExploreMode.toggle()
+                    }
+                }) {
+                    Image(systemName: isUsingExploreMode ? "view.2d" : "view.3d")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(width: 52, height: 52)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+            }
+            .clipShape(.capsule)
+            .glassEffect(.regular.interactive())
+            .padding(.bottom, 8)
         }
             .navigationTitle("Touch Time")
             .navigationBarTitleDisplayMode(.inline)
             
         .animation(.spring(), value: worldClocks)
+        .animation(.smooth(), value: isUsingExploreMode)
+            
         .task {
             // 立即更新时间，避免显示缓存的时间
             currentDate = Date()

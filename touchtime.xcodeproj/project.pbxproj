@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		5AFDCE0E2EA3E2CC0002AC94 /* SunKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AFDCE0D2EA3E2CC0002AC94 /* SunKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		5A42D3782E82CDCE0048963E /* touchtime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = touchtime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5AFDCE0E2EA3E2CC0002AC94 /* SunKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = touchtime;
 			packageProductDependencies = (
+				5AFDCE0D2EA3E2CC0002AC94 /* SunKit */,
 			);
 			productName = touchtime;
 			productReference = 5A42D3782E82CDCE0048963E /* touchtime.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = 5A42D36F2E82CDCE0048963E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				5AFDCE0C2EA3E2CC0002AC94 /* XCRemoteSwiftPackageReference "SunKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A42D3792E82CDCE0048963E /* Products */;
 			projectDirPath = "";
@@ -251,7 +260,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = N2D432683S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -291,7 +300,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = N2D432683S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -346,6 +355,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		5AFDCE0C2EA3E2CC0002AC94 /* XCRemoteSwiftPackageReference "SunKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/SunKit-Swift/SunKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		5AFDCE0D2EA3E2CC0002AC94 /* SunKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5AFDCE0C2EA3E2CC0002AC94 /* XCRemoteSwiftPackageReference "SunKit" */;
+			productName = SunKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5A42D3702E82CDCE0048963E /* Project object */;
 }
