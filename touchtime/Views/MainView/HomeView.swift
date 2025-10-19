@@ -27,6 +27,9 @@ struct HomeView: View {
     @State private var showEventEditor = false
     @State private var eventToEdit: EKEvent?
     @State private var scheduleForTimeZone: String = TimeZone.current.identifier
+    @State private var showSunriseSunsetSheet = false
+    @State private var selectedTimeZone: String = ""
+    @State private var selectedCityName: String = ""
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
@@ -268,6 +271,20 @@ struct HomeView: View {
                             .id("local-\(showSkyDot)")
                                 
                                 
+                            // Tap gesture for local time
+                            .onTapGesture {
+                                selectedTimeZone = TimeZone.current.identifier
+                                selectedCityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                showSunriseSunsetSheet = true
+                                
+                                // Provide haptic feedback if enabled
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                            }
+                                
                             // Menu Local Time
                             .contextMenu {
                                 Button(action: {
@@ -397,6 +414,20 @@ struct HomeView: View {
                             ) : nil
                         )
                         .id("\(clock.id)-\(showSkyDot)")
+                        
+                        // Tap gesture for world clock
+                        .onTapGesture {
+                            selectedTimeZone = clock.timeZoneIdentifier
+                            selectedCityName = clock.cityName
+                            showSunriseSunsetSheet = true
+                            
+                            // Provide haptic feedback if enabled
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                        }
                         
                         //Swipe to delete time
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -619,6 +650,17 @@ struct HomeView: View {
                     eventStore: eventStore
                 )
                 .ignoresSafeArea()
+            }
+            
+            // Sunrise/Sunset Sheet
+            .sheet(isPresented: $showSunriseSunsetSheet) {
+                SunriseSunsetSheet(
+                    cityName: selectedCityName,
+                    timeZoneIdentifier: selectedTimeZone,
+                    currentDate: currentDate,
+                    timeOffset: timeOffset
+                )
+                .presentationDetents([.medium])
             }
         }
         
