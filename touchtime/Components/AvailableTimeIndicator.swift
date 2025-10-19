@@ -13,9 +13,13 @@ struct AvailableTimeIndicator: View {
     let availableStartTime: String
     let availableEndTime: String
     let use24HourFormat: Bool
+    let availableWeekdays: String // Comma-separated list of weekday numbers
     
     // Calculate progress for available time indicator
     private func calculateAvailableTimeProgress() -> Double {
+        // Return 0 if not a selected weekday
+        guard isSelectedWeekday() else { return 0 }
+        
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -56,8 +60,21 @@ struct AvailableTimeIndicator: View {
         return min(max(progress, 0), 1) // Clamp between 0 and 1
     }
     
+    // Check if current day is a selected weekday
+    private func isSelectedWeekday() -> Bool {
+        let adjustedCurrentTime = currentDate.addingTimeInterval(timeOffset)
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: adjustedCurrentTime)
+        
+        let selectedDays = availableWeekdays.split(separator: ",").compactMap { Int($0) }
+        return selectedDays.contains(weekday)
+    }
+    
     // Check if current time is within available hours
     private func isWithinAvailableTime() -> Bool {
+        // First check if it's a selected weekday
+        guard isSelectedWeekday() else { return false }
+        
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         formatter.locale = Locale(identifier: "en_US_POSIX")

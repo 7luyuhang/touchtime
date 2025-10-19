@@ -39,6 +39,7 @@ struct HomeView: View {
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6" // Default Mon-Fri
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -243,14 +244,16 @@ struct HomeView: View {
                                 .padding(.bottom, -4)
                                 
                                 // Available Time Display with Progress Indicator
-                                if availableTimeEnabled {
+                                // Only show if enabled AND at least one weekday is selected
+                                if availableTimeEnabled && !availableWeekdays.isEmpty {
                                         
                                     AvailableTimeIndicator(
                                         currentDate: currentDate,
                                         timeOffset: timeOffset,
                                         availableStartTime: availableStartTime,
                                         availableEndTime: availableEndTime,
-                                        use24HourFormat: use24HourFormat
+                                        use24HourFormat: use24HourFormat,
+                                        availableWeekdays: availableWeekdays
                                     )
                                 }
                             }

@@ -13,10 +13,23 @@ struct AvailableTimePicker: View {
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6" // Default Mon-Fri
     
     @State private var startDate = Date()
     @State private var endDate = Date()
+    @State private var selectedWeekdays: Set<Int> = []
     @Environment(\.dismiss) private var dismiss
+    
+    // Weekday names and indices (1 = Sunday, 2 = Monday, etc. in Calendar)
+    private let weekdays: [(name: String, index: Int)] = [
+        ("M", 2),
+        ("T", 3),
+        ("W", 4),
+        ("T", 5),
+        ("F", 6),
+        ("S", 7),
+        ("S", 1)
+    ]
     
     // Computed property to get locale based on time format preference
     private var datePickerLocale: Locale {
@@ -29,6 +42,63 @@ struct AvailableTimePicker: View {
         }
     }
     
+    // Load weekdays from storage
+    private func loadWeekdays() {
+        let weekdayNumbers = availableWeekdays.split(separator: ",").compactMap { Int($0) }
+        selectedWeekdays = Set(weekdayNumbers)
+    }
+    
+    // Save weekdays to storage
+    private func saveWeekdays() {
+        let sortedWeekdays = selectedWeekdays.sorted()
+        availableWeekdays = sortedWeekdays.map { String($0) }.joined(separator: ",")
+    }
+    
+    // Toggle weekday selection
+    private func toggleWeekday(_ index: Int) {
+        if selectedWeekdays.contains(index) {
+            selectedWeekdays.remove(index)
+        } else {
+            selectedWeekdays.insert(index)
+        }
+        saveWeekdays()
+    }
+    
+    
+    // Generate footer text based on selected weekdays
+    private func getWeekdayFooterText() -> String? {
+        guard !selectedWeekdays.isEmpty else {
+            return "Please select at least one day."
+        }
+        
+        let weekdaySet = Set([2, 3, 4, 5, 6]) // Mon-Fri
+        let weekendSet = Set([1, 7]) // Sun, Sat
+        
+        var selectedText = ""
+        
+        // Check if exactly Mon-Fri are selected
+        if selectedWeekdays == weekdaySet {
+            selectedText = "Weekdays"
+        }
+        // Check if exactly Sat-Sun are selected
+        else if selectedWeekdays == weekendSet {
+            selectedText = "Weekend"
+        }
+        // Otherwise, show the selected day names
+        else {
+            let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+            let sortedDays = selectedWeekdays.sorted()
+            let selectedNames = sortedDays.map { dayIndex in
+                // Convert calendar weekday (1=Sun, 2=Mon, etc.) to array index
+                dayNames[dayIndex - 1]
+            }
+            selectedText = selectedNames.joined(separator: ", ")
+        }
+        
+        return "Date selected: \(selectedText)"
+    }
+    
+
     // Convert time string to Date for DatePicker
     private func timeStringToDate(_ timeString: String) -> Date {
         let formatter = DateFormatter()
@@ -116,6 +186,39 @@ struct AvailableTimePicker: View {
                     }
                 }
                 
+                
+                // Weekday Selection
+                Section {
+                    HStack(spacing: 0) {
+                        ForEach(Array(weekdays.enumerated()), id: \.element.index) { index, weekday in
+                            if index > 0 {
+                                Spacer(minLength: 0)
+                            }
+                            
+                            Button(action: {
+                                toggleWeekday(weekday.index)
+                            }) {
+                                Text(weekday.name)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.primary)
+                                    .frame(width: 36, height: 36)
+                                    .glassEffect(
+                                        .clear
+                                        .tint(selectedWeekdays.contains(weekday.index) ? Color.blue : nil)
+                                    )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                } footer: {
+                    if let footerText = getWeekdayFooterText() {
+                        Text(footerText)
+                    }
+                }
+                
+                
                 // Time Range Selection
                 if availableTimeEnabled {
                     Section {
@@ -163,6 +266,7 @@ struct AvailableTimePicker: View {
                             }
                         }
                     }
+ 
                 }
             }
             // Title
@@ -173,6 +277,8 @@ struct AvailableTimePicker: View {
                 // Initialize dates from stored values
                 startDate = timeStringToDate(availableStartTime)
                 endDate = timeStringToDate(availableEndTime)
+                // Load selected weekdays
+                loadWeekdays()
                 // Auto-disable if no cities available
                 if worldClocks.isEmpty && availableTimeEnabled {
                     availableTimeEnabled = false
