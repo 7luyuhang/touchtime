@@ -278,6 +278,7 @@ struct ScrollTimeView: View {
     
     // Reset time offset
     func resetTimeOffset() {
+        
         // Provide haptic feedback if enabled
         if hapticEnabled {
             let impactFeedback = UIImpactFeedbackGenerator(style: .soft)

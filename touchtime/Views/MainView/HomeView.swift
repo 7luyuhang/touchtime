@@ -223,6 +223,7 @@ struct HomeView: View {
                                         }())
                                         .font(.system(size: 36))
                                         .fontWeight(.light)
+                                        .fontDesign(.rounded)
                                         .monospacedDigit()
                                         .contentTransition(.numericText())
                                         
@@ -366,6 +367,7 @@ struct HomeView: View {
                                     }())
                                     .font(.system(size: 36))
                                     .fontWeight(.light)
+                                    .fontDesign(.rounded)
                                     .monospacedDigit()
                                     .contentTransition(.numericText())
                                     

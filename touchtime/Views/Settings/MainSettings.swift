@@ -210,6 +210,7 @@ struct SettingsView: View {
                                     Text(formatTime(use24Hour: use24HourFormat))
                                         .font(.system(size: 36))
                                         .fontWeight(.light)
+                                        .fontDesign(.rounded)
                                         .monospacedDigit()
                                         .contentTransition(.numericText())
                                         .animation(.spring(), value: currentDate)
