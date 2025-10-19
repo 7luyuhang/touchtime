@@ -14,6 +14,7 @@ struct AvailableTimePicker: View {
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6" // Default Mon-Fri
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     
     @State private var startDate = Date()
     @State private var endDate = Date()
@@ -73,11 +74,16 @@ struct AvailableTimePicker: View {
         
         let weekdaySet = Set([2, 3, 4, 5, 6]) // Mon-Fri
         let weekendSet = Set([1, 7]) // Sun, Sat
+        let allDaysSet = Set([1, 2, 3, 4, 5, 6, 7]) // All days
         
         var selectedText = ""
         
+        // Check if all days are selected
+        if selectedWeekdays == allDaysSet {
+            selectedText = "Every day"
+        }
         // Check if exactly Mon-Fri are selected
-        if selectedWeekdays == weekdaySet {
+        else if selectedWeekdays == weekdaySet {
             selectedText = "Weekdays"
         }
         // Check if exactly Sat-Sun are selected
@@ -95,7 +101,7 @@ struct AvailableTimePicker: View {
             selectedText = selectedNames.joined(separator: ", ")
         }
         
-        return "Date selected: \(selectedText)"
+        return "Selected days: \(selectedText)"
     }
     
 
@@ -188,33 +194,39 @@ struct AvailableTimePicker: View {
                 
                 
                 // Weekday Selection
-                Section {
-                    HStack(spacing: 0) {
-                        ForEach(Array(weekdays.enumerated()), id: \.element.index) { index, weekday in
-                            if index > 0 {
-                                Spacer(minLength: 0)
+                if availableTimeEnabled {
+                    Section {
+                        HStack(spacing: 0) {
+                            ForEach(Array(weekdays.enumerated()), id: \.element.index) { index, weekday in
+                                if index > 0 {
+                                    Spacer(minLength: 0)
+                                }
+                                
+                                Button(action: {
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                    toggleWeekday(weekday.index)
+                                }) {
+                                    Text(weekday.name)
+                                        .font(.subheadline)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(.primary)
+                                        .frame(width: 36, height: 36)
+                                        .glassEffect(
+                                            .clear
+                                            .tint(selectedWeekdays.contains(weekday.index) ? Color.blue : nil)
+                                        )
+                                }
+                                .buttonStyle(.plain)
                             }
-                            
-                            Button(action: {
-                                toggleWeekday(weekday.index)
-                            }) {
-                                Text(weekday.name)
-                                    .font(.subheadline)
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.primary)
-                                    .frame(width: 36, height: 36)
-                                    .glassEffect(
-                                        .clear
-                                        .tint(selectedWeekdays.contains(weekday.index) ? Color.blue : nil)
-                                    )
-                            }
-                            .buttonStyle(.plain)
                         }
-                    }
-                    .frame(maxWidth: .infinity)
-                } footer: {
-                    if let footerText = getWeekdayFooterText() {
-                        Text(footerText)
+                        .frame(maxWidth: .infinity)
+                    } footer: {
+                        if let footerText = getWeekdayFooterText() {
+                            Text(footerText)
+                        }
                     }
                 }
                 

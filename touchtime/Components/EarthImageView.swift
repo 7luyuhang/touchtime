@@ -39,6 +39,7 @@ struct EarthImageView: View {
                         .colorMultiply(Color(.systemBackground))
                 }
                 .offset(x: scrollOffset)
+                .drawingGroup()
             }
             .frame(width: circleSize, height: circleSize)
             .clipShape(Circle())
