@@ -29,9 +29,9 @@ struct EarthView: View {
     @State private var eventStore = EKEventStore()
     @State private var showEventEditor = false
     @State private var eventToEdit: EKEvent?
-    @State private var isUsingExploreMode = false
     @State private var showMapMenu = false
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("isUsingExploreMode") private var isUsingExploreMode = false
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600

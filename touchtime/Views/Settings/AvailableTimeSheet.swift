@@ -101,7 +101,7 @@ struct AvailableTimePicker: View {
             selectedText = selectedNames.joined(separator: ", ")
         }
         
-        return "Selected days: \(selectedText)"
+        return "Selected: \(selectedText)"
     }
     
 

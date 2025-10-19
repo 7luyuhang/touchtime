@@ -135,7 +135,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // General
+                // General Section
                 Section(header: Text("General"), footer: Text("Enable showing system time at the top of the list with ambient background.")) {
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
@@ -154,7 +154,7 @@ struct SettingsView: View {
                     .tint(.blue)
                 }
                 
-                // Available Time
+                // Available Time Section
                 NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
@@ -162,7 +162,7 @@ struct SettingsView: View {
                         }
                 }
  
-                // Display
+                // Display Section
                 Section("Display") {
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
@@ -239,10 +239,8 @@ struct SettingsView: View {
                         .clipShape(
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
                         )
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                .stroke(Color.secondary.opacity(0.15), lineWidth: 1.5)
-                                .blendMode(.plusLighter)
+                        .glassEffect(.clear, in:
+                                        RoundedRectangle(cornerRadius: 26, style: .continuous)
                         )
                         .animation(.spring(), value: showSkyDot)
                         
@@ -254,7 +252,6 @@ struct SettingsView: View {
                             .textCase(.uppercase)
                             .multilineTextAlignment(.center)
                             .padding(.bottom, -16)
-                        
                     }
                     .listRowSeparator(.hidden)
                     
