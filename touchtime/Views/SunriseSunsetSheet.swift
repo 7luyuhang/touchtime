@@ -8,14 +8,19 @@
 import SwiftUI
 import SunKit
 import CoreLocation
+import Combine
 
 struct SunriseSunsetSheet: View {
     let cityName: String
     let timeZoneIdentifier: String
-    let currentDate: Date
+    let initialDate: Date
     let timeOffset: TimeInterval
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @Environment(\.dismiss) private var dismiss
+    @State private var currentDate: Date = Date()
+    
+    // Timer to update the current date
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Calculate sunrise and sunset times
     private var sunTimes: (sunrise: Date?, sunset: Date?)? {
@@ -55,6 +60,8 @@ struct SunriseSunsetSheet: View {
             formatter.dateFormat = "HH:mm"
         } else {
             formatter.dateFormat = "h:mm a"
+            formatter.amSymbol = "am"
+            formatter.pmSymbol = "pm"
         }
         
         return formatter.string(from: date)
@@ -75,8 +82,9 @@ struct SunriseSunsetSheet: View {
             ScrollView {
                 VStack(spacing: 0) {
                     if let times = sunTimes {
-                        VStack(alignment: .leading) {
-                            // Subtitle
+                        // Main sun times
+                        VStack(alignment: .leading){
+                            
                             Text("Solar Time")
                                 .font(.subheadline)
                                 .fontWeight(.semibold)
@@ -84,64 +92,76 @@ struct SunriseSunsetSheet: View {
                                 .padding(.horizontal, 32)
                                 .padding(.vertical, 4)
                             
-                            // Main sun times
                             HStack(spacing: 8) {
-                                // Sunrise
+                                // Sunrise Section
                                 HStack {
                                     Image(systemName: "sunrise.fill")
-                                        .font(.headline)
+                                        .font(.title3.weight(.semibold))
                                         .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
                                         .frame(width: 24)
                                     
                                     Spacer()
                                     
                                     Text(formatTime(times.sunrise))
                                         .monospacedDigit()
+                                        .contentTransition(.numericText(countsDown: false))
+                                        .animation(.spring(), value: times.sunrise)
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(16)
-                                .background(.ultraThinMaterial)
-                                .clipShape(RoundedRectangle(cornerRadius: 16))
+                                .background(.white.opacity(0.05))
+                                .blendMode(.plusLighter)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                                 
-                                // Sunset
+                                // Sunset Section
                                 HStack{
                                     Image(systemName: "sunset.fill")
-                                        .font(.headline)
+                                        .font(.title3.weight(.semibold))
                                         .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
                                         .frame(width: 24)
                                     
                                     Spacer()
                                     
                                     Text(formatTime(times.sunset))
                                         .monospacedDigit()
+                                        .contentTransition(.numericText(countsDown: false))
+                                        .animation(.spring(), value: times.sunset)
                                     
                                 }
                                 .frame(maxWidth: .infinity)
                                 .padding(16)
-                                .background(.ultraThinMaterial)
-                                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .background(.white.opacity(0.05))
+                                .blendMode(.plusLighter)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                             }
                             .padding(.horizontal, 16)
                             
                             
-                            // Daylight duration
+                            
+                            // Daylight Duration Section
                             HStack {
                                 HStack(spacing: 16){
-                                    Image(systemName: "sun.max.fill")
+                                    Image(systemName: "rays")
+                                        .font(.title3.weight(.semibold))
                                         .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
                                         .frame(width: 24)
                                     
                                     Text("Daylight")
-                                        .font(.headline)
                                 }
                                 Spacer()
                                 
                                 Text(formatDuration(from: times.sunrise, to: times.sunset))
                                     .monospacedDigit()
+                                    .contentTransition(.numericText(countsDown: false))
+                                    .animation(.spring(), value: "\(times.sunrise?.description ?? "")\(times.sunset?.description ?? "")")
                             }
                             .padding(16)
-                            .background(.ultraThinMaterial)
-                            .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                            .background(.white.opacity(0.05))
+                            .blendMode(.plusLighter)
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                             .padding(.horizontal, 16)
                         }
                         
@@ -151,7 +171,7 @@ struct SunriseSunsetSheet: View {
                         ContentUnavailableView {
                             Label("No Data Available", systemImage: "sun.max.trianglebadge.exclamationmark")
                         } description: {
-                            Text("Something wrong here.")
+                            Text("Unable to calculate sunrise and sunset times for this location.")
                         }
                     }
                 }
@@ -159,6 +179,12 @@ struct SunriseSunsetSheet: View {
             .scrollIndicators(.hidden)
             .navigationTitle("Details")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                currentDate = initialDate
+            }
+            .onReceive(timer) { _ in
+                currentDate = Date()
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: {

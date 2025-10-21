@@ -239,7 +239,7 @@ struct SettingsView: View {
                         .clipShape(
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
                         )
-                        .glassEffect(.clear, in:
+                        .glassEffect(.clear.interactive(), in:
                                         RoundedRectangle(cornerRadius: 26, style: .continuous)
                         )
                         .animation(.spring(), value: showSkyDot)
@@ -478,14 +478,18 @@ struct SettingsView: View {
                                     .font(.footnote)
                             }
                             .foregroundStyle(.primary)
-                                
                         ) {
+                    
                     // App Info Section
-                    Text("Copyright © 2025 Negative Time Limited. \nAll rights reserved.") // "\n" 换行
+                    Text("Copyright © \(String(Calendar.current.component(.year, from: Date()))) Negative Time Limited. \nAll rights reserved.") // "\n" 换行
                                 .font(.subheadline)
                                 .fontWeight(.medium)
                                 .foregroundStyle(.secondary)
  
+                    // Credits
+                    NavigationLink(destination: CreditsView()) {
+                            Text("Credits")
+                        }
                     // Version
                     HStack {
                         Text("Version")

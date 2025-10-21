@@ -315,7 +315,6 @@ struct EarthView: View {
             }
             .mapStyle(isUsingExploreMode ? .standard(elevation: .realistic) : .imagery(elevation: .realistic))
             .mapControls {
-                MapScaleView()
                 MapCompass()
             }
             

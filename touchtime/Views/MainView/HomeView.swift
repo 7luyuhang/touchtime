@@ -261,6 +261,8 @@ struct HomeView: View {
                                     )
                                 }
                             }
+                            // Make entire row tappable
+                            .contentShape(Rectangle())
                             // Sky Background
                             .listRowBackground(
                                 showSkyDot ? SkyBackgroundView(
@@ -405,7 +407,8 @@ struct HomeView: View {
                             }
                             .padding(.bottom, -4)
                         }
-
+                        // Make entire row tappable
+                        .contentShape(Rectangle())
                         // Sky Background
                         .listRowBackground(
                             showSkyDot ? SkyBackgroundView(
@@ -657,7 +660,7 @@ struct HomeView: View {
                 SunriseSunsetSheet(
                     cityName: selectedCityName,
                     timeZoneIdentifier: selectedTimeZone,
-                    currentDate: currentDate,
+                    initialDate: currentDate,
                     timeOffset: timeOffset
                 )
                 .presentationDetents([.medium])
