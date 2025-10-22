@@ -154,12 +154,14 @@ struct SettingsView: View {
                     .tint(.blue)
                 }
                 
-                // Available Time Section
-                NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
-                            Text("Available Time")
-                        }
+                // Available Time Section - only show when System Time is enabled
+                if showLocalTime {
+                    NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
+                                Text("Available Time")
+                            }
+                    }
                 }
  
                 // Display Section
@@ -174,6 +176,7 @@ struct SettingsView: View {
                                         SkyDotView(
                                             date: currentDate,
                                             timeZoneIdentifier: TimeZone.current.identifier
+                                            
                                         )
                                         .transition(.blurReplace)
                                 }

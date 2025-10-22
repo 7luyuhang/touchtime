@@ -24,6 +24,29 @@ struct TimeZoneCoordinates {
             "America/Regina": (50.4452, -104.6189),
             "America/Halifax": (44.6488, -63.5752),
             "America/St_Johns": (47.5615, -52.7126),
+            "America/Atikokan": (48.7597, -91.6217),
+            "America/Blanc-Sablon": (51.4167, -57.1170),
+            "America/Cambridge_Bay": (69.1169, -105.0597),
+            "America/Creston": (49.0977, -116.5167),
+            "America/Dawson": (64.0600, -139.4320),
+            "America/Dawson_Creek": (55.7596, -120.2377),
+            "America/Fort_Nelson": (58.8050, -122.7003),
+            "America/Glace_Bay": (46.1969, -59.9570),
+            "America/Godthab": (64.1814, -51.6941),  // Nuuk old name
+            "America/Goose_Bay": (53.3192, -60.4258),
+            "America/Inuvik": (68.3607, -133.7230),
+            "America/Iqaluit": (63.7467, -68.5170),
+            "America/Moncton": (46.0878, -64.7782),
+            "America/Nipigon": (49.0156, -88.2683),
+            "America/Nuuk": (64.1814, -51.6941),
+            "America/Pangnirtung": (66.1451, -65.7125),
+            "America/Rainy_River": (48.7210, -94.5694),
+            "America/Rankin_Inlet": (62.8089, -92.0896),
+            "America/Resolute": (74.6973, -94.8297),
+            "America/Swift_Current": (50.2881, -107.7939),
+            "America/Thunder_Bay": (48.3809, -89.2477),
+            "America/Whitehorse": (60.7212, -135.0568),
+            "America/Yellowknife": (62.4540, -114.3718),
             "America/Anchorage": (61.2181, -149.9003),
             "America/Phoenix": (33.4484, -112.0740),
             "America/Detroit": (42.3314, -83.0458),
@@ -37,6 +60,22 @@ struct TimeZoneCoordinates {
             "America/Yakutat": (59.5469, -139.7272),
             "America/Sitka": (57.0531, -135.3300),
             "America/Metlakatla": (55.1291, -131.5721),
+            "America/Boise": (43.6187, -116.2146),
+            "America/Indiana/Indianapolis": (39.7684, -86.1581),
+            "America/Indiana/Knox": (41.2959, -86.6250),
+            "America/Indiana/Marengo": (38.3756, -86.3447),
+            "America/Indiana/Petersburg": (38.4920, -87.2789),
+            "America/Indiana/Tell_City": (37.9514, -86.7611),
+            "America/Indiana/Vevay": (38.7478, -85.0672),
+            "America/Indiana/Vincennes": (38.6773, -87.5286),
+            "America/Indiana/Winamac": (41.0514, -86.6031),
+            "America/Kentucky/Louisville": (38.2527, -85.7585),
+            "America/Kentucky/Monticello": (36.8298, -84.8491),
+            "America/Menominee": (45.1078, -87.6142),
+            "America/North_Dakota/Beulah": (47.2631, -101.7780),
+            "America/North_Dakota/Center": (47.1164, -101.2996),
+            "America/North_Dakota/New_Salem": (46.8450, -101.4113),
+            "America/Shiprock": (36.7856, -108.6869),  // Same as Navajo
             
             // Americas - Mexico & Central America
             "America/Mexico_City": (19.4326, -99.1332),
@@ -48,6 +87,10 @@ struct TimeZoneCoordinates {
             "America/Hermosillo": (29.0729, -110.9559),
             "America/Merida": (20.9674, -89.5926),
             "America/Bahia_Banderas": (20.8085, -105.2542),
+            "America/Ciudad_Juarez": (31.7619, -106.4850),
+            "America/Matamoros": (25.8690, -97.5027),
+            "America/Ojinaga": (29.5671, -104.4163),
+            "America/Santa_Isabel": (31.6904, -106.4245),  // Alternative for Tijuana
             "America/Guatemala": (14.6349, -90.5069),
             "America/Belize": (17.5046, -88.1962),
             "America/El_Salvador": (13.6929, -89.2182),
@@ -70,6 +113,25 @@ struct TimeZoneCoordinates {
             "America/Guadeloupe": (16.2650, -61.5510),
             "America/Aruba": (12.5211, -69.9683),
             "America/Curacao": (12.1696, -68.9900),
+            "America/Anguilla": (18.2206, -63.0686),
+            "America/Antigua": (17.0608, -61.7964),
+            "America/Cayman": (19.3133, -81.2546),
+            "America/Dominica": (15.4150, -61.3710),
+            "America/Kralendijk": (12.1443, -68.2655),  // Bonaire
+            "America/Lower_Princes": (18.0514, -63.0479),  // Sint Maarten
+            "America/Marigot": (18.0731, -63.0822),  // Saint Martin
+            "America/Miquelon": (46.8852, -56.3159),
+            "America/Montserrat": (16.7425, -62.1874),
+            "America/Port_of_Spain": (10.6603, -61.5086),
+            "America/St_Barthelemy": (17.9000, -62.8333),
+            "America/St_Kitts": (17.3578, -62.7830),
+            "America/St_Lucia": (13.9094, -60.9789),
+            "America/St_Thomas": (18.3381, -64.8941),
+            "America/St_Vincent": (13.2528, -61.1971),
+            "America/Tortola": (18.4286, -64.6185),
+            "America/Danmarkshavn": (76.7672, -18.6675),  // Greenland
+            "America/Scoresbysund": (70.4850, -21.9625),  // Greenland
+            "America/Thule": (76.5664, -68.7039),  // Greenland
             
             // Americas - South America
             "America/Sao_Paulo": (-23.5505, -46.6333),
@@ -102,6 +164,18 @@ struct TimeZoneCoordinates {
             "America/Argentina/Cordoba": (-31.4201, -64.1888),
             "America/Argentina/Mendoza": (-32.8895, -68.8458),
             "America/Argentina/Ushuaia": (-54.8019, -68.3029),
+            "America/Argentina/Catamarca": (-28.4696, -65.7852),
+            "America/Argentina/Jujuy": (-24.1858, -65.2995),
+            "America/Argentina/La_Rioja": (-29.4135, -66.8559),
+            "America/Argentina/Rio_Gallegos": (-51.6226, -69.2181),
+            "America/Argentina/Salta": (-24.7821, -65.4232),
+            "America/Argentina/San_Juan": (-31.5351, -68.5386),
+            "America/Argentina/San_Luis": (-33.3017, -66.3378),
+            "America/Argentina/Tucuman": (-26.8241, -65.2226),
+            "America/Araguaina": (-7.1911, -48.2074),
+            "America/Coyhaique": (-45.5752, -72.0662),  // Chile
+            "America/Eirunepe": (-6.6608, -69.8739),
+            "America/Punta_Arenas": (-53.1638, -70.9171),
             
             // Europe
             "Europe/London": (51.5074, -0.1278),
@@ -162,6 +236,13 @@ struct TimeZoneCoordinates {
             "Europe/Uzhgorod": (48.6208, 22.2879),
             "Europe/Mariehamn": (60.0969, 19.9348),
             "Europe/Gibraltar": (36.1408, -5.3536),
+            "Europe/Astrakhan": (46.3497, 48.0408),
+            "Europe/Busingen": (47.6969, 8.6894),
+            "Europe/Kirov": (58.6035, 49.6679),
+            "Europe/Kyiv": (50.4501, 30.5234),  // Same as Kiev
+            "Europe/Saratov": (51.5339, 46.0342),
+            "Europe/Tirane": (41.3275, 19.8187),  // Same as Tirana
+            "Europe/Ulyanovsk": (54.3181, 48.3837),
             
             // Asia - Middle East
             "Asia/Dubai": (25.2048, 55.2708),
@@ -184,6 +265,11 @@ struct TimeZoneCoordinates {
             "Asia/Yerevan": (40.1792, 44.4991),
             "Asia/Tbilisi": (41.7151, 44.8271),
             "Asia/Baku": (40.4093, 49.8671),
+            "Asia/Famagusta": (35.1264, 33.9390),  // Cyprus
+            "Asia/Gaza": (31.5017, 34.4668),
+            "Asia/Hebron": (31.5326, 35.0998),
+            "Asia/Atyrau": (47.1167, 51.8833),  // Kazakhstan
+            "Asia/Qostanay": (53.2144, 63.6246),  // Kazakhstan
             
             // Asia - South Asia
             "Asia/Karachi": (24.8607, 67.0011),
@@ -199,6 +285,7 @@ struct TimeZoneCoordinates {
             "Asia/Dhaka": (23.8103, 90.4125),
             "Asia/Colombo": (6.9271, 79.8612),
             "Asia/Kathmandu": (27.7172, 85.3240),
+            "Asia/Katmandu": (27.7172, 85.3240),  // Alternative spelling
             "Asia/Thimphu": (27.4728, 89.6393),
             "Asia/Kabul": (34.5553, 69.2075),
             
@@ -271,6 +358,7 @@ struct TimeZoneCoordinates {
             "Asia/Srednekolymsk": (67.4645, 153.7075),
             "Asia/Kamchatka": (53.0167, 158.6500),
             "Asia/Anadyr": (64.7334, 177.4968),
+            "Asia/Tomsk": (56.5010, 84.9744),
             
             // Africa - North Africa
             "Africa/Cairo": (30.0444, 31.2357),
@@ -335,6 +423,11 @@ struct TimeZoneCoordinates {
             "Africa/Maseru": (-29.3167, 27.4833),
             "Africa/Mbabane": (-26.3054, 31.1367),
             "Africa/Lilongwe": (-13.9626, 33.7741),
+            "Africa/Blantyre": (-15.7667, 35.0168),
+            "Africa/Ceuta": (35.8894, -5.3213),
+            "Africa/Lome": (6.1375, 1.2123),
+            "Africa/Lubumbashi": (-11.6640, 27.4791),
+            "Africa/Porto-Novo": (6.4969, 2.6289),
             
             // Indian Ocean Islands
             "Indian/Antananarivo": (-18.8792, 47.5079),
@@ -345,6 +438,9 @@ struct TimeZoneCoordinates {
             "Indian/Mahe": (-4.6827, 55.4920),
             "Indian/Maldives": (3.2028, 73.2207),
             "Indian/Chagos": (-6.3434, 71.8765),
+            "Indian/Christmas": (-10.4475, 105.6904),
+            "Indian/Cocos": (-12.1642, 96.8709),
+            "Indian/Kerguelen": (-49.3527, 70.2172),
             
             // Oceania - Australia & New Zealand
             "Australia/Sydney": (-33.8688, 151.2093),
@@ -399,6 +495,12 @@ struct TimeZoneCoordinates {
             "Pacific/Fakaofo": (-9.3651, -171.2468),
             "Pacific/Johnston": (16.7295, -169.5332),
             "Pacific/Wallis": (-13.3000, -176.1667),
+            "Pacific/Bougainville": (-6.2321, 155.5658),
+            "Pacific/Galapagos": (-0.7402, -90.3126),
+            "Pacific/Kanton": (-2.8170, -171.7200),
+            "Pacific/Kwajalein": (9.1940, 167.4660),
+            "Pacific/Ponape": (6.9248, 158.2109),  // Alternative for Pohnpei
+            "Pacific/Truk": (7.4464, 151.7837),  // Alternative for Chuuk
             
             // Atlantic Islands
             "Atlantic/Bermuda": (32.3078, -64.7505),
@@ -411,6 +513,9 @@ struct TimeZoneCoordinates {
             "Atlantic/St_Helena": (-15.9387, -5.7168),
             "Atlantic/Faroe": (62.0079, -6.7906),
             "Atlantic/Reykjavik": (64.1466, -21.9426),
+            
+            // Arctic
+            "Arctic/Longyearbyen": (78.2232, 15.6267),  // Svalbard
             
             // Antarctica
             "Antarctica/McMurdo": (-77.8500, 166.6667),

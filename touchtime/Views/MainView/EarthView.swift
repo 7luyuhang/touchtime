@@ -318,65 +318,69 @@ struct EarthView: View {
                 MapCompass()
             }
             
-            // Bottom Control Bar
-            HStack(spacing: 0) {
-                
-                // Back to Local Time Button
-                Button(action: {
-                    if hapticEnabled {
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                        impactFeedback.prepare()
-                        impactFeedback.impactOccurred()
-                    }
+            // Bottom Control Bar - Hide when renaming
+            if !showingRenameAlert {
+                HStack(spacing: 0) {
                     
-                    // Navigate to local time location
-                    if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
-                        withAnimation(.smooth()) {
-                            position = MapCameraPosition.region(MKCoordinateRegion(
-                                center: localCoordinate,
-                                span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
-                            ))
+                    // Back to Local Time Button
+                    Button(action: {
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                            impactFeedback.prepare()
+                            impactFeedback.impactOccurred()
                         }
-                    }
-                }) {
-                    Image(systemName: "location.fill")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(width: 52, height: 52)
                         
-                }
-                
-                // Map Mode Toggle Button
-                Button(action: {
-                    if hapticEnabled {
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                        impactFeedback.prepare()
-                        impactFeedback.impactOccurred()
+                        // Navigate to local time location
+                        if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
+                            withAnimation(.smooth()) {
+                                position = MapCameraPosition.region(MKCoordinateRegion(
+                                    center: localCoordinate,
+                                    span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
+                                ))
+                            }
+                        }
+                    }) {
+                        Image(systemName: "location.fill")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(width: 52, height: 52)
+                            
                     }
                     
-                    withAnimation(.smooth()) {
-                        isUsingExploreMode.toggle()
+                    // Map Mode Toggle Button
+                    Button(action: {
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                            impactFeedback.prepare()
+                            impactFeedback.impactOccurred()
+                        }
+                        
+                        withAnimation(.smooth()) {
+                            isUsingExploreMode.toggle()
+                        }
+                    }) {
+                        Image(systemName: isUsingExploreMode ? "view.2d" : "view.3d")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(width: 52, height: 52)
+                            .contentTransition(.symbolEffect(.replace))
                     }
-                }) {
-                    Image(systemName: isUsingExploreMode ? "view.2d" : "view.3d")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(width: 52, height: 52)
-                        .contentTransition(.symbolEffect(.replace))
                 }
+                .clipShape(.capsule)
+                .glassEffect(.regular.interactive())
+                .padding(.bottom, 8)
+                .transition(.blurReplace)
             }
-            .clipShape(.capsule)
-            .glassEffect(.regular.interactive())
-            .padding(.bottom, 8)
         }
+            // Title
             .navigationTitle("Touch Time")
             .navigationBarTitleDisplayMode(.inline)
             
         .animation(.spring(), value: worldClocks)
         .animation(.smooth(), value: isUsingExploreMode)
+        .animation(.spring(), value: showingRenameAlert)
             
         .task {
-            // 立即更新时间，避免显示缓存的时间
             currentDate = Date()
             startTimer()
         }

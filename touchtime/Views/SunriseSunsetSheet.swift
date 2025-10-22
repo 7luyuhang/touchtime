@@ -15,7 +15,10 @@ struct SunriseSunsetSheet: View {
     let timeZoneIdentifier: String
     let initialDate: Date
     let timeOffset: TimeInterval
+    
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("showSkyDot") private var showSkyDot = true
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
     
@@ -23,7 +26,7 @@ struct SunriseSunsetSheet: View {
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Calculate sunrise and sunset times
-    private var sunTimes: (sunrise: Date?, sunset: Date?)? {
+    private var sunTimes: (sunrise: Date?, sunset: Date?, solarNoon: Date?)? {
         // Get coordinates for the timezone
         guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
             return nil
@@ -40,8 +43,9 @@ struct SunriseSunsetSheet: View {
         // Get sunrise and sunset times as properties
         let sunrise = sun.sunrise
         let sunset = sun.sunset
+        let solarNoon = sun.solarNoon
         
-        return (sunrise, sunset)
+        return (sunrise, sunset, solarNoon)
     }
     
     // Map timezone identifiers to coordinates using shared utility
@@ -86,11 +90,13 @@ struct SunriseSunsetSheet: View {
                         VStack(alignment: .leading){
                             
                             Text("Solar Time")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
+                                .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
                                 .padding(.horizontal, 32)
-                                .padding(.vertical, 4)
+                                .padding(.bottom, 4)
+                                .padding(.top, 8)
+                            
                             
                             HStack(spacing: 8) {
                                 // Sunrise Section
@@ -139,6 +145,33 @@ struct SunriseSunsetSheet: View {
                             .padding(.horizontal, 16)
                             
                             
+                            // Solar Noon Section
+                            HStack {
+                                HStack(spacing: 16){
+                                    Image(systemName: "sun.max.fill")
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .frame(width: 24)
+                                    
+                                    Text("Solar Noon")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                }
+                                Spacer()
+                                
+                                Text(formatTime(times.solarNoon))
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText(countsDown: false))
+                                    .animation(.spring(), value: times.solarNoon)
+                            }
+                            .padding(16)
+                            .background(.white.opacity(0.05))
+                            .blendMode(.plusLighter)
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            .padding(.horizontal, 16)
+                            
                             
                             // Daylight Duration Section
                             HStack {
@@ -150,6 +183,9 @@ struct SunriseSunsetSheet: View {
                                         .frame(width: 24)
                                     
                                     Text("Daylight")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
                                 }
                                 Spacer()
                                 
@@ -163,6 +199,8 @@ struct SunriseSunsetSheet: View {
                             .blendMode(.plusLighter)
                             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                             .padding(.horizontal, 16)
+                            
+                            
                         }
                         
                         
@@ -177,7 +215,7 @@ struct SunriseSunsetSheet: View {
                 }
             }
             .scrollIndicators(.hidden)
-            .navigationTitle("Details")
+            .navigationTitle(cityName)
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 currentDate = initialDate
@@ -188,9 +226,17 @@ struct SunriseSunsetSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
                         dismiss()
                     }) {
                         Image(systemName: "xmark")
+                    }
+                }
+                if showSkyDot {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        SkyDotView(date: currentDate.addingTimeInterval(timeOffset), timeZoneIdentifier: timeZoneIdentifier)
                     }
                 }
             }
