@@ -202,6 +202,7 @@ struct EarthView: View {
                                             }())
                                             .font(.caption)
                                             .fontWeight(.bold)
+                                            .fontDesign(.rounded)
                                             .foregroundStyle(.white)
                                             .monospacedDigit()
                                             .contentTransition(.numericText())
@@ -214,6 +215,7 @@ struct EarthView: View {
 
                                     }
                                     .animation(.spring(), value: showSkyDot)
+                                    
                                     // Overall Paddings
                                     .padding(.leading, showSkyDot ? 4 : 8)
                                     .padding(.trailing, 8)
@@ -296,6 +298,7 @@ struct EarthView: View {
                                         }())
                                         .font(.caption)
                                         .fontWeight(.bold)
+                                        .fontDesign(.rounded)
                                         .foregroundColor(.white)
                                         .monospacedDigit()
                                         .contentTransition(.numericText())

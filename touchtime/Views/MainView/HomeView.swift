@@ -174,346 +174,346 @@ struct HomeView: View {
                         // Local Time Section
                         if showLocalTime {
                             Section {
-                            VStack(alignment: .leading, spacing: 4) {
-                                // Top row: "Local" label and Date
-                                HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // Top row: "Local" label and Date
+                                    HStack {
                                         Image(systemName: "location.fill")
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
-
-                                    Spacer()
+                                        
+                                        Spacer()
+                                        
+                                        Text({
+                                            let formatter = DateFormatter()
+                                            formatter.timeZone = TimeZone.current
+                                            formatter.locale = Locale(identifier: "en_US_POSIX")
+                                            formatter.dateStyle = .medium
+                                            formatter.timeStyle = .none
+                                            let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                            return formatter.string(from: adjustedDate)
+                                        }())
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .contentTransition(.numericText())
+                                        .blendMode(.plusLighter)
+                                    }
                                     
-                                    Text({
-                                        let formatter = DateFormatter()
-                                        formatter.timeZone = TimeZone.current
-                                        formatter.locale = Locale(identifier: "en_US_POSIX")
-                                        formatter.dateStyle = .medium
-                                        formatter.timeStyle = .none
-                                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                        return formatter.string(from: adjustedDate)
-                                    }())
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .contentTransition(.numericText())
-                                    .blendMode(.plusLighter)
-                                }
-                                
-                                // Bottom row: Location and Time (baseline aligned)
-                                HStack(alignment: .lastTextBaseline) {
-                                    
+                                    // Bottom row: Location and Time (baseline aligned)
+                                    HStack(alignment: .lastTextBaseline) {
+                                        
                                         Text(customLocalName.isEmpty ? localCityName : customLocalName)
                                             .font(.headline)
                                             .lineLimit(1)
                                             .truncationMode(.tail)
                                             .contentTransition(.numericText())
-                                    
-                                    
-                                    Spacer()
-                                    
-                                    HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                        Text({
-                                            let formatter = DateFormatter()
-                                            formatter.timeZone = TimeZone.current
-                                            formatter.locale = Locale(identifier: "en_US_POSIX")
-                                            if use24HourFormat {
-                                                formatter.dateFormat = "HH:mm"
-                                            } else {
-                                                formatter.dateFormat = "h:mm"
-                                            }
-                                            let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                            return formatter.string(from: adjustedDate)
-                                        }())
-                                        .font(.system(size: 36))
-                                        .fontWeight(.light)
-                                        .fontDesign(.rounded)
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
                                         
-                                        if !use24HourFormat {
+                                        
+                                        Spacer()
+                                        
+                                        HStack(alignment: .lastTextBaseline, spacing: 2) {
                                             Text({
                                                 let formatter = DateFormatter()
                                                 formatter.timeZone = TimeZone.current
                                                 formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                formatter.dateFormat = "a"
-                                                formatter.amSymbol = "am"
-                                                formatter.pmSymbol = "pm"
+                                                if use24HourFormat {
+                                                    formatter.dateFormat = "HH:mm"
+                                                } else {
+                                                    formatter.dateFormat = "h:mm"
+                                                }
                                                 let adjustedDate = currentDate.addingTimeInterval(timeOffset)
                                                 return formatter.string(from: adjustedDate)
                                             }())
-                                            .font(.headline)
+                                            .font(.system(size: 36))
+                                            .fontWeight(.light)
+                                            .fontDesign(.rounded)
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
+                                            
+                                            if !use24HourFormat {
+                                                Text({
+                                                    let formatter = DateFormatter()
+                                                    formatter.timeZone = TimeZone.current
+                                                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                    formatter.dateFormat = "a"
+                                                    formatter.amSymbol = "am"
+                                                    formatter.pmSymbol = "pm"
+                                                    let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                                    return formatter.string(from: adjustedDate)
+                                                }())
+                                                .font(.headline)
+                                            }
                                         }
                                     }
-                                }
-                                .padding(.bottom, -4)
-                                
-                                // Available Time Display with Progress Indicator
-                                // Only show if enabled AND at least one weekday is selected
-                                if availableTimeEnabled && !availableWeekdays.isEmpty {
+                                    .padding(.bottom, -4)
+                                    
+                                    // Available Time Display with Progress Indicator
+                                    // Only show if enabled AND at least one weekday is selected
+                                    if availableTimeEnabled && !availableWeekdays.isEmpty {
                                         
-                                    AvailableTimeIndicator(
-                                        currentDate: currentDate,
-                                        timeOffset: timeOffset,
-                                        availableStartTime: availableStartTime,
-                                        availableEndTime: availableEndTime,
-                                        use24HourFormat: use24HourFormat,
-                                        availableWeekdays: availableWeekdays
-                                    )
+                                        AvailableTimeIndicator(
+                                            currentDate: currentDate,
+                                            timeOffset: timeOffset,
+                                            availableStartTime: availableStartTime,
+                                            availableEndTime: availableEndTime,
+                                            use24HourFormat: use24HourFormat,
+                                            availableWeekdays: availableWeekdays
+                                        )
+                                    }
                                 }
-                            }
-                            // Make entire row tappable
-                            .contentShape(Rectangle())
-                            // Sky Background
-                            .listRowBackground(
-                                showSkyDot ? SkyBackgroundView(
-                                    date: currentDate.addingTimeInterval(timeOffset),
-                                    timeZoneIdentifier: TimeZone.current.identifier
-                                ) : nil
-                            )
-                            .id("local-\(showSkyDot)")
+                                // Make entire row tappable
+                                .contentShape(Rectangle())
+                                // Sky Background
+                                .listRowBackground(
+                                    showSkyDot ? SkyBackgroundView(
+                                        date: currentDate.addingTimeInterval(timeOffset),
+                                        timeZoneIdentifier: TimeZone.current.identifier
+                                    ) : nil
+                                )
+                                .id("local-\(showSkyDot)")
                                 
                                 
-                            // Tap gesture for local time
-                            .onTapGesture {
-                                selectedTimeZone = TimeZone.current.identifier
-                                selectedCityName = customLocalName.isEmpty ? localCityName : customLocalName
-                                showSunriseSunsetSheet = true
-                                
-                                // Provide haptic feedback if enabled
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
-                            }
-                                
-                            // Menu Local Time
-                            .contextMenu {
-                                Button(action: {
-                                    let cityName = customLocalName.isEmpty ? localCityName : customLocalName
-                                    addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
-                                }) {
-                                    Label("Schedule Event", systemImage: "calendar.badge.plus")
+                                // Tap gesture for local time
+                                .onTapGesture {
+                                    selectedTimeZone = TimeZone.current.identifier
+                                    selectedCityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                    showSunriseSunsetSheet = true
+                                    
+                                    // Provide haptic feedback if enabled
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.prepare()
+                                        impactFeedback.impactOccurred()
+                                    }
                                 }
                                 
-                                Divider()
-                                
-                                Button(action: {
-                                    let cityName = customLocalName.isEmpty ? localCityName : customLocalName
-                                    copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
-                                }) {
-                                    Label("Copy as Text", systemImage: "quote.opening")
-                                }
-                                
-                                Button(action: {
-                                    renamingLocalTime = true
-                                    originalClockName = localCityName
-                                    newClockName = customLocalName.isEmpty ? localCityName : customLocalName
-                                    showingRenameAlert = true
-                                }) {
-                                    Label("Rename", systemImage: "pencil.tip.crop.circle")
+                                // Menu Local Time
+                                .contextMenu {
+                                    Button(action: {
+                                        let cityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                        addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
+                                    }) {
+                                        Label("Schedule Event", systemImage: "calendar.badge.plus")
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    Button(action: {
+                                        let cityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                        copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
+                                    }) {
+                                        Label("Copy as Text", systemImage: "quote.opening")
+                                    }
+                                    
+                                    Button(action: {
+                                        renamingLocalTime = true
+                                        originalClockName = localCityName
+                                        newClockName = customLocalName.isEmpty ? localCityName : customLocalName
+                                        showingRenameAlert = true
+                                    }) {
+                                        Label("Rename", systemImage: "pencil.tip.crop.circle")
+                                    }
                                 }
                             }
                         }
-                    }
-                    
-                    ForEach(worldClocks) { clock in
-                        Section {
-                            VStack(alignment: .leading, spacing: 4) {
-                            // Top row: Time difference and Date
-                            if showTimeDifference && !clock.timeDifference.isEmpty {
-                                HStack {
-                                    if showSkyDot {
-                                        SkyDotView(
-                                            date: currentDate.addingTimeInterval(timeOffset),
-                                            timeZoneIdentifier: clock.timeZoneIdentifier
-                                        )
-                                    }
-                                    
-                                    Text(clock.timeDifference)
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                    
-                                    Spacer()
-                                    
-                                    Text(clock.currentDate(baseDate: currentDate, offset: timeOffset))
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .contentTransition(.numericText())
-                                        .blendMode(.plusLighter)
-                                }
-                            } else {
-                                HStack {
-                                    if showSkyDot {
-                                        SkyDotView(
-                                            date: currentDate.addingTimeInterval(timeOffset),
-                                            timeZoneIdentifier: clock.timeZoneIdentifier
-                                        )
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    Text(clock.currentDate(baseDate: currentDate, offset: timeOffset))
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .contentTransition(.numericText())
-                                }
-                            }
-                            
-                            // Bottom row: City name and Time (baseline aligned)
-                            HStack(alignment: .lastTextBaseline) {
-                                Text(clock.cityName)
-                                    .font(.headline)
-                                    .lineLimit(1)
-                                    .truncationMode(.tail)
-                                    .contentTransition(.numericText())
-                                
-                                Spacer()
-                                
-                                HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                    Text({
-                                        let formatter = DateFormatter()
-                                        formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
-                                        formatter.locale = Locale(identifier: "en_US_POSIX")
-                                        if use24HourFormat {
-                                            formatter.dateFormat = "HH:mm"
-                                        } else {
-                                            formatter.dateFormat = "h:mm"
+                        
+                        ForEach(worldClocks) { clock in
+                            Section {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // Top row: Time difference and Date
+                                    if showTimeDifference && !clock.timeDifference.isEmpty {
+                                        HStack {
+                                            if showSkyDot {
+                                                SkyDotView(
+                                                    date: currentDate.addingTimeInterval(timeOffset),
+                                                    timeZoneIdentifier: clock.timeZoneIdentifier
+                                                )
+                                            }
+                                            
+                                            Text(clock.timeDifference)
+                                                .font(.subheadline)
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                            
+                                            Spacer()
+                                            
+                                            Text(clock.currentDate(baseDate: currentDate, offset: timeOffset))
+                                                .font(.subheadline)
+                                                .foregroundStyle(.secondary)
+                                                .contentTransition(.numericText())
+                                                .blendMode(.plusLighter)
                                         }
-                                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                        return formatter.string(from: adjustedDate)
-                                    }())
-                                    .font(.system(size: 36))
-                                    .fontWeight(.light)
-                                    .fontDesign(.rounded)
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText())
+                                    } else {
+                                        HStack {
+                                            if showSkyDot {
+                                                SkyDotView(
+                                                    date: currentDate.addingTimeInterval(timeOffset),
+                                                    timeZoneIdentifier: clock.timeZoneIdentifier
+                                                )
+                                            }
+                                            
+                                            Spacer()
+                                            
+                                            Text(clock.currentDate(baseDate: currentDate, offset: timeOffset))
+                                                .font(.subheadline)
+                                                .foregroundStyle(.secondary)
+                                                .contentTransition(.numericText())
+                                        }
+                                    }
                                     
-                                    if !use24HourFormat {
-                                        Text({
-                                            let formatter = DateFormatter()
-                                            formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
-                                            formatter.locale = Locale(identifier: "en_US_POSIX")
-                                            formatter.dateFormat = "a"
-                                            formatter.amSymbol = "am"
-                                            formatter.pmSymbol = "pm"
-                                            let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                            return formatter.string(from: adjustedDate)
-                                        }())
-                                        .font(.headline)
+                                    // Bottom row: City name and Time (baseline aligned)
+                                    HStack(alignment: .lastTextBaseline) {
+                                        Text(clock.cityName)
+                                            .font(.headline)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                            .contentTransition(.numericText())
+                                        
+                                        Spacer()
+                                        
+                                        HStack(alignment: .lastTextBaseline, spacing: 2) {
+                                            Text({
+                                                let formatter = DateFormatter()
+                                                formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
+                                                formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                if use24HourFormat {
+                                                    formatter.dateFormat = "HH:mm"
+                                                } else {
+                                                    formatter.dateFormat = "h:mm"
+                                                }
+                                                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                                return formatter.string(from: adjustedDate)
+                                            }())
+                                            .font(.system(size: 36))
+                                            .fontWeight(.light)
+                                            .fontDesign(.rounded)
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
+                                            
+                                            if !use24HourFormat {
+                                                Text({
+                                                    let formatter = DateFormatter()
+                                                    formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
+                                                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                    formatter.dateFormat = "a"
+                                                    formatter.amSymbol = "am"
+                                                    formatter.pmSymbol = "pm"
+                                                    let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                                    return formatter.string(from: adjustedDate)
+                                                }())
+                                                .font(.headline)
+                                            }
+                                        }
+                                    }
+                                    .padding(.bottom, -4)
+                                }
+                                // Make entire row tappable
+                                .contentShape(Rectangle())
+                                // Sky Background
+                                .listRowBackground(
+                                    showSkyDot ? SkyBackgroundView(
+                                        date: currentDate.addingTimeInterval(timeOffset),
+                                        timeZoneIdentifier: clock.timeZoneIdentifier
+                                    ) : nil
+                                )
+                                .id("\(clock.id)-\(showSkyDot)")
+                                
+                                // Tap gesture for world clock
+                                .onTapGesture {
+                                    selectedTimeZone = clock.timeZoneIdentifier
+                                    selectedCityName = clock.cityName
+                                    showSunriseSunsetSheet = true
+                                    
+                                    // Provide haptic feedback if enabled
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.prepare()
+                                        impactFeedback.impactOccurred()
+                                    }
+                                }
+                                
+                                //Swipe to delete time
+                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                    Button(role: .destructive) {
+                                        if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
+                                            worldClocks.remove(at: index)
+                                            saveWorldClocks()
+                                        }
+                                    } label: {
+                                        Label("", systemImage: "xmark.circle")
+                                    }
+                                }
+                                
+                                // Context Menu
+                                .contextMenu {
+                                    
+                                    // Schedule event
+                                    Button(action: {
+                                        addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.cityName)
+                                    }) {
+                                        Label("Schedule Event", systemImage: "plus.circle")
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    // Copy as Text
+                                    Button(action: {
+                                        copyTimeAsText(cityName: clock.cityName, timeZoneIdentifier: clock.timeZoneIdentifier)
+                                    }) {
+                                        Label("Copy as Text", systemImage: "quote.opening")
+                                    }
+                                    
+                                    // Rename
+                                    Button(action: {
+                                        renamingLocalTime = false
+                                        renamingClockId = clock.id
+                                        // Get original name from timezone identifier
+                                        let identifier = clock.timeZoneIdentifier
+                                        let components = identifier.split(separator: "/")
+                                        originalClockName = components.count >= 2
+                                        ? String(components.last!).replacingOccurrences(of: "_", with: " ")
+                                        : String(identifier)
+                                        newClockName = clock.cityName
+                                        showingRenameAlert = true
+                                    }) {
+                                        Label("Rename", systemImage: "pencil.tip.crop.circle")
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    // Move to Top
+                                    if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
+                                        Button(action: {
+                                            // Move to top
+                                            withAnimation {
+                                                let clockToMove = worldClocks.remove(at: index)
+                                                worldClocks.insert(clockToMove, at: 0)
+                                                saveWorldClocks()
+                                            }
+                                        }) {
+                                            Label("Move to Top", systemImage: "arrow.up.to.line")
+                                        }
+                                    }
+                                    
+                                    Divider()
+                                    
+                                    Button(role: .destructive, action: {
+                                        // Delete
+                                        if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
+                                            withAnimation {
+                                                worldClocks.remove(at: index)
+                                                saveWorldClocks()
+                                            }
+                                        }
+                                    }) {
+                                        Label("Delete", systemImage: "xmark.circle")
                                     }
                                 }
                             }
-                            .padding(.bottom, -4)
-                        }
-                        // Make entire row tappable
-                        .contentShape(Rectangle())
-                        // Sky Background
-                        .listRowBackground(
-                            showSkyDot ? SkyBackgroundView(
-                                date: currentDate.addingTimeInterval(timeOffset),
-                                timeZoneIdentifier: clock.timeZoneIdentifier
-                            ) : nil
-                        )
-                        .id("\(clock.id)-\(showSkyDot)")
-                        
-                        // Tap gesture for world clock
-                        .onTapGesture {
-                            selectedTimeZone = clock.timeZoneIdentifier
-                            selectedCityName = clock.cityName
-                            showSunriseSunsetSheet = true
-                            
-                            // Provide haptic feedback if enabled
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
                         }
                         
-                        //Swipe to delete time
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                    worldClocks.remove(at: index)
-                                    saveWorldClocks()
-                                }
-                            } label: {
-                                Label("", systemImage: "xmark.circle")
-                            }
-                        }
-                        
-                        // Context Menu
-                        .contextMenu {
-                            
-                            // Schedule event
-                            Button(action: {
-                                addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.cityName)
-                            }) {
-                                Label("Schedule Event", systemImage: "plus.circle")
-                            }
-                            
-                            Divider()
-
-                            // Copy as Text
-                            Button(action: {
-                                copyTimeAsText(cityName: clock.cityName, timeZoneIdentifier: clock.timeZoneIdentifier)
-                            }) {
-                                Label("Copy as Text", systemImage: "quote.opening")
-                            }
-                            
-                            // Rename
-                            Button(action: {
-                                renamingLocalTime = false
-                                renamingClockId = clock.id
-                                // Get original name from timezone identifier
-                                let identifier = clock.timeZoneIdentifier
-                                let components = identifier.split(separator: "/")
-                                originalClockName = components.count >= 2 
-                                    ? String(components.last!).replacingOccurrences(of: "_", with: " ")
-                                    : String(identifier)
-                                newClockName = clock.cityName
-                                showingRenameAlert = true
-                            }) {
-                                Label("Rename", systemImage: "pencil.tip.crop.circle")
-                            }
-                            
-                            Divider()
-                            
-                            // Move to Top
-                            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
-                                Button(action: {
-                                    // Move to top
-                                    withAnimation {
-                                        let clockToMove = worldClocks.remove(at: index)
-                                        worldClocks.insert(clockToMove, at: 0)
-                                        saveWorldClocks()
-                                    }
-                                }) {
-                                    Label("Move to Top", systemImage: "arrow.up.to.line")
-                                }
-                            }
-                            
-                            Divider()
-
-                            Button(role: .destructive, action: {
-                                // Delete
-                                if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                    withAnimation {
-                                        worldClocks.remove(at: index)
-                                        saveWorldClocks()
-                                    }
-                                }
-                            }) {
-                                Label("Delete", systemImage: "xmark.circle")
-                            }
-                        }
-                        }
                     }
-                    
-                    }
-                    .listSectionSpacing(12)
+                    .listSectionSpacing(12) // List Paddings
                     .scrollIndicators(.hidden)
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
@@ -541,7 +541,7 @@ struct HomeView: View {
                                 date: currentDate.addingTimeInterval(timeOffset),
                                 timeZoneIdentifier: TimeZone.current.identifier
                             )
-                            .frame(height: 500)
+                            .frame(width: 500, height: 500)
                             .blur(radius: 50)
                             .offset(y: -250)
                             .opacity(0.35)
@@ -597,7 +597,7 @@ struct HomeView: View {
                     }
                 }
             }
-
+            
             .onReceive(timer) { _ in
                 currentDate = Date()
             }

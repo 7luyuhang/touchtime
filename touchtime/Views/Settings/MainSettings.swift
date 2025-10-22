@@ -397,7 +397,7 @@ struct SettingsView: View {
                 // Others
                 Section(header: Text("Others")) {
                     Button(action: {
-                        if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=TouchTime%20Feedback") {
+                        if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=Touch%20Time%20Feedback") {
                             UIApplication.shared.open(url)
                         }
                     }) {
@@ -510,6 +510,9 @@ struct SettingsView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
                         dismiss()
                     }) {
                         Image(systemName: "xmark")
