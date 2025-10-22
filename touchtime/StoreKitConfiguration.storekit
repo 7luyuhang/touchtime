@@ -1,0 +1,35 @@
+{
+  "identifier" : "BB670B13",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "6753721488",
+      "localizations" : [
+        {
+          "description" : "Support the development of Touch Time",
+          "displayName" : "Small Tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.time.tip.small",
+      "referenceName" : "Small Tip",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "6753721487",
+    "_developerTeamID" : "YourTeamID",
+    "_lastSynchronizedDate" : 746265600
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

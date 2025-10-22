@@ -7,11 +7,13 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */; };
 		5AFDCE0E2EA3E2CC0002AC94 /* SunKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AFDCE0D2EA3E2CC0002AC94 /* SunKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		5A42D3782E82CDCE0048963E /* touchtime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = touchtime.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -28,6 +30,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5AFDCE0E2EA3E2CC0002AC94 /* SunKit in Frameworks */,
+				5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -38,6 +41,7 @@
 			isa = PBXGroup;
 			children = (
 				5A42D37A2E82CDCE0048963E /* touchtime */,
+				5AEB89DD2EA8FA7A0089C60A /* Frameworks */,
 				5A42D3792E82CDCE0048963E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -48,6 +52,14 @@
 				5A42D3782E82CDCE0048963E /* touchtime.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		5AEB89DD2EA8FA7A0089C60A /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */,
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
