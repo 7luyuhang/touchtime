@@ -31,9 +31,6 @@ struct SettingsView: View {
     @State private var hasCalendarPermission = false
     @Environment(\.dismiss) private var dismiss
     
-    // IAP Manager for tips
-    @StateObject private var iapManager = IAPManager()
-    
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -399,84 +396,7 @@ struct SettingsView: View {
                 }
                 
                 // Support Section - Tip Jar
-                Section(header: Text("Support"), footer: Text("Your support helps keep Touch Time updated with new features.")) {
-                    if iapManager.purchaseState == .loading {
-                        HStack {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                            Text("Loading tip options...")
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.vertical, 8)
-                    } else if let product = iapManager.products.first {
-                        Button(action: {
-                            Task {
-                                await iapManager.purchase(product)
-                            }
-                        }) {
-                            HStack {
-                                HStack(spacing: 12) {
-                                    SystemIconImage(systemName: "heart.fill", topColor: .pink, bottomColor: .red)
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text("Small Tip")
-                                            .font(.body)
-                                        if iapManager.hasCompletedPurchase {
-                                            Text("Thank you for your support!")
-                                                .font(.caption)
-                                                .foregroundStyle(.secondary)
-                                        }
-                                    }
-                                }
-                                
-                                Spacer()
-                                
-                                if iapManager.purchaseState == .purchasing {
-                                    ProgressView()
-                                        .scaleEffect(0.8)
-                                } else {
-                                    Text(iapManager.formattedPrice(for: product))
-                                        .foregroundStyle(.blue)
-                                        .fontWeight(.medium)
-                                }
-                            }
-                        }
-                        .disabled(iapManager.purchaseState == .purchasing)
-                        .foregroundStyle(.primary)
-                        
-                        // Show success/error message
-                        if case .success(let message) = iapManager.purchaseState {
-                            HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(.green)
-                                Text(message)
-                                    .font(.subheadline)
-                            }
-                            .transition(.scale.combined(with: .opacity))
-                        } else if case .failed(let error) = iapManager.purchaseState {
-                            HStack {
-                                Image(systemName: "exclamationmark.circle.fill")
-                                    .foregroundStyle(.red)
-                                Text(error)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .transition(.scale.combined(with: .opacity))
-                        }
-                    } else {
-                        // No products available or error loading
-                        Button(action: {
-                            Task {
-                                await iapManager.fetchProducts()
-                            }
-                        }) {
-                            HStack {
-                                SystemIconImage(systemName: "arrow.clockwise", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                                Text("Reload tip options")
-                            }
-                        }
-                        .foregroundStyle(.primary)
-                    }
-                }
+                TipJarSection()
                 
                 // Others
                 Section(header: Text("Others")) {

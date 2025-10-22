@@ -16,7 +16,11 @@ class IAPManager: ObservableObject {
     @Published var purchaseState: PurchaseState = .idle
     @Published var hasCompletedPurchase = false
     
-    private let productID = "com.time.tip.small"
+    private let productIDs = [
+        "com.time.tip.small",
+        "com.time.tip.medium",
+        "com.time.tip.large"
+    ]
     private var updateListenerTask: Task<Void, Never>? = nil
     
     enum PurchaseState: Equatable {
@@ -46,8 +50,8 @@ class IAPManager: ObservableObject {
     func fetchProducts() async {
         purchaseState = .loading
         do {
-            let products = try await Product.products(for: [productID])
-            self.products = products
+            let products = try await Product.products(for: productIDs)
+            self.products = products.sorted { $0.price < $1.price }
             purchaseState = .idle
         } catch {
             print("Failed to fetch products: \(error)")
@@ -136,7 +140,7 @@ class IAPManager: ObservableObject {
         for await result in Transaction.currentEntitlements {
             do {
                 let transaction = try checkVerified(result)
-                if transaction.productID == productID {
+                if productIDs.contains(transaction.productID) {
                     hasActivePurchase = true
                 }
             } catch {
