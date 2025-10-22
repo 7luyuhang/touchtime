@@ -26,6 +26,7 @@ struct SettingsView: View {
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
+    @State private var showSupportLove = false
     @State private var eventStore = EKEventStore()
     @State private var availableCalendars: [EKCalendar] = []
     @State private var hasCalendarPermission = false
@@ -104,7 +105,7 @@ struct SettingsView: View {
                 if granted {
                     self.availableCalendars = self.eventStore.calendars(for: .event)
                         .filter { $0.allowsContentModifications }
-                        .sorted { 
+                        .sorted {
                             // Sort by source title first, then by calendar title
                             if $0.source.title == $1.source.title {
                                 return $0.title < $1.title
@@ -158,28 +159,28 @@ struct SettingsView: View {
                 // Available Time Section - only show when System Time is enabled
                 if showLocalTime {
                     NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
-                            HStack(spacing: 12) {
-                                SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
-                                Text("Available Time")
-                            }
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
+                            Text("Available Time")
+                        }
                     }
                 }
- 
+                
                 // Display Section
                 Section("Display") {
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
-
+                        
                         VStack(alignment: .leading, spacing: 4) {
                             // Top row: Time difference and Date
                             HStack {
                                 if showSkyDot {
-                                        SkyDotView(
-                                            date: currentDate,
-                                            timeZoneIdentifier: TimeZone.current.identifier
-                                            
-                                        )
-                                        .transition(.blurReplace)
+                                    SkyDotView(
+                                        date: currentDate,
+                                        timeZoneIdentifier: TimeZone.current.identifier
+                                        
+                                    )
+                                    .transition(.blurReplace)
                                 }
                                 
                                 
@@ -231,7 +232,7 @@ struct SettingsView: View {
                         .padding()
                         .padding(.bottom, -8)
                         .background(
-                            showSkyDot ? 
+                            showSkyDot ?
                             ZStack {
                                 Color.black
                                 SkyBackgroundView(
@@ -349,7 +350,7 @@ struct SettingsView: View {
                                 }
                                 Spacer()
                                 Text(getCityCountText())
-                                .foregroundStyle(.secondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     } else {
@@ -364,15 +365,15 @@ struct SettingsView: View {
                                 UIApplication.shared.open(url)
                             }
                         }) {
-                                HStack(spacing: 12) {
-                                    SystemIconImage(systemName: "gear", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                                    Text("Go to Settings")
-                                }
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "gear", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                                Text("Go to Settings")
+                            }
                         }
                         .foregroundStyle(.primary)
                     }
                 }
-     
+                
                 // Reset Section
                 Section{
                     Button(action: {
@@ -395,11 +396,22 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Support Section - Tip Jar
-                TipJarSection()
+                
+                // Support & Love
+                Button(action: {
+                    showSupportLove = true
+                }) {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "heart.fill", topColor: .red, bottomColor: .pink)
+                        Text("Support & Love")
+                    }
+                }
+                .foregroundStyle(.primary)
+                
                 
                 // Others
                 Section(header: Text("Others")) {
+                    
                     Button(action: {
                         if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=Touch%20Time%20Feedback") {
                             UIApplication.shared.open(url)
@@ -451,52 +463,52 @@ struct SettingsView: View {
                 
                 Section(footer:
                             HStack(spacing: 4) {
-                                Text("Designed & built by")
-                                    .foregroundColor(.secondary)
-                                    .font(.footnote)
-                                
-                                Menu {
-                                    Link(destination: URL(string: "https://luyuhang.net")!) {
-                                        Text("Website")
-                                    }
-                                    
-                                    Link(destination: URL(string: "https://www.instagram.com/7ahang/")!) {
-                                        Text("Instagram")
-                                    }
-                                    
-                                    Link(destination: URL(string: "https://x.com/7luyuhang")!) {
-                                        Text("X")
-                                    }
-                                    
-                                    Section("More apps from team") {
-                                        Link(destination: URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720")!) {
-                                                Text("Hands Time - Minimalist Widget")
-                                        }
-                                    }
-                                } label: {
-                                    Text("yuhang")
-                                        .font(.footnote)
-                                        .fontWeight(.semibold)
-                                }
-                                .buttonStyle(.plain)
-                                
-                                Text("in London.")
-                                    .foregroundColor(.secondary)
-                                    .font(.footnote)
+                    Text("Designed & built by")
+                        .foregroundColor(.secondary)
+                        .font(.footnote)
+                    
+                    Menu {
+                        Link(destination: URL(string: "https://luyuhang.net")!) {
+                            Text("Website")
+                        }
+                        
+                        Link(destination: URL(string: "https://www.instagram.com/7ahang/")!) {
+                            Text("Instagram")
+                        }
+                        
+                        Link(destination: URL(string: "https://x.com/7luyuhang")!) {
+                            Text("X")
+                        }
+                        
+                        Section("More apps from team") {
+                            Link(destination: URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720")!) {
+                                Text("Hands Time - Minimalist Widget")
                             }
-                            .foregroundStyle(.primary)
-                        ) {
+                        }
+                    } label: {
+                        Text("yuhang")
+                            .font(.footnote)
+                            .fontWeight(.semibold)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text("in London.")
+                        .foregroundColor(.secondary)
+                        .font(.footnote)
+                }
+                    .foregroundStyle(.primary)
+                ) {
                     
                     // App Info Section
                     Text("Copyright © \(String(Calendar.current.component(.year, from: Date()))) Negative Time Limited. \nAll rights reserved.") // "\n" 换行
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundStyle(.secondary)
- 
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.secondary)
+                    
                     // Credits
                     NavigationLink(destination: CreditsView()) {
-                            Text("Credits")
-                        }
+                        Text("Credits")
+                    }
                     // Version
                     HStack {
                         Text("Version")
@@ -529,6 +541,27 @@ struct SettingsView: View {
             }
             .onAppear {
                 loadCalendars()
+            }
+            
+            // Support & Love
+            .fullScreenCover(isPresented: $showSupportLove) {
+                NavigationStack {
+                    TipJarView()
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button(action: {
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                    showSupportLove = false
+                                }) {
+                                    Image(systemName: "xmark")
+                                        .fontWeight(.semibold)
+                                }
+                            }
+                        }
+                }
             }
         }
     }
