@@ -17,7 +17,7 @@
       ],
       "productID" : "com.time.tip.small",
       "referenceName" : "Small Tip",
-      "type" : "NonConsumable"
+      "type" : "Consumable"
     },
     {
       "displayPrice" : "3.99",
@@ -32,7 +32,7 @@
       ],
       "productID" : "com.time.tip.medium",
       "referenceName" : "Medium Tip",
-      "type" : "NonConsumable"
+      "type" : "Consumable"
     },
     {
       "displayPrice" : "9.99",
@@ -47,12 +47,12 @@
       ],
       "productID" : "com.time.tip.large",
       "referenceName" : "Large Tip",
-      "type" : "NonConsumable"
+      "type" : "Consumable"
     }
   ],
   "settings" : {
     "_applicationInternalID" : "6753721487",
-    "_developerTeamID" : "YourTeamID",
+    "_developerTeamID" : "N2D432683S",
     "_lastSynchronizedDate" : 746265600
   },
   "subscriptionGroups" : [

@@ -9,6 +9,36 @@ import SwiftUI
 import StoreKit
 import UIKit
 
+// Circular Icon for Tip Jar
+struct CircularTipIcon: View {
+    let systemName: String
+    let topColor: Color
+    let bottomColor: Color
+    
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            topColor,
+                            bottomColor
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 28, height: 28)
+                .glassEffect(.clear, in: Circle())
+                
+            Image(systemName: systemName)
+                .font(.system(size: 15))
+                .fontWeight(.medium)
+                .foregroundStyle(.white)
+        }
+    }
+}
+
 // Main Tip Jar View for navigation
 struct TipJarView: View {
     @StateObject private var iapManager = IAPManager()
@@ -22,6 +52,8 @@ struct TipJarView: View {
             // Black Background
             Color.black
                 .ignoresSafeArea()
+            
+            
             
             // Gradient Background
             if showExpandedFeatures {
@@ -62,8 +94,6 @@ struct TipJarView: View {
                     if iapManager.purchaseState == .loading {
                         HStack {
                             ProgressView()
-                            Text("Loading...")
-                                .foregroundStyle(.secondary)
                         }
                         .padding()
                         .glassEffect(.clear)
@@ -73,10 +103,10 @@ struct TipJarView: View {
                         if let smallTip = iapManager.products.first(where: { $0.id == "com.time.tip.small" }) {
                             HStack {
                                 HStack(spacing: 12) {
-                                    SystemIconImage(
+                                    CircularTipIcon(
                                         systemName: "heart.fill",
                                         topColor: .red,
-                                        bottomColor: .pink
+                                        bottomColor: .yellow
                                     )
                                     Text("Small Tip")
                                         .foregroundStyle(.primary)
@@ -97,7 +127,7 @@ struct TipJarView: View {
                                         }
                                     }) {
                                         Text(iapManager.formattedPrice(for: smallTip))
-                                            .font(.subheadline.weight(.semibold))
+                                            .font(.headline)
                                             .foregroundStyle(.white)
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 8)
@@ -115,7 +145,7 @@ struct TipJarView: View {
                         if let mediumTip = iapManager.products.first(where: { $0.id == "com.time.tip.medium" }) {
                             HStack {
                                 HStack(spacing: 12) {
-                                    SystemIconImage(
+                                    CircularTipIcon(
                                         systemName: "heart.fill",
                                         topColor: .blue,
                                         bottomColor: .cyan
@@ -139,7 +169,7 @@ struct TipJarView: View {
                                         }
                                     }) {
                                         Text(iapManager.formattedPrice(for: mediumTip))
-                                            .font(.subheadline.weight(.semibold))
+                                            .font(.headline)
                                             .foregroundStyle(.white)
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 8)
@@ -158,7 +188,7 @@ struct TipJarView: View {
                             if let largeTip = iapManager.products.first(where: { $0.id == "com.time.tip.large" }) {
                                 HStack {
                                     HStack(spacing: 12) {
-                                        SystemIconImage(
+                                        CircularTipIcon(
                                             systemName: "heart.fill",
                                             topColor: .indigo,
                                             bottomColor: .pink
@@ -182,7 +212,7 @@ struct TipJarView: View {
                                             }
                                         }) {
                                             Text(iapManager.formattedPrice(for: largeTip))
-                                                .font(.subheadline.weight(.semibold))
+                                                .font(.headline)
                                                 .foregroundStyle(.white)
                                                 .padding(.horizontal, 12)
                                                 .padding(.vertical, 8)
@@ -202,7 +232,7 @@ struct TipJarView: View {
                                         ))
                                         .glassEffect(.clear, in: Capsule(style: .continuous))
                                 )
-                                .transition(.blurReplace.combined(with: .move(edge: .top)))
+                                .transition(.blurReplace.combined(with: .move(edge: .top)).combined(with: .scale))
                                 
                             }
                         }
@@ -244,10 +274,8 @@ struct TipJarView: View {
                         
                         // Unable Loading
                     } else {
-                        Text("Unable to load tip options")
+                        Text("Nothing here.")
                             .foregroundStyle(.secondary)
-                            .padding()
-                            .glassEffect(.clear)
                     }
                 }
                 .padding()
@@ -260,32 +288,63 @@ struct TipJarView: View {
             
             // Bottom Email Button (appears when expanded)
             if showExpandedFeatures {
-                VStack {
-                    Spacer()
+                ZStack {
                     
-                    Button(action: {
-                        if hapticEnabled {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                            impactFeedback.impactOccurred()
-                        }
-                        // Open email
-                        if let emailURL = URL(string: "mailto:7luyuhang@gmail.com") {
-                            UIApplication.shared.open(emailURL)
-                        }
-                    }) {
-                        Text("Chat with me")
-                            .font(.headline)
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
-                            .glassEffect(.clear
-                                .interactive()
-                                .tint(.white))
+                    // Background Gradient
+                    VStack {
+                        Spacer()
+                        RoundedRectangle(cornerRadius: 0)
+                            .fill(
+                                LinearGradient(
+                                    gradient: Gradient(colors: [
+                                        Color.black.opacity(0),
+                                        Color.black.opacity(1.0)
+                                    ]),
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                            )
+                            .frame(height: 200)
+                            .allowsHitTesting(false)
                     }
-                    .padding(.horizontal)
-                    .buttonStyle(.plain)
+                    .ignoresSafeArea()
+                    
+                    
+                    VStack {
+                        Spacer()
+                        
+                        VStack(spacing: 16) {
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                    impactFeedback.impactOccurred()
+                                }
+                                // Open email
+                                if let emailURL = URL(string: "mailto:7luyuhang@gmail.com") {
+                                    UIApplication.shared.open(emailURL)
+                                }
+                            }) {
+                                Text("Chat with me")
+                                    .font(.headline)
+                                    .foregroundStyle(.black)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 52)
+                                    .contentShape(Rectangle())
+                                    .glassEffect(.clear
+                                        .interactive()
+                                        .tint(.white))
+                            }
+                            .padding(.horizontal)
+                            .buttonStyle(.plain)
+                            
+                            Text("Open to any thoughts or feedback :)")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                        }
+                    }
+                    .transition(.blurReplace())
                 }
-                .transition(.blurReplace())
             }
         }
     }

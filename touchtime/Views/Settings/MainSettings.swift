@@ -137,6 +137,35 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                
+                // Support & Love
+                Button(action: {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                    showSupportLove = true
+                }) {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "heart.fill", topColor: .pink, bottomColor: .red)
+                        
+                        VStack (alignment: .leading) {
+                            Text("Support & Love")
+                                .font(.headline)
+                            Text("Your support means the world")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
+                .foregroundStyle(.primary)
+                .listRowBackground(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(Color.black.opacity(0.2))
+                        .glassEffect(.clear.interactive(),
+                                     in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                )
+                
+                
                 // General Section
                 Section(header: Text("General"), footer: Text("Enable showing system time at the top of the list with ambient background.")) {
                     Toggle(isOn: $hapticEnabled) {
@@ -377,6 +406,9 @@ struct SettingsView: View {
                 // Reset Section
                 Section{
                     Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                        }
                         showResetConfirmation = true
                     }) {
                         HStack(spacing: 12) {
@@ -396,19 +428,7 @@ struct SettingsView: View {
                     }
                 }
                 
-                
-                // Support & Love
-                Button(action: {
-                    showSupportLove = true
-                }) {
-                    HStack(spacing: 12) {
-                        SystemIconImage(systemName: "heart.fill", topColor: .red, bottomColor: .pink)
-                        Text("Support & Love")
-                    }
-                }
-                .foregroundStyle(.primary)
-                
-                
+ 
                 // Others
                 Section(header: Text("Others")) {
                     
@@ -433,7 +453,7 @@ struct SettingsView: View {
                     .foregroundStyle(.primary)
                     
                     ShareLink(
-                        item: URL(string: "https://apps.apple.com/app/touchtime")!,
+                        item: URL(string: "https://apps.apple.com/us/app/touch-time-world-clock/id6753721487")!,
                         message: Text("Download Touch Time.")
                     ) {
                         HStack {
