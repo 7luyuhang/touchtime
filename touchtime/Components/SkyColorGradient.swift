@@ -117,29 +117,32 @@ struct SkyColorGradient {
             ]
             
         case 8..<11:
-            // Morning (8:00 - 11:00) - Clear blue sky
+            // Morning (8:00 - 11:00) - Clear blue sky with bright horizon
             let progress = (normalizedTime - 8) / 3
             return [
-                Color(red: 0.4 - 0.1 * progress, green: 0.7 - 0.05 * progress, blue: 0.9),
-                Color(red: 0.45 - 0.1 * progress, green: 0.75 - 0.05 * progress, blue: 0.95),
-                Color(red: 0.55 - 0.15 * progress, green: 0.8 - 0.1 * progress, blue: 1.0)
+                Color(red: 0.4 - 0.1 * progress, green: 0.7 - 0.05 * progress, blue: 0.9),  // Deep blue at zenith
+                Color(red: 0.45 - 0.1 * progress, green: 0.75 - 0.05 * progress, blue: 0.95),  // Mid sky
+                Color(red: 0.6 - 0.1 * progress, green: 0.8 - 0.05 * progress, blue: 0.98),  // Lower sky
+                Color(red: 0.75 + 0.1 * progress, green: 0.85 + 0.05 * progress, blue: 0.95)  // Near horizon - whiter due to atmospheric scattering
             ]
             
         case 11..<14:
-            // Noon (11:00 - 14:00) - Deep blue (zenith), less atmospheric scattering
+            // Noon (11:00 - 14:00) - Deep blue zenith with bright horizon
             return [
-                Color(red: 0.3, green: 0.65, blue: 0.9),
-                Color(red: 0.35, green: 0.7, blue: 0.95),
-                Color(red: 0.4, green: 0.75, blue: 1.0)
+                Color(red: 0.3, green: 0.65, blue: 0.9),  // Deep blue at zenith
+                Color(red: 0.35, green: 0.7, blue: 0.95),  // Mid sky
+                Color(red: 0.5, green: 0.75, blue: 0.98),  // Lower sky
+                Color(red: 0.85, green: 0.9, blue: 0.95)  // Near horizon - maximum brightness/whiteness
             ]
             
         case 14..<17:
-            // Afternoon (14:00 - 17:00) - Slightly warmer blue
+            // Afternoon (14:00 - 17:00) - Slightly warmer blue with bright horizon
             let progress = (normalizedTime - 14) / 3
             return [
-                Color(red: 0.3 + 0.1 * progress, green: 0.65, blue: 0.9 - 0.05 * progress),
-                Color(red: 0.35 + 0.15 * progress, green: 0.7 + 0.05 * progress, blue: 0.95 - 0.05 * progress),
-                Color(red: 0.4 + 0.2 * progress, green: 0.75 + 0.05 * progress, blue: 1.0 - 0.1 * progress)
+                Color(red: 0.3 + 0.1 * progress, green: 0.65, blue: 0.9 - 0.05 * progress),  // Zenith
+                Color(red: 0.35 + 0.15 * progress, green: 0.7 + 0.05 * progress, blue: 0.95 - 0.05 * progress),  // Mid sky
+                Color(red: 0.5 + 0.15 * progress, green: 0.75 + 0.05 * progress, blue: 0.98 - 0.08 * progress),  // Lower sky
+                Color(red: 0.85 - 0.1 * progress, green: 0.9 - 0.1 * progress, blue: 0.95 - 0.15 * progress)  // Horizon - transitioning to golden hour
             ]
             
         case 17..<18:

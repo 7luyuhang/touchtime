@@ -1,6 +1,15 @@
 {
-  "originHash" : "de5e8e403ffd9c5ea876e90851c575b13ef36dc67ace6dc1f21f6f3a2ecc69ee",
+  "originHash" : "4fa8a5e3730ebad347cc030de5aaf34391dec4408215c2f5afda6dc2d656fb9b",
   "pins" : [
+    {
+      "identity" : "moonkit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/davideilmito/MoonKit.git",
+      "state" : {
+        "revision" : "be220f375384b47f2b6eaeda54319ceaec0b5a59",
+        "version" : "2.1.1"
+      }
+    },
     {
       "identity" : "sunkit",
       "kind" : "remoteSourceControl",

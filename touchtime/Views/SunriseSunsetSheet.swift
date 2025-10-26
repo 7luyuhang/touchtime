@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SunKit
+import MoonKit
 import CoreLocation
 import Combine
 
@@ -26,7 +27,7 @@ struct SunriseSunsetSheet: View {
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Calculate sunrise and sunset times
-    private var sunTimes: (sunrise: Date?, sunset: Date?, solarNoon: Date?)? {
+    private var sunTimes: (sunrise: Date?, sunset: Date?)? {
         // Get coordinates for the timezone
         guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
             return nil
@@ -43,9 +44,105 @@ struct SunriseSunsetSheet: View {
         // Get sunrise and sunset times as properties
         let sunrise = sun.sunrise
         let sunset = sun.sunset
-        let solarNoon = sun.solarNoon
         
-        return (sunrise, sunset, solarNoon)
+        return (sunrise, sunset)
+    }
+    
+    // Calculate moon information
+    private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)? {
+        // Get coordinates for the timezone
+        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
+            return nil
+        }
+        
+        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+        
+        // Create Moon object with coordinates and timezone
+        let moon = Moon(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current)
+        
+        // Set the date for calculations
+        moon.setDate(adjustedDate)
+        
+        // Get moon information
+        let moonrise = moon.moonRise
+        let moonset = moon.moonSet
+        let moonPhase = moon.currentMoonPhase
+        let phase = formatMoonPhase(moonPhase)
+        let phaseIcon = getMoonPhaseIcon(moonPhase)
+        
+        return (moonrise, moonset, phase, phaseIcon)
+    }
+    
+    // Format moon phase to readable string
+    private func formatMoonPhase(_ phase: MoonPhase) -> String {
+        let phaseString = String(describing: phase)
+        // Convert from camelCase or other format to Title Case
+        let formatted = phaseString
+            .replacingOccurrences(of: "MoonPhase.", with: "")
+            .replacingOccurrences(of: "_", with: " ")
+            .split(separator: " ")
+            .map { $0.capitalized }
+            .joined(separator: " ")
+        
+        // Handle common moon phase names
+        switch formatted.lowercased() {
+        case "newmoon", "new moon":
+            return "New Moon"
+        case "waxingcrescent", "waxing crescent":
+            return "Waxing Crescent"
+        case "firstquarter", "first quarter":
+            return "First Quarter"
+        case "waxinggibbous", "waxing gibbous":
+            return "Waxing Gibbous"
+        case "fullmoon", "full moon":
+            return "Full Moon"
+        case "waninggibbous", "waning gibbous":
+            return "Waning Gibbous"
+        case "lastquarter", "last quarter", "thirdquarter", "third quarter":
+            return "Last Quarter"
+        case "waningcrescent", "waning crescent":
+            return "Waning Crescent"
+        default:
+            // If none match, try to make it readable by inserting spaces before capitals
+            let result = phaseString.replacingOccurrences(of: "MoonPhase.", with: "")
+            return result.enumerated().map { index, char in
+                if index > 0 && char.isUppercase {
+                    return " \(char)"
+                }
+                return String(char)
+            }.joined().capitalized
+        }
+    }
+    
+    // Get SF Symbol for moon phase
+    private func getMoonPhaseIcon(_ phase: MoonPhase) -> String {
+        let phaseString = String(describing: phase)
+        let formatted = phaseString
+            .replacingOccurrences(of: "MoonPhase.", with: "")
+            .replacingOccurrences(of: "_", with: " ")
+            .lowercased()
+        
+        // Return appropriate SF Symbol based on moon phase
+        switch formatted {
+        case "newmoon", "new moon":
+            return "moonphase.new.moon"
+        case "waxingcrescent", "waxing crescent":
+            return "moonphase.waxing.crescent"
+        case "firstquarter", "first quarter":
+            return "moonphase.first.quarter"
+        case "waxinggibbous", "waxing gibbous":
+            return "moonphase.waxing.gibbous"
+        case "fullmoon", "full moon":
+            return "moonphase.full.moon"
+        case "waninggibbous", "waning gibbous":
+            return "moonphase.waning.gibbous"
+        case "lastquarter", "last quarter", "thirdquarter", "third quarter":
+            return "moonphase.last.quarter"
+        case "waningcrescent", "waning crescent":
+            return "moonphase.waning.crescent"
+        default:
+            return "moon.stars.fill" // fallback icon
+        }
     }
     
     // Map timezone identifiers to coordinates using shared utility
@@ -144,35 +241,6 @@ struct SunriseSunsetSheet: View {
                             }
                             .padding(.horizontal, 16)
                             
-                            
-                            // Solar Noon Section
-                            HStack {
-                                HStack(spacing: 16){
-                                    Image(systemName: "sun.max.fill")
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .frame(width: 24)
-                                    
-                                    Text("Solar Noon")
-                                        .font(.headline)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                }
-                                Spacer()
-                                
-                                Text(formatTime(times.solarNoon))
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText(countsDown: false))
-                                    .animation(.spring(), value: times.solarNoon)
-                            }
-                            .padding(16)
-                            .background(.white.opacity(0.05))
-                            .blendMode(.plusLighter)
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                            .padding(.horizontal, 16)
-                            
-                            
                             // Daylight Duration Section
                             HStack {
                                 HStack(spacing: 16){
@@ -203,6 +271,92 @@ struct SunriseSunsetSheet: View {
                             
                         }
                         
+                        // Moon Time section
+                        if let moon = moonInfo {
+                            VStack(alignment: .leading){
+                                
+                                Text("Moon Time")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
+                                    .padding(.horizontal, 32)
+                                    .padding(.bottom, 4)
+                                    .padding(.top, 24)
+                                
+                                HStack(spacing: 8) {
+                                    // Moonrise Section
+                                    HStack {
+                                        Image(systemName: "moonrise.fill")
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                            .frame(width: 24)
+                                        
+                                        Spacer()
+                                        
+                                        Text(formatTime(moon.moonrise))
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText(countsDown: false))
+                                            .animation(.spring(), value: moon.moonrise)
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(16)
+                                    .background(.white.opacity(0.05))
+                                    .blendMode(.plusLighter)
+                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    
+                                    // Moonset Section
+                                    HStack{
+                                        Image(systemName: "moonset.fill")
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                            .frame(width: 24)
+                                        
+                                        Spacer()
+                                        
+                                        Text(formatTime(moon.moonset))
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText(countsDown: false))
+                                            .animation(.spring(), value: moon.moonset)
+                                        
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(16)
+                                    .background(.white.opacity(0.05))
+                                    .blendMode(.plusLighter)
+                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                }
+                                .padding(.horizontal, 16)
+                                
+                                // Moon Phase Section
+                                HStack {
+                                    HStack(spacing: 16){
+                                        Image(systemName: moon.phaseIcon)
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                            .frame(width: 24)
+                                            .contentTransition(.symbolEffect(.replace))
+                                            .animation(.spring(), value: moon.phaseIcon)
+                                        
+                                        Text("Moon Phase")
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                    }
+                                    Spacer()
+                                    
+                                    Text(moon.phase)
+                                        .foregroundStyle(.primary)
+                                }
+                                .padding(16)
+                                .background(.white.opacity(0.05))
+                                .blendMode(.plusLighter)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .padding(.horizontal, 16)
+                            }
+                        }
                         
                     } else {
                         // Error or no data state

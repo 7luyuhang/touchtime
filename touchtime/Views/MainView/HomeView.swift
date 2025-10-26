@@ -517,7 +517,7 @@ struct HomeView: View {
                     .scrollIndicators(.hidden)
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
-                    .safeAreaPadding(.bottom, 64)
+                    .safeAreaPadding(.bottom, 56)
                 }
                 
                 // Scroll Time View - Hide when renaming or when there's no content to display

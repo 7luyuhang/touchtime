@@ -138,7 +138,11 @@ struct TipJarView: View {
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 16)
-                            .glassEffect(.clear)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(Color.black.opacity(0.25))
+                                    .glassEffect(.clear, in: Capsule(style: .continuous))
+                            )
                         }
                         
                         // Medium Tip HStack
@@ -180,7 +184,11 @@ struct TipJarView: View {
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 16)
-                            .glassEffect(.clear)
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(Color.black.opacity(0.25))
+                                    .glassEffect(.clear, in: Capsule(style: .continuous))
+                            )
                         }
                         
                         // Large Tip HStack (Hidden initially, shown when expanded)

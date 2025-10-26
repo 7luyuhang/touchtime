@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5A864EA42EAE30FB009D5989 /* MoonKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5A864EA32EAE30FB009D5989 /* MoonKit */; };
 		5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */; };
 		5AFDCE0E2EA3E2CC0002AC94 /* SunKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AFDCE0D2EA3E2CC0002AC94 /* SunKit */; };
 /* End PBXBuildFile section */
@@ -29,6 +30,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				5A864EA42EAE30FB009D5989 /* MoonKit in Frameworks */,
 				5AFDCE0E2EA3E2CC0002AC94 /* SunKit in Frameworks */,
 				5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */,
 			);
@@ -83,6 +85,7 @@
 			name = touchtime;
 			packageProductDependencies = (
 				5AFDCE0D2EA3E2CC0002AC94 /* SunKit */,
+				5A864EA32EAE30FB009D5989 /* MoonKit */,
 			);
 			productName = touchtime;
 			productReference = 5A42D3782E82CDCE0048963E /* touchtime.app */;
@@ -114,6 +117,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				5AFDCE0C2EA3E2CC0002AC94 /* XCRemoteSwiftPackageReference "SunKit" */,
+				5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A42D3792E82CDCE0048963E /* Products */;
@@ -272,7 +276,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 18;
 				DEVELOPMENT_TEAM = N2D432683S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -312,7 +316,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 17;
+				CURRENT_PROJECT_VERSION = 18;
 				DEVELOPMENT_TEAM = N2D432683S;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
@@ -369,6 +373,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/davideilmito/MoonKit.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.1.1;
+			};
+		};
 		5AFDCE0C2EA3E2CC0002AC94 /* XCRemoteSwiftPackageReference "SunKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/SunKit-Swift/SunKit.git";
@@ -380,6 +392,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		5A864EA32EAE30FB009D5989 /* MoonKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */;
+			productName = MoonKit;
+		};
 		5AFDCE0D2EA3E2CC0002AC94 /* SunKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 5AFDCE0C2EA3E2CC0002AC94 /* XCRemoteSwiftPackageReference "SunKit" */;
