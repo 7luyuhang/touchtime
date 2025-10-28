@@ -160,6 +160,15 @@ struct SettingsView: View {
                 .foregroundStyle(.primary)
                 .listRowBackground(
                     RoundedRectangle(cornerRadius: 26, style: .continuous)
+//                        .fill(
+//                            LinearGradient(
+//                                colors: [
+//                                    .pink,.red
+//                                ],
+//                                startPoint: .topLeading,
+//                                endPoint: .bottomTrailing
+//                            ).opacity(0.25)
+//                        )
                         .fill(Color.black.opacity(0.2))
                         .glassEffect(.clear.interactive(),
                                      in: RoundedRectangle(cornerRadius: 26, style: .continuous))
@@ -196,7 +205,7 @@ struct SettingsView: View {
                 }
                 
                 // Display Section
-                Section("Display") {
+                Section("Time Display") {
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
                         

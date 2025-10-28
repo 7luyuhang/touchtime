@@ -30,6 +30,7 @@ struct HomeView: View {
     @State private var showSunriseSunsetSheet = false
     @State private var selectedTimeZone: String = ""
     @State private var selectedCityName: String = ""
+    @State private var showArrangeListSheet = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showTimeDifference") private var showTimeDifference = true
@@ -566,18 +567,37 @@ struct HomeView: View {
             
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    // Only show Share button if there are world clocks to share
+                    
+                    // Only show More button if there are world clocks
                     if !worldClocks.isEmpty {
-                        Button(action: {
-                            // Provide haptic feedback if enabled
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
+                        Menu {
+                            Button(action: {
+                                // Provide haptic feedback if enabled
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showShareSheet = true
+                            }) {
+                                Label("Share", systemImage: "square.and.arrow.up")
                             }
-                            showShareSheet = true
-                        }) {
-                            Image(systemName: "square.and.arrow.up")
+                            
+                            Divider()
+                            
+                            Button(action: {
+                                // Provide haptic feedback if enabled
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showArrangeListSheet = true
+                            }) {
+                                Label("Reorder", systemImage: "list.bullet")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
                         }
                     }
                 }
@@ -664,6 +684,16 @@ struct HomeView: View {
                     timeOffset: timeOffset
                 )
                 .presentationDetents([.medium])
+            }
+            
+            // Arrange List Sheet
+            .sheet(isPresented: $showArrangeListSheet) {
+                ArrangeListView(
+                    worldClocks: $worldClocks,
+                    showSheet: $showArrangeListSheet,
+                    currentDate: currentDate,
+                    timeOffset: timeOffset
+                )
             }
         }
         

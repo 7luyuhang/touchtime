@@ -262,30 +262,49 @@ struct TimeZonePickerViewWrapper: View {
                                         toggleClock(cityName: timeZone.cityName, identifier: timeZone.identifier)
                                     }) {
                                         HStack {
-                                            VStack(alignment: .leading) {
-                                                Text(timeZone.cityName)
-    
-                                                Text(timeZone.region)
-                                                    .foregroundStyle(.secondary)
-                                                    .font(.subheadline)
+                                            
+                                            HStack (spacing: 16) {
+                                                // Show checkmark if already added
+                                                if worldClocks.contains(where: { $0.timeZoneIdentifier == timeZone.identifier }) {
+                                                    Image(systemName: "checkmark.circle.fill")
+                                                        .font(.body.weight(.bold))
+                                                        .frame(width: 24)
+                                                        .transition(.identity)
+                                                        .id("checkmark-\(timeZone.identifier)")
+                                                } else {
+                                                    Image(systemName: "circle")
+                                                        .font(.body.weight(.medium))
+                                                        .foregroundStyle(.secondary)
+                                                        .frame(width: 24)
+                                                        .transition(.identity)
+                                                        .id("circle-\(timeZone.identifier)")
+                                                }
+                                                
+                                                VStack(alignment: .leading) {
+                                                    Text(timeZone.cityName)
+                                                    
+                                                    Text(timeZone.region)
+                                                        .foregroundStyle(.secondary)
+                                                        .font(.subheadline)
+                                                }
                                             }
+                                            
+                                            
                                             Spacer()
+                                            
+                                            
                                             // Show current time preview and added indicator
-                                            HStack(spacing: 4) {
+                                            HStack(spacing: 8) {
                                                 if let tz = TimeZone(identifier: timeZone.identifier) {
                                                     Text(currentTime(for: tz))
                                                         .foregroundStyle(.secondary)
                                                         .monospacedDigit()
                                                 }
+
                                                 
-                                                // Show checkmark if already added
-                                                if worldClocks.contains(where: { $0.timeZoneIdentifier == timeZone.identifier }) {
-                                                    Image(systemName: "checkmark")
-                                                        .font(.subheadline)
-                                                        .fontWeight(.semibold)
-                                                        .transition(.identity)
-                                                }
+                                                    
                                             }
+                                            
                                         }
                                         .contentShape(Rectangle())
                                     }
@@ -308,6 +327,7 @@ struct TimeZonePickerViewWrapper: View {
                             }
                         }
                     }
+//                    .listStyle(.plain)
                     .listSectionIndexVisibility(searchText.isEmpty ? .visible : .hidden)
                     .safeAreaPadding(.bottom, searchText.isEmpty ? 0 : 48)
                     .tint(.primary) // A-Z Colour

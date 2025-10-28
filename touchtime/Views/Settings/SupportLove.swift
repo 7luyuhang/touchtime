@@ -52,25 +52,27 @@ struct TipJarView: View {
             // Black Background
             Color.black
                 .ignoresSafeArea()
-            
-            
-            
-            // Gradient Background
-            if showExpandedFeatures {
-                VStack(spacing: 0) {
-                    LinearGradient(
-                        gradient: Gradient(colors: [Color.indigo.opacity(0.25), Color.pink.opacity(0.25)]),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                    .blur(radius: 50)
-                    
-                    Color.clear
+                .overlay(alignment: .top) {
+                    // Gradient Background - 使用 overlay 避免影響佈局
+                    if showExpandedFeatures {
+                        VStack(spacing: 0) {
+                            LinearGradient(
+                                gradient: Gradient(colors: [Color.indigo.opacity(0.25), Color.pink.opacity(0.25)]),
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            .blur(radius: 50)
+                            .frame(width: 500)
+                            .offset(y:-50)
+                            
+                            Color.clear
+                        }
+                        .ignoresSafeArea()
+                        .transition(.opacity)
+                        .animation(.spring(), value: showExpandedFeatures)
+                        .allowsHitTesting(false) // 確保不會攔截觸摸事件
+                    }
                 }
-                .ignoresSafeArea()
-                .transition(.opacity)
-                .animation(.spring(), value: showExpandedFeatures)
-            }
             
             // Particle Effect
             ParticleView()
@@ -116,6 +118,8 @@ struct TipJarView: View {
                                 
                                 if iapManager.purchaseState == .purchasing {
                                     ProgressView()
+                                        .padding(.vertical, 8)
+                                        .blendMode(.plusLighter)
                                 } else {
                                     Button(action: {
                                         if hapticEnabled {
@@ -162,6 +166,8 @@ struct TipJarView: View {
                                 
                                 if iapManager.purchaseState == .purchasing {
                                     ProgressView()
+                                        .padding(.vertical, 8)
+                                        .blendMode(.plusLighter)
                                 } else {
                                     Button(action: {
                                         if hapticEnabled {
@@ -209,6 +215,8 @@ struct TipJarView: View {
                                     
                                     if iapManager.purchaseState == .purchasing {
                                         ProgressView()
+                                            .padding(.vertical, 8)
+                                            .blendMode(.plusLighter)
                                     } else {
                                         Button(action: {
                                             if hapticEnabled {
@@ -259,10 +267,10 @@ struct TipJarView: View {
                             }
                         }) {
                             HStack(spacing: 10) {
-                                Text(showExpandedFeatures ? "Show less" : "Support even more")
+                                Text(showExpandedFeatures ? "Show Less" : "Support More")
                                     .id(showExpandedFeatures)
                                     .font(.subheadline.weight(.semibold))
-                                    .transition(.blurReplace)
+                                    .transition(.blurReplace())
                                 
                                 Image(systemName: "chevron.right")
                                     .font(.footnote.weight(.bold))
