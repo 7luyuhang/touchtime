@@ -61,59 +61,63 @@ struct ArrangeListView: View {
     var body: some View {
         NavigationView {
             List {
-                // Local time row (not moveable)
+                // Local Time Section
                 if showLocalTimeInHome {
-                    HStack {
-                        // City name
-                        HStack(spacing: 12) {
-                            Image(systemName: "location.fill")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                            
+                    Section {
+                        HStack {
+                            // City name
                             Text(customLocalName.isEmpty ? localCityName : customLocalName)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
+                            
+                            Spacer()
+                            
+                            // Time
+                            HStack(spacing: 6) {
+                                Image(systemName: "location.fill")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                
+                                Text(formatTime(for: TimeZone.current))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
                         }
-                        
-                        Spacer()
-                        
-                        // Time
-                        Text(formatTime(for: TimeZone.current))
-                            .monospacedDigit()
-                            .foregroundStyle(.secondary)
+                        .listRowBackground(Color(UIColor.secondarySystemGroupedBackground))
+                        .deleteDisabled(true)
+                        .moveDisabled(true)
                     }
-                    .listRowBackground(Color(UIColor.secondarySystemGroupedBackground))
-                    .deleteDisabled(true)
-                    .moveDisabled(true)
                 }
                 
-                // World clocks (moveable)
-                ForEach(worldClocks) { clock in
-                    HStack {
-                        // City name
-                        Text(clock.cityName)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        
-                        Spacer()
-                        
-                        // Time
-                        if let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) {
-                            Text(formatTime(for: timeZone))
-                                .monospacedDigit()
-                                .foregroundStyle(.secondary)
+                // World Clocks Section
+                Section {
+                    ForEach(worldClocks) { clock in
+                        HStack {
+                            // City name
+                            Text(clock.cityName)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            
+                            Spacer()
+                            
+                            // Time
+                            if let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) {
+                                Text(formatTime(for: timeZone))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
-                }
-                .onMove { source, destination in
-                    worldClocks.move(fromOffsets: source, toOffset: destination)
-                    saveWorldClocks()
-                    
-                    // Provide haptic feedback if enabled
-                    if hapticEnabled {
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                        impactFeedback.prepare()
-                        impactFeedback.impactOccurred()
+                    .onMove { source, destination in
+                        worldClocks.move(fromOffsets: source, toOffset: destination)
+                        saveWorldClocks()
+                        
+                        // Provide haptic feedback if enabled
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.prepare()
+                            impactFeedback.impactOccurred()
+                        }
                     }
                 }
             }
@@ -124,14 +128,17 @@ struct ArrangeListView: View {
             
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") {
+                    Button(role: .confirm) {
                         if hapticEnabled {
                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                             impactFeedback.impactOccurred()
                         }
                         showSheet = false
+                    } label: {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.white)
+                            .fontWeight(.semibold)
                     }
-                    .fontWeight(.semibold)
                 }
             }
         }
