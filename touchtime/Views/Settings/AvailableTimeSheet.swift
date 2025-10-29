@@ -212,6 +212,7 @@ struct AvailableTimePicker: View {
                                     Text(weekday.name)
                                         .font(.subheadline)
                                         .fontWeight(.semibold)
+                                        .fontDesign(.rounded)
                                         .foregroundStyle(.primary)
                                         .frame(width: 36, height: 36)
                                         .glassEffect(

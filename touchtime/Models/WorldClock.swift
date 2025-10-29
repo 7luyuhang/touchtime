@@ -120,7 +120,6 @@ struct WorldClock: Identifiable, Codable, Equatable {
 struct WorldClockData {
     static let defaultClocks: [WorldClock] = [
         WorldClock(cityName: "London", timeZoneIdentifier: "Europe/London"),
-        WorldClock(cityName: "Johannesburg", timeZoneIdentifier: "Africa/Johannesburg"),
         WorldClock(cityName: "Shanghai", timeZoneIdentifier: "Asia/Shanghai"),
         WorldClock(cityName: "Tokyo", timeZoneIdentifier: "Asia/Tokyo"),
         WorldClock(cityName: "Los Angeles", timeZoneIdentifier: "America/Los_Angeles"),

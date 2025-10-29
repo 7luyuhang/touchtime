@@ -20,7 +20,12 @@ struct SkyDotView: View {
         Capsule(style: .continuous)
             .fill(skyColorGradient.linearGradient())
             .frame(width: 24, height: 16)
-            .glassEffect(.regular)
+//            .overlay(
+//                Capsule(style: .continuous)
+//                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+//                    .blendMode(.plusLighter)
+//            )
+            .glassEffect(.clear)
             .animation(.spring(), value: skyColorGradient.animationValue)
     }
 }
