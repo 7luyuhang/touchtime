@@ -82,9 +82,14 @@ struct SkyColorGradient {
             // Astronomical twilight (4:00 - 5:00) - Deep blue beginning
             let progress = (normalizedTime - 4)
             return [
-                Color(red: 0.03 + 0.05 * progress, green: 0.03 + 0.05 * progress, blue: 0.12 + 0.18 * progress),
-                Color(red: 0.05 + 0.07 * progress, green: 0.05 + 0.07 * progress, blue: 0.18 + 0.22 * progress),
-                Color(red: 0.07 + 0.1 * progress, green: 0.07 + 0.08 * progress, blue: 0.25 + 0.25 * progress)
+                // Zenith: Darkest blue, minimal red/green to avoid purple
+                Color(red: 0.03 + 0.02 * progress, green: 0.03 + 0.03 * progress, blue: 0.12 + 0.20 * progress),
+                // Mid-sky: Slightly lighter blue, maintaining blue dominance
+                Color(red: 0.04 + 0.03 * progress, green: 0.04 + 0.04 * progress, blue: 0.18 + 0.24 * progress),
+                // Horizon: Brighter blue with very subtle warm undertone from atmospheric scattering
+                Color(red: 0.05 + 0.04 * progress, green: 0.05 + 0.05 * progress, blue: 0.25 + 0.27 * progress),
+                // Near horizon: Slightly warmer but still predominantly blue
+                Color(red: 0.06 + 0.06 * progress, green: 0.06 + 0.06 * progress, blue: 0.28 + 0.25 * progress)
             ]
             
         case 5..<6:

@@ -151,7 +151,7 @@ struct SunriseSunsetSheet: View {
     }
     
     private func formatTime(_ date: Date?) -> String {
-        guard let date = date else { return "--:--" }
+        guard let date = date else { return "-" }
         
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
@@ -169,7 +169,7 @@ struct SunriseSunsetSheet: View {
     }
     
     private func formatDuration(from startDate: Date?, to endDate: Date?) -> String {
-        guard let start = startDate, let end = endDate else { return "--" }
+        guard let start = startDate, let end = endDate else { return "-" }
         
         let duration = end.timeIntervalSince(start)
         let hours = Int(duration) / 3600

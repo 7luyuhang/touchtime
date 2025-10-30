@@ -24,6 +24,7 @@ struct SettingsView: View {
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    @AppStorage("useNaturalDates") private var useNaturalDates = true
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     @State private var showSupportLove = false
@@ -63,6 +64,43 @@ struct SettingsView: View {
     
     // Format date for preview
     func formatDate() -> String {
+        // If Natural Dates is enabled, use Today/Yesterday/Tomorrow
+        if useNaturalDates {
+            let calendar = Calendar.current
+            
+            // Get today's date components
+            let today = calendar.dateComponents([.year, .month, .day], from: Date())
+            let currentDateComponents = calendar.dateComponents([.year, .month, .day], from: currentDate)
+            
+            // Check if it's today
+            if currentDateComponents.year == today.year &&
+               currentDateComponents.month == today.month &&
+               currentDateComponents.day == today.day {
+                return "Today"
+            }
+            
+            // Check if it's tomorrow
+            if let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) {
+                let tomorrowComponents = calendar.dateComponents([.year, .month, .day], from: tomorrow)
+                if currentDateComponents.year == tomorrowComponents.year &&
+                   currentDateComponents.month == tomorrowComponents.month &&
+                   currentDateComponents.day == tomorrowComponents.day {
+                    return "Tomorrow"
+                }
+            }
+            
+            // Check if it's yesterday
+            if let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) {
+                let yesterdayComponents = calendar.dateComponents([.year, .month, .day], from: yesterday)
+                if currentDateComponents.year == yesterdayComponents.year &&
+                   currentDateComponents.month == yesterdayComponents.month &&
+                   currentDateComponents.day == yesterdayComponents.day {
+                    return "Yesterday"
+                }
+            }
+        }
+        
+        // Show the full date format (when Natural Dates is off or not Today/Yesterday/Tomorrow)
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone.current
@@ -235,9 +273,10 @@ struct SettingsView: View {
                                 Text(formatDate())
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
-                                    .contentTransition(.numericText())
                                     .blendMode(.plusLighter)
+                                    .contentTransition(.numericText())
                                     .animation(.spring(), value: currentDate)
+                                    .animation(.spring(), value: useNaturalDates)
                                 
                             }
                             .animation(.spring(), value: showSkyDot)
@@ -286,6 +325,7 @@ struct SettingsView: View {
                                         RoundedRectangle(cornerRadius: 26, style: .continuous)
                         )
                         .animation(.spring(), value: showSkyDot)
+                        .id("\(showSkyDot)-\(useNaturalDates)")
                         
                         // Preview Text
                         Text("Preview")
@@ -327,6 +367,14 @@ struct SettingsView: View {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
                             Text("24-Hour Format")
+                        }
+                    }
+                    .tint(.blue)
+                    
+                    Toggle(isOn: $useNaturalDates) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .orange, bottomColor: .blue)
+                            Text("Relative Dates")
                         }
                     }
                     .tint(.blue)
@@ -435,11 +483,13 @@ struct SettingsView: View {
                     } message: {
                         Text("This will reset all cities to the default list and clear any custom city names.")
                     }
+                } footer: {
+                    Text("This will reset all cities to the default list and clear any custom city names.")
                 }
                 
  
                 // Others
-                Section(header: Text("Others")) {
+                Section{
                     
                     Button(action: {
                         if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=Touch%20Time%20Feedback") {

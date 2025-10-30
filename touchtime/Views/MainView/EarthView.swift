@@ -325,29 +325,31 @@ struct EarthView: View {
             if !showingRenameAlert {
                 HStack(spacing: 0) {
                     
-                    // Back to Local Time Button
-                    Button(action: {
-                        if hapticEnabled {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                            impactFeedback.prepare()
-                            impactFeedback.impactOccurred()
-                        }
-                        
-                        // Navigate to local time location
-                        if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
-                            withAnimation(.smooth()) {
-                                position = MapCameraPosition.region(MKCoordinateRegion(
-                                    center: localCoordinate,
-                                    span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
-                                ))
+                    // Back to Local Time Button - Hide when no clocks and local time not shown
+                    if !(worldClocks.isEmpty && !showLocalTime) {
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
                             }
-                        }
-                    }) {
-                        Image(systemName: "location.fill")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(width: 52, height: 52)
                             
+                            // Navigate to local time location
+                            if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
+                                withAnimation(.smooth()) {
+                                    position = MapCameraPosition.region(MKCoordinateRegion(
+                                        center: localCoordinate,
+                                        span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
+                                    ))
+                                }
+                            }
+                        }) {
+                            Image(systemName: "location.fill")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .frame(width: 52, height: 52)
+                                
+                        }
                     }
                     
                     // Map Mode Toggle Button
