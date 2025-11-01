@@ -10,6 +10,7 @@ import Combine
 import UIKit
 import EventKit
 import EventKitUI
+import WeatherKit
 
 struct HomeView: View {
     @Binding var worldClocks: [WorldClock]
@@ -45,6 +46,10 @@ struct HomeView: View {
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6" // Default Mon-Fri
     @AppStorage("useNaturalDates") private var useNaturalDates = true
+    @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("useCelsius") private var useCelsius = true
+    
+    @StateObject private var weatherManager = WeatherManager()
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -247,6 +252,14 @@ struct HomeView: View {
                                         
                                         Spacer()
                                         
+                                        // Weather display for local time
+                                        if showWeather {
+                                            WeatherView(
+                                                weather: weatherManager.weatherData[TimeZone.current.identifier],
+                                                useCelsius: useCelsius
+                                            )
+                                        }
+                                        
                                         Text({
                                             // The adjusted time for display
                                             let adjustedTime = currentDate.addingTimeInterval(timeOffset)
@@ -375,6 +388,12 @@ struct HomeView: View {
                                     ) : nil
                                 )
                                 .id("local-\(showSkyDot)")
+                                // Fetch weather when weather toggle changes or view appears
+                                .task(id: showWeather) {
+                                    if showWeather {
+                                        await weatherManager.getWeather(for: TimeZone.current.identifier)
+                                    }
+                                }
                                 
                                 
                                 // Tap gesture for local time
@@ -441,6 +460,14 @@ struct HomeView: View {
                                             
                                             Spacer()
                                             
+                                            // Weather display for world clock
+                                            if showWeather {
+                                                WeatherView(
+                                                    weather: weatherManager.weatherData[clock.timeZoneIdentifier],
+                                                    useCelsius: useCelsius
+                                                )
+                                            }
+                                            
                                             Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
                                                 .font(.subheadline)
                                                 .foregroundStyle(.secondary)
@@ -457,6 +484,14 @@ struct HomeView: View {
                                             }
                                             
                                             Spacer()
+                                            
+                                            // Weather display for world clock (when time difference is hidden)
+                                            if showWeather {
+                                                WeatherView(
+                                                    weather: weatherManager.weatherData[clock.timeZoneIdentifier],
+                                                    useCelsius: useCelsius
+                                                )
+                                            }
                                             
                                             Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
                                                 .font(.subheadline)
@@ -521,6 +556,12 @@ struct HomeView: View {
                                     ) : nil
                                 )
                                 .id("\(clock.id)-\(showSkyDot)")
+                                // Fetch weather for this city when weather toggle changes
+                                .task(id: showWeather) {
+                                    if showWeather {
+                                        await weatherManager.getWeather(for: clock.timeZoneIdentifier)
+                                    }
+                                }
                                 
                                 // Tap gesture for world clock
                                 .onTapGesture {
@@ -686,8 +727,6 @@ struct HomeView: View {
                                 Label("Share", systemImage: "square.and.arrow.up")
                             }
                             
-                            Divider()
-                            
                             Button(action: {
                                 // Provide haptic feedback if enabled
                                 if hapticEnabled {
@@ -697,7 +736,7 @@ struct HomeView: View {
                                 }
                                 showArrangeListSheet = true
                             }) {
-                                Label("Reorder", systemImage: "list.bullet")
+                                Label("Arrange", systemImage: "list.bullet")
                             }
                         } label: {
                             Image(systemName: "ellipsis")

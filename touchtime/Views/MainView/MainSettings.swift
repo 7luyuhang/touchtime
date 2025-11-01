@@ -25,6 +25,8 @@ struct SettingsView: View {
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @AppStorage("useNaturalDates") private var useNaturalDates = true
+    @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("useCelsius") private var useCelsius = true
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     @State private var showSupportLove = false
@@ -32,6 +34,7 @@ struct SettingsView: View {
     @State private var availableCalendars: [EKCalendar] = []
     @State private var hasCalendarPermission = false
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var weatherManager = WeatherManager()
     
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -249,7 +252,7 @@ struct SettingsView: View {
                     VStack(alignment: .center, spacing: 10) {
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            // Top row: Time difference and Date
+                            // Top row: Time difference and Date with Weather
                             HStack {
                                 if showSkyDot {
                                     SkyDotView(
@@ -270,6 +273,15 @@ struct SettingsView: View {
                                 
                                 Spacer()
                                 
+                                // Weather for local time (left of date)
+                                if showWeather {
+                                    WeatherView(
+                                        weather: weatherManager.currentWeather,
+                                        useCelsius: useCelsius
+                                    )
+                                    .transition(.blurReplace())
+                                }
+                                
                                 // Date
                                 Text(formatDate())
                                     .font(.subheadline)
@@ -281,6 +293,8 @@ struct SettingsView: View {
                                 
                             }
                             .animation(.spring(), value: showSkyDot)
+                            .animation(.spring(), value: showWeather)
+                            .animation(.spring(), value: weatherManager.currentWeather)
                             
                             // Bottom row: City name and Time
                             HStack(alignment: .lastTextBaseline) {
@@ -381,6 +395,33 @@ struct SettingsView: View {
                     .tint(.blue)
                     
                 }
+                
+                // Temperature/Weather Section
+                Section {
+                    Toggle(isOn: $showWeather) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "thermometer.medium", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            Text("Temperature")
+                        }
+                    }
+                    .tint(.blue)
+                    
+                    // Temperature Unit Picker - only show when weather is enabled
+                    if showWeather {
+                        HStack {
+                            Text("Units")
+                            Spacer()
+                            Picker(selection: $useCelsius) {
+                                Text("Celcius").tag(true)
+                                Text("Farenheit").tag(false)
+                            } label: {}
+                                .pickerStyle(.segmented)
+                                .frame(width: 200)
+                        }
+                    }} footer: {
+                        Text("Weather data provided by  Weather.")
+                    }
+                
                 
                 // Calendar
                 Section("Calendar") {
@@ -621,6 +662,10 @@ struct SettingsView: View {
             }
             .onAppear {
                 loadCalendars()
+                // Fetch weather for local timezone
+                Task {
+                    await weatherManager.getWeather(for: TimeZone.current.identifier)
+                }
             }
             
             // Support & Love

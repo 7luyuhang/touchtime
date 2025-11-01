@@ -131,5 +131,11 @@ struct SkyBackgroundView: View {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        // border
+        .overlay(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .stroke(Color.white.opacity(0.1), lineWidth: 1.0)
+                .blendMode(.plusLighter)
+        )
     }
 }

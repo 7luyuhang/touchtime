@@ -124,7 +124,7 @@ struct ArrangeListView: View {
             .scrollIndicators(.hidden)
             .listStyle(.insetGrouped)
             .environment(\.editMode, $editMode)
-            .navigationTitle("Reorder Cities")
+            .navigationTitle("Arrange Cities")
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
