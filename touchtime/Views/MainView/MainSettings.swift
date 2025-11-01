@@ -192,6 +192,7 @@ struct SettingsView: View {
                             Text("Your support means the world")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
                         }
                     }
                 }
@@ -207,7 +208,7 @@ struct SettingsView: View {
 //                                endPoint: .bottomTrailing
 //                            ).opacity(0.25)
 //                        )
-                        .fill(Color.black.opacity(0.2))
+                        .fill(Color.black.opacity(0.20))
                         .glassEffect(.clear.interactive(),
                                      in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 )
@@ -578,11 +579,6 @@ struct SettingsView: View {
                     .foregroundStyle(.primary)
                 ) {
                     
-                    // App Info Section
-                    Text("Copyright © \(String(Calendar.current.component(.year, from: Date()))) Negative Time Limited. \nAll rights reserved.") // "\n" 换行
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
                     
                     // Credits
                     NavigationLink(destination: CreditsView()) {
@@ -595,6 +591,11 @@ struct SettingsView: View {
                         Text(getVersionString())
                             .foregroundColor(.secondary)
                     }
+                    // App Info Section
+                    Text("Copyright © \(String(Calendar.current.component(.year, from: Date()))) Negative Time Limited. \nAll rights reserved.") // "\n" 换行
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.secondary)
                 }
                 
                 

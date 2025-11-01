@@ -334,9 +334,23 @@ struct TimeZonePickerViewWrapper: View {
                 }
             }
             .searchable(text: $searchText, prompt: "Cities & Countries")
-            .navigationTitle("Cities")
-            .navigationSubtitle(worldClocks.isEmpty ? "" : "\(worldClocks.count) added")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 0) {
+                        Text("Cities")
+                            .font(.headline)
+                        
+                        if !worldClocks.isEmpty {
+                            Text("\(worldClocks.count) added")
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .contentTransition(.numericText())
+                        }
+                    }
+                }
+            }
         }
         .onReceive(timer) { _ in
             currentDate = Date()

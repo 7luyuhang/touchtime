@@ -157,8 +157,8 @@ struct HomeView: View {
             
             // Check if it's today
             if targetDate.year == localToday.year &&
-               targetDate.month == localToday.month &&
-               targetDate.day == localToday.day {
+                targetDate.month == localToday.month &&
+                targetDate.day == localToday.day {
                 return "Today"
             }
             
@@ -166,8 +166,8 @@ struct HomeView: View {
             if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: baseDate) {
                 let localTomorrow = localCalendar.dateComponents([.year, .month, .day], from: tomorrow)
                 if targetDate.year == localTomorrow.year &&
-                   targetDate.month == localTomorrow.month &&
-                   targetDate.day == localTomorrow.day {
+                    targetDate.month == localTomorrow.month &&
+                    targetDate.day == localTomorrow.day {
                     return "Tomorrow"
                 }
             }
@@ -176,8 +176,8 @@ struct HomeView: View {
             if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: baseDate) {
                 let localYesterday = localCalendar.dateComponents([.year, .month, .day], from: yesterday)
                 if targetDate.year == localYesterday.year &&
-                   targetDate.month == localYesterday.month &&
-                   targetDate.day == localYesterday.day {
+                    targetDate.month == localYesterday.month &&
+                    targetDate.day == localYesterday.day {
                     return "Yesterday"
                 }
             }
@@ -264,8 +264,8 @@ struct HomeView: View {
                                                 
                                                 // Check if it's today
                                                 if targetDate.year == localToday.year &&
-                                                   targetDate.month == localToday.month &&
-                                                   targetDate.day == localToday.day {
+                                                    targetDate.month == localToday.month &&
+                                                    targetDate.day == localToday.day {
                                                     return "Today"
                                                 }
                                                 
@@ -273,8 +273,8 @@ struct HomeView: View {
                                                 if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: currentDate) {
                                                     let localTomorrow = localCalendar.dateComponents([.year, .month, .day], from: tomorrow)
                                                     if targetDate.year == localTomorrow.year &&
-                                                       targetDate.month == localTomorrow.month &&
-                                                       targetDate.day == localTomorrow.day {
+                                                        targetDate.month == localTomorrow.month &&
+                                                        targetDate.day == localTomorrow.day {
                                                         return "Tomorrow"
                                                     }
                                                 }
@@ -283,8 +283,8 @@ struct HomeView: View {
                                                 if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: currentDate) {
                                                     let localYesterday = localCalendar.dateComponents([.year, .month, .day], from: yesterday)
                                                     if targetDate.year == localYesterday.year &&
-                                                       targetDate.month == localYesterday.month &&
-                                                       targetDate.day == localYesterday.day {
+                                                        targetDate.month == localYesterday.month &&
+                                                        targetDate.day == localYesterday.day {
                                                         return "Yesterday"
                                                     }
                                                 }

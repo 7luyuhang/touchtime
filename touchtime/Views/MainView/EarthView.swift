@@ -456,7 +456,7 @@ struct EarthView: View {
                                 .frame(width: 52, height: 52)
                                 .contentTransition(.symbolEffect(.replace))
                         }
-                        .transition(.blurReplace())
+                        .transition(.blurReplace().combined(with: .scale))
                     }
                 }
                 .clipShape(.capsule)

@@ -15,10 +15,17 @@ struct CreditsView: View {
                    Text("SunKit")
                         .tint(.primary)
                 }
+                
                 Link(destination: URL(string: "https://github.com/davideilmito/MoonKit")!) {
                    Text("MoonKit")
                         .tint(.primary)
                 }
+                
+                Link(destination: URL(string: "https://github.com/markiv/SwiftUI-Shimmer")!) {
+                   Text("SwiftUI-Shimmer")
+                        .tint(.primary)
+                }
+
             } header: {
                 Text("Open Source Library")
             } footer: {
