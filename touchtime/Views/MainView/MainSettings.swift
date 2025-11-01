@@ -555,7 +555,7 @@ struct SettingsView: View {
                             Text("Instagram")
                         }
                         
-                        Link(destination: URL(string: "https://x.com/7luyuhang")!) {
+                        Link(destination: URL(string: "https://x.com/yuhanglu")!) {
                             Text("X")
                         }
                         

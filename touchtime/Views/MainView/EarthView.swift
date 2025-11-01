@@ -38,6 +38,8 @@ struct EarthView: View {
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("customLocalName") private var customLocalName = ""
+    @AppStorage("showMapLabels") private var showMapLabels = false
+    @AppStorage("useNaturalDates") private var useNaturalDates = true
     
     // 設置地圖縮放限制
     private let cameraBounds = MapCameraBounds(
@@ -62,6 +64,63 @@ struct EarthView: View {
             return CLLocationCoordinate2D(latitude: coords.latitude, longitude: coords.longitude)
         }
         return nil
+    }
+    
+    // Get formatted date for menu section header
+    func getMenuDateHeader(for timeZoneIdentifier: String) -> String {
+        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
+            return ""
+        }
+        
+        // If Natural Dates is enabled, use Today/Yesterday/Tomorrow
+        if useNaturalDates {
+            // Create calendar for local timezone
+            let localCalendar = Calendar.current
+            
+            // Create calendar for target timezone
+            var targetCalendar = Calendar.current
+            targetCalendar.timeZone = targetTimeZone
+            
+            // Get local timezone's today
+            let localToday = localCalendar.dateComponents([.year, .month, .day], from: currentDate)
+            
+            // Get target timezone's date
+            let targetDate = targetCalendar.dateComponents([.year, .month, .day], from: currentDate)
+            
+            // Check if it's today
+            if targetDate.year == localToday.year &&
+               targetDate.month == localToday.month &&
+               targetDate.day == localToday.day {
+                return "Today"
+            }
+            
+            // Check if it's tomorrow
+            if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: currentDate) {
+                let localTomorrow = localCalendar.dateComponents([.year, .month, .day], from: tomorrow)
+                if targetDate.year == localTomorrow.year &&
+                   targetDate.month == localTomorrow.month &&
+                   targetDate.day == localTomorrow.day {
+                    return "Tomorrow"
+                }
+            }
+            
+            // Check if it's yesterday
+            if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: currentDate) {
+                let localYesterday = localCalendar.dateComponents([.year, .month, .day], from: yesterday)
+                if targetDate.year == localYesterday.year &&
+                   targetDate.month == localYesterday.month &&
+                   targetDate.day == localYesterday.day {
+                    return "Yesterday"
+                }
+            }
+        }
+        
+        // Show the full date format (when Natural Dates is off or not Today/Yesterday/Tomorrow)
+        let formatter = DateFormatter()
+        formatter.timeZone = targetTimeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "E, d MMM"
+        return formatter.string(from: currentDate)
     }
     
     // Add to Calendar
@@ -157,20 +216,22 @@ struct EarthView: View {
                             VStack(spacing: 6) {
                                 // Time bubble with SkyDot - wrapped in Menu
                                 Menu {
-                                    Button(action: {
-                                        let cityName = customLocalName.isEmpty ? localCityName : customLocalName
-                                        addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
-                                    }) {
-                                        Label("Schedule Event", systemImage: "calendar.badge.plus")
-                                    }
-                                    
-                                    Button(action: {
-                                        renamingClockId = nil // Use nil to indicate local time
-                                        originalClockName = localCityName
-                                        newClockName = customLocalName.isEmpty ? localCityName : customLocalName
-                                        showingRenameAlert = true
-                                    }) {
-                                        Label("Rename", systemImage: "pencil.tip.crop.circle")
+                                    Section(getMenuDateHeader(for: TimeZone.current.identifier)) {
+                                        Button(action: {
+                                            let cityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                            addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
+                                        }) {
+                                            Label("Schedule Event", systemImage: "calendar.badge.plus")
+                                        }
+                                        
+                                        Button(action: {
+                                            renamingClockId = nil // Use nil to indicate local time
+                                            originalClockName = localCityName
+                                            newClockName = customLocalName.isEmpty ? localCityName : customLocalName
+                                            showingRenameAlert = true
+                                        }) {
+                                            Label("Rename", systemImage: "pencil.tip.crop.circle")
+                                        }
                                     }
                                 } label: {
                                     HStack(spacing: 8) {
@@ -239,36 +300,38 @@ struct EarthView: View {
                             VStack(spacing: 6) {
                                 // Time bubble with SkyDot - wrapped in Menu
                                 Menu {
-                                    Button(action: {
-                                        addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.cityName)
-                                    }) {
-                                        Label("Schedule Event", systemImage: "calendar.badge.plus")
-                                    }
-       
-                                    Button(action: {
-                                        renamingClockId = clock.id
-                                        let identifier = clock.timeZoneIdentifier
-                                        let components = identifier.split(separator: "/")
-                                        originalClockName = components.count >= 2
-                                            ? String(components.last!).replacingOccurrences(of: "_", with: " ")
-                                            : String(identifier)
-                                        newClockName = clock.cityName
-                                        showingRenameAlert = true
-                                    }) {
-                                        Label("Rename", systemImage: "pencil.tip.crop.circle")
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    Button(role: .destructive, action: {
-                                        if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                            withAnimation {
-                                                worldClocks.remove(at: index)
-                                                saveWorldClocks()
-                                            }
+                                    Section(getMenuDateHeader(for: clock.timeZoneIdentifier)) {
+                                        Button(action: {
+                                            addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.cityName)
+                                        }) {
+                                            Label("Schedule Event", systemImage: "calendar.badge.plus")
                                         }
-                                    }) {
-                                        Label("Delete", systemImage: "xmark.circle")
+           
+                                        Button(action: {
+                                            renamingClockId = clock.id
+                                            let identifier = clock.timeZoneIdentifier
+                                            let components = identifier.split(separator: "/")
+                                            originalClockName = components.count >= 2
+                                                ? String(components.last!).replacingOccurrences(of: "_", with: " ")
+                                                : String(identifier)
+                                            newClockName = clock.cityName
+                                            showingRenameAlert = true
+                                        }) {
+                                            Label("Rename", systemImage: "pencil.tip.crop.circle")
+                                        }
+                                        
+                                        Divider()
+                                        
+                                        Button(role: .destructive, action: {
+                                            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
+                                                withAnimation {
+                                                    worldClocks.remove(at: index)
+                                                    saveWorldClocks()
+                                                }
+                                            }
+                                        }) {
+                                            Label("Delete", systemImage: "xmark.circle")
+                                        }
                                     }
                                 } label: {
                                     HStack(spacing: 8) {
@@ -316,7 +379,10 @@ struct EarthView: View {
                     }
                 }
             }
-            .mapStyle(isUsingExploreMode ? .standard(elevation: .realistic) : .imagery(elevation: .realistic))
+            .mapStyle(isUsingExploreMode ? 
+                (showMapLabels ? .standard(elevation: .realistic, pointsOfInterest: .all, showsTraffic: false) : .standard(elevation: .realistic, pointsOfInterest: .excludingAll, showsTraffic: false)) :
+                (showMapLabels ? .hybrid(elevation: .realistic, pointsOfInterest: .all, showsTraffic: false) : .imagery(elevation: .realistic))
+            )
             .mapControls {
                 MapCompass()
             }
@@ -370,6 +436,28 @@ struct EarthView: View {
                             .frame(width: 52, height: 52)
                             .contentTransition(.symbolEffect(.replace))
                     }
+                    
+                    // Map Labels Toggle Button - Only show in 2D mode (standard map)
+                    if !isUsingExploreMode {
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            
+                            withAnimation(.smooth()) {
+                                showMapLabels.toggle()
+                            }
+                        }) {
+                            Image(systemName: showMapLabels ? "map.fill" : "map")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .frame(width: 52, height: 52)
+                                .contentTransition(.symbolEffect(.replace))
+                        }
+                        .transition(.blurReplace())
+                    }
                 }
                 .clipShape(.capsule)
                 .glassEffect(.regular.interactive())
@@ -383,6 +471,7 @@ struct EarthView: View {
             
         .animation(.spring(), value: worldClocks)
         .animation(.smooth(), value: isUsingExploreMode)
+        .animation(.smooth(), value: showMapLabels)
         .animation(.spring(), value: showingRenameAlert)
             
         .task {
