@@ -25,7 +25,11 @@ struct CreditsView: View {
                    Text("SwiftUI-Shimmer")
                         .tint(.primary)
                 }
-
+                
+                Link(destination: URL(string: "https://developer.apple.com/documentation/weatherkit/")!) {
+                   Text("WeatherKit")
+                        .tint(.primary)
+                }
             } header: {
                 Text("Open Source Library")
             } footer: {

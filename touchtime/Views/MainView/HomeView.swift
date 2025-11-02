@@ -45,7 +45,7 @@ struct HomeView: View {
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6" // Default Mon-Fri
-    @AppStorage("useNaturalDates") private var useNaturalDates = true
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     
@@ -145,55 +145,11 @@ struct HomeView: View {
         // The adjusted time for the target timezone
         let adjustedTime = baseDate.addingTimeInterval(offset)
         
-        // If Natural Dates is enabled, use Today/Yesterday/Tomorrow
-        if useNaturalDates {
-            // Create calendar for local timezone
-            let localCalendar = Calendar.current
-            
-            // Create calendar for target timezone
-            var targetCalendar = Calendar.current
-            targetCalendar.timeZone = targetTimeZone
-            
-            // Get local timezone's today (based on original baseDate, not adjusted)
-            let localToday = localCalendar.dateComponents([.year, .month, .day], from: baseDate)
-            
-            // Get target timezone's date (based on adjusted time)
-            let targetDate = targetCalendar.dateComponents([.year, .month, .day], from: adjustedTime)
-            
-            // Check if it's today
-            if targetDate.year == localToday.year &&
-                targetDate.month == localToday.month &&
-                targetDate.day == localToday.day {
-                return "Today"
-            }
-            
-            // Check if it's tomorrow
-            if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: baseDate) {
-                let localTomorrow = localCalendar.dateComponents([.year, .month, .day], from: tomorrow)
-                if targetDate.year == localTomorrow.year &&
-                    targetDate.month == localTomorrow.month &&
-                    targetDate.day == localTomorrow.day {
-                    return "Tomorrow"
-                }
-            }
-            
-            // Check if it's yesterday
-            if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: baseDate) {
-                let localYesterday = localCalendar.dateComponents([.year, .month, .day], from: yesterday)
-                if targetDate.year == localYesterday.year &&
-                    targetDate.month == localYesterday.month &&
-                    targetDate.day == localYesterday.day {
-                    return "Yesterday"
-                }
-            }
-        }
-        
-        // Show the full date format (when Natural Dates is off or not Today/Yesterday/Tomorrow)
-        let formatter = DateFormatter()
-        formatter.timeZone = targetTimeZone
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "E, d MMM"  // Format: Thu, 30 Oct
-        return formatter.string(from: adjustedTime)
+        return adjustedTime.formattedDate(
+            style: dateStyle,
+            timeZone: targetTimeZone,
+            relativeTo: baseDate
+        )
     }
     
     // Copy time as text
@@ -260,60 +216,15 @@ struct HomeView: View {
                                             )
                                         }
                                         
-                                        Text({
-                                            // The adjusted time for display
-                                            let adjustedTime = currentDate.addingTimeInterval(timeOffset)
-                                            
-                                            // If Natural Dates is enabled, use Today/Yesterday/Tomorrow
-                                            if useNaturalDates {
-                                                // Create calendar for current timezone
-                                                let localCalendar = Calendar.current
-                                                
-                                                // Get today's date components (based on original currentDate, not adjusted)
-                                                let localToday = localCalendar.dateComponents([.year, .month, .day], from: currentDate)
-                                                
-                                                // Get the date components for the adjusted time
-                                                let targetDate = localCalendar.dateComponents([.year, .month, .day], from: adjustedTime)
-                                                
-                                                // Check if it's today
-                                                if targetDate.year == localToday.year &&
-                                                    targetDate.month == localToday.month &&
-                                                    targetDate.day == localToday.day {
-                                                    return "Today"
-                                                }
-                                                
-                                                // Check if it's tomorrow
-                                                if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: currentDate) {
-                                                    let localTomorrow = localCalendar.dateComponents([.year, .month, .day], from: tomorrow)
-                                                    if targetDate.year == localTomorrow.year &&
-                                                        targetDate.month == localTomorrow.month &&
-                                                        targetDate.day == localTomorrow.day {
-                                                        return "Tomorrow"
-                                                    }
-                                                }
-                                                
-                                                // Check if it's yesterday
-                                                if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: currentDate) {
-                                                    let localYesterday = localCalendar.dateComponents([.year, .month, .day], from: yesterday)
-                                                    if targetDate.year == localYesterday.year &&
-                                                        targetDate.month == localYesterday.month &&
-                                                        targetDate.day == localYesterday.day {
-                                                        return "Yesterday"
-                                                    }
-                                                }
-                                            }
-                                            
-                                            // Show the full date format (when Natural Dates is off or not Today/Yesterday/Tomorrow)
-                                            let formatter = DateFormatter()
-                                            formatter.timeZone = TimeZone.current
-                                            formatter.locale = Locale(identifier: "en_US_POSIX")
-                                            formatter.dateFormat = "E, d MMM"  // Format: Thu, 30 Oct
-                                            return formatter.string(from: adjustedTime)
-                                        }())
+                                        Text(currentDate.formattedDate(
+                                            style: dateStyle,
+                                            timeZoneIdentifier: TimeZone.current.identifier,
+                                            timeOffset: timeOffset
+                                        ))
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
-                                        .contentTransition(.numericText())
                                         .blendMode(.plusLighter)
+                                        .contentTransition(.numericText())
                                     }
                                     
                                     // Bottom row: Location and Time (baseline aligned)
@@ -440,6 +351,7 @@ struct HomeView: View {
                             }
                         }
                         
+                        // City list
                         ForEach(worldClocks) { clock in
                             Section {
                                 VStack(alignment: .leading, spacing: 4) {
@@ -471,8 +383,8 @@ struct HomeView: View {
                                             Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
                                                 .font(.subheadline)
                                                 .foregroundStyle(.secondary)
-                                                .contentTransition(.numericText())
                                                 .blendMode(.plusLighter)
+                                                .contentTransition(.numericText())
                                         }
                                     } else {
                                         HStack {
@@ -656,7 +568,6 @@ struct HomeView: View {
                                 }
                             }
                         }
-                        
                     }
                     .listSectionSpacing(12) // List Paddings
                     .scrollIndicators(.hidden)
@@ -727,6 +638,8 @@ struct HomeView: View {
                                 Label("Share", systemImage: "square.and.arrow.up")
                             }
                             
+                            Divider()
+                            
                             Button(action: {
                                 // Provide haptic feedback if enabled
                                 if hapticEnabled {
@@ -755,7 +668,6 @@ struct HomeView: View {
                         showSettingsSheet = true
                     }) {
                         Image(systemName: "gear")
-                            .frame(width: 24)
                     }
                 }
             }

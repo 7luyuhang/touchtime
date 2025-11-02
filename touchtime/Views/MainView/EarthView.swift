@@ -39,7 +39,7 @@ struct EarthView: View {
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("customLocalName") private var customLocalName = ""
     @AppStorage("showMapLabels") private var showMapLabels = false
-    @AppStorage("useNaturalDates") private var useNaturalDates = true
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
     
     // 設置地圖縮放限制
     private let cameraBounds = MapCameraBounds(
@@ -72,55 +72,7 @@ struct EarthView: View {
             return ""
         }
         
-        // If Natural Dates is enabled, use Today/Yesterday/Tomorrow
-        if useNaturalDates {
-            // Create calendar for local timezone
-            let localCalendar = Calendar.current
-            
-            // Create calendar for target timezone
-            var targetCalendar = Calendar.current
-            targetCalendar.timeZone = targetTimeZone
-            
-            // Get local timezone's today
-            let localToday = localCalendar.dateComponents([.year, .month, .day], from: currentDate)
-            
-            // Get target timezone's date
-            let targetDate = targetCalendar.dateComponents([.year, .month, .day], from: currentDate)
-            
-            // Check if it's today
-            if targetDate.year == localToday.year &&
-               targetDate.month == localToday.month &&
-               targetDate.day == localToday.day {
-                return "Today"
-            }
-            
-            // Check if it's tomorrow
-            if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: currentDate) {
-                let localTomorrow = localCalendar.dateComponents([.year, .month, .day], from: tomorrow)
-                if targetDate.year == localTomorrow.year &&
-                   targetDate.month == localTomorrow.month &&
-                   targetDate.day == localTomorrow.day {
-                    return "Tomorrow"
-                }
-            }
-            
-            // Check if it's yesterday
-            if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: currentDate) {
-                let localYesterday = localCalendar.dateComponents([.year, .month, .day], from: yesterday)
-                if targetDate.year == localYesterday.year &&
-                   targetDate.month == localYesterday.month &&
-                   targetDate.day == localYesterday.day {
-                    return "Yesterday"
-                }
-            }
-        }
-        
-        // Show the full date format (when Natural Dates is off or not Today/Yesterday/Tomorrow)
-        let formatter = DateFormatter()
-        formatter.timeZone = targetTimeZone
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "E, d MMM"
-        return formatter.string(from: currentDate)
+        return currentDate.formattedDate(style: dateStyle, timeZone: targetTimeZone)
     }
     
     // Add to Calendar
@@ -450,7 +402,7 @@ struct EarthView: View {
                                 showMapLabels.toggle()
                             }
                         }) {
-                            Image(systemName: showMapLabels ? "map.fill" : "map")
+                            Image(systemName: showMapLabels ? "square.2.layers.3d.fill" : "square.2.layers.3d")
                                 .font(.headline)
                                 .foregroundStyle(.white)
                                 .frame(width: 52, height: 52)

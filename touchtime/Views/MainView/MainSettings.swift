@@ -24,7 +24,7 @@ struct SettingsView: View {
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
-    @AppStorage("useNaturalDates") private var useNaturalDates = true
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @State private var currentDate = Date()
@@ -67,48 +67,7 @@ struct SettingsView: View {
     
     // Format date for preview
     func formatDate() -> String {
-        // If Natural Dates is enabled, use Today/Yesterday/Tomorrow
-        if useNaturalDates {
-            let calendar = Calendar.current
-            
-            // Get today's date components
-            let today = calendar.dateComponents([.year, .month, .day], from: Date())
-            let currentDateComponents = calendar.dateComponents([.year, .month, .day], from: currentDate)
-            
-            // Check if it's today
-            if currentDateComponents.year == today.year &&
-               currentDateComponents.month == today.month &&
-               currentDateComponents.day == today.day {
-                return "Today"
-            }
-            
-            // Check if it's tomorrow
-            if let tomorrow = calendar.date(byAdding: .day, value: 1, to: Date()) {
-                let tomorrowComponents = calendar.dateComponents([.year, .month, .day], from: tomorrow)
-                if currentDateComponents.year == tomorrowComponents.year &&
-                   currentDateComponents.month == tomorrowComponents.month &&
-                   currentDateComponents.day == tomorrowComponents.day {
-                    return "Tomorrow"
-                }
-            }
-            
-            // Check if it's yesterday
-            if let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) {
-                let yesterdayComponents = calendar.dateComponents([.year, .month, .day], from: yesterday)
-                if currentDateComponents.year == yesterdayComponents.year &&
-                   currentDateComponents.month == yesterdayComponents.month &&
-                   currentDateComponents.day == yesterdayComponents.day {
-                    return "Yesterday"
-                }
-            }
-        }
-        
-        // Show the full date format (when Natural Dates is off or not Today/Yesterday/Tomorrow)
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        formatter.dateFormat = "E, d MMM"
-        return formatter.string(from: currentDate)
+        return currentDate.formattedDate(style: dateStyle, timeZone: TimeZone.current)
     }
     
     // Calculate time difference
@@ -289,7 +248,7 @@ struct SettingsView: View {
                                     .blendMode(.plusLighter)
                                     .contentTransition(.numericText())
                                     .animation(.spring(), value: currentDate)
-                                    .animation(.spring(), value: useNaturalDates)
+                                    .animation(.spring(), value: dateStyle)
                                 
                             }
                             .animation(.spring(), value: showSkyDot)
@@ -340,7 +299,7 @@ struct SettingsView: View {
                                         RoundedRectangle(cornerRadius: 26, style: .continuous)
                         )
                         .animation(.spring(), value: showSkyDot)
-                        .id("\(showSkyDot)-\(useNaturalDates)")
+                        .id("\(showSkyDot)-\(dateStyle)")
                         
                         // Preview Text
                         Text("Preview")
@@ -386,40 +345,44 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
-                    Toggle(isOn: $useNaturalDates) {
+                    Picker(selection: $dateStyle) {
+                        Text("Relative")
+                            .tag("Relative")
+
+                        Text("Absolute")
+                            .tag("Absolute")
+                    } label: {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .orange, bottomColor: .blue)
-                            Text("Relative Dates")
+                            Text("Date Style")
                         }
                     }
-                    .tint(.blue)
-                    
+                    .pickerStyle(.menu)
+                    .tint(.secondary)
                 }
                 
                 // Temperature/Weather Section
                 Section {
                     Toggle(isOn: $showWeather) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "thermometer.medium", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                            Text("Temperature")
+                            SystemIconImage(systemName: "sun.max.fill", topColor: .orange, bottomColor: .red)
+                            Text("Weather")
                         }
                     }
                     .tint(.blue)
                     
                     // Temperature Unit Picker - only show when weather is enabled
                     if showWeather {
-                        HStack {
-                            Text("Units")
-                            Spacer()
-                            Picker(selection: $useCelsius) {
-                                Text("Celcius").tag(true)
-                                Text("Farenheit").tag(false)
-                            } label: {}
-                                .pickerStyle(.segmented)
-                                .frame(width: 200)
+                        Picker(selection: $useCelsius) {
+                            Text("Celsius").tag(true)
+                            Text("Fahrenheit").tag(false)
+                        } label: {
+                            Text("Temperature Units")
                         }
+                        .pickerStyle(.menu)
+                        .tint(.secondary)
                     }} footer: {
-                        Text("Weather data provided by  Weather.")
+                        Text("Data provided by  Weather.")
                     }
                 
                 
@@ -510,10 +473,7 @@ struct SettingsView: View {
                         }
                         showResetConfirmation = true
                     }) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .red, bottomColor: .yellow)
-                            Text("Reset Cities")
-                        }
+                        Text("Reset Cities")
                         
                     }
                     .foregroundStyle(.primary)
