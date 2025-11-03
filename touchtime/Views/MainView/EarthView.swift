@@ -417,9 +417,9 @@ struct EarthView: View {
                 .transition(.blurReplace)
             }
         }
-            // Title
-            .navigationTitle("Touch Time")
-            .navigationBarTitleDisplayMode(.inline)
+//            // Title
+//            .navigationTitle("Touch Time")
+//            .navigationBarTitleDisplayMode(.inline)
             
         .animation(.spring(), value: worldClocks)
         .animation(.smooth(), value: isUsingExploreMode)

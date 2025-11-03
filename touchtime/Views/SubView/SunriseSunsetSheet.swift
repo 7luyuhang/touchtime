@@ -28,6 +28,7 @@ struct SunriseSunsetSheet: View {
     @State private var currentDate: Date = Date()
     @StateObject private var weatherManager = WeatherManager()
     @State private var currentWeather: CurrentWeather?
+    @State private var dailyWeather: DayWeather?
     
     // Timer to update the current date
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -217,10 +218,28 @@ struct SunriseSunsetSheet: View {
                                     weather.temperature.converted(to: .fahrenheit)
                                 let tempValue = Int(temp.value)
                                 
-                                Text("\(tempValue)°")
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText())
-                                    .animation(.spring(), value: tempValue)
+                                HStack(spacing: 6) {
+                                    Text("\(tempValue)°")
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                        .animation(.spring(), value: tempValue)
+                                    
+                                    // Minimum temperature
+                                    if let daily = dailyWeather {
+                                        let minTemp = useCelsius ?
+                                        daily.lowTemperature.converted(to: .celsius) :
+                                        daily.lowTemperature.converted(to: .fahrenheit)
+                                        let minTempValue = Int(minTemp.value)
+                                        
+                                        
+                                        Text("\(minTempValue)°")
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
+                                            .animation(.spring(), value: minTempValue)
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                    }
+                                }
                             }
                             .padding(16)
                             .background(.white.opacity(0.05))
@@ -421,6 +440,9 @@ struct SunriseSunsetSheet: View {
                         await weatherManager.getWeather(for: timeZoneIdentifier)
                         if let weather = weatherManager.weatherData[timeZoneIdentifier] {
                             currentWeather = weather
+                        }
+                        if let daily = weatherManager.dailyWeatherData[timeZoneIdentifier] {
+                            dailyWeather = daily
                         }
                     }
                 }

@@ -616,9 +616,9 @@ struct HomeView: View {
             .animation(.spring, value: showLocalTime)
             .animation(.spring, value: availableTimeEnabled)
             
-            // Navigation Title
-            .navigationTitle("Touch Time")
-            .navigationBarTitleDisplayMode(.inline)
+//            // Navigation Title
+//            .navigationTitle("Touch Time")
+//            .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

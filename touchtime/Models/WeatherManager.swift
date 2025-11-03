@@ -15,12 +15,13 @@ class WeatherManager: ObservableObject {
     private let weatherService = WeatherService.shared
     
     @Published var weatherData: [String: CurrentWeather] = [:]
+    @Published var dailyWeatherData: [String: DayWeather] = [:]
     @Published var currentWeather: CurrentWeather?
     @Published var isLoading = false
     @Published var weatherError: Error?
     
     // Cache for weather data
-    private var weatherCache: [String: (weather: CurrentWeather, timestamp: Date)] = [:]
+    private var weatherCache: [String: (weather: CurrentWeather, daily: DayWeather?, timestamp: Date)] = [:]
     private let cacheExpiration: TimeInterval = 3600 // 1 hour
     
     // Get weather for a specific timezone/city
@@ -35,6 +36,9 @@ class WeatherManager: ObservableObject {
         if let cached = weatherCache[cacheKey], 
            Date().timeIntervalSince(cached.timestamp) < cacheExpiration {
             self.weatherData[timeZoneIdentifier] = cached.weather
+            if let daily = cached.daily {
+                self.dailyWeatherData[timeZoneIdentifier] = daily
+            }
             // Also set currentWeather if it's the system timezone
             if timeZoneIdentifier == TimeZone.current.identifier {
                 self.currentWeather = cached.weather
@@ -49,13 +53,19 @@ class WeatherManager: ObservableObject {
             let weather = try await weatherService.weather(for: location)
             self.weatherData[timeZoneIdentifier] = weather.currentWeather
             
+            // Get today's daily weather
+            if let todayWeather = weather.dailyForecast.first {
+                self.dailyWeatherData[timeZoneIdentifier] = todayWeather
+            }
+            
             // Also set currentWeather if it's the system timezone
             if timeZoneIdentifier == TimeZone.current.identifier {
                 self.currentWeather = weather.currentWeather
             }
             
             // Update cache
-            weatherCache[cacheKey] = (weather.currentWeather, Date())
+            let dailyWeather = weather.dailyForecast.first
+            weatherCache[cacheKey] = (weather.currentWeather, dailyWeather, Date())
             
         } catch {
             self.weatherError = error
