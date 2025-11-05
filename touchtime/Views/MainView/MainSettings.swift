@@ -365,7 +365,7 @@ struct SettingsView: View {
                 Section {
                     Toggle(isOn: $showWeather) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "sun.max.fill", topColor: .orange, bottomColor: .red)
+                            SystemIconImage(systemName: "sun.max.fill", topColor: .red, bottomColor: .orange)
                             Text("Weather")
                         }
                     }

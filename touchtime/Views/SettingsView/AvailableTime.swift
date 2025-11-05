@@ -210,7 +210,7 @@ struct AvailableTimePicker: View {
                                     toggleWeekday(weekday.index)
                                 }) {
                                     Text(weekday.name)
-                                        .font(.subheadline)
+                                        .font(.callout)
                                         .fontWeight(.semibold)
                                         .fontDesign(.rounded)
                                         .foregroundStyle(.primary)
