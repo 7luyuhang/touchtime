@@ -13,7 +13,7 @@ import StoreKit
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
     @AppStorage("use24HourFormat") private var use24HourFormat = false
-    @AppStorage("showTimeDifference") private var showTimeDifference = true
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -70,10 +70,25 @@ struct SettingsView: View {
         return currentDate.formattedDate(style: dateStyle, timeZone: TimeZone.current)
     }
     
-    // Calculate time difference
-    func timeDifference() -> String {
-        // Since we're showing local time, there's no time difference
-        return "0h"
+    // Calculate additional time display
+    func additionalTimeText() -> String {
+        switch additionalTimeDisplay {
+        case "Time Difference":
+            // Since we're showing local time, there's no time difference
+            return "0h"
+        case "UTC":
+            let offsetSeconds = TimeZone.current.secondsFromGMT()
+            let offsetHours = offsetSeconds / 3600
+            if offsetHours == 0 {
+                return "UTC +0"
+            } else if offsetHours > 0 {
+                return "UTC +\(offsetHours)"
+            } else {
+                return "UTC \(offsetHours)"
+            }
+        default:
+            return ""
+        }
     }
     
     // Get city count text for Notes setting
@@ -222,9 +237,8 @@ struct SettingsView: View {
                                     .transition(.blurReplace)
                                 }
                                 
-                                
-                                if showTimeDifference {
-                                    Text(timeDifference())
+                                if additionalTimeDisplay != "None" {
+                                    Text(additionalTimeText())
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                         .blendMode(.plusLighter)
@@ -329,14 +343,8 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
-                    Toggle(isOn: $showTimeDifference) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "plusminus", topColor: .indigo, bottomColor: .pink)
-                            Text("Time Difference")
-                        }
-                    }
-                    .tint(.blue)
-                    
+
+                    // 24 Hours Format
                     Toggle(isOn: $use24HourFormat) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
@@ -345,6 +353,26 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
+                    
+                    // Additional Time
+                    Picker(selection: $additionalTimeDisplay) {
+                        Text("Time Shift")
+                            .tag("Time Difference")
+                        Text("UTC")
+                            .tag("UTC")
+                        Text("None")
+                            .tag("None")
+                    } label: {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "plusminus", topColor: .indigo, bottomColor: .pink)
+                            Text("Additional Time")
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.secondary)
+                    
+                    
+                    // Date Picker
                     Picker(selection: $dateStyle) {
                         Text("Relative")
                             .tag("Relative")

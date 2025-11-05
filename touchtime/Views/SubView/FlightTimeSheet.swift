@@ -20,6 +20,7 @@ struct FlightTimeSheet: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     
     let currentDate: Date
+    var onSelectionConfirm: ((WorldClock?, WorldClock?) -> Void)?
     
     // Get local city name from timezone
     var localCityName: String {
@@ -162,26 +163,6 @@ struct FlightTimeSheet: View {
         NavigationView {
             ZStack {
                 ScrollView {
-                    
-                    // Information
-                    HStack (spacing: 16) {
-                        Image(systemName: "airplane.path.dotted")
-                            .font(.headline)
-                            .frame(width: 24)
-                        
-                        Text("Select 2 cities to estimate the flight time between them.")
-                            .font(.subheadline)
-                            .multilineTextAlignment(.leading)
-                    }
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-                    .padding(16)
-                    .background(.white.opacity(0.05))
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .padding(.horizontal, 16)
-                    .padding(.top, 8)
-                    .blendMode(.plusLighter)
-                    
                     // Time List
                     VStack(spacing: 0) {
                         // Local time card
@@ -304,16 +285,21 @@ struct FlightTimeSheet: View {
                                 impactFeedback.prepare()
                                 impactFeedback.impactOccurred()
                             }
-                            // Set the selected cities for the flight line
-                            selectedFlightCities = (from: selectedClocks[0], to: selectedClocks[1])
+                            // Set the selected cities for the flight line and center map if callback is provided
+                            if let onSelectionConfirm = onSelectionConfirm {
+                                onSelectionConfirm(selectedClocks[0], selectedClocks[1])
+                            } else {
+                                // Fallback to just setting the binding
+                                selectedFlightCities = (from: selectedClocks[0], to: selectedClocks[1])
+                            }
                             showSheet = false
                         }) {
                             Image(systemName: "checkmark")
-                                .font(.headline)
-                                .foregroundStyle(.black)
+//                                .font(.headline)
+//                                .foregroundStyle(.black)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.yellow)
+//                        .buttonStyle(.borderedProminent)
+//                        .tint(.yellow)
                     }
                 }
                 

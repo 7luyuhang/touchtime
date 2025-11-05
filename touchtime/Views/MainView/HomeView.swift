@@ -34,7 +34,7 @@ struct HomeView: View {
     @State private var showArrangeListSheet = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
-    @AppStorage("showTimeDifference") private var showTimeDifference = true
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("customLocalName") private var customLocalName = ""
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -355,8 +355,8 @@ struct HomeView: View {
                         ForEach(worldClocks) { clock in
                             Section {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    // Top row: Time difference and Date
-                                    if showTimeDifference && !clock.timeDifference.isEmpty {
+                                    // Top row: Additional time display and Date
+                                    if additionalTimeDisplay != "None" {
                                         HStack {
                                             if showSkyDot {
                                                 SkyDotView(
@@ -365,10 +365,14 @@ struct HomeView: View {
                                                 )
                                             }
                                             
-                                            Text(clock.timeDifference)
-                                                .font(.subheadline)
-                                                .foregroundStyle(.secondary)
-                                                .blendMode(.plusLighter)
+                                            // Display based on selected option
+                                            let additionalText = additionalTimeDisplay == "Time Difference" ? clock.timeDifference : clock.utcOffset
+                                            if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
+                                                Text(additionalText)
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(.secondary)
+                                                    .blendMode(.plusLighter)
+                                            }
                                             
                                             Spacer()
                                             
@@ -609,16 +613,16 @@ struct HomeView: View {
                 }
             )
             // Animations
-            .animation(.spring, value: showingRenameAlert)
-            .animation(.spring, value: customLocalName)
-            .animation(.spring, value: worldClocks)
-            .animation(.spring, value: showSkyDot)
-            .animation(.spring, value: showLocalTime)
-            .animation(.spring, value: availableTimeEnabled)
+            .animation(.spring(), value: showingRenameAlert)
+            .animation(.spring(), value: customLocalName)
+            .animation(.spring(), value: worldClocks)
+            .animation(.spring(), value: showSkyDot)
+            .animation(.spring(), value: showLocalTime)
+            .animation(.spring(), value: availableTimeEnabled)
             
-//            // Navigation Title
-//            .navigationTitle("Touch Time")
-//            .navigationBarTitleDisplayMode(.inline)
+            //            // Navigation Title
+            //            .navigationTitle("Touch Time")
+            //            .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

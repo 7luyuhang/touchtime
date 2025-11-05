@@ -44,6 +44,9 @@ struct EarthView: View {
     @AppStorage("showMapLabels") private var showMapLabels = true // 默认显示地图标签
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     
+    // Namespace for Glass Effect morphing
+    @Namespace private var glassEffectNamespace
+    
     // 設置地圖縮放限制
     private let cameraBounds = MapCameraBounds(
         minimumDistance: 5000000,     // 最小高度 1,000km（最大放大）
@@ -216,6 +219,31 @@ struct EarthView: View {
         }
         
         return CLLocationCoordinate2D(latitude: midLat, longitude: midLon)
+    }
+    
+    // Set flight cities and center map on flight path
+    func setFlightCitiesAndCenter(from: WorldClock?, to: WorldClock?) {
+        selectedFlightCities = (from, to)
+        
+        // Center map on flight path midpoint if both cities are selected
+        if let fromClock = from,
+           let toClock = to,
+           let fromCoord = getCoordinate(for: fromClock.timeZoneIdentifier),
+           let toCoord = getCoordinate(for: toClock.timeZoneIdentifier) {
+            
+            // Calculate the midpoint of the great circle route
+            let flightPath = calculateGreatCircleRoute(from: fromCoord, to: toCoord, segments: 50)
+            let midpointIndex = flightPath.count / 2
+            let midCoord = flightPath[midpointIndex]
+            
+            // Animate camera to center on the flight path midpoint
+            withAnimation(.spring()) {
+                position = MapCameraPosition.region(MKCoordinateRegion(
+                    center: midCoord,
+                    span: MKCoordinateSpan(latitudeDelta: 60, longitudeDelta: 60)
+                ))
+            }
+        }
     }
     
     // Calculate great circle route between two coordinates
@@ -498,103 +526,108 @@ struct EarthView: View {
             
             // Bottom Control Bar - Hide when renaming
             if !showingRenameAlert {
-                HStack(spacing: 0) {
-                    
-                    
-                    // Back to Local Time Button - Hide when no clocks and local time not shown
-                    if !(worldClocks.isEmpty && !showLocalTime) {
-                        Button(action: {
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                            
-                            // Navigate to local time location
-                            if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
-                                withAnimation(.smooth()) {
-                                    position = MapCameraPosition.region(MKCoordinateRegion(
-                                        center: localCoordinate,
-                                        span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
-                                    ))
+                GlassEffectContainer(spacing: 8.0) {
+                    HStack(spacing: 8) {
+                        // Group of main buttons
+                        HStack(spacing: 0) {
+                            // Back to Local Time Button - Hide when no clocks and local time not shown
+                            if !(worldClocks.isEmpty && !showLocalTime) {
+                                Button(action: {
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.prepare()
+                                        impactFeedback.impactOccurred()
+                                    }
+                                    
+                                    // Navigate to local time location
+                                    if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
+                                        withAnimation(.smooth()) {
+                                            position = MapCameraPosition.region(MKCoordinateRegion(
+                                                center: localCoordinate,
+                                                span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
+                                            ))
+                                        }
+                                    }
+                                }) {
+                                    Image(systemName: "location.fill")
+                                        .font(.headline)
+                                        .foregroundStyle(.white)
+                                        .frame(width: 52, height: 52)
                                 }
                             }
-                        }) {
-                            Image(systemName: "location.fill")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .frame(width: 52, height: 52)
+                            
+                            // Map Mode Toggle Button
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
                                 
+                                withAnimation(.smooth()) {
+                                    isUsingExploreMode.toggle()
+                                }
+                            }) {
+                                Image(systemName: isUsingExploreMode ? "view.2d" : "view.3d")
+                                    .font(.headline)
+                                    .foregroundStyle(.white)
+                                    .frame(width: 52, height: 52)
+                                    .contentTransition(.symbolEffect(.replace))
+                            }
+                            
+                            // Map Labels Toggle Button - Only show in 2D mode (standard map)
+                            if !isUsingExploreMode {
+                                Button(action: {
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.prepare()
+                                        impactFeedback.impactOccurred()
+                                    }
+                                    
+                                    withAnimation(.smooth()) {
+                                        showMapLabels.toggle()
+                                    }
+                                }) {
+                                    Image(systemName: showMapLabels ? "square.2.layers.3d.fill" : "square.2.layers.3d")
+                                        .font(.headline)
+                                        .foregroundStyle(.white)
+                                        .frame(width: 52, height: 52)
+                                        .contentTransition(.symbolEffect(.replace))
+                                }
+                                .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
+                            }
                         }
-                    }
-                    
-                    // Map Mode Toggle Button
-                    Button(action: {
-                        if hapticEnabled {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                            impactFeedback.prepare()
-                            impactFeedback.impactOccurred()
-                        }
+                        .glassEffect(.regular)
+                        .glassEffectID("mapButtonGroup", in: glassEffectNamespace)
+                        .glassEffectTransition(.matchedGeometry)
                         
-                        withAnimation(.smooth()) {
-                            isUsingExploreMode.toggle()
+                        
+                        // Clear Flight Path Button - Show when flight path is active (placed on the right)
+                        if selectedFlightCities.from != nil && selectedFlightCities.to != nil {
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                
+                                withAnimation(.spring()) {
+                                    setFlightCitiesAndCenter(from: nil, to: nil)
+                                }
+                            }) {
+                                Image(systemName: "xmark")
+                                    .font(.headline)
+                                    .foregroundStyle(.yellow)
+                                    .frame(width: 52, height: 52)
+                            }
+                            .glassEffect(.regular.tint(.yellow.opacity(0.15)).interactive())
+                            .glassEffectID("clearFlightButton", in: glassEffectNamespace)
+                            .glassEffectTransition(.matchedGeometry)
                         }
-                    }) {
-                        Image(systemName: isUsingExploreMode ? "view.2d" : "view.3d")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(width: 52, height: 52)
-                            .contentTransition(.symbolEffect(.replace))
-                    }
-                    
-                    // Map Labels Toggle Button - Only show in 2D mode (standard map)
-                    if !isUsingExploreMode {
-                        Button(action: {
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                            
-                            withAnimation(.smooth()) {
-                                showMapLabels.toggle()
-                            }
-                        }) {
-                            Image(systemName: showMapLabels ? "square.2.layers.3d.fill" : "square.2.layers.3d")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .frame(width: 52, height: 52)
-                                .contentTransition(.symbolEffect(.replace))
-                        }
-                        .transition(.blurReplace().combined(with: .scale))
-                    }
-                    
-                    
-                    // Clear Flight Path Button - Show when flight path is active
-                    if selectedFlightCities.from != nil && selectedFlightCities.to != nil {
-                        Button(action: {
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                            
-                            withAnimation(.smooth()) {
-                                selectedFlightCities = (nil, nil)
-                            }
-                        }) {
-                            Image(systemName: "xmark")
-                                .foregroundStyle(.yellow)
-                                .font(.headline)
-                                .frame(width: 52, height: 52)
-                        }
-                        .transition(.blurReplace().combined(with: .scale))
                     }
                 }
-                .clipShape(.capsule)
-                .glassEffect(.regular.interactive())
                 .padding(.bottom, 8)
-                .transition(.blurReplace)
+                .transition(.blurReplace())
             }
         }
 //            // Title
@@ -677,7 +710,8 @@ struct EarthView: View {
                     worldClocks: $worldClocks,
                     showSheet: $showFlightTimeSheet,
                     selectedFlightCities: $selectedFlightCities,
-                    currentDate: currentDate
+                    currentDate: currentDate,
+                    onSelectionConfirm: setFlightCitiesAndCenter
                 )
             }
             

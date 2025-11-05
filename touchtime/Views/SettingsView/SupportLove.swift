@@ -278,7 +278,7 @@ struct TipJarView: View {
                                             .font(.subheadline.weight(.semibold))
                                             .transition(.blurReplace())
                                             .shimmering(
-                                                animation: .easeInOut(duration: 2.0).repeatForever(autoreverses: false)
+                                                animation: .easeInOut(duration: 1.5).repeatForever(autoreverses: false)
                                             )
                                             .blendMode(.plusLighter)
                                     }

@@ -57,6 +57,24 @@ struct WorldClock: Identifiable, Codable, Equatable {
         }
     }
     
+    // Get UTC offset string (e.g., "UTC +8", "UTC -5")
+    var utcOffset: String {
+        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
+            return "UTC +0"
+        }
+        
+        let offsetSeconds = targetTimeZone.secondsFromGMT()
+        let offsetHours = offsetSeconds / 3600
+        
+        if offsetHours == 0 {
+            return "UTC +0"
+        } else if offsetHours > 0 {
+            return "UTC +\(offsetHours)"
+        } else {
+            return "UTC \(offsetHours)"
+        }
+    }
+    
     func currentDate(baseDate: Date = Date(), offset: TimeInterval = 0) -> String {
         guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
             return ""
