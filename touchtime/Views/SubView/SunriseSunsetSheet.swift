@@ -29,6 +29,7 @@ struct SunriseSunsetSheet: View {
     @StateObject private var weatherManager = WeatherManager()
     @State private var currentWeather: CurrentWeather?
     @State private var dailyWeather: DayWeather?
+    @State private var weatherLoadAttempted = false // No Weather Data
     
     // Timer to update the current date
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -193,53 +194,71 @@ struct SunriseSunsetSheet: View {
             ScrollView {
                 VStack(spacing: 0) {
                     // Weather section - only show if weather is enabled in settings
-                    if showWeather, let weather = currentWeather {
-                        VStack(alignment: .leading){
-                            // Weather info section
-                            HStack {
-                                HStack(spacing: 16){
-                                    Image(systemName: weather.condition.icon)
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .frame(width: 24)
-                                    
-                                    Text(weather.condition.displayName)
-                                        .font(.headline)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                }
-                                
-                                Spacer()
-                                
-                                // Temperature
-                                let temp = useCelsius ? 
-                                    weather.temperature.converted(to: .celsius) : 
-                                    weather.temperature.converted(to: .fahrenheit)
-                                let tempValue = Int(temp.value)
-                                
-                                HStack(spacing: 6) {
-                                    Text("\(tempValue)°")
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                        .animation(.spring(), value: tempValue)
-                                    
-                                    // Minimum temperature
-                                    if let daily = dailyWeather {
-                                        let minTemp = useCelsius ?
-                                        daily.lowTemperature.converted(to: .celsius) :
-                                        daily.lowTemperature.converted(to: .fahrenheit)
-                                        let minTempValue = Int(minTemp.value)
+                    if showWeather {
+                        if let weather = currentWeather {
+                            VStack(alignment: .leading){
+                                // Weather info section
+                                HStack {
+                                    HStack(spacing: 16){
+                                        Image(systemName: weather.condition.icon)
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                            .frame(width: 24)
                                         
-                                        
-                                        Text("\(minTempValue)°")
-                                            .monospacedDigit()
-                                            .contentTransition(.numericText())
-                                            .animation(.spring(), value: minTempValue)
+                                        Text(weather.condition.displayName)
+                                            .font(.headline)
                                             .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
                                     }
+                                    
+                                    Spacer()
+                                    
+                                    // Temperature
+                                    let temp = useCelsius ?
+                                        weather.temperature.converted(to: .celsius) :
+                                        weather.temperature.converted(to: .fahrenheit)
+                                    let tempValue = Int(temp.value)
+                                    
+                                    HStack(spacing: 6) {
+                                        Text("\(tempValue)°")
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
+                                            .animation(.spring(), value: tempValue)
+                                        
+                                        // Minimum temperature
+                                        if let daily = dailyWeather {
+                                            let minTemp = useCelsius ?
+                                            daily.lowTemperature.converted(to: .celsius) :
+                                            daily.lowTemperature.converted(to: .fahrenheit)
+                                            let minTempValue = Int(minTemp.value)
+                                            
+                                            
+                                            Text("\(minTempValue)°")
+                                                .monospacedDigit()
+                                                .contentTransition(.numericText())
+                                                .animation(.spring(), value: minTempValue)
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                        }
+                                    }
                                 }
+                                .padding(16)
+                                .background(.white.opacity(0.05))
+                                .blendMode(.plusLighter)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .padding(.horizontal, 16)
+                                .padding(.top, 16) // Row top padding
+                            }
+                        } else if weatherLoadAttempted {
+                            // Show "No Internet" message when weather is enabled but couldn't be loaded
+                            HStack {
+                                Spacer()
+                                    Text("No Weather Data")
+                                        .font(.body)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                Spacer()
                             }
                             .padding(16)
                             .background(.white.opacity(0.05))
@@ -438,6 +457,7 @@ struct SunriseSunsetSheet: View {
                 if showWeather {
                     Task {
                         await weatherManager.getWeather(for: timeZoneIdentifier)
+                        weatherLoadAttempted = true
                         if let weather = weatherManager.weatherData[timeZoneIdentifier] {
                             currentWeather = weather
                         }
@@ -485,3 +505,4 @@ struct SunriseSunsetSheet: View {
         }
     }
 }
+
