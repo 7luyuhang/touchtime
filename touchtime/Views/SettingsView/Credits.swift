@@ -36,7 +36,7 @@ struct CreditsView: View {
                 Text("Thanks for these kind human beings.")
             }
         }
-        .navigationTitle("Credits")
+        .navigationTitle("Acknowledgements")
         .navigationBarTitleDisplayMode(.inline)
     }
 }

@@ -360,6 +360,7 @@ struct SettingsView: View {
                             .tag("Time Difference")
                         Text("UTC")
                             .tag("UTC")
+                        Divider()
                         Text("None")
                             .tag("None")
                     } label: {
@@ -611,7 +612,7 @@ struct SettingsView: View {
                     
                     // Credits
                     NavigationLink(destination: CreditsView()) {
-                        Text("Credits")
+                        Text("Acknowledgements")
                     }
                     // Version
                     HStack {

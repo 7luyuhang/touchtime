@@ -338,7 +338,13 @@ struct EarthView: View {
                 }
                 // Show local time marker
                 if showLocalTime {
-                    if let coordinate = getCoordinate(for: TimeZone.current.identifier) {
+                    // Check if we should show local time based on flight selection
+                    let shouldShowLocalTime = selectedFlightCities.from == nil || selectedFlightCities.to == nil ||
+                        (selectedFlightCities.from?.timeZoneIdentifier == TimeZone.current.identifier ||
+                         selectedFlightCities.to?.timeZoneIdentifier == TimeZone.current.identifier)
+                    
+                    if shouldShowLocalTime,
+                       let coordinate = getCoordinate(for: TimeZone.current.identifier) {
                         Annotation(customLocalName.isEmpty ? localCityName : customLocalName, coordinate: coordinate) {
                             VStack(spacing: 6) {
                                 // Time bubble with SkyDot - wrapped in Menu
@@ -423,10 +429,14 @@ struct EarthView: View {
                 
                 // Show world clock markers
                 ForEach(worldClocks) { clock in
+                    // Check if we should show this clock based on flight selection
+                    let shouldShowClock = selectedFlightCities.from == nil || selectedFlightCities.to == nil ||
+                        (clock.id == selectedFlightCities.from?.id || clock.id == selectedFlightCities.to?.id)
+                    
                     // Skip if this clock has the same timezone as local time and local time is shown
                     if showLocalTime && clock.timeZoneIdentifier == TimeZone.current.identifier {
                         // Don't show duplicate of local time
-                    } else if let coordinate = getCoordinate(for: clock.timeZoneIdentifier) {
+                    } else if shouldShowClock, let coordinate = getCoordinate(for: clock.timeZoneIdentifier) {
                         Annotation(clock.cityName, coordinate: coordinate) {
                             
                             VStack(spacing: 6) {
