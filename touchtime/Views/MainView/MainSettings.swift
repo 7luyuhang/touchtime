@@ -30,6 +30,7 @@ struct SettingsView: View {
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     @State private var showSupportLove = false
+    @State private var showOnboarding = false
     @State private var eventStore = EKEventStore()
     @State private var availableCalendars: [EKCalendar] = []
     @State private var hasCalendarPermission = false
@@ -494,6 +495,21 @@ struct SettingsView: View {
                     }
                 }
                 
+                
+                // Onboarding Section
+                Section {
+                    Button(action: {
+                        showOnboarding = true
+                    }) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "sparkle.magnifyingglass", topColor: .blue, bottomColor: .pink)
+                            Text("Show Onboarding")
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
+                
+                
                 // Reset Section
                 Section{
                     Button(action: {
@@ -518,8 +534,9 @@ struct SettingsView: View {
                     Text("This will reset all cities to the default list and clear any custom city names.")
                 }
                 
+                
  
-                // Others
+                // Others Section
                 Section{
                     
                     Button(action: {
@@ -578,23 +595,25 @@ struct SettingsView: View {
                         .font(.footnote)
                     
                     Menu {
-                        Link(destination: URL(string: "https://luyuhang.net")!) {
-                            Text("Website")
-                        }
-                        
-                        Link(destination: URL(string: "https://www.instagram.com/7ahang/")!) {
-                            Text("Instagram")
-                        }
-                        
-                        Link(destination: URL(string: "https://x.com/yuhanglu")!) {
-                            Text("X")
-                        }
-                        
+                        Section("Contact") {
+                            Link(destination: URL(string: "https://luyuhang.net")!) {
+                                Text("Website")
+                            }
+                            
+                            Link(destination: URL(string: "https://www.instagram.com/7ahang/")!) {
+                                Text("Instagram")
+                            }
+                            
+                            Link(destination: URL(string: "https://x.com/yuhanglu")!) {
+                                Text("X")
+                            }}
+ 
                         Section("More apps from team") {
                             Link(destination: URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720")!) {
                                 Text("Hands Time - Minimalist Widget")
                             }
                         }
+                        
                     } label: {
                         Text("yuhang")
                             .font(.footnote)
@@ -676,6 +695,32 @@ struct SettingsView: View {
                             }
                         }
                 }
+            }
+            // Onboarding
+            .fullScreenCover(isPresented: $showOnboarding) {
+                OnboardingView(hasCompletedOnboarding: Binding(
+                    get: { !showOnboarding },
+                    set: { newValue in
+                        if newValue {
+                            showOnboarding = false
+                        }
+                    }
+                ))
+                    .overlay(alignment: .topTrailing) {
+                        Button(action: {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            showOnboarding = false
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                                .glassEffect(.clear.interactive())
+                        }
+                        .padding(.horizontal)
+                    }
             }
         }
     }

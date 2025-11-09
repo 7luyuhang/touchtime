@@ -9,12 +9,14 @@ import SwiftUI
 
 struct ContentView: View {
     @State private var worldClocks: [WorldClock] = []
+    @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
     
     var body: some View {
-        TabView {
+        if hasCompletedOnboarding {
+            TabView {
             Tab("List", systemImage: "clock") {
                 HomeView(worldClocks: $worldClocks)
             }
@@ -26,10 +28,13 @@ struct ContentView: View {
             Tab(role: .search) {
                 SearchTabView(worldClocks: $worldClocks)
             }
-        }
-        .tabViewStyle(.automatic)
-        .onAppear {
-            loadWorldClocks()
+            }
+            .tabViewStyle(.automatic)
+            .onAppear {
+                loadWorldClocks()
+            }
+        } else {
+            OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
         }
     }
     

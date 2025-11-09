@@ -15,6 +15,19 @@ struct CitySelectionSheet: View {
     @State private var selectedIds: Set<String> = []
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     
+    private var exampleText: String {
+        let now = Date()
+        let timeFormatter = DateFormatter()
+        timeFormatter.dateFormat = "HH:mm"
+        let time = timeFormatter.string(from: now)
+        
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "EEE, MMM d"
+        let date = dateFormatter.string(from: now)
+        
+        return "Time in location: \(time) · \(date)"
+    }
+    
     var body: some View {
         List {
             // Master Toggle Section
@@ -35,6 +48,16 @@ struct CitySelectionSheet: View {
                     }
                 } else {
                     Text("Add selected cities and times to event notes.")
+                }
+            }
+            
+            // Example Note Section (shown when off)
+            if !showCitiesInNotes {
+                Section {
+                        Text(exampleText)
+                            .foregroundStyle(.secondary)
+                } header: {
+                    Text("Example")
                 }
             }
             
