@@ -310,6 +310,26 @@ struct EarthView: View {
                     let midpointIndex = flightPath.count / 2
                     let midCoord = flightPath[midpointIndex]
                     
+                    // Determine if airplane should face left or right
+                    let shouldFaceLeft: Bool = {
+                        // Handle longitude wrapping for International Date Line
+                        var lon1 = fromCoord.longitude
+                        var lon2 = toCoord.longitude
+                        
+                        // If the difference is greater than 180, we're crossing the date line
+                        if abs(lon2 - lon1) > 180 {
+                            // Adjust the western longitude to be on the same "side"
+                            if lon1 < 0 {
+                                lon1 += 360
+                            } else {
+                                lon2 += 360
+                            }
+                        }
+                        
+                        // If destination is west of origin (smaller longitude), face left
+                        return lon2 < lon1
+                    }()
+                    
                     Annotation("", coordinate: midCoord) {
                         if let fromTimeZone = TimeZone(identifier: fromClock.timeZoneIdentifier),
                            let toTimeZone = TimeZone(identifier: toClock.timeZoneIdentifier) {
@@ -319,6 +339,7 @@ struct EarthView: View {
                                     Image(systemName: "airplane")
                                         .font(.footnote.weight(.semibold))
                                         .foregroundStyle(.yellow)
+                                        .scaleEffect(x: shouldFaceLeft ? -1 : 1, y: 1)
                                     
                                     Text(calculateFlightTime(from: fromTimeZone, to: toTimeZone))
                                         .font(.caption)

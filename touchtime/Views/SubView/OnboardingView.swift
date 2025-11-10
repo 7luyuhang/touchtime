@@ -170,6 +170,12 @@ struct OnboardingView: View {
                                 .animation(
                                     .bouncy(duration: 1.0), value: animateIcon
                                 )
+                                .onTapGesture {
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                }
                         }
                         
                         VStack(spacing: 8) {

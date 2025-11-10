@@ -721,6 +721,9 @@ struct HomeView: View {
             // Settings Sheet
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(worldClocks: $worldClocks)
+                      //Customize sheet background
+//                    .scrollContentBackground(.hidden)
+//                    .presentationBackground(.ultraThinMaterial)
             }
             
             // Event Editor Sheet
