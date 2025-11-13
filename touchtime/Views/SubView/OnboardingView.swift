@@ -227,11 +227,13 @@ struct OnboardingView: View {
                             title: "Event plan across zones, effortlessly",
                             isAnimated: animateFeatures
                         )
-//                        Text("and much more...")
-//                            .font(.subheadline.weight(.semibold))
-//                            .foregroundStyle(.secondary)
-//                            .blendMode(.plusLighter)
-//                            .padding(.top, 8)
+                        
+                        Text("and much more...")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .blendMode(.plusLighter)
+                            .padding(.top, 8)
+                        
                     }
                     .transition(.blurReplace().combined(with: .move(edge: .bottom)))
                     .padding(.horizontal, 32)

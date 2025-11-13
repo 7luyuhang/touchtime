@@ -33,6 +33,26 @@ struct HomeView: View {
     @State private var selectedCityName: String = ""
     @State private var showArrangeListSheet = false
     
+    // Collection management
+    @State private var collections: [CityCollection] = []
+    @State private var selectedCollectionId: UUID? = nil
+    @AppStorage("selectedCollectionId") private var savedSelectedCollectionId: String = ""
+    
+    // Computed binding for picker
+    private var pickerSelection: Binding<UUID?> {
+        Binding(
+            get: { selectedCollectionId },
+            set: { newValue in
+                selectedCollectionId = newValue
+                saveSelectedCollection()
+                if hapticEnabled {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
+                }
+            }
+        )
+    }
+    
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showLocalTime") private var showLocalTime = true
@@ -55,6 +75,7 @@ struct HomeView: View {
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
+    private let collectionsKey = "savedCityCollections"
     
     // Get local city name from timezone
     var localCityName: String {
@@ -64,6 +85,56 @@ struct HomeView: View {
             return components.last!.replacingOccurrences(of: "_", with: " ")
         } else {
             return identifier
+        }
+    }
+    
+    // Get displayed clocks based on selected collection
+    var displayedClocks: [WorldClock] {
+        if let collectionId = selectedCollectionId,
+           let collection = collections.first(where: { $0.id == collectionId }) {
+            return collection.cities
+        }
+        return worldClocks // Default - show all cities
+    }
+    
+    // Current collection name for display
+    var currentCollectionName: String {
+        if let collectionId = selectedCollectionId,
+           let collection = collections.first(where: { $0.id == collectionId }) {
+            return collection.name
+        }
+        return "Default"
+    }
+    
+    // Load collections from UserDefaults
+    func loadCollections() {
+        if let data = UserDefaults.standard.data(forKey: collectionsKey),
+           let decoded = try? JSONDecoder().decode([CityCollection].self, from: data) {
+            collections = decoded
+        } else {
+            // Clear collections if no data in UserDefaults
+            collections = []
+        }
+        
+        // Load saved selection
+        if !savedSelectedCollectionId.isEmpty,
+           let uuid = UUID(uuidString: savedSelectedCollectionId) {
+            selectedCollectionId = uuid
+        } else {
+            // Clear selection if no saved ID
+            selectedCollectionId = nil
+        }
+    }
+    
+    // Save selected collection
+    func saveSelectedCollection() {
+        savedSelectedCollectionId = selectedCollectionId?.uuidString ?? ""
+    }
+    
+    // Save collections to UserDefaults
+    func saveCollections() {
+        if let encoded = try? JSONEncoder().encode(collections) {
+            UserDefaults.standard.set(encoded, forKey: collectionsKey)
         }
     }
     
@@ -183,12 +254,30 @@ struct HomeView: View {
             ZStack(alignment: .bottom) {
                 
                 // Blank View
-                if worldClocks.isEmpty && !showLocalTime {
+                if displayedClocks.isEmpty && !showLocalTime {
                     // Empty state view
                     ContentUnavailableView {
                         Label("Nothing here", systemImage: "location.magnifyingglass")
                     } description: {
-                        Text("Add cities to track time.")
+                        Text(selectedCollectionId != nil ? "No cities in this collection." : "Add cities to track time.")
+                    } actions: {
+                        if selectedCollectionId != nil {
+                            Button {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.impactOccurred()
+                                }
+                                showArrangeListSheet = true
+                            } label: {
+                                Text("Add Cities")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 12)
+                                    .glassEffect(.clear.interactive())
+                                    .buttonStyle(.plain)
+                            }
+                        }
                     }
                     .background(Color.clear)
                     
@@ -352,7 +441,7 @@ struct HomeView: View {
                         }
                         
                         // City list
-                        ForEach(worldClocks) { clock in
+                        ForEach(displayedClocks) { clock in
                             Section {
                                 VStack(alignment: .leading, spacing: 4) {
                                     // Top row: Additional time display and Date
@@ -493,15 +582,17 @@ struct HomeView: View {
                                     }
                                 }
                                 
-                                //Swipe to delete time
+                                //Swipe to delete time (only for default view)
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                            worldClocks.remove(at: index)
-                                            saveWorldClocks()
+                                    if selectedCollectionId == nil {
+                                        Button(role: .destructive) {
+                                            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
+                                                worldClocks.remove(at: index)
+                                                saveWorldClocks()
+                                            }
+                                        } label: {
+                                            Label("", systemImage: "xmark.circle")
                                         }
-                                    } label: {
-                                        Label("", systemImage: "xmark.circle")
                                     }
                                 }
                                 
@@ -542,32 +633,37 @@ struct HomeView: View {
                                     
                                     Divider()
                                     
-                                    // Move to Top
-                                    if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
-                                        Button(action: {
-                                            // Move to top
-                                            withAnimation {
-                                                let clockToMove = worldClocks.remove(at: index)
-                                                worldClocks.insert(clockToMove, at: 0)
-                                                saveWorldClocks()
+                                    // Move to Top (only for default view)
+                                    if selectedCollectionId == nil {
+                                        if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
+                                            Button(action: {
+                                                // Move to top
+                                                withAnimation {
+                                                    let clockToMove = worldClocks.remove(at: index)
+                                                    worldClocks.insert(clockToMove, at: 0)
+                                                    saveWorldClocks()
+                                                }
+                                            }) {
+                                                Label("Move to Top", systemImage: "arrow.up.to.line")
                                             }
-                                        }) {
-                                            Label("Move to Top", systemImage: "arrow.up.to.line")
                                         }
                                     }
                                     
-                                    Divider()
-                                    
-                                    Button(role: .destructive, action: {
-                                        // Delete
-                                        if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                            withAnimation {
-                                                worldClocks.remove(at: index)
-                                                saveWorldClocks()
+                                    // Only show delete for default view
+                                    if selectedCollectionId == nil {
+                                        Divider()
+                                        
+                                        Button(role: .destructive, action: {
+                                            // Delete
+                                            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
+                                                withAnimation {
+                                                    worldClocks.remove(at: index)
+                                                    saveWorldClocks()
+                                                }
                                             }
+                                        }) {
+                                            Label("Delete", systemImage: "xmark.circle")
                                         }
-                                    }) {
-                                        Label("Delete", systemImage: "xmark.circle")
                                     }
                                 }
                             }
@@ -581,7 +677,7 @@ struct HomeView: View {
                 }
                 
                 // Scroll Time View - Hide when renaming or when there's no content to display
-                if !showingRenameAlert && !(worldClocks.isEmpty && !showLocalTime) {
+                if !showingRenameAlert && !(displayedClocks.isEmpty && !showLocalTime) {
                     ScrollTimeView(timeOffset: $timeOffset, showButtons: $showScrollTimeButtons, worldClocks: $worldClocks)
                         .padding(.horizontal)
                         .padding(.bottom, 8)
@@ -620,16 +716,39 @@ struct HomeView: View {
             .animation(.spring(), value: showLocalTime)
             .animation(.spring(), value: availableTimeEnabled)
             
-            //            // Navigation Title
-            //            .navigationTitle("Touch Time")
-            //            .navigationBarTitleDisplayMode(.inline)
+            // Navigation Title
+            .navigationTitle(selectedCollectionId != nil ? currentCollectionName : "")
+            .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    
-                    // Only show More button if there are world clocks
-                    if !worldClocks.isEmpty {
+                    // Show menu if there are world clocks or collections
+                    if !worldClocks.isEmpty || !collections.isEmpty {
                         Menu {
+                            // Collections picker - show if there are collections
+                            if !collections.isEmpty {
+                                Picker(selection: pickerSelection) {
+                                    Text("All Cities")
+                                        .tag(nil as UUID?)
+                                    
+                                    Divider()
+                                    
+                                    ForEach(collections) { collection in
+                                        Text(collection.name)
+                                            .tag(collection.id as UUID?)
+                                    }
+                                } label: {
+                                    HStack {
+                                        Image(systemName: "star")
+                                        Text("Collections")
+                                    }
+                                }
+                                .pickerStyle(.menu)
+                                
+                                Divider()
+                            }
+                            
+                            // Share Section
                             Button(action: {
                                 // Provide haptic feedback if enabled
                                 if hapticEnabled {
@@ -643,9 +762,9 @@ struct HomeView: View {
                             }
                             
                             Divider()
-                            
+                        
+                            // Arrange Section
                             Button(action: {
-                                // Provide haptic feedback if enabled
                                 if hapticEnabled {
                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                                     impactFeedback.prepare()
@@ -680,6 +799,10 @@ struct HomeView: View {
                 currentDate = Date()
             }
             
+            .onAppear {
+                loadCollections()
+            }
+            
             // Rename
             .alert("Rename", isPresented: $showingRenameAlert) {
                 TextField(originalClockName, text: $newClockName)
@@ -698,6 +821,14 @@ struct HomeView: View {
                               let index = worldClocks.firstIndex(where: { $0.id == clockId }) {
                         worldClocks[index].cityName = nameToSave
                         saveWorldClocks()
+                        
+                        // Also update the city name in collections if it exists there
+                        for collectionIndex in collections.indices {
+                            if let cityIndex = collections[collectionIndex].cities.firstIndex(where: { $0.id == clockId }) {
+                                collections[collectionIndex].cities[cityIndex].cityName = nameToSave
+                            }
+                        }
+                        saveCollections()
                     }
                     newClockName = ""
                     originalClockName = ""
@@ -724,6 +855,20 @@ struct HomeView: View {
                       //Customize sheet background
 //                    .scrollContentBackground(.hidden)
 //                    .presentationBackground(.ultraThinMaterial)
+            }
+            .onChange(of: showSettingsSheet) { oldValue, newValue in
+                if !newValue && oldValue { // Sheet was dismissed
+                    loadCollections() // Reload collections in case they were reset
+                    // If collections are empty or selected collection no longer exists, reset to default view
+                    if collections.isEmpty && selectedCollectionId != nil {
+                        selectedCollectionId = nil
+                        saveSelectedCollection()
+                    } else if let selectedId = selectedCollectionId,
+                              !collections.contains(where: { $0.id == selectedId }) {
+                        selectedCollectionId = nil
+                        saveSelectedCollection()
+                    }
+                }
             }
             
             // Event Editor Sheet
@@ -755,6 +900,11 @@ struct HomeView: View {
                     currentDate: currentDate,
                     timeOffset: timeOffset
                 )
+            }
+            .onChange(of: showArrangeListSheet) { oldValue, newValue in
+                if !newValue && oldValue { // Sheet was dismissed
+                    loadCollections() // Reload collections in case they were modified
+                }
             }
         }
         

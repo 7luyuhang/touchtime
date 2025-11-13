@@ -518,7 +518,10 @@ struct SettingsView: View {
                         }
                         showResetConfirmation = true
                     }) {
-                        Text("Reset Cities")
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .indigo, bottomColor: .orange)
+                            Text("Reset Cities")
+                        }
                         
                     }
                     .foregroundStyle(.primary)
@@ -528,12 +531,11 @@ struct SettingsView: View {
                             resetToDefault()
                         }
                     } message: {
-                        Text("This will reset all cities to the default list and clear any custom city names.")
+                        Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
                     }
                 } footer: {
-                    Text("This will reset all cities to the default list and clear any custom city names.")
+                    Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
                 }
-                
                 
  
                 // Others Section
@@ -727,6 +729,7 @@ struct SettingsView: View {
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
+    private let collectionsKey = "savedCityCollections"
     
     // Reset to default clocks
     func resetToDefault() {
@@ -737,6 +740,12 @@ struct SettingsView: View {
         if let encoded = try? JSONEncoder().encode(worldClocks) {
             UserDefaults.standard.set(encoded, forKey: worldClocksKey)
         }
+        
+        // Clear all collections
+        UserDefaults.standard.removeObject(forKey: collectionsKey)
+        
+        // Clear selected collection
+        UserDefaults.standard.removeObject(forKey: "selectedCollectionId")
         
         // Provide haptic feedback if enabled
         if hapticEnabled {
