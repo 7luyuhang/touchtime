@@ -183,8 +183,40 @@ struct ArrangeListView: View {
         NavigationStack {
             List {
                 // Collections Section
-                if !collections.isEmpty {
-                    Section {
+                Section {
+                    if collections.isEmpty {
+                        // Empty state - prompt to create collection
+                        Button {
+                            showAddCollectionAlert = true
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
+                            }
+                        } label: {
+                            HStack(spacing: 16) {
+                                Image(systemName: "plus.circle")
+                                    .font(.title)
+                                    .foregroundStyle(.secondary)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Create Collection")
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                    Text("Organize your time in collection")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                            }
+                            .contentShape(Rectangle())
+                        }
+                        .buttonStyle(.plain)
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                .fill(Color.black.opacity(0.20))
+                                .glassEffect(.clear.interactive(),
+                                             in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        )
+                    } else {
                         ForEach(collections) { collection in
                             DisclosureGroup(
                                 isExpanded: Binding(
@@ -256,9 +288,11 @@ struct ArrangeListView: View {
                                 }
                             }
                         }
-                    } header: {
-                        Text("Collections")
-                    } footer : {
+                    }
+                } header: {
+                    Text("Collections")
+                } footer: {
+                    if !collections.isEmpty {
                         Text("Press and hold a city to add it to the collection.")
                     }
                 }
