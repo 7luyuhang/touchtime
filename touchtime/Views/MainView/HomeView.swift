@@ -257,7 +257,7 @@ struct HomeView: View {
                 if displayedClocks.isEmpty && !showLocalTime {
                     // Empty state view
                     ContentUnavailableView {
-                        Label("Nothing here", systemImage: "location.magnifyingglass")
+                        Label("Nothing here", systemImage: selectedCollectionId != nil ? "questionmark.folder" : "location.magnifyingglass")
                     } description: {
                         Text(selectedCollectionId != nil ? "No cities in this collection." : "Add cities to track time.")
                     } actions: {
@@ -272,8 +272,8 @@ struct HomeView: View {
                                 Text("Add Cities")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(.white)
-                                    .padding(.horizontal, 16)
-                                    .padding(.vertical, 12)
+                                    .padding(.horizontal, 20)
+                                    .padding(.vertical, 16)
                                     .glassEffect(.clear.interactive())
                                     .buttonStyle(.plain)
                             }
@@ -725,26 +725,31 @@ struct HomeView: View {
                     // Show menu if there are world clocks or collections
                     if !worldClocks.isEmpty || !collections.isEmpty {
                         Menu {
-                            // Collections picker - show if there are collections
+                            // Collections
                             if !collections.isEmpty {
-                                Picker(selection: pickerSelection) {
-                                    Text("All Cities")
-                                        .tag(nil as UUID?)
-                                    
-                                    Divider()
-                                    
-                                    ForEach(collections) { collection in
-                                        Text(collection.name)
-                                            .tag(collection.id as UUID?)
+                                Button {
+                                    selectedCollectionId = nil
+                                    saveSelectedCollection()
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                        impactFeedback.impactOccurred()
                                     }
                                 } label: {
-                                    HStack {
-                                        Image(systemName: "star")
-                                        Text("Collections")
+                                    Label("All Cities", systemImage: selectedCollectionId == nil ? "checkmark.circle" : "")
+                                }
+                                
+                                ForEach(collections) { collection in
+                                    Button {
+                                        selectedCollectionId = collection.id
+                                        saveSelectedCollection()
+                                        if hapticEnabled {
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                            impactFeedback.impactOccurred()
+                                        }
+                                    } label: {
+                                        Label(collection.name, systemImage: selectedCollectionId == collection.id ? "checkmark.circle" : "")
                                     }
                                 }
-                                .pickerStyle(.menu)
-                                
                                 Divider()
                             }
                             
@@ -760,8 +765,6 @@ struct HomeView: View {
                             }) {
                                 Label("Share", systemImage: "square.and.arrow.up")
                             }
-                            
-                            Divider()
                         
                             // Arrange Section
                             Button(action: {

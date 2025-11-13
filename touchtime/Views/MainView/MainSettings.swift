@@ -315,6 +315,11 @@ struct SettingsView: View {
                         )
                         .animation(.spring(), value: showSkyDot)
                         .id("\(showSkyDot)-\(dateStyle)")
+                        .onTapGesture {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                            }
+                        }
                         
                         // Preview Text
                         Text("Preview")

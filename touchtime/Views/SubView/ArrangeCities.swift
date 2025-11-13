@@ -248,7 +248,6 @@ struct ArrangeListView: View {
                                     } label: {
                                         Label("Rename", systemImage: "pencil.tip.crop.circle")
                                     }
-                                    Divider()
                                     Button(role: .destructive) {
                                         deleteSingleCollection(collection: collection)
                                     } label: {
@@ -319,7 +318,7 @@ struct ArrangeListView: View {
                                         } label: {
                                             Label(
                                                 collection.name,
-                                                systemImage: isCityInCollection(city: clock, collectionId: collection.id) ? "checkmark.circle.fill" : ""
+                                                systemImage: isCityInCollection(city: clock, collectionId: collection.id) ? "checkmark.circle" : ""
                                             )
                                         }
                                     }
@@ -374,13 +373,11 @@ struct ArrangeListView: View {
                     } label: {
                         Image(systemName: "checkmark")
                             .foregroundStyle(.white)
-                            .fontWeight(.semibold)
                     }
                 }
             }
             .alert("New Collection", isPresented: $showAddCollectionAlert) {
                 TextField("Collection Name", text: $newCollectionName)
-                    .autocapitalization(.words)
                 Button("Cancel", role: .cancel) {
                     newCollectionName = ""
                 }
@@ -393,7 +390,6 @@ struct ArrangeListView: View {
             }
             .alert("Rename Collection", isPresented: $showRenameCollectionAlert) {
                 TextField("Collection Name", text: $renameCollectionName)
-                    .autocapitalization(.words)
                 Button("Cancel", role: .cancel) {
                     renameCollectionName = ""
                     collectionToRename = nil
