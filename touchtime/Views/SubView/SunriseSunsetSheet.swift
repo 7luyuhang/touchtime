@@ -254,10 +254,10 @@ struct SunriseSunsetSheet: View {
                             // Show "No Internet" message when weather is enabled but couldn't be loaded
                             HStack {
                                 Spacer()
-                                    Text("No Weather Data")
-                                        .font(.body)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
+                                Text("No Weather Data")
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
                                 Spacer()
                             }
                             .padding(16)

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5A5880A12EC78BEE00344D1D /* VariableBlur in Frameworks */ = {isa = PBXBuildFile; productRef = 5A5880A02EC78BEE00344D1D /* VariableBlur */; };
 		5A864EA42EAE30FB009D5989 /* MoonKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5A864EA32EAE30FB009D5989 /* MoonKit */; };
 		5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */ = {isa = PBXBuildFile; productRef = 5AD93C242EB62099001DF8F4 /* Shimmer */; };
 		5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */; };
@@ -46,6 +47,7 @@
 			files = (
 				5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */,
 				5A864EA42EAE30FB009D5989 /* MoonKit in Frameworks */,
+				5A5880A12EC78BEE00344D1D /* VariableBlur in Frameworks */,
 				5AFDCE0E2EA3E2CC0002AC94 /* SunKit in Frameworks */,
 				5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */,
 			);
@@ -102,6 +104,7 @@
 				5AFDCE0D2EA3E2CC0002AC94 /* SunKit */,
 				5A864EA32EAE30FB009D5989 /* MoonKit */,
 				5AD93C242EB62099001DF8F4 /* Shimmer */,
+				5A5880A02EC78BEE00344D1D /* VariableBlur */,
 			);
 			productName = touchtime;
 			productReference = 5A42D3782E82CDCE0048963E /* touchtime.app */;
@@ -136,6 +139,7 @@
 				5AFDCE0C2EA3E2CC0002AC94 /* XCRemoteSwiftPackageReference "SunKit" */,
 				5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */,
 				5AD93C232EB62099001DF8F4 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */,
+				5A58809F2EC78BEE00344D1D /* XCRemoteSwiftPackageReference "VariableBlur" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A42D3792E82CDCE0048963E /* Products */;
@@ -299,7 +303,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = touchtime/touchtime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = touchtime/Info.plist;
@@ -340,7 +344,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = touchtime/touchtime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 34;
+				CURRENT_PROJECT_VERSION = 35;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = touchtime/Info.plist;
@@ -397,6 +401,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		5A58809F2EC78BEE00344D1D /* XCRemoteSwiftPackageReference "VariableBlur" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/nikstar/VariableBlur.git";
+			requirement = {
+				branch = main;
+				kind = branch;
+			};
+		};
 		5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/davideilmito/MoonKit.git";
@@ -424,6 +436,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		5A5880A02EC78BEE00344D1D /* VariableBlur */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A58809F2EC78BEE00344D1D /* XCRemoteSwiftPackageReference "VariableBlur" */;
+			productName = VariableBlur;
+		};
 		5A864EA32EAE30FB009D5989 /* MoonKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */;

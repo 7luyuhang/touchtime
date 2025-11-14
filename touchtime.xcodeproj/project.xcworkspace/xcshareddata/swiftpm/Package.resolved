@@ -1,5 +1,5 @@
 {
-  "originHash" : "2f8865c13b9d26298bcd0d65d0a675ebd7524df59720768f0d6453af21339711",
+  "originHash" : "080d95fdf111e55e36808c993bf0694bdf065204fcf971ae5f54590a4331fd4d",
   "pins" : [
     {
       "identity" : "moonkit",
@@ -26,6 +26,15 @@
       "state" : {
         "revision" : "0226e21f9bf355d40e07e5f5e1c33679d50e167f",
         "version" : "1.5.1"
+      }
+    },
+    {
+      "identity" : "variableblur",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nikstar/VariableBlur.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "84ce30edfee2aaeebcaedcc2b352347f5734cf22"
       }
     }
   ],

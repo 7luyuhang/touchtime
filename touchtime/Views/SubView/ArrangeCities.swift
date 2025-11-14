@@ -193,17 +193,18 @@ struct ArrangeListView: View {
                                 impactFeedback.impactOccurred()
                             }
                         } label: {
-                            HStack(spacing: 16) {
+                            HStack(spacing: 12) {
                                 Image(systemName: "plus.circle")
                                     .font(.title)
                                     .foregroundStyle(.secondary)
-                                VStack(alignment: .leading, spacing: 2) {
+                                
+                                VStack (alignment: .leading) {
                                     Text("Create Collection")
                                         .font(.headline)
-                                        .foregroundStyle(.primary)
                                     Text("Organize your time in collection")
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
                                 }
                                 Spacer()
                             }
@@ -345,15 +346,20 @@ struct ArrangeListView: View {
                         }
                         .contextMenu {
                             if !collections.isEmpty {
-                                Menu("Add to Collection") {
+                                Section("Add to Collection") {
                                     ForEach(collections) { collection in
                                         Button {
-                                            copyCityToCollection(city: clock, collectionId: collection.id)
+                                            if isCityInCollection(city: clock, collectionId: collection.id) {
+                                                removeCityFromCollection(city: clock, collectionId: collection.id)
+                                            } else {
+                                                copyCityToCollection(city: clock, collectionId: collection.id)
+                                            }
                                         } label: {
-                                            Label(
-                                                collection.name,
-                                                systemImage: isCityInCollection(city: clock, collectionId: collection.id) ? "checkmark.circle" : ""
-                                            )
+                                            if isCityInCollection(city: clock, collectionId: collection.id) {
+                                                Label(collection.name, systemImage: "checkmark.circle")
+                                            } else {
+                                                Text(collection.name)
+                                            }
                                         }
                                     }
                                 }
@@ -363,8 +369,6 @@ struct ArrangeListView: View {
                     .onMove { source, destination in
                         worldClocks.move(fromOffsets: source, toOffset: destination)
                         saveWorldClocks()
-                        
-                        // Provide haptic feedback if enabled
                         if hapticEnabled {
                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                             impactFeedback.prepare()
