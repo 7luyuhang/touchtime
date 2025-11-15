@@ -405,7 +405,6 @@ struct HomeView: View {
                                     // Provide haptic feedback if enabled
                                     if hapticEnabled {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                        impactFeedback.prepare()
                                         impactFeedback.impactOccurred()
                                     }
                                 }
@@ -437,6 +436,35 @@ struct HomeView: View {
                                         Label("Rename", systemImage: "pencil.tip.crop.circle")
                                     }
                                 }
+                            }
+                        }
+                        
+                        // Add Cities button when collection only has local time
+                        if showLocalTime && displayedClocks.isEmpty && selectedCollectionId != nil {
+                            Section {
+                                Button {
+                                    showArrangeListSheet = true
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                } label: {
+                                    HStack {
+                                        Spacer()
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 20).weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                        Spacer()
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+                                .listRowBackground(
+                                    Capsule()
+                                        .fill(.clear)
+                                        .glassEffect(.clear)
+                                )
                             }
                         }
                         
@@ -667,8 +695,9 @@ struct HomeView: View {
                     .scrollIndicators(.hidden)
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
-                    .safeAreaPadding(.bottom, 56)
+                    .safeAreaPadding(.bottom, 52)
                 }
+                
                 
                 // Scroll Time View - Hide when renaming or when there's no content to display
                 if !showingRenameAlert && !(displayedClocks.isEmpty && !showLocalTime) {
