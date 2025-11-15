@@ -1,12 +1,19 @@
 {
   "color-space-for-untagged-svg-colors" : "display-p3",
-  "fill" : {
-    "automatic-gradient" : "srgb:1.00000,1.00000,1.00000,1.00000"
-  },
+  "fill-specializations" : [
+    {
+      "value" : "system-light"
+    },
+    {
+      "appearance" : "dark",
+      "value" : "system-dark"
+    }
+  ],
   "groups" : [
     {
       "blend-mode" : "normal",
-      "blur-material" : null,
+      "blur-material" : 0.5,
+      "hidden" : false,
       "layers" : [
         {
           "blend-mode-specializations" : [
@@ -27,7 +34,9 @@
             },
             {
               "appearance" : "dark",
-              "value" : "none"
+              "value" : {
+                "solid" : "extended-gray:0.00000,1.00000"
+              }
             },
             {
               "appearance" : "tinted",
@@ -47,7 +56,14 @@
               "appearance" : "tinted",
               "value" : 0.85
             }
-          ]
+          ],
+          "position" : {
+            "scale" : 1,
+            "translation-in-points" : [
+              0,
+              0
+            ]
+          }
         },
         {
           "blend-mode-specializations" : [
@@ -68,13 +84,25 @@
               "value" : {
                 "linear-gradient" : [
                   "srgb:0.01680,0.19835,1.00000,1.00000",
-                  "srgb:0.00000,0.58980,1.00000,1.00000"
-                ]
+                  "extended-srgb:0.00000,0.53333,1.00000,1.00000"
+                ],
+                "orientation" : {
+                  "start" : {
+                    "x" : 0.5,
+                    "y" : 0
+                  },
+                  "stop" : {
+                    "x" : 0.5000000000000002,
+                    "y" : 1
+                  }
+                }
               }
             },
             {
               "appearance" : "dark",
-              "value" : "none"
+              "value" : {
+                "solid" : "extended-gray:0.00000,1.00000"
+              }
             },
             {
               "appearance" : "tinted",
@@ -82,6 +110,7 @@
             }
           ],
           "glass" : true,
+          "hidden" : false,
           "image-name" : "icon_2 2.png",
           "name" : "icon_2 2",
           "opacity-specializations" : [

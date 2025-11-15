@@ -586,10 +586,7 @@ struct HomeView: View {
                                 .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                                     if selectedCollectionId == nil {
                                         Button(role: .destructive) {
-                                            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                                worldClocks.remove(at: index)
-                                                saveWorldClocks()
-                                            }
+                                            deleteCity(withId: clock.id)
                                         } label: {
                                             Label("", systemImage: "xmark.circle")
                                         }
@@ -655,11 +652,8 @@ struct HomeView: View {
                                         
                                         Button(role: .destructive, action: {
                                             // Delete
-                                            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                                withAnimation {
-                                                    worldClocks.remove(at: index)
-                                                    saveWorldClocks()
-                                                }
+                                            withAnimation {
+                                                deleteCity(withId: clock.id)
                                             }
                                         }) {
                                             Label("Delete", systemImage: "xmark.circle")
@@ -918,5 +912,22 @@ struct HomeView: View {
         if let encoded = try? JSONEncoder().encode(worldClocks) {
             UserDefaults.standard.set(encoded, forKey: worldClocksKey)
         }
+    }
+    
+    // Delete city from both worldClocks and all collections
+    func deleteCity(withId cityId: UUID) {
+        // Remove from worldClocks
+        if let index = worldClocks.firstIndex(where: { $0.id == cityId }) {
+            worldClocks.remove(at: index)
+            saveWorldClocks()
+        }
+        
+        // Remove from all collections
+        for collectionIndex in collections.indices {
+            if let cityIndex = collections[collectionIndex].cities.firstIndex(where: { $0.id == cityId }) {
+                collections[collectionIndex].cities.remove(at: cityIndex)
+            }
+        }
+        saveCollections()
     }
 }

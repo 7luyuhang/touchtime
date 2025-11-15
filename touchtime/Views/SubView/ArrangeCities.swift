@@ -291,7 +291,9 @@ struct ArrangeListView: View {
                         }
                     }
                 } header: {
-                    Text("Collections")
+                    if !collections.isEmpty {
+                        Text("Collections")
+                    }
                 } footer: {
                     if !collections.isEmpty {
                         Text("Press and hold a city to add it to the collection.")
