@@ -1,5 +1,5 @@
 {
-  "originHash" : "4fa8a5e3730ebad347cc030de5aaf34391dec4408215c2f5afda6dc2d656fb9b",
+  "originHash" : "080d95fdf111e55e36808c993bf0694bdf065204fcf971ae5f54590a4331fd4d",
   "pins" : [
     {
       "identity" : "moonkit",
@@ -17,6 +17,24 @@
       "state" : {
         "revision" : "086d345cd9886b037ae0af0db49fcaf849acb887",
         "version" : "2.8.1"
+      }
+    },
+    {
+      "identity" : "swiftui-shimmer",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/markiv/SwiftUI-Shimmer.git",
+      "state" : {
+        "revision" : "0226e21f9bf355d40e07e5f5e1c33679d50e167f",
+        "version" : "1.5.1"
+      }
+    },
+    {
+      "identity" : "variableblur",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nikstar/VariableBlur.git",
+      "state" : {
+        "branch" : "main",
+        "revision" : "84ce30edfee2aaeebcaedcc2b352347f5734cf22"
       }
     }
   ],

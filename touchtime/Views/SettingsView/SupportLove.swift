@@ -8,6 +8,7 @@
 import SwiftUI
 import StoreKit
 import UIKit
+import Shimmer
 
 // Circular Icon for Tip Jar
 struct CircularTipIcon: View {
@@ -57,7 +58,7 @@ struct TipJarView: View {
                     if showExpandedFeatures {
                         VStack(spacing: 0) {
                             LinearGradient(
-                                gradient: Gradient(colors: [Color.indigo.opacity(0.25), Color.pink.opacity(0.25)]),
+                                gradient: Gradient(colors: [Color.orange.opacity(0.25), Color.blue.opacity(0.25)]),
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
@@ -86,7 +87,7 @@ struct TipJarView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     
-                    Text("Thank you for your attention and support, love you!")
+                    Text("Thank you for your attention, love you. Your support means the world.")
                         .font(.headline)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
@@ -204,8 +205,8 @@ struct TipJarView: View {
                                     HStack(spacing: 12) {
                                         CircularTipIcon(
                                             systemName: "heart.fill",
-                                            topColor: .indigo,
-                                            bottomColor: .pink
+                                            topColor: .orange,
+                                            bottomColor: .blue
                                         )
                                         Text("Large Tip")
                                             .foregroundStyle(.primary)
@@ -242,7 +243,7 @@ struct TipJarView: View {
                                 .background(
                                     Capsule(style: .continuous)
                                         .fill(LinearGradient(
-                                            gradient: Gradient(colors: [Color.indigo.opacity(0.5), Color.pink.opacity(0.5)]),
+                                            gradient: Gradient(colors: [Color.orange.opacity(0.5), Color.blue.opacity(0.5)]),
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         ))
@@ -267,10 +268,22 @@ struct TipJarView: View {
                             }
                         }) {
                             HStack(spacing: 10) {
-                                Text(showExpandedFeatures ? "Show Less" : "Support More")
-                                    .id(showExpandedFeatures)
-                                    .font(.subheadline.weight(.semibold))
-                                    .transition(.blurReplace())
+                                Group {
+                                    if showExpandedFeatures {
+                                        Text("Show Less")
+                                            .font(.subheadline.weight(.semibold))
+                                            .transition(.blurReplace())
+                                    } else {
+                                        Text("Support More")
+                                            .font(.subheadline.weight(.semibold))
+                                            .transition(.blurReplace())
+                                            .shimmering(
+                                                animation: .easeInOut(duration: 1.5).repeatForever(autoreverses: false)
+                                            )
+                                            .blendMode(.plusLighter)
+                                    }
+                                }
+                                .id(showExpandedFeatures)
                                 
                                 Image(systemName: "chevron.right")
                                     .font(.footnote.weight(.bold))
@@ -279,7 +292,6 @@ struct TipJarView: View {
                                     .rotationEffect(.degrees(showExpandedFeatures ? -90 : 0))
                             }
                             .foregroundStyle(.white)
-                            .blendMode(.plusLighter)
                             .padding(.vertical, 15)
                             .padding(.horizontal, 20)
                             .clipShape(.capsule)
@@ -287,17 +299,19 @@ struct TipJarView: View {
                         }
                         .buttonStyle(.plain)
                         
-                        
                         // Unable Loading
                     } else {
-                        Text("Nothing here.")
-                            .foregroundStyle(.secondary)
+                        HStack {
+                            ProgressView()
+                        }
+                        .padding()
+                        .glassEffect(.clear)
+//                        Text("Nothing here.")
+//                            .foregroundStyle(.secondary)
                     }
                 }
                 .padding()
-                
             }
-            
             // Title
             .navigationTitle("Support & Love")
             .navigationBarTitleDisplayMode(.inline)

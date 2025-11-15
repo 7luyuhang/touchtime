@@ -100,6 +100,12 @@ struct TimeOffsetPickerView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
                         showTimePicker = false
+                        
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                            impactFeedback.prepare()
+                            impactFeedback.impactOccurred()
+                        }
                     }) {
                         Image(systemName: "checkmark")
                             .fontWeight(.medium)

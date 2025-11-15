@@ -371,15 +371,17 @@ struct ScrollTimeView: View {
                             let hours = Int(absoluteHours)
                             let minutes = Int((absoluteHours - Double(hours)) * 60)
                             
-                            Image(systemName: "chevron.left")
-                                .fontWeight(.semibold)
+                            
+                            // Final time text (tappable) - without sign
+                            Image(systemName: "minus")
+                                .font(.headline)
                                 .foregroundColor(isPositive ? .primary.opacity(0.5) : .primary)
                                 .blendMode(.plusLighter)
                                 .padding(.leading, -8)
+                                .transition(.blurReplace())
                             
                             Spacer()
                             
-                            // Final time text (tappable) - without sign
                             Button(action: {
                                 showTimePicker = true
                             }) {
@@ -403,25 +405,27 @@ struct ScrollTimeView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             .buttonStyle(.plain)
-                            .transition(.blurReplace)
+                            .transition(.blurReplace())
                             
                             Spacer()
                             
                             // Right Icon
-                            Image(systemName: "chevron.right")
-                                .fontWeight(.semibold)
+                            Image(systemName: "plus")
+                                .font(.headline)
                                 .foregroundColor(isPositive ?  .primary : .primary.opacity(0.5))
                                 .blendMode(.plusLighter)
                                 .padding(.trailing, -8)
+                                .transition(.blurReplace())
                             
                         } else {
+                            
                             // Default State
                             // Slide to Adjust Time
                             Image(systemName: "chevron.left")
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.tertiary)
                                 .id("chevron.left.idle")
-                                .transition(.blurReplace)
+                                .transition(.blurReplace())
                                 .blendMode(.plusLighter)
                             
                             Spacer()
@@ -429,7 +433,7 @@ struct ScrollTimeView: View {
                             Text("Slide to Adjust")
                                 .fontWeight(.medium)
                                 .foregroundColor(.secondary)
-                                .transition(.blurReplace)
+                                .transition(.blurReplace())
                                 .blendMode(.plusLighter)
                             
                             Spacer()
@@ -438,23 +442,23 @@ struct ScrollTimeView: View {
                                 .fontWeight(.semibold)
                                 .foregroundStyle(.tertiary)
                                 .id("chevron.right.idle")
-                                .transition(.blurReplace)
+                                .transition(.blurReplace())
                                 .blendMode(.plusLighter)
                         }
                     }
                     .padding(.horizontal, (timeOffset == 0 || dragOffset != 0) ? 16 : 0)
                     .font(.subheadline)
-                
                     .animation(.spring(duration: 0.25), value: dragOffset)
                     .animation(.spring(duration: 0.25), value: timeOffset)
                 
-                .frame(maxWidth: showButtons ? nil : .infinity)
-                .frame(height: 52)
-                .padding(.horizontal, showButtons ? 24 : 0)
-                .contentShape(Rectangle())
-                .glassEffect(.regular.interactive())
-                .glassEffectID("mainContent", in: glassNamespace)
-            
+                
+                    .frame(maxWidth: showButtons ? nil : .infinity)
+                    .frame(height: 52)
+                    .padding(.horizontal, showButtons ? 24 : 0)
+                    .contentShape(Rectangle())
+                    .glassEffect(.regular.interactive())
+                    .glassEffectID("mainContent", in: glassNamespace)
+                
                 
                 // Reset button (right side)
                 if showButtons {

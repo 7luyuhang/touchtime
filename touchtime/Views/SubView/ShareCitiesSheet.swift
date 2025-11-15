@@ -248,10 +248,10 @@ struct ShareCitiesSheet: View {
                         
                         ShareLink(item: generateShareText()) {
                             Text("Share")
-                                .foregroundStyle(.white)
+//                                .foregroundStyle(.white)
                                 .font(.headline)
                         }
-                        .buttonStyle(.glassProminent)
+//                        .buttonStyle(.glassProminent)
                     }
                 }
                 

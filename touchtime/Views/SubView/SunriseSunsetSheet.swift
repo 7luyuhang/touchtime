@@ -10,6 +10,7 @@ import SunKit
 import MoonKit
 import CoreLocation
 import Combine
+import WeatherKit
 
 struct SunriseSunsetSheet: View {
     let cityName: String
@@ -20,8 +21,15 @@ struct SunriseSunsetSheet: View {
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("useCelsius") private var useCelsius = true
+    @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
+    @StateObject private var weatherManager = WeatherManager()
+    @State private var currentWeather: CurrentWeather?
+    @State private var dailyWeather: DayWeather?
+    @State private var weatherLoadAttempted = false // No Weather Data
     
     // Timer to update the current date
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -74,7 +82,7 @@ struct SunriseSunsetSheet: View {
     }
     
     // Format moon phase to readable string
-    private func formatMoonPhase(_ phase: MoonPhase) -> String {
+    private func formatMoonPhase(_ phase: MoonKit.MoonPhase) -> String {
         let phaseString = String(describing: phase)
         // Convert from camelCase or other format to Title Case
         let formatted = phaseString
@@ -115,7 +123,7 @@ struct SunriseSunsetSheet: View {
     }
     
     // Get SF Symbol for moon phase
-    private func getMoonPhaseIcon(_ phase: MoonPhase) -> String {
+    private func getMoonPhaseIcon(_ phase: MoonKit.MoonPhase) -> String {
         let phaseString = String(describing: phase)
         let formatted = phaseString
             .replacingOccurrences(of: "MoonPhase.", with: "")
@@ -145,13 +153,15 @@ struct SunriseSunsetSheet: View {
         }
     }
     
+    // Get SF Symbol for weather condition
+    
     // Map timezone identifiers to coordinates using shared utility
     private func getCoordinatesForTimeZone(_ identifier: String) -> (latitude: Double, longitude: Double)? {
         return TimeZoneCoordinates.getCoordinate(for: identifier)
     }
     
     private func formatTime(_ date: Date?) -> String {
-        guard let date = date else { return "--:--" }
+        guard let date = date else { return "-" }
         
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
@@ -169,7 +179,7 @@ struct SunriseSunsetSheet: View {
     }
     
     private func formatDuration(from startDate: Date?, to endDate: Date?) -> String {
-        guard let start = startDate, let end = endDate else { return "--" }
+        guard let start = startDate, let end = endDate else { return "-" }
         
         let duration = end.timeIntervalSince(start)
         let hours = Int(duration) / 3600
@@ -178,12 +188,89 @@ struct SunriseSunsetSheet: View {
         return "\(hours)hrs \(minutes)min"
     }
     
+    
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
+                    // Weather section - only show if weather is enabled in settings
+                    if showWeather {
+                        if let weather = currentWeather {
+                            VStack(alignment: .leading){
+                                // Weather info section
+                                HStack {
+                                    HStack(spacing: 16){
+                                        Image(systemName: weather.condition.icon)
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                            .frame(width: 24)
+                                        
+                                        Text(weather.condition.displayName)
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    // Temperature
+                                    let temp = useCelsius ?
+                                        weather.temperature.converted(to: .celsius) :
+                                        weather.temperature.converted(to: .fahrenheit)
+                                    let tempValue = Int(temp.value)
+                                    
+                                    HStack(spacing: 6) {
+                                        Text("\(tempValue)°")
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
+                                            .animation(.spring(), value: tempValue)
+                                        
+                                        // Minimum temperature
+                                        if let daily = dailyWeather {
+                                            let minTemp = useCelsius ?
+                                            daily.lowTemperature.converted(to: .celsius) :
+                                            daily.lowTemperature.converted(to: .fahrenheit)
+                                            let minTempValue = Int(minTemp.value)
+                                            
+                                            
+                                            Text("\(minTempValue)°")
+                                                .monospacedDigit()
+                                                .contentTransition(.numericText())
+                                                .animation(.spring(), value: minTempValue)
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                        }
+                                    }
+                                }
+                                .padding(16)
+                                .background(.white.opacity(0.05))
+                                .blendMode(.plusLighter)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .padding(.horizontal, 16)
+                                .padding(.top, 16) // Row top padding
+                            }
+                        } else if weatherLoadAttempted {
+                            // Show "No Internet" message when weather is enabled but couldn't be loaded
+                            HStack {
+                                Spacer()
+                                Text("No Weather Data")
+                                    .fontWeight(.medium)
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
+                                Spacer()
+                            }
+                            .padding(16)
+                            .background(.white.opacity(0.05))
+                            .blendMode(.plusLighter)
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                            .padding(.horizontal, 16)
+                            .padding(.top, 16) // Row top padding
+                        }
+                    }
+                    
                     if let times = sunTimes {
-                        // Main sun times
+                        // Sun times section
                         VStack(alignment: .leading){
                             
                             Text("Solar Time")
@@ -192,7 +279,8 @@ struct SunriseSunsetSheet: View {
                                 .blendMode(.plusLighter)
                                 .padding(.horizontal, 32)
                                 .padding(.bottom, 4)
-                                .padding(.top, 8)
+                                .padding(.top, showWeather ? 24 : 8)
+                                
                             
                             
                             HStack(spacing: 8) {
@@ -357,27 +445,47 @@ struct SunriseSunsetSheet: View {
                                 .padding(.horizontal, 16)
                             }
                         }
-                        
-                    } else {
-                        // Error or no data state
-                        ContentUnavailableView {
-                            Label("No Data Available", systemImage: "sun.max.trianglebadge.exclamationmark")
-                        } description: {
-                            Text("Unable to calculate sunrise and sunset times for this location.")
-                        }
                     }
                 }
             }
             .scrollIndicators(.hidden)
-            .navigationTitle(cityName)
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 currentDate = initialDate
+                
+                // Fetch weather data only if weather is enabled
+                if showWeather {
+                    Task {
+                        await weatherManager.getWeather(for: timeZoneIdentifier)
+                        weatherLoadAttempted = true
+                        if let weather = weatherManager.weatherData[timeZoneIdentifier] {
+                            currentWeather = weather
+                        }
+                        if let daily = weatherManager.dailyWeatherData[timeZoneIdentifier] {
+                            dailyWeather = daily
+                        }
+                    }
+                }
             }
             .onReceive(timer) { _ in
                 currentDate = Date()
             }
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 2) {
+                        Text(cityName)
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+                        
+                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                        Text(adjustedDate.formattedDate(
+                            style: dateStyle,
+                            timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+                        ))
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
                         if hapticEnabled {
@@ -397,3 +505,4 @@ struct SunriseSunsetSheet: View {
         }
     }
 }
+

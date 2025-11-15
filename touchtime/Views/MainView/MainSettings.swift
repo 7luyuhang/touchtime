@@ -13,7 +13,7 @@ import StoreKit
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
     @AppStorage("use24HourFormat") private var use24HourFormat = false
-    @AppStorage("showTimeDifference") private var showTimeDifference = true
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -24,13 +24,18 @@ struct SettingsView: View {
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("useCelsius") private var useCelsius = true
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     @State private var showSupportLove = false
+    @State private var showOnboarding = false
     @State private var eventStore = EKEventStore()
     @State private var availableCalendars: [EKCalendar] = []
     @State private var hasCalendarPermission = false
     @Environment(\.dismiss) private var dismiss
+    @StateObject private var weatherManager = WeatherManager()
     
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -63,17 +68,28 @@ struct SettingsView: View {
     
     // Format date for preview
     func formatDate() -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        formatter.dateFormat = "E, d MMM"
-        return formatter.string(from: currentDate)
+        return currentDate.formattedDate(style: dateStyle, timeZone: TimeZone.current)
     }
     
-    // Calculate time difference
-    func timeDifference() -> String {
-        // Since we're showing local time, there's no time difference
-        return "0h"
+    // Calculate additional time display
+    func additionalTimeText() -> String {
+        switch additionalTimeDisplay {
+        case "Time Difference":
+            // Since we're showing local time, there's no time difference
+            return "0h"
+        case "UTC":
+            let offsetSeconds = TimeZone.current.secondsFromGMT()
+            let offsetHours = offsetSeconds / 3600
+            if offsetHours == 0 {
+                return "UTC +0"
+            } else if offsetHours > 0 {
+                return "UTC +\(offsetHours)"
+            } else {
+                return "UTC \(offsetHours)"
+            }
+        default:
+            return ""
+        }
     }
     
     // Get city count text for Notes setting
@@ -154,6 +170,7 @@ struct SettingsView: View {
                             Text("Your support means the world")
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
                         }
                     }
                 }
@@ -169,7 +186,7 @@ struct SettingsView: View {
 //                                endPoint: .bottomTrailing
 //                            ).opacity(0.25)
 //                        )
-                        .fill(Color.black.opacity(0.2))
+                        .fill(Color.black.opacity(0.20))
                         .glassEffect(.clear.interactive(),
                                      in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 )
@@ -210,7 +227,7 @@ struct SettingsView: View {
                     VStack(alignment: .center, spacing: 10) {
                         
                         VStack(alignment: .leading, spacing: 4) {
-                            // Top row: Time difference and Date
+                            // Top row: Time difference and Date with Weather
                             HStack {
                                 if showSkyDot {
                                     SkyDotView(
@@ -221,9 +238,8 @@ struct SettingsView: View {
                                     .transition(.blurReplace)
                                 }
                                 
-                                
-                                if showTimeDifference {
-                                    Text(timeDifference())
+                                if additionalTimeDisplay != "None" {
+                                    Text(additionalTimeText())
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                         .blendMode(.plusLighter)
@@ -231,16 +247,28 @@ struct SettingsView: View {
                                 
                                 Spacer()
                                 
+                                // Weather for local time (left of date)
+                                if showWeather {
+                                    WeatherView(
+                                        weather: weatherManager.currentWeather,
+                                        useCelsius: useCelsius
+                                    )
+                                    .transition(.blurReplace())
+                                }
+                                
                                 // Date
                                 Text(formatDate())
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
-                                    .contentTransition(.numericText())
                                     .blendMode(.plusLighter)
+                                    .contentTransition(.numericText())
                                     .animation(.spring(), value: currentDate)
+                                    .animation(.spring(), value: dateStyle)
                                 
                             }
                             .animation(.spring(), value: showSkyDot)
+                            .animation(.spring(), value: showWeather)
+                            .animation(.spring(), value: weatherManager.currentWeather)
                             
                             // Bottom row: City name and Time
                             HStack(alignment: .lastTextBaseline) {
@@ -286,6 +314,12 @@ struct SettingsView: View {
                                         RoundedRectangle(cornerRadius: 26, style: .continuous)
                         )
                         .animation(.spring(), value: showSkyDot)
+                        .id("\(showSkyDot)-\(dateStyle)")
+                        .onTapGesture {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                            }
+                        }
                         
                         // Preview Text
                         Text("Preview")
@@ -315,14 +349,8 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
-                    Toggle(isOn: $showTimeDifference) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "plusminus", topColor: .indigo, bottomColor: .pink)
-                            Text("Time Difference")
-                        }
-                    }
-                    .tint(.blue)
-                    
+
+                    // 24 Hours Format
                     Toggle(isOn: $use24HourFormat) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
@@ -331,7 +359,67 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
+                    
+                    // Additional Time
+                    Picker(selection: $additionalTimeDisplay) {
+                            Text("Time Shift")
+                            .tag("Time Difference")
+                        Text("UTC")
+                            .tag("UTC")
+                        Divider()
+                        Text("None")
+                            .tag("None")
+                    } label: {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "plusminus", topColor: .indigo, bottomColor: .pink)
+                            Text("Additional Time")
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.secondary)
+                    
+                    
+                    // Date Picker
+                    Picker(selection: $dateStyle) {
+                        Text("Relative")
+                            .tag("Relative")
+
+                        Text("Absolute")
+                            .tag("Absolute")
+                    } label: {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .orange, bottomColor: .blue)
+                            Text("Date Style")
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.secondary)
                 }
+                
+                // Temperature/Weather Section
+                Section {
+                    Toggle(isOn: $showWeather) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "sun.max.fill", topColor: .red, bottomColor: .orange)
+                            Text("Weather")
+                        }
+                    }
+                    .tint(.blue)
+                    
+                    // Temperature Unit Picker - only show when weather is enabled
+                    if showWeather {
+                        Picker(selection: $useCelsius) {
+                            Text("Celsius").tag(true)
+                            Text("Fahrenheit").tag(false)
+                        } label: {
+                            Text("Temperature Units")
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.secondary)
+                    }} footer: {
+                        Text("Data provided by  Weather.")
+                    }
+                
                 
                 // Calendar
                 Section("Calendar") {
@@ -412,6 +500,21 @@ struct SettingsView: View {
                     }
                 }
                 
+                
+                // Onboarding Section
+                Section {
+                    Button(action: {
+                        showOnboarding = true
+                    }) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "sparkle.magnifyingglass", topColor: .blue, bottomColor: .pink)
+                            Text("Show Onboarding")
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
+                
+                
                 // Reset Section
                 Section{
                     Button(action: {
@@ -421,7 +524,7 @@ struct SettingsView: View {
                         showResetConfirmation = true
                     }) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .red, bottomColor: .yellow)
+                            SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .indigo, bottomColor: .orange)
                             Text("Reset Cities")
                         }
                         
@@ -433,13 +536,15 @@ struct SettingsView: View {
                             resetToDefault()
                         }
                     } message: {
-                        Text("This will reset all cities to the default list and clear any custom city names.")
+                        Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
                     }
+                } footer: {
+                    Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
                 }
                 
  
-                // Others
-                Section(header: Text("Others")) {
+                // Others Section
+                Section{
                     
                     Button(action: {
                         if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=Touch%20Time%20Feedback") {
@@ -497,23 +602,25 @@ struct SettingsView: View {
                         .font(.footnote)
                     
                     Menu {
-                        Link(destination: URL(string: "https://luyuhang.net")!) {
-                            Text("Website")
-                        }
-                        
-                        Link(destination: URL(string: "https://www.instagram.com/7ahang/")!) {
-                            Text("Instagram")
-                        }
-                        
-                        Link(destination: URL(string: "https://x.com/7luyuhang")!) {
-                            Text("X")
-                        }
-                        
+                        Section("Contact") {
+                            Link(destination: URL(string: "https://luyuhang.net")!) {
+                                Text("Website")
+                            }
+                            
+                            Link(destination: URL(string: "https://www.instagram.com/7ahang/")!) {
+                                Text("Instagram")
+                            }
+                            
+                            Link(destination: URL(string: "https://x.com/yuhanglu")!) {
+                                Text("X")
+                            }}
+ 
                         Section("More apps from team") {
                             Link(destination: URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720")!) {
                                 Text("Hands Time - Minimalist Widget")
                             }
                         }
+                        
                     } label: {
                         Text("yuhang")
                             .font(.footnote)
@@ -528,15 +635,10 @@ struct SettingsView: View {
                     .foregroundStyle(.primary)
                 ) {
                     
-                    // App Info Section
-                    Text("Copyright © \(String(Calendar.current.component(.year, from: Date()))) Negative Time Limited. \nAll rights reserved.") // "\n" 换行
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
                     
                     // Credits
                     NavigationLink(destination: CreditsView()) {
-                        Text("Credits")
+                        Text("Acknowledgements")
                     }
                     // Version
                     HStack {
@@ -545,6 +647,11 @@ struct SettingsView: View {
                         Text(getVersionString())
                             .foregroundColor(.secondary)
                     }
+                    // App Info Section
+                    Text("Copyright © \(String(Calendar.current.component(.year, from: Date()))) Negative Time Limited. \nAll rights reserved.") // "\n" 换行
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundStyle(.secondary)
                 }
                 
                 
@@ -570,6 +677,10 @@ struct SettingsView: View {
             }
             .onAppear {
                 loadCalendars()
+                // Fetch weather for local timezone
+                Task {
+                    await weatherManager.getWeather(for: TimeZone.current.identifier)
+                }
             }
             
             // Support & Love
@@ -592,11 +703,38 @@ struct SettingsView: View {
                         }
                 }
             }
+            // Onboarding
+            .fullScreenCover(isPresented: $showOnboarding) {
+                OnboardingView(hasCompletedOnboarding: Binding(
+                    get: { !showOnboarding },
+                    set: { newValue in
+                        if newValue {
+                            showOnboarding = false
+                        }
+                    }
+                ))
+                    .overlay(alignment: .topTrailing) {
+                        Button(action: {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            showOnboarding = false
+                        }) {
+                            Image(systemName: "xmark")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                                .frame(width: 36, height: 36)
+                                .glassEffect(.clear.interactive())
+                        }
+                        .padding(.horizontal)
+                    }
+            }
         }
     }
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
+    private let collectionsKey = "savedCityCollections"
     
     // Reset to default clocks
     func resetToDefault() {
@@ -607,6 +745,12 @@ struct SettingsView: View {
         if let encoded = try? JSONEncoder().encode(worldClocks) {
             UserDefaults.standard.set(encoded, forKey: worldClocksKey)
         }
+        
+        // Clear all collections
+        UserDefaults.standard.removeObject(forKey: collectionsKey)
+        
+        // Clear selected collection
+        UserDefaults.standard.removeObject(forKey: "selectedCollectionId")
         
         // Provide haptic feedback if enabled
         if hapticEnabled {
