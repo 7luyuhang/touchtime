@@ -280,6 +280,8 @@ struct HomeView: View {
                         }
                     }
                     .background(Color.clear)
+                    .id("empty-\(selectedCollectionId?.uuidString ?? "default")")
+                    .transition(.opacity.combined(with: .slide)) // Collection Animation
                     
                 } else {
                     // Main List Content
@@ -696,6 +698,8 @@ struct HomeView: View {
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
                     .safeAreaPadding(.bottom, 52)
+                    .id(selectedCollectionId?.uuidString ?? "default")
+                    .transition(.opacity.combined(with: .slide)) // Collection Animation
                 }
                 
                 
@@ -738,6 +742,7 @@ struct HomeView: View {
             .animation(.spring(), value: showSkyDot)
             .animation(.spring(), value: showLocalTime)
             .animation(.spring(), value: availableTimeEnabled)
+            .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
             // Navigation Title
             .navigationTitle(selectedCollectionId != nil ? currentCollectionName : "")

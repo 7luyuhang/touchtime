@@ -7,6 +7,7 @@
 
 import SwiftUI
 import CoreHaptics
+import VariableBlur
 
 struct DotMatrixOverlay: View {
     let rows = 30
@@ -113,7 +114,7 @@ struct OnboardingView: View {
     
     var body: some View {
         ZStack {
-            // Background
+// Background
             LinearGradient(
                 colors: [
                     Color(.blue
@@ -130,10 +131,16 @@ struct OnboardingView: View {
             // Dot Matrix Animation
             DotMatrixOverlay()
                 .ignoresSafeArea()
-                .opacity(0.85)
                 .blendMode(.plusLighter)
                 .opacity(animateIcon ? 1.0 : 0.0)
             
+            // VariableBlur
+            GeometryReader { geom in
+                VariableBlurView(maxBlurRadius: 10, direction: .blurredBottomClearTop)
+                    .frame(height: geom.safeAreaInsets.bottom + 100)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .ignoresSafeArea()
+            }
             
             VStack {
                 Spacer()

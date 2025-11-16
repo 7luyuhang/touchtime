@@ -154,6 +154,23 @@ struct AvailableTimePicker: View {
         }
     }
     
+    // Calculate available hours duration
+    private func getWorkingHoursDuration() -> String {
+        let calendar = Calendar.current
+        let components = calendar.dateComponents([.hour, .minute], from: startDate, to: endDate)
+        
+        let hours = components.hour ?? 0
+        let minutes = components.minute ?? 0
+        
+        if hours == 0 {
+            return "\(minutes)m"
+        } else if minutes == 0 {
+            return "\(hours)h"
+        } else {
+            return "\(hours)h \(minutes)m"
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             List {
@@ -278,6 +295,8 @@ struct AvailableTimePicker: View {
                                 }
                             }
                         }
+                    } footer: {
+                        Text("Daily available time: \(getWorkingHoursDuration())")
                     }
  
                 }

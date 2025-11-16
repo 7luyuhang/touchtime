@@ -290,6 +290,7 @@ struct EarthView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
+            
                 Map(position: $position, bounds: cameraBounds) {
                 // Show flight path if two cities are selected
                 if let fromClock = selectedFlightCities.from,
@@ -554,7 +555,6 @@ struct EarthView: View {
             .mapControls {
                 MapCompass()
             }
-            
             // Bottom Control Bar - Hide when renaming
             if !showingRenameAlert {
                 GlassEffectContainer(spacing: 8.0) {
