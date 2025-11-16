@@ -227,7 +227,7 @@ struct ShareCitiesSheet: View {
                     Spacer()
                     
                 Button(action: toggleSelectAll) {
-                    Text(allCitiesSelected ? "Deselect All" : "Select All")
+                    Text(allCitiesSelected ? String(localized: "Deselect All") : String(localized: "Select All"))
                         .font(.headline)
                         .padding(.vertical, 12)
                         .padding(.horizontal, 16)
@@ -237,7 +237,7 @@ struct ShareCitiesSheet: View {
                 }
                 
             }
-            .navigationTitle("Share Cities")
+            .navigationTitle(String(localized: "Share Cities"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollIndicators(.hidden)
             
@@ -247,7 +247,7 @@ struct ShareCitiesSheet: View {
                     if !selectedCities.isEmpty || (showLocalTimeInHome && showLocalTime) {
                         
                         ShareLink(item: generateShareText()) {
-                            Text("Share")
+                            Text(String(localized: "Share"))
 //                                .foregroundStyle(.white)
                                 .font(.headline)
                         }

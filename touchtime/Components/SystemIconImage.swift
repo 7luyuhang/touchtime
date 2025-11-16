@@ -11,6 +11,14 @@ struct SystemIconImage: View {
     let systemName: String
     let topColor: Color
     let bottomColor: Color
+    let foregroundColor: Color
+    
+    init(systemName: String, topColor: Color, bottomColor: Color, foregroundColor: Color = .white) {
+        self.systemName = systemName
+        self.topColor = topColor
+        self.bottomColor = bottomColor
+        self.foregroundColor = foregroundColor
+    }
     
     var body: some View {
         ZStack {
@@ -33,7 +41,7 @@ struct SystemIconImage: View {
             Image(systemName: systemName)
                 .font(.system(size: 15))
                 .fontWeight(.medium)
-                .foregroundStyle(.white)
+                .foregroundStyle(foregroundColor)
         }
     }
 }

@@ -213,29 +213,29 @@ struct OnboardingView: View {
                     VStack(spacing: 16) {
                         FeatureRow(
                             icon: "clock",
-                            title: "450+ cities worldwide",
+                            title: String(localized: "450+ cities worldwide"),
                             isAnimated: animateFeatures
                         )
                         
                         FeatureRow(
                             icon: "hand.draw.fill",
-                            title: "Swipe to shift time zones and see the world in sync",
+                            title: String(localized: "Swipe to shift time zones and see the world in sync"),
                             isAnimated: animateFeatures
                         )
                         
                         FeatureRow(
                             icon: "globe.americas.fill",
-                            title: "Explore time through an immersive globe view",
+                            title: String(localized: "Explore time through an immersive globe view"),
                             isAnimated: animateFeatures
                         )
                         
                         FeatureRow(
                             icon: "calendar",
-                            title: "Event plan across zones, effortlessly",
+                            title: String(localized: "Event plan across zones, effortlessly"),
                             isAnimated: animateFeatures
                         )
                         
-                        Text("and much more...")
+                        Text("and much more...", comment: "Onboarding feature list ending")
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .blendMode(.plusLighter)

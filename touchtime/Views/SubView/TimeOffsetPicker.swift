@@ -86,7 +86,7 @@ struct TimeOffsetPickerView: View {
                 .labelsHidden()
                 .environment(\.locale, Locale(identifier: use24HourFormat ? "de_DE" : "en_US"))
             }
-            .navigationTitle("Current Time")
+            .navigationTitle(String(localized: "Current Time"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

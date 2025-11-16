@@ -17,11 +17,11 @@ struct ContentView: View {
     var body: some View {
         if hasCompletedOnboarding {
             TabView {
-            Tab("List", systemImage: "clock") {
+            Tab(String(localized: "List"), systemImage: "clock") {
                 HomeView(worldClocks: $worldClocks)
             }
             
-            Tab("Earth", systemImage: "globe.americas.fill") {
+            Tab(String(localized: "Earth"), systemImage: "globe.americas.fill") {
                 EarthView(worldClocks: $worldClocks)
             }
             

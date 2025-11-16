@@ -31,9 +31,9 @@ struct CreditsView: View {
                         .tint(.primary)
                 }
             } header: {
-                Text("Open Source Library")
+                Text("Open Source Library", comment: "Credits section header")
             } footer: {
-                Text("Thanks for these kind human beings.")
+                Text("Thanks for these kind human beings.", comment: "Credits section footer")
             }
         }
         .navigationTitle("Acknowledgements")

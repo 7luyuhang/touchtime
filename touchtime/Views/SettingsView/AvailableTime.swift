@@ -22,15 +22,17 @@ struct AvailableTimePicker: View {
     @Environment(\.dismiss) private var dismiss
     
     // Weekday names and indices (1 = Sunday, 2 = Monday, etc. in Calendar)
-    private let weekdays: [(name: String, index: Int)] = [
-        ("M", 2),
-        ("T", 3),
-        ("W", 4),
-        ("T", 5),
-        ("F", 6),
-        ("S", 7),
-        ("S", 1)
-    ]
+    private var weekdays: [(name: String, index: Int)] {
+        [
+            (String(localized: "Mon"), 2),
+            (String(localized: "Tue"), 3),
+            (String(localized: "Wed"), 4),
+            (String(localized: "Thu"), 5),
+            (String(localized: "Fri"), 6),
+            (String(localized: "Sat"), 7),
+            (String(localized: "Sun"), 1)
+        ]
+    }
     
     // Computed property to get locale based on time format preference
     private var datePickerLocale: Locale {
@@ -69,7 +71,7 @@ struct AvailableTimePicker: View {
     // Generate footer text based on selected weekdays
     private func getWeekdayFooterText() -> String? {
         guard !selectedWeekdays.isEmpty else {
-            return "Please select at least one day."
+            return String(localized: "Please select at least one day.")
         }
         
         let weekdaySet = Set([2, 3, 4, 5, 6]) // Mon-Fri
@@ -80,19 +82,27 @@ struct AvailableTimePicker: View {
         
         // Check if all days are selected
         if selectedWeekdays == allDaysSet {
-            selectedText = "Every day"
+            selectedText = String(localized: "Every day")
         }
         // Check if exactly Mon-Fri are selected
         else if selectedWeekdays == weekdaySet {
-            selectedText = "Weekdays"
+            selectedText = String(localized: "Weekdays")
         }
         // Check if exactly Sat-Sun are selected
         else if selectedWeekdays == weekendSet {
-            selectedText = "Weekend"
+            selectedText = String(localized: "Weekend")
         }
         // Otherwise, show the selected day names
         else {
-            let dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+            let dayNames = [
+                String(localized: "Sun"),
+                String(localized: "Mon"),
+                String(localized: "Tue"),
+                String(localized: "Wed"),
+                String(localized: "Thu"),
+                String(localized: "Fri"),
+                String(localized: "Sat")
+            ]
             let sortedDays = selectedWeekdays.sorted()
             let selectedNames = sortedDays.map { dayIndex in
                 // Convert calendar weekday (1=Sun, 2=Mon, etc.) to array index
@@ -101,7 +111,7 @@ struct AvailableTimePicker: View {
             selectedText = selectedNames.joined(separator: ", ")
         }
         
-        return "Selected: \(selectedText)"
+        return String(format: String(localized: "Selected: %@"), selectedText)
     }
     
 
@@ -163,11 +173,11 @@ struct AvailableTimePicker: View {
         let minutes = components.minute ?? 0
         
         if hours == 0 {
-            return "\(minutes)m"
+            return String(format: String(localized: "%d minutes"), minutes)
         } else if minutes == 0 {
-            return "\(hours)h"
+            return String(format: String(localized: "%d hours"), hours)
         } else {
-            return "\(hours)h \(minutes)m"
+            return String(format: String(localized: "%d hours %d minutes"), hours, minutes)
         }
     }
     
@@ -257,7 +267,7 @@ struct AvailableTimePicker: View {
                             selection: $startDate,
                             displayedComponents: .hourAndMinute
                         ) {
-                                Text("Start Time")
+                                Text(String(localized: "Start Time"))
                         }
                         .datePickerStyle(.compact)
                         .environment(\.locale, datePickerLocale)
@@ -279,7 +289,7 @@ struct AvailableTimePicker: View {
                             selection: $endDate,
                             displayedComponents: .hourAndMinute
                         ) {
-                                Text("End Time")   
+                                Text(String(localized: "End Time"))   
                         }
                         .datePickerStyle(.compact)
                         .environment(\.locale, datePickerLocale)

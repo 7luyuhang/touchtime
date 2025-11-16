@@ -376,7 +376,7 @@ struct EarthView: View {
                                             let cityName = customLocalName.isEmpty ? localCityName : customLocalName
                                             addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
                                         }) {
-                                            Label("Schedule Event", systemImage: "calendar.badge.plus")
+                                            Label(String(localized: "Schedule Event"), systemImage: "calendar.badge.plus")
                                         }
                                         
                                         Button(action: {
@@ -385,7 +385,7 @@ struct EarthView: View {
                                             newClockName = customLocalName.isEmpty ? localCityName : customLocalName
                                             showingRenameAlert = true
                                         }) {
-                                            Label("Rename", systemImage: "pencil.tip.crop.circle")
+                                            Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
                                         }
                                     }
                                 } label: {
@@ -468,7 +468,7 @@ struct EarthView: View {
                                         Button(action: {
                                             addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.cityName)
                                         }) {
-                                            Label("Schedule Event", systemImage: "calendar.badge.plus")
+                                            Label(String(localized: "Schedule Event"), systemImage: "calendar.badge.plus")
                                         }
            
                                         Button(action: {
@@ -481,7 +481,7 @@ struct EarthView: View {
                                             newClockName = clock.cityName
                                             showingRenameAlert = true
                                         }) {
-                                            Label("Rename", systemImage: "pencil.tip.crop.circle")
+                                            Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
                                         }
                                         
                                         Divider()
@@ -747,14 +747,14 @@ struct EarthView: View {
             }
             
             // Rename Alert
-            .alert("Rename", isPresented: $showingRenameAlert) {
+            .alert(String(localized: "Rename"), isPresented: $showingRenameAlert) {
                 TextField(originalClockName, text: $newClockName)
-                Button("Cancel", role: .cancel) {
+                Button(String(localized: "Cancel"), role: .cancel) {
                     newClockName = ""
                     originalClockName = ""
                     renamingClockId = nil
                 }
-                Button("Save") {
+                Button(String(localized: "Save")) {
                     let nameToSave = newClockName.isEmpty ? originalClockName : newClockName
                     
                     if renamingClockId == nil {

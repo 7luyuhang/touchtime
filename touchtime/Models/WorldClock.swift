@@ -51,9 +51,9 @@ struct WorldClock: Identifiable, Codable, Equatable {
         if difference == 0 {
             return ""
         } else if difference > 0 {
-            return "+\(difference)h"
+            return String(format: String(localized: "+%d hours"), difference)
         } else {
-            return "\(difference)h"
+            return String(format: String(localized: "%d hours"), difference)
         }
     }
     
@@ -100,7 +100,7 @@ struct WorldClock: Identifiable, Codable, Equatable {
         if targetDate.year == localToday.year &&
            targetDate.month == localToday.month &&
            targetDate.day == localToday.day {
-            return "Today"
+            return String(localized: "Today")
         } else {
             // 检查是否是明天（基于原始 baseDate 计算）
             if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: baseDate) {
@@ -108,7 +108,7 @@ struct WorldClock: Identifiable, Codable, Equatable {
                 if targetDate.year == localTomorrow.year &&
                    targetDate.month == localTomorrow.month &&
                    targetDate.day == localTomorrow.day {
-                    return "Tomorrow"
+                    return String(localized: "Tomorrow")
                 }
             }
             
@@ -118,14 +118,14 @@ struct WorldClock: Identifiable, Codable, Equatable {
                 if targetDate.year == localYesterday.year &&
                    targetDate.month == localYesterday.month &&
                    targetDate.day == localYesterday.day {
-                    return "Yesterday"
+                    return String(localized: "Yesterday")
                 }
             }
             
             // 否则显示具体日期
             let formatter = DateFormatter()
             formatter.timeZone = targetTimeZone
-            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.locale = Locale.current
             formatter.dateStyle = .medium
             formatter.timeStyle = .none
             

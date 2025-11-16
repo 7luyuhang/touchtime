@@ -426,7 +426,7 @@ struct HomeView: View {
                                         let cityName = customLocalName.isEmpty ? localCityName : customLocalName
                                         copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
                                     }) {
-                                        Label("Copy as Text", systemImage: "quote.opening")
+                                        Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
                                     }
                                     
                                     Button(action: {
@@ -639,7 +639,7 @@ struct HomeView: View {
                                     Button(action: {
                                         copyTimeAsText(cityName: clock.cityName, timeZoneIdentifier: clock.timeZoneIdentifier)
                                     }) {
-                                        Label("Copy as Text", systemImage: "quote.opening")
+                                        Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
                                     }
                                     
                                     // Rename
@@ -671,7 +671,7 @@ struct HomeView: View {
                                                     saveWorldClocks()
                                                 }
                                             }) {
-                                                Label("Move to Top", systemImage: "arrow.up.to.line")
+                                                Label(String(localized: "Move to Top"), systemImage: "arrow.up.to.line")
                                             }
                                         }
                                     }
@@ -803,7 +803,7 @@ struct HomeView: View {
                                 }
                                 showArrangeListSheet = true
                             }) {
-                                Label("Arrange", systemImage: "list.bullet")
+                                Label(String(localized: "Arrange"), systemImage: "list.bullet")
                             }
                         } label: {
                             Image(systemName: "ellipsis")

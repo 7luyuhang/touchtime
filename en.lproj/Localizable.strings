@@ -1,0 +1,182 @@
+//
+//  Localizable.strings
+//  touchtime
+//
+//  Created by yuhang on 16/11/2025.
+//
+
+/* Onboarding */
+"Touch Time" = "Touch Time";
+"The world time flows within the delicate sky" = "The world time flows within the delicate sky";
+"450+ cities worldwide" = "450+ cities worldwide";
+"Swipe to shift time zones and see the world in sync" = "Swipe to shift time zones and see the world in sync";
+"Explore time through an immersive globe view" = "Explore time through an immersive globe view";
+"Event plan across zones, effortlessly" = "Event plan across zones, effortlessly";
+"and much more..." = "and much more...";
+"Continue" = "Continue";
+"Get Started" = "Get Started";
+"By continuing, you agree to our" = "By continuing, you agree to our";
+"and" = "and";
+"Terms of Use" = "Terms of Use";
+"Privacy Policy" = "Privacy Policy";
+
+/* Available Time */
+"Set available time to compare and show availability across different cities." = "Set available time to compare and show availability across different cities.";
+"Show Available Time" = "Show Available Time";
+"Tap" = "Tap";
+"and add cities first to enable." = "and add cities first to enable.";
+"Enable showing" = "Enable showing";
+"indicator inside system time." = "indicator inside system time.";
+"Start Time" = "Start Time";
+"End Time" = "End Time";
+"Daily available time: %@" = "Daily available time: %@";
+"%d minutes" = "%d minutes";
+"%d hours" = "%d hours";
+"%d hours %d minutes" = "%d hours %d minutes";
+"+%d hours" = "+%d hours";
+"%d hours" = "%d hours";
+"Please select at least one day." = "Please select at least one day.";
+"Every day" = "Every day";
+"Weekdays" = "Weekdays";
+"Weekend" = "Weekend";
+"Selected: %@" = "Selected: %@";
+"Available Time" = "Available Time";
+
+/* Settings */
+"Support & Love" = "Support & Love";
+"Your support means the world" = "Your support means the world";
+"Thank you for your attention, love you. Your support means the world." = "Thank you for your attention, love you. Your support means the world.";
+"Small Tip" = "Small Tip";
+"Medium Tip" = "Medium Tip";
+"Large Tip" = "Large Tip";
+"Show Less" = "Show Less";
+"Support More" = "Support More";
+"Chat with me" = "Chat with me";
+"Open to any thoughts or feedback :)" = "Open to any thoughts or feedback :)";
+"General" = "General";
+"Enable showing system time at the top of the list with ambient background." = "Enable showing system time at the top of the list with ambient background.";
+"Haptics" = "Haptics";
+"System Time" = "System Time";
+"Language" = "Language";
+"Time Display" = "Time Display";
+"Preview" = "Preview";
+"Sky Colour" = "Sky Colour";
+"24-Hour Format" = "24-Hour Format";
+"Additional Time" = "Additional Time";
+"Time Shift" = "Time Shift";
+"UTC" = "UTC";
+"None" = "None";
+"Date Style" = "Date Style";
+"Relative" = "Relative";
+"Absolute" = "Absolute";
+"Weather" = "Weather";
+"Celsius" = "Celsius";
+"Fahrenheit" = "Fahrenheit";
+"Temperature Units" = "Temperature Units";
+"Data provided by  Weather." = "Data provided by  Weather.";
+"Calendar" = "Calendar";
+"Default Calendar" = "Default Calendar";
+"Event Duration" = "Event Duration";
+"15 min" = "15 min";
+"30 min" = "30 min";
+"45 min" = "45 min";
+"1 hr" = "1 hr";
+"2 hrs" = "2 hrs";
+"Time in Notes" = "Time in Notes";
+"1 City" = "1 City";
+"%d Cities" = "%d Cities";
+"Need full calendar access." = "Need full calendar access.";
+"Go to Settings" = "Go to Settings";
+"Show Onboarding" = "Show Onboarding";
+"Reset Cities" = "Reset Cities";
+"Cancel" = "Cancel";
+"Reset" = "Reset";
+"This will reset all cities to the default list, clear any custom city names, and reset your collections." = "This will reset all cities to the default list, clear any custom city names, and reset your collections.";
+"Send Feedback" = "Send Feedback";
+"Review on App Store" = "Review on App Store";
+"Share with Friends" = "Share with Friends";
+"Download Touch Time." = "Download Touch Time.";
+"Designed & built by" = "Designed & built by";
+"Contact" = "Contact";
+"Website" = "Website";
+"Instagram" = "Instagram";
+"X" = "X";
+"More apps from team" = "More apps from team";
+"Hands Time - Minimalist Widget" = "Hands Time - Minimalist Widget";
+"yuhang" = "yuhang";
+"in London." = "in London.";
+"Acknowledgements" = "Acknowledgements";
+"Open Source Library" = "Open Source Library";
+"Thanks for these kind human beings." = "Thanks for these kind human beings.";
+"Version" = "Version";
+"Settings" = "Settings";
+
+/* Home View */
+"Add cities to track time." = "Add cities to track time.";
+"No cities in this collection." = "No cities in this collection.";
+"Add Cities" = "Add Cities";
+"Customize the name of this city" = "Customize the name of this city";
+"Nothing here" = "Nothing here";
+
+/* Other */
+"Share" = "Share";
+"Slide to Adjust" = "Slide to Adjust";
+"Create Collection" = "Create Collection";
+"Organize your time in collection" = "Organize your time in collection";
+"Collections" = "Collections";
+"Press and hold a city to add it to the collection." = "Press and hold a city to add it to the collection.";
+"All Cities" = "All Cities";
+"Enter a name for your new collection" = "Enter a name for your new collection";
+"Enter a new name for your collection" = "Enter a new name for your collection";
+"Show Time in Notes" = "Show Time in Notes";
+"Add selected cities and times to event notes." = "Add selected cities and times to event notes.";
+"Example" = "Example";
+"Solar Time" = "Solar Time";
+"Daylight" = "Daylight";
+"Moon Time" = "Moon Time";
+"Moon Phase" = "Moon Phase";
+"No Weather Data" = "No Weather Data";
+"Cities" = "Cities";
+"%d added" = "%d added";
+"City" = "City";
+
+/* Tabs */
+"List" = "List";
+"Earth" = "Earth";
+
+/* Share Cities */
+"Share Cities" = "Share Cities";
+"Select All" = "Select All";
+"Deselect All" = "Deselect All";
+
+/* Arrange */
+"Arrange" = "Arrange";
+"Rename" = "Rename";
+"Delete" = "Delete";
+"Add to Collection" = "Add to Collection";
+"New Collection" = "New Collection";
+"Collection Name" = "Collection Name";
+"Add" = "Add";
+"Rename Collection" = "Rename Collection";
+"Schedule Event" = "Schedule Event";
+"Save" = "Save";
+"Flight Time" = "Flight Time";
+"Departure" = "Departure";
+"Arrive" = "Arrive";
+
+/* Weekdays */
+"Mon" = "M";
+"Tue" = "T";
+"Wed" = "W";
+"Thu" = "T";
+"Fri" = "F";
+"Sat" = "S";
+"Sun" = "S";
+
+/* Date and Time */
+"Today" = "Today";
+"Tomorrow" = "Tomorrow";
+"Yesterday" = "Yesterday";
+"Current Time" = "Current Time";
+"Copy as Text" = "Copy as Text";
+"Move to Top" = "Move to Top";

@@ -279,12 +279,12 @@ struct ArrangeListView: View {
                                         renameCollectionName = collection.name
                                         showRenameCollectionAlert = true
                                     } label: {
-                                        Label("Rename", systemImage: "pencil.tip.crop.circle")
+                                        Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
                                     }
                                     Button(role: .destructive) {
                                         deleteSingleCollection(collection: collection)
                                     } label: {
-                                        Label("Delete", systemImage: "xmark.circle")
+                                        Label(String(localized: "Delete"), systemImage: "xmark.circle")
                                     }
                                 }
                             }
@@ -348,7 +348,7 @@ struct ArrangeListView: View {
                         }
                         .contextMenu {
                             if !collections.isEmpty {
-                                Section("Add to Collection") {
+                                Section(String(localized: "Add to Collection")) {
                                     ForEach(collections) { collection in
                                         Button {
                                             if isCityInCollection(city: clock, collectionId: collection.id) {
@@ -416,30 +416,30 @@ struct ArrangeListView: View {
                     }
                 }
             }
-            .alert("New Collection", isPresented: $showAddCollectionAlert) {
-                TextField("Collection Name", text: $newCollectionName)
-                Button("Cancel", role: .cancel) {
+            .alert(String(localized: "New Collection"), isPresented: $showAddCollectionAlert) {
+                TextField(String(localized: "Collection Name"), text: $newCollectionName)
+                Button(String(localized: "Cancel"), role: .cancel) {
                     newCollectionName = ""
                 }
-                Button("Add") {
+                Button(String(localized: "Add")) {
                     addCollection()
                 }
                 .disabled(newCollectionName.isEmpty)
             } message: {
-                Text("Enter a name for your new collection")
+                Text(String(localized: "Enter a name for your new collection"))
             }
-            .alert("Rename Collection", isPresented: $showRenameCollectionAlert) {
-                TextField("Collection Name", text: $renameCollectionName)
-                Button("Cancel", role: .cancel) {
+            .alert(String(localized: "Rename Collection"), isPresented: $showRenameCollectionAlert) {
+                TextField(String(localized: "Collection Name"), text: $renameCollectionName)
+                Button(String(localized: "Cancel"), role: .cancel) {
                     renameCollectionName = ""
                     collectionToRename = nil
                 }
-                Button("Rename") {
+                Button(String(localized: "Rename")) {
                     renameCollection()
                 }
                 .disabled(renameCollectionName.isEmpty)
             } message: {
-                Text("Enter a new name for your collection")
+                Text(String(localized: "Enter a new name for your collection"))
             }
         }
     }

@@ -76,7 +76,7 @@ struct SettingsView: View {
         switch additionalTimeDisplay {
         case "Time Difference":
             // Since we're showing local time, there's no time difference
-            return "0h"
+            return String(format: String(localized: "%d hours"), 0)
         case "UTC":
             let offsetSeconds = TimeZone.current.secondsFromGMT()
             let offsetHours = offsetSeconds / 3600
@@ -194,6 +194,22 @@ struct SettingsView: View {
                 
                 // General Section
                 Section(header: Text("General"), footer: Text("Enable showing system time at the top of the list with ambient background.")) {
+                    
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                        }
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "character", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
+                            Text("Language")
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
@@ -449,11 +465,11 @@ struct SettingsView: View {
                         
                         // Event Duration
                         Picker(selection: $defaultEventDuration) {
-                            Text("15 min").tag(900.0)
-                            Text("30 min").tag(1800.0)
-                            Text("45 min").tag(2700.0)
-                            Text("1 hr").tag(3600.0)
-                            Text("2 hrs").tag(7200.0)
+                            Text("15 min", comment: "Event duration option").tag(900.0)
+                            Text("30 min", comment: "Event duration option").tag(1800.0)
+                            Text("45 min", comment: "Event duration option").tag(2700.0)
+                            Text("1 hr", comment: "Event duration option").tag(3600.0)
+                            Text("2 hrs", comment: "Event duration option").tag(7200.0)
                         } label: {
                             HStack(spacing: 12) {
                                 SystemIconImage(systemName: "clock.fill", topColor: .blue, bottomColor: .cyan)

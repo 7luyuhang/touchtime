@@ -87,7 +87,7 @@ struct TipJarView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     
-                    Text("Thank you for your attention, love you. Your support means the world.")
+                    Text(String(localized: "Thank you for your attention, love you. Your support means the world."))
                         .font(.headline)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
@@ -111,7 +111,7 @@ struct TipJarView: View {
                                         topColor: .red,
                                         bottomColor: .yellow
                                     )
-                                    Text("Small Tip")
+                                    Text(String(localized: "Small Tip"))
                                         .foregroundStyle(.primary)
                                 }
                                 
@@ -159,7 +159,7 @@ struct TipJarView: View {
                                         topColor: .blue,
                                         bottomColor: .cyan
                                     )
-                                    Text("Medium Tip")
+                                    Text(String(localized: "Medium Tip"))
                                         .foregroundStyle(.primary)
                                 }
                                 
@@ -208,7 +208,7 @@ struct TipJarView: View {
                                             topColor: .orange,
                                             bottomColor: .blue
                                         )
-                                        Text("Large Tip")
+                                        Text(String(localized: "Large Tip"))
                                             .foregroundStyle(.primary)
                                     }
                                     
@@ -270,11 +270,11 @@ struct TipJarView: View {
                             HStack(spacing: 10) {
                                 Group {
                                     if showExpandedFeatures {
-                                        Text("Show Less")
+                                        Text(String(localized: "Show Less"))
                                             .font(.subheadline.weight(.semibold))
                                             .transition(.blurReplace())
                                     } else {
-                                        Text("Support More")
+                                        Text(String(localized: "Support More"))
                                             .font(.subheadline.weight(.semibold))
                                             .transition(.blurReplace())
                                             .shimmering(
@@ -313,7 +313,7 @@ struct TipJarView: View {
                 .padding()
             }
             // Title
-            .navigationTitle("Support & Love")
+            .navigationTitle(String(localized: "Support & Love"))
             .navigationBarTitleDisplayMode(.inline)
             
             // Bottom Email Button (appears when expanded)
@@ -354,7 +354,7 @@ struct TipJarView: View {
                                     UIApplication.shared.open(emailURL)
                                 }
                             }) {
-                                Text("Chat with me")
+                                Text(String(localized: "Chat with me"))
                                     .font(.headline)
                                     .foregroundStyle(.black)
                                     .frame(maxWidth: .infinity)
@@ -367,7 +367,7 @@ struct TipJarView: View {
                             .padding(.horizontal)
                             .buttonStyle(.plain)
                             
-                            Text("Open to any thoughts or feedback :)")
+                            Text(String(localized: "Open to any thoughts or feedback :)"))
                                 .font(.footnote.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .blendMode(.plusLighter)

@@ -136,18 +136,18 @@ struct FlightTimeSheet: View {
         if let localOrder = localTimeOrder {
             if localOrder == 1 {
                 // Local time is departure, this city is arrival
-                return "Arrive"
+                return String(localized: "Arrive")
             } else {
                 // Local time is arrival
                 if let index = selectionOrder.firstIndex(of: clockId), index == 0 {
-                    return "Departure"
+                    return String(localized: "Departure")
                 }
                 return nil
             }
         } else {
             // No local time selected
             if let index = selectionOrder.firstIndex(of: clockId) {
-                return index == 0 ? "Departure" : "Arrive"
+                return index == 0 ? String(localized: "Departure") : String(localized: "Arrive")
             }
         }
         return nil
@@ -156,7 +156,7 @@ struct FlightTimeSheet: View {
     // Get selection label for local time
     func getLocalTimeSelectionLabel() -> String? {
         guard includeLocalTime, let order = localTimeOrder else { return nil }
-        return order == 1 ? "Departure" : "Arrive"
+        return order == 1 ? String(localized: "Departure") : String(localized: "Arrive")
     }
     
     // Toggle city selection
@@ -363,7 +363,7 @@ struct FlightTimeSheet: View {
             }
             
             // Navigation Title
-            .navigationTitle("Flight Time")
+            .navigationTitle(String(localized: "Flight Time"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollIndicators(.hidden)
             .toolbar {

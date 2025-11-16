@@ -32,7 +32,7 @@ extension Date {
             if currentDateComponents.year == referenceDateComponents.year &&
                currentDateComponents.month == referenceDateComponents.month &&
                currentDateComponents.day == referenceDateComponents.day {
-                return "Today"
+                return String(localized: "Today")
             }
             
             // Check if it's tomorrow
@@ -41,7 +41,7 @@ extension Date {
                 if currentDateComponents.year == tomorrowComponents.year &&
                    currentDateComponents.month == tomorrowComponents.month &&
                    currentDateComponents.day == tomorrowComponents.day {
-                    return "Tomorrow"
+                    return String(localized: "Tomorrow")
                 }
             }
             
@@ -51,14 +51,14 @@ extension Date {
                 if currentDateComponents.year == yesterdayComponents.year &&
                    currentDateComponents.month == yesterdayComponents.month &&
                    currentDateComponents.day == yesterdayComponents.day {
-                    return "Yesterday"
+                    return String(localized: "Yesterday")
                 }
             }
         }
         
         // Show the full date format (when dateStyle is "Absolute" or not Today/Yesterday/Tomorrow)
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.locale = Locale.current
         formatter.timeZone = timeZone
         formatter.dateFormat = "E, d MMM"
         return formatter.string(from: self)

@@ -1,0 +1,182 @@
+//
+//  Localizable.strings
+//  touchtime
+//
+//  Created by yuhang on 16/11/2025.
+//
+
+/* Onboarding */
+"Touch Time" = "Touch Time";
+"The world time flows within the delicate sky" = "世界时间在细腻的天空中流淌";
+"450+ cities worldwide" = "覆盖全球 450+ 城市";
+"Swipe to shift time zones and see the world in sync" = "滑动切换时区，与世界保持同步";
+"Explore time through an immersive globe view" = "以沉浸式地球视图探索时间";
+"Event plan across zones, effortlessly" = "轻松规划跨时区活动";
+"and much more..." = "以及更多功能...";
+"Continue" = "继续";
+"Get Started" = "开始";
+"By continuing, you agree to our" = "继续即表示同意我们的";
+"and" = "及";
+"Terms of Use" = "使用条款";
+"Privacy Policy" = "隐私政策";
+
+/* Available Time */
+"Set available time to compare and show availability across different cities." = "设置可用时间，以比较并查看不同城市的可用性。";
+"Show Available Time" = "显示可用时间";
+"Tap" = "点击";
+"and add cities first to enable." = "并先添加城市以启用。";
+"Enable showing" = "启用显示";
+"indicator inside system time." = "系统时间中的可用性指示器。";
+"Start Time" = "开始时间";
+"End Time" = "结束时间";
+"Daily available time: %@" = "每日可用时间：%@";
+"%d minutes" = "%d 分钟";
+"%d hours" = "%d 小时";
+"%d hours %d minutes" = "%d 小时 %d 分钟";
+"+%d hours" = "+%d 小时";
+"%d hours" = "%d 小时";
+"Please select at least one day." = "请至少选择一天。";
+"Every day" = "每天";
+"Weekdays" = "工作日";
+"Weekend" = "周末";
+"Selected: %@" = "已选择：%@";
+"Available Time" = "可用时间";
+
+/* Settings */
+"Support & Love" = "支持与喜爱";
+"Your support means the world" = "您的支持意义非凡";
+"Thank you for your attention, love you. Your support means the world." = "感谢您的关注与喜爱，您的支持意义非凡。";
+"Small Tip" = "小额支持";
+"Medium Tip" = "中额支持";
+"Large Tip" = "大额支持";
+"Show Less" = "收起";
+"Support More" = "更多支持";
+"Chat with me" = "与我交流";
+"Open to any thoughts or feedback :)" = "欢迎提出任何想法或反馈 :)";
+"General" = "通用";
+"Enable showing system time at the top of the list with ambient background." = "在列表顶部显示系统时间，并呈现柔和氛围背景。";
+"Haptics" = "触觉反馈";
+"System Time" = "系统时间";
+"Language" = "语言";
+"Time Display" = "时间显示";
+"Preview" = "预览";
+"Sky Colour" = "天空色彩";
+"24-Hour Format" = "24 小时制";
+"Additional Time" = "附加时间";
+"Time Shift" = "时差";
+"UTC" = "协调世界时（UTC）";
+"None" = "无";
+"Date Style" = "日期样式";
+"Relative" = "相对";
+"Absolute" = "绝对";
+"Weather" = "天气";
+"Celsius" = "摄氏度（°C)";
+"Fahrenheit" = "华氏度（°F)";
+"Temperature Units" = "温度单位";
+"Data provided by  Weather." = "数据由  Weather 提供。";
+"Calendar" = "日历";
+"Default Calendar" = "默认日历";
+"Event Duration" = "活动时长";
+"15 min" = "15 分钟";
+"30 min" = "30 分钟";
+"45 min" = "45 分钟";
+"1 hr" = "1 小时";
+"2 hrs" = "2 小时";
+"Time in Notes" = "备注时间";
+"1 City" = "1 个城市";
+"%d Cities" = "%d 个城市";
+"Need full calendar access." = "需要完整的日历访问权限。";
+"Go to Settings" = "前往设置";
+"Show Onboarding" = "显示引导";
+"Reset Cities" = "重置城市";
+"Cancel" = "取消";
+"Reset" = "重置";
+"This will reset all cities to the default list, clear any custom city names, and reset your collections." = "这将把城市重置为默认列表，清除自定义名称，并重置您的集合。";
+"Send Feedback" = "发送反馈";
+"Review on App Store" = "在 App Store 评价";
+"Share with Friends" = "分享给朋友";
+"Download Touch Time." = "下载 Touch Time。";
+"Designed & built by" = "设计与开发：";
+"Contact" = "联系";
+"Website" = "个人网站";
+"Instagram" = "Instagram";
+"X" = "X";
+"More apps from team" = "团队的更多应用";
+"Hands Time - Minimalist Widget" = "Hands Time - 极简小组件";
+"yuhang" = "雨杭";
+"in London." = "于伦敦";
+"Acknowledgements" = "致谢";
+"Open Source Library" = "开源库";
+"Thanks for these kind human beings." = "感谢这些慷慨的人们。";
+"Version" = "版本";
+"Settings" = "设置";
+
+/* Home View */
+"Add cities to track time." = "添加城市以追踪时间。";
+"No cities in this collection." = "此集合中暂无城市。";
+"Add Cities" = "添加城市";
+"Customize the name of this city" = "自定义城市名称";
+"Nothing here" = "暂无内容";
+
+/* Other */
+"Share" = "分享";
+"Slide to Adjust" = "滑动以调整";
+"Create Collection" = "创建集合";
+"Organize your time in collection" = "用集合整理你的时间";
+"Collections" = "集合";
+"Press and hold a city to add it to the collection." = "长按城市即可添加到集合。";
+"All Cities" = "所有城市";
+"Enter a name for your new collection" = "输入新集合名称";
+"Enter a new name for your collection" = "输入新的集合名称";
+"Show Time in Notes" = "在备注中显示时间";
+"Add selected cities and times to event notes." = "将选定城市及其时间添加到活动备注。";
+"Example" = "示例";
+"Solar Time" = "太阳时";
+"Daylight" = "日光";
+"Moon Time" = "月亮时";
+"Moon Phase" = "月相";
+"No Weather Data" = "暂无天气数据";
+"Cities" = "城市";
+"%d added" = "已添加 %d 个";
+"City" = "城市";
+
+/* Tabs */
+"List" = "列表";
+"Earth" = "地球";
+
+/* Share Cities */
+"Share Cities" = "分享城市";
+"Select All" = "全选";
+"Deselect All" = "取消全选";
+
+/* Arrange */
+"Arrange" = "整理";
+"Rename" = "重命名";
+"Delete" = "删除";
+"Add to Collection" = "添加到集合";
+"New Collection" = "新建集合";
+"Collection Name" = "集合名称";
+"Add" = "添加";
+"Rename Collection" = "重命名集合";
+"Schedule Event" = "创建活动";
+"Save" = "保存";
+"Flight Time" = "飞行时间";
+"Departure" = "出发";
+"Arrive" = "到达";
+
+/* Weekdays */
+"Mon" = "一";
+"Tue" = "二";
+"Wed" = "三";
+"Thu" = "四";
+"Fri" = "五";
+"Sat" = "六";
+"Sun" = "日";
+
+/* Date and Time */
+"Today" = "今日";
+"Tomorrow" = "明日";
+"Yesterday" = "昨日";
+"Current Time" = "当前时间";
+"Copy as Text" = "复制为文本";
+"Move to Top" = "移至顶部";
