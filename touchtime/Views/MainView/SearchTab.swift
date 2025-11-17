@@ -283,7 +283,7 @@ struct TimeZonePickerViewWrapper: View {
                                                 VStack(alignment: .leading) {
                                                     Text(String(localized: String.LocalizationValue(timeZone.cityName)))
                                                     
-                                                    Text(timeZone.region)
+                                                    Text(String(localized: String.LocalizationValue(timeZone.region)))
                                                         .foregroundStyle(.secondary)
                                                         .font(.subheadline)
                                                 }

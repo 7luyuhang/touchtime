@@ -57,11 +57,14 @@ struct EarthView: View {
     var localCityName: String {
         let identifier = TimeZone.current.identifier
         let components = identifier.split(separator: "/")
+        let cityName: String
         if components.count >= 2 {
-            return components.last!.replacingOccurrences(of: "_", with: " ")
+            cityName = components.last!.replacingOccurrences(of: "_", with: " ")
         } else {
-            return identifier
+            cityName = identifier
         }
+        // Return localized city name
+        return String(localized: String.LocalizationValue(cityName))
     }
     
     // Convert timezone identifier to coordinate using shared utility
