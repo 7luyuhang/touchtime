@@ -116,10 +116,19 @@ struct EarthView: View {
                     }
                     let timeString = formatter.string(from: currentDate)
                     
-                    formatter.dateFormat = "E, d MMM"
+                    // Format date - use different format for Chinese locale
+                    formatter.locale = Locale.current
+                    if Locale.current.language.languageCode?.identifier == "zh" {
+                        formatter.dateFormat = "MMMd日 E"
+                    } else {
+                        formatter.dateFormat = "E, d MMM"
+                    }
                     let dateString = formatter.string(from: currentDate)
                     
-                    event.notes = "Time in \(cityName): \(timeString) · \(dateString)"
+                    // Reset locale for next iteration
+                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                    
+                    event.notes = String(format: String(localized: "Time in %@: %@ · %@"), cityName, timeString, dateString)
                     
                     self.eventToEdit = event
                     self.showEventEditor = true

@@ -136,6 +136,8 @@
 "Add selected cities and times to event notes." = "将选定城市及其时间添加到活动备注。";
 "Example" = "示例";
 "Time in location: %@ · %@" = "地点时间：%@ · %@";
+"Time in %@: %@ · %@" = "%@时间：%@ · %@";
+"Time in other cities:" = "其他城市时间：";
 "Solar Time" = "太阳时";
 "Daylight" = "日光";
 "Moon Time" = "月亮时";

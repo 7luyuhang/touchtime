@@ -30,6 +30,11 @@ struct CreditsView: View {
                    Text("WeatherKit")
                         .tint(.primary)
                 }
+                
+                Link(destination: URL(string: "https://github.com/nikstar/VariableBlur")!) {
+                   Text("VariableBlur")
+                        .tint(.primary)
+                }
             } header: {
                 Text("Open Source Library", comment: "Credits section header")
             } footer: {

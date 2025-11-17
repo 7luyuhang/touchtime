@@ -19,42 +19,119 @@ struct SearchTabView: View {
     }
 }
 
+// Precomputed timezone data structure
+struct TimeZoneData: Identifiable {
+    let id: String // identifier
+    let cityName: String
+    let region: String
+    let identifier: String
+    let localizedCityName: String
+    let localizedRegion: String
+    let groupKey: String
+}
+
 // Wrapper to adapt TimeZonePickerView for tab usage
 struct TimeZonePickerViewWrapper: View {
     @Binding var worldClocks: [WorldClock]
     @State private var searchText = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
-    @State private var currentDate = Date()
     
-    // Timer to update time every second
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    // Precomputed timezone data
+    @State private var precomputedTimeZones: [TimeZoneData] = []
+    @State private var groupedTimeZones: [String: [TimeZoneData]] = [:]
+    @State private var sortedKeys: [String] = []
     
-    // Get all time zones and create city name and country/region information
-    var availableTimeZones: [(cityName: String, region: String, identifier: String)] {
-        TimeZone.knownTimeZoneIdentifiers.compactMap { identifier in
+    // Check if current language is Chinese
+    private let isChineseLanguage: Bool = {
+        let languageCode = Locale.current.language.languageCode?.identifier ?? ""
+        return languageCode.hasPrefix("zh")
+    }()
+    
+    // Get pinyin first letter for Chinese text
+    private func getPinyinFirstLetter(_ text: String) -> String {
+        // Convert Chinese to pinyin
+        if let pinyin = text.applyingTransform(.toLatin, reverse: false)?
+            .applyingTransform(.stripDiacritics, reverse: false) {
+            let firstChar = pinyin.prefix(1).uppercased()
+            // Ensure it's a letter, otherwise categorize as "#"
+            if firstChar.rangeOfCharacter(from: .letters) != nil {
+                return firstChar
+            }
+        }
+        return "#"
+    }
+    
+    // Precompute all timezone data
+    private func precomputeTimeZones() {
+        let isChinese = isChineseLanguage
+        
+        let timeZones = TimeZone.knownTimeZoneIdentifiers.compactMap { identifier -> TimeZoneData? in
             // Extract city name and region info from timezone identifier
             let components = identifier.split(separator: "/")
+            let cityName: String
+            let region: String
+            
             if components.count >= 2 {
                 // Replace underscore with space for readability
-                let cityName = components.last!
+                cityName = components.last!
                     .replacingOccurrences(of: "_", with: " ")
-                
-                // Get region/country info
-                let region = getRegionForTimeZone(identifier: identifier)
-                
-                return (cityName: cityName, region: region, identifier: identifier)
+                region = getRegionForTimeZone(identifier: identifier)
             } else if components.count == 1 {
                 // Handle timezones without slashes (like UTC, GMT)
-                return (cityName: String(components[0]), region: "Standard Time", identifier: identifier)
+                cityName = String(components[0])
+                region = "Standard Time"
+            } else {
+                return nil
             }
-            return nil
+            
+            // Get localized names
+            let localizedCityName = String(localized: String.LocalizationValue(cityName))
+            let localizedRegion = String(localized: String.LocalizationValue(region))
+            
+            // Calculate group key
+            let groupKey: String
+            if isChinese {
+                groupKey = getPinyinFirstLetter(localizedCityName)
+            } else {
+                let firstChar = cityName.prefix(1).uppercased()
+                if firstChar.rangeOfCharacter(from: .letters) != nil {
+                    groupKey = firstChar
+                } else {
+                    groupKey = "#"
+                }
+            }
+            
+            return TimeZoneData(
+                id: identifier,
+                cityName: cityName,
+                region: region,
+                identifier: identifier,
+                localizedCityName: localizedCityName,
+                localizedRegion: localizedRegion,
+                groupKey: groupKey
+            )
         }
         .sorted { $0.cityName < $1.cityName }
+        
+        // Group by key
+        let grouped = Dictionary(grouping: timeZones) { $0.groupKey }
+        
+        // Sort keys
+        let sorted = grouped.keys.sorted { key1, key2 in
+            // "#" symbol comes last
+            if key1 == "#" { return false }
+            if key2 == "#" { return true }
+            return key1 < key2
+        }
+        
+        precomputedTimeZones = timeZones
+        groupedTimeZones = grouped
+        sortedKeys = sorted
     }
     
     // Get country/region name for timezone
-    func getRegionForTimeZone(identifier: String) -> String {
+    private func getRegionForTimeZone(identifier: String) -> String {
         let components = identifier.split(separator: "/")
         
         // Handle timezones with country info (e.g. America/Argentina/Buenos_Aires)
@@ -211,35 +288,25 @@ struct TimeZonePickerViewWrapper: View {
         }
     }
     
-    // Filter search results
-    var filteredTimeZones: [(cityName: String, region: String, identifier: String)] {
+    // Filter search results using precomputed data
+    private var filteredGroupedTimeZones: [String: [TimeZoneData]] {
         if searchText.isEmpty {
-            return availableTimeZones
+            return groupedTimeZones
         } else {
-            return availableTimeZones.filter { 
+            let filtered = precomputedTimeZones.filter {
                 $0.cityName.localizedCaseInsensitiveContains(searchText) ||
                 $0.region.localizedCaseInsensitiveContains(searchText) ||
-                $0.identifier.localizedCaseInsensitiveContains(searchText)
+                $0.identifier.localizedCaseInsensitiveContains(searchText) ||
+                $0.localizedCityName.localizedCaseInsensitiveContains(searchText) ||
+                $0.localizedRegion.localizedCaseInsensitiveContains(searchText)
             }
+            return Dictionary(grouping: filtered) { $0.groupKey }
         }
     }
     
-    // Group timezones by first letter
-    var groupedTimeZones: [String: [(cityName: String, region: String, identifier: String)]] {
-        Dictionary(grouping: filteredTimeZones) { timeZone in
-            let firstChar = timeZone.cityName.prefix(1).uppercased()
-            // Ensure it's a letter, otherwise categorize as "#"
-            if firstChar.rangeOfCharacter(from: .letters) != nil {
-                return firstChar
-            } else {
-                return "#"
-            }
-        }
-    }
-    
-    // Get sorted group keys
-    var sortedKeys: [String] {
-        groupedTimeZones.keys.sorted { key1, key2 in
+    // Get sorted keys for filtered results
+    private var filteredSortedKeys: [String] {
+        filteredGroupedTimeZones.keys.sorted { key1, key2 in
             // "#" symbol comes last
             if key1 == "#" { return false }
             if key2 == "#" { return true }
@@ -250,65 +317,22 @@ struct TimeZonePickerViewWrapper: View {
     var body: some View {
         NavigationStack {
             Group {
-                if filteredTimeZones.isEmpty {
+                if filteredGroupedTimeZones.isEmpty {
                     // Empty state when no search results
                     ContentUnavailableView.search(text: searchText)
                 } else {
                     List {
-                        ForEach(sortedKeys, id: \.self) { key in
+                        ForEach(filteredSortedKeys, id: \.self) { key in
                             Section(header: Text(key)) {
-                                ForEach(groupedTimeZones[key] ?? [], id: \.identifier) { timeZone in
-                                    Button(action: {
-                                        toggleClock(cityName: timeZone.cityName, identifier: timeZone.identifier)
-                                    }) {
-                                        HStack {
-                                            
-                                            HStack (spacing: 16) {
-                                                // Show checkmark if already added
-                                                if worldClocks.contains(where: { $0.timeZoneIdentifier == timeZone.identifier }) {
-                                                    Image(systemName: "checkmark.circle.fill")
-                                                        .font(.body.weight(.bold))
-                                                        .frame(width: 24)
-                                                        .transition(.identity)
-                                                        .id("checkmark-\(timeZone.identifier)")
-                                                } else {
-                                                    Image(systemName: "circle")
-                                                        .font(.body.weight(.medium))
-                                                        .foregroundStyle(.secondary)
-                                                        .frame(width: 24)
-                                                        .transition(.identity)
-                                                        .id("circle-\(timeZone.identifier)")
-                                                }
-                                                
-                                                VStack(alignment: .leading) {
-                                                    Text(String(localized: String.LocalizationValue(timeZone.cityName)))
-                                                    
-                                                    Text(String(localized: String.LocalizationValue(timeZone.region)))
-                                                        .foregroundStyle(.secondary)
-                                                        .font(.subheadline)
-                                                }
-                                            }
-                                            
-                                            
-                                            Spacer()
-                                            
-                                            
-                                            // Show current time preview and added indicator
-                                            HStack(spacing: 8) {
-                                                if let tz = TimeZone(identifier: timeZone.identifier) {
-                                                    Text(currentTime(for: tz))
-                                                        .foregroundStyle(.secondary)
-                                                        .monospacedDigit()
-                                                }
-
-                                                
-                                                    
-                                            }
-                                            
+                                ForEach(filteredGroupedTimeZones[key] ?? [], id: \.id) { timeZoneData in
+                                    TimeZoneCellView(
+                                        timeZoneData: timeZoneData,
+                                        isSelected: worldClocks.contains(where: { $0.timeZoneIdentifier == timeZoneData.identifier }),
+                                        use24HourFormat: use24HourFormat,
+                                        onToggle: {
+                                            toggleClock(cityName: timeZoneData.cityName, identifier: timeZoneData.identifier)
                                         }
-                                        .contentShape(Rectangle())
-                                    }
-                                    .buttonStyle(PlainButtonStyle())
+                                    )
                                 }
                             }
                             .sectionIndexLabel(searchText.isEmpty ? key : nil)
@@ -352,8 +376,10 @@ struct TimeZonePickerViewWrapper: View {
                 }
             }
         }
-        .onReceive(timer) { _ in
-            currentDate = Date()
+        .onAppear {
+            if precomputedTimeZones.isEmpty {
+                precomputeTimeZones()
+            }
         }
     }
     
@@ -390,9 +416,69 @@ struct TimeZonePickerViewWrapper: View {
             UserDefaults.standard.set(encoded, forKey: worldClocksKey)
         }
     }
+}
+
+// Individual cell view with its own timer
+struct TimeZoneCellView: View {
+    let timeZoneData: TimeZoneData
+    let isSelected: Bool
+    let use24HourFormat: Bool
+    let onToggle: () -> Void
+    
+    @State private var currentDate = Date()
+    // Timer to update time every second - each cell has its own timer
+    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    
+    var body: some View {
+        Button(action: onToggle) {
+            HStack {
+                HStack (spacing: 16) {
+                    // Show checkmark if already added
+                    if isSelected {
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.body.weight(.bold))
+                            .frame(width: 24)
+                            .transition(.identity)
+                            .id("checkmark-\(timeZoneData.identifier)")
+                    } else {
+                        Image(systemName: "circle")
+                            .font(.body.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .frame(width: 24)
+                            .transition(.identity)
+                            .id("circle-\(timeZoneData.identifier)")
+                    }
+                    
+                    VStack(alignment: .leading) {
+                        Text(timeZoneData.localizedCityName)
+                        
+                        Text(timeZoneData.localizedRegion)
+                            .foregroundStyle(.secondary)
+                            .font(.subheadline)
+                    }
+                }
+                
+                Spacer()
+                
+                // Show current time preview
+                HStack(spacing: 8) {
+                    if let tz = TimeZone(identifier: timeZoneData.identifier) {
+                        Text(currentTime(for: tz))
+                            .foregroundStyle(.secondary)
+                            .monospacedDigit()
+                    }
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onReceive(timer) { _ in
+            currentDate = Date()
+        }
+    }
     
     // Get current time for timezone (for preview)
-    func currentTime(for timeZone: TimeZone) -> String {
+    private func currentTime(for timeZone: TimeZone) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = timeZone
         formatter.locale = Locale(identifier: "en_US_POSIX")

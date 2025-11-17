@@ -205,7 +205,7 @@ struct ScrollTimeView: View {
         
         let adjustedDate = Date().addingTimeInterval(timeOffset)
         
-        var notesText = "Time in other cities:\n"
+        var notesText = String(localized: "Time in other cities:") + "\n"
         
         for clock in selectedClocks {
             formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
@@ -218,9 +218,17 @@ struct ScrollTimeView: View {
             
             let timeString = formatter.string(from: adjustedDate)
             
-            // Format date
-            formatter.dateFormat = "E, d MMM"
+            // Format date - use different format for Chinese locale
+            formatter.locale = Locale.current
+            if Locale.current.language.languageCode?.identifier == "zh" {
+                formatter.dateFormat = "MMMd日 E"
+            } else {
+                formatter.dateFormat = "E, d MMM"
+            }
             let dateString = formatter.string(from: adjustedDate)
+            
+            // Reset locale for next iteration
+            formatter.locale = Locale(identifier: "en_US_POSIX")
             
             notesText += "\n\(clock.localizedCityName): \(timeString) · \(dateString)"
         }
