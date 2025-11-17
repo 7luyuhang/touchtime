@@ -222,7 +222,7 @@ struct ScrollTimeView: View {
             formatter.dateFormat = "E, d MMM"
             let dateString = formatter.string(from: adjustedDate)
             
-            notesText += "\n\(clock.cityName): \(timeString) · \(dateString)"
+            notesText += "\n\(clock.localizedCityName): \(timeString) · \(dateString)"
         }
         
         return notesText

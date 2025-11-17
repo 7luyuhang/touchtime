@@ -234,7 +234,7 @@ struct ArrangeListView: View {
                                 // Cities in Collection
                                 ForEach(collection.cities) { city in
                                     HStack {
-                                        Text(city.cityName)
+                                        Text(city.localizedCityName)
                                             .lineLimit(1)
                                             .truncationMode(.tail)
                                         
@@ -333,7 +333,7 @@ struct ArrangeListView: View {
                     ForEach(worldClocks) { clock in
                         HStack {
                             // City name
-                            Text(clock.cityName)
+                            Text(clock.localizedCityName)
                                 .lineLimit(1)
                                 .truncationMode(.tail)
                             

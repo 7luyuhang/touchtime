@@ -66,7 +66,7 @@ struct ShareCitiesSheet: View {
             if selectedCities.contains(clock.id) {
                 if let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) {
                     let time = formatTime(for: timeZone)
-                    shareLines.append("\(clock.cityName) \(time)")
+                    shareLines.append("\(clock.localizedCityName) \(time)")
                 }
             }
         }
@@ -187,7 +187,7 @@ struct ShareCitiesSheet: View {
                                 }
                                 
                                 // City name
-                                Text(clock.cityName)
+                                Text(clock.localizedCityName)
                                     .lineLimit(1)
                                     .truncationMode(.tail)
                                 

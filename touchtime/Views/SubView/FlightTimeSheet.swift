@@ -323,7 +323,7 @@ struct FlightTimeSheet: View {
                                 }
                                 // City name with label
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(clock.cityName)
+                                    Text(clock.localizedCityName)
                                         .lineLimit(1)
                                         .truncationMode(.tail)
                                     

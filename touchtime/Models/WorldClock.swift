@@ -23,6 +23,27 @@ struct WorldClock: Identifiable, Codable, Equatable {
         return lhs.id == rhs.id
     }
     
+    // Get original city name from timezone identifier
+    var originalCityName: String {
+        let components = timeZoneIdentifier.split(separator: "/")
+        if components.count >= 2 {
+            return components.last!.replacingOccurrences(of: "_", with: " ")
+        } else {
+            return String(components[0])
+        }
+    }
+    
+    // Get localized city name for display
+    // If cityName matches the original name, return localized version
+    // Otherwise, return the custom name as-is
+    var localizedCityName: String {
+        if cityName == originalCityName {
+            return String(localized: String.LocalizationValue(originalCityName))
+        } else {
+            return cityName
+        }
+    }
+    
     func currentTime(use24Hour: Bool = false, offset: TimeInterval = 0) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)

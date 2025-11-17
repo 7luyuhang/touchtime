@@ -80,7 +80,7 @@ struct CitySelectionSheet: View {
                             }
                         }) {
                             HStack {
-                                Text(clock.cityName)
+                                Text(clock.localizedCityName)
                                 
                                 Spacer()
                                 

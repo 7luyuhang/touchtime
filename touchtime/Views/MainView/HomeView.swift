@@ -88,6 +88,21 @@ struct HomeView: View {
         }
     }
     
+    // Get original city name from timezone identifier
+    func getOriginalCityName(from identifier: String) -> String {
+        let components = identifier.split(separator: "/")
+        if components.count >= 2 {
+            return components.last!.replacingOccurrences(of: "_", with: " ")
+        } else {
+            return String(components[0])
+        }
+    }
+    
+    // Get localized city name for display (using WorldClock's localizedCityName property)
+    func getLocalizedCityName(for clock: WorldClock) -> String {
+        return clock.localizedCityName
+    }
+    
     // Get displayed clocks based on selected collection
     var displayedClocks: [WorldClock] {
         if let collectionId = selectedCollectionId,
@@ -537,7 +552,7 @@ struct HomeView: View {
                                     
                                     // Bottom row: City name and Time (baseline aligned)
                                     HStack(alignment: .lastTextBaseline) {
-                                        Text(clock.cityName)
+                                        Text(getLocalizedCityName(for: clock))
                                             .font(.headline)
                                             .lineLimit(1)
                                             .truncationMode(.tail)
@@ -601,7 +616,7 @@ struct HomeView: View {
                                 // Tap gesture for world clock
                                 .onTapGesture {
                                     selectedTimeZone = clock.timeZoneIdentifier
-                                    selectedCityName = clock.cityName
+                                    selectedCityName = getLocalizedCityName(for: clock)
                                     showSunriseSunsetSheet = true
                                     
                                     // Provide haptic feedback if enabled
@@ -628,7 +643,7 @@ struct HomeView: View {
                                     
                                     // Schedule event
                                     Button(action: {
-                                        addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.cityName)
+                                        addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: getLocalizedCityName(for: clock))
                                     }) {
                                         Label("Schedule Event", systemImage: "plus.circle")
                                     }
@@ -637,7 +652,7 @@ struct HomeView: View {
                                     
                                     // Copy as Text
                                     Button(action: {
-                                        copyTimeAsText(cityName: clock.cityName, timeZoneIdentifier: clock.timeZoneIdentifier)
+                                        copyTimeAsText(cityName: getLocalizedCityName(for: clock), timeZoneIdentifier: clock.timeZoneIdentifier)
                                     }) {
                                         Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
                                     }
