@@ -24,7 +24,7 @@
 "Set available time to compare and show availability across different cities." = "设置可用时间，以比较并查看不同城市的可用性。";
 "Show Available Time" = "显示可用时间";
 "Tap" = "点击";
-"and add cities first to enable." = "并先添加城市以启用。";
+"and add cities first to enable." = "并请先添加城市以启用。";
 "Enable showing" = "启用显示";
 "indicator inside system time." = "系统时间中的可用性指示器。";
 "Start Time" = "开始时间";
@@ -54,7 +54,7 @@
 "Chat with me" = "与我交流";
 "Open to any thoughts or feedback :)" = "欢迎提出任何想法或反馈 :)";
 "General" = "通用";
-"Enable showing system time at the top of the list with ambient background." = "在列表顶部显示系统时间，并呈现柔和氛围背景。";
+"Enable showing system time at the top of the list with ambient background." = "在列表顶部显示系统时间，并呈现柔和的氛围背景。";
 "Haptics" = "触觉反馈";
 "System Time" = "系统时间";
 "Language" = "语言";

@@ -280,7 +280,7 @@ struct HomeView: View {
                         }
                     }
                     .background(Color.clear)
-                    .id("empty-\(selectedCollectionId?.uuidString ?? "default")")
+                    .id("empty-\(selectedCollectionId?.uuidString ?? "")")
                     .transition(.opacity.combined(with: .slide)) // Collection Animation
                     
                 } else {
