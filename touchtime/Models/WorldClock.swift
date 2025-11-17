@@ -137,11 +137,11 @@ struct WorldClock: Identifiable, Codable, Equatable {
 // Default world clocks data
 struct WorldClockData {
     static let defaultClocks: [WorldClock] = [
-        WorldClock(cityName: "London", timeZoneIdentifier: "Europe/London"),
-        WorldClock(cityName: "Shanghai", timeZoneIdentifier: "Asia/Shanghai"),
-        WorldClock(cityName: "Tokyo", timeZoneIdentifier: "Asia/Tokyo"),
-        WorldClock(cityName: "Los Angeles", timeZoneIdentifier: "America/Los_Angeles"),
-        WorldClock(cityName: "New York", timeZoneIdentifier: "America/New_York"),
-        WorldClock(cityName: "Sydney", timeZoneIdentifier: "Australia/Sydney")
+        WorldClock(cityName: String(localized: "London"), timeZoneIdentifier: "Europe/London"),
+        WorldClock(cityName: String(localized: "Shanghai"), timeZoneIdentifier: "Asia/Shanghai"),
+        WorldClock(cityName: String(localized: "Tokyo"), timeZoneIdentifier: "Asia/Tokyo"),
+        WorldClock(cityName: String(localized: "Los Angeles"), timeZoneIdentifier: "America/Los_Angeles"),
+        WorldClock(cityName: String(localized: "New York"), timeZoneIdentifier: "America/New_York"),
+        WorldClock(cityName: String(localized: "Sydney"), timeZoneIdentifier: "Australia/Sydney")
     ]
 }
