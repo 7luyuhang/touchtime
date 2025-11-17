@@ -22,10 +22,16 @@ struct CitySelectionSheet: View {
         let time = timeFormatter.string(from: now)
         
         let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "EEE, MMM d"
+        dateFormatter.locale = Locale.current
+        // Use different format for Chinese locale
+        if Locale.current.language.languageCode?.identifier == "zh" {
+            dateFormatter.dateFormat = "MMMd日 E"
+        } else {
+            dateFormatter.dateFormat = "EEE, MMM d"
+        }
         let date = dateFormatter.string(from: now)
         
-        return "Time in location: \(time) · \(date)"
+        return String(format: String(localized: "Time in location: %@ · %@"), time, date)
     }
     
     var body: some View {

@@ -113,6 +113,19 @@ struct SettingsView: View {
         }
     }
     
+    // Get current language display name
+    var currentLanguageName: String {
+        let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "en"
+        switch preferredLanguage {
+        case "zh-Hans":
+            return "简体中文"
+        case "en":
+            return "English"
+        default:
+            return "English"
+        }
+    }
+    
     // Load available calendars
     func loadCalendars() {
         eventStore.requestFullAccessToEvents { granted, error in
@@ -196,16 +209,19 @@ struct SettingsView: View {
                 Section(header: Text("General"), footer: Text("Enable showing system time at the top of the list with ambient background.")) {
                     
                     Button(action: {
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                        }
                         if let url = URL(string: UIApplication.openSettingsURLString) {
                             UIApplication.shared.open(url)
                         }
                     }) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "character", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
-                            Text("Language")
+                        HStack {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "character", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
+                                Text("Language")
+                            }
+                            .layoutPriority(1)
+                            Spacer(minLength: 8)
+                            Text(currentLanguageName)
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .foregroundStyle(.primary)

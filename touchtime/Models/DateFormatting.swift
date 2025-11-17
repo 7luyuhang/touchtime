@@ -21,12 +21,19 @@ extension Date {
     ) -> String {
         // If Relative date style is selected, use Today/Yesterday/Tomorrow
         if dateStyle == "Relative" {
-            var calendar = Calendar.current
-            calendar.timeZone = timeZone
+            // Use local timezone calendar for reference date
+            var localCalendar = Calendar.current
+            localCalendar.timeZone = TimeZone.current
             
-            // Get reference date components in the target timezone
-            let referenceDateComponents = calendar.dateComponents([.year, .month, .day], from: referenceDate)
-            let currentDateComponents = calendar.dateComponents([.year, .month, .day], from: self)
+            // Use target timezone calendar for the date to display
+            var targetCalendar = Calendar.current
+            targetCalendar.timeZone = timeZone
+            
+            // Get reference date components in local timezone
+            let referenceDateComponents = localCalendar.dateComponents([.year, .month, .day], from: referenceDate)
+            
+            // Get current date components in target timezone
+            let currentDateComponents = targetCalendar.dateComponents([.year, .month, .day], from: self)
             
             // Check if it's today
             if currentDateComponents.year == referenceDateComponents.year &&
@@ -35,9 +42,9 @@ extension Date {
                 return String(localized: "Today")
             }
             
-            // Check if it's tomorrow
-            if let tomorrow = calendar.date(byAdding: .day, value: 1, to: referenceDate) {
-                let tomorrowComponents = calendar.dateComponents([.year, .month, .day], from: tomorrow)
+            // Check if it's tomorrow (add 1 day to reference date in local timezone)
+            if let tomorrow = localCalendar.date(byAdding: .day, value: 1, to: referenceDate) {
+                let tomorrowComponents = localCalendar.dateComponents([.year, .month, .day], from: tomorrow)
                 if currentDateComponents.year == tomorrowComponents.year &&
                    currentDateComponents.month == tomorrowComponents.month &&
                    currentDateComponents.day == tomorrowComponents.day {
@@ -45,9 +52,9 @@ extension Date {
                 }
             }
             
-            // Check if it's yesterday
-            if let yesterday = calendar.date(byAdding: .day, value: -1, to: referenceDate) {
-                let yesterdayComponents = calendar.dateComponents([.year, .month, .day], from: yesterday)
+            // Check if it's yesterday (subtract 1 day from reference date in local timezone)
+            if let yesterday = localCalendar.date(byAdding: .day, value: -1, to: referenceDate) {
+                let yesterdayComponents = localCalendar.dateComponents([.year, .month, .day], from: yesterday)
                 if currentDateComponents.year == yesterdayComponents.year &&
                    currentDateComponents.month == yesterdayComponents.month &&
                    currentDateComponents.day == yesterdayComponents.day {

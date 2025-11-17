@@ -15,7 +15,7 @@
 "and much more..." = "以及更多功能...";
 "Continue" = "继续";
 "Get Started" = "开始";
-"By continuing, you agree to our" = "继续即表示同意我们的";
+"By continuing, you agree to our" = "开始即表示同意我们的";
 "and" = "及";
 "Terms of Use" = "使用条款";
 "Privacy Policy" = "隐私政策";
@@ -67,8 +67,8 @@
 "UTC" = "UTC";
 "None" = "无";
 "Date Style" = "日期样式";
-"Relative" = "相对";
-"Absolute" = "绝对";
+"Relative" = "相对日期";
+"Absolute" = "绝对日期";
 "Weather" = "天气";
 "Celsius" = "摄氏度（°C)";
 "Fahrenheit" = "华氏度（°F)";
@@ -135,6 +135,7 @@
 "Show Time in Notes" = "在备注中显示时间";
 "Add selected cities and times to event notes." = "将选定城市及其时间添加到活动备注。";
 "Example" = "示例";
+"Time in location: %@ · %@" = "地点时间：%@ · %@";
 "Solar Time" = "太阳时";
 "Daylight" = "日光";
 "Moon Time" = "月亮时";

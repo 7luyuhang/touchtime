@@ -135,6 +135,7 @@
 "Show Time in Notes" = "Show Time in Notes";
 "Add selected cities and times to event notes." = "Add selected cities and times to event notes.";
 "Example" = "Example";
+"Time in location: %@ · %@" = "Time in location: %@ · %@";
 "Solar Time" = "Solar Time";
 "Daylight" = "Daylight";
 "Moon Time" = "Moon Time";
