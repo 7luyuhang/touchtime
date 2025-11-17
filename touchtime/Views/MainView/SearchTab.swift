@@ -333,7 +333,7 @@ struct TimeZonePickerViewWrapper: View {
                     .tint(.primary) // A-Z Colour
                 }
             }
-            .searchable(text: $searchText, prompt: "Cities & Countries")
+            .searchable(text: $searchText, prompt: String(localized: "Cities & Countries"))
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -343,7 +343,7 @@ struct TimeZonePickerViewWrapper: View {
                             .font(.headline)
                         
                         if !worldClocks.isEmpty {
-                            Text("\(worldClocks.count) added")
+                            Text(String(format: String(localized: "%d added"), worldClocks.count))
                                 .font(.caption.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .contentTransition(.numericText())

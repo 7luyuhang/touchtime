@@ -388,13 +388,13 @@ struct ScrollTimeView: View {
                                 Text({
                                     var result = ""
                                     if hours > 0 && minutes > 0 {
-                                        result = "\(hours)h \(minutes)m"
+                                        result = String(format: String(localized: "%dh %dm"), hours, minutes)
                                     } else if hours > 0 {
-                                        result = "\(hours)h"
+                                        result = String(format: String(localized: "%dh"), hours)
                                     } else if minutes > 0 {
-                                        result = "\(minutes)m"
+                                        result = String(format: String(localized: "%dm"), minutes)
                                     } else {
-                                        result = "0m"
+                                        result = String(localized: "0m")
                                     }
                                     return result
                                 }())

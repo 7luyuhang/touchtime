@@ -108,75 +108,75 @@ extension WeatherCondition {
     var displayName: String {
         switch self {
         case .clear:
-            return "Clear"
+            return String(localized: "Clear")
         case .mostlyClear:
-            return "Mostly Clear"
+            return String(localized: "Mostly Clear")
         case .partlyCloudy:
-            return "Partly Cloudy"
+            return String(localized: "Partly Cloudy")
         case .mostlyCloudy:
-            return "Mostly Cloudy"
+            return String(localized: "Mostly Cloudy")
         case .cloudy:
-            return "Cloudy"
+            return String(localized: "Cloudy")
         case .foggy:
-            return "Foggy"
+            return String(localized: "Foggy")
         case .haze:
-            return "Haze"
+            return String(localized: "Haze")
         case .smoky:
-            return "Smoky"
+            return String(localized: "Smoky")
         case .blowingDust:
-            return "Blowing Dust"
+            return String(localized: "Blowing Dust")
         case .breezy:
-            return "Breezy"
+            return String(localized: "Breezy")
         case .windy:
-            return "Windy"
+            return String(localized: "Windy")
         case .drizzle:
-            return "Drizzle"
+            return String(localized: "Drizzle")
         case .rain:
-            return "Rain"
+            return String(localized: "Rain")
         case .heavyRain:
-            return "Heavy Rain"
+            return String(localized: "Heavy Rain")
         case .sunShowers:
-            return "Sun Showers"
+            return String(localized: "Sun Showers")
         case .isolatedThunderstorms:
-            return "Isolated Thunderstorms"
+            return String(localized: "Isolated Thunderstorms")
         case .scatteredThunderstorms:
-            return "Scattered Thunderstorms"
+            return String(localized: "Scattered Thunderstorms")
         case .strongStorms:
-            return "Strong Storms"
+            return String(localized: "Strong Storms")
         case .thunderstorms:
-            return "Thunderstorms"
+            return String(localized: "Thunderstorms")
         case .flurries:
-            return "Flurries"
+            return String(localized: "Flurries")
         case .snow:
-            return "Snow"
+            return String(localized: "Snow")
         case .heavySnow:
-            return "Heavy Snow"
+            return String(localized: "Heavy Snow")
         case .sunFlurries:
-            return "Sun Flurries"
+            return String(localized: "Sun Flurries")
         case .blowingSnow:
-            return "Blowing Snow"
+            return String(localized: "Blowing Snow")
         case .freezingDrizzle:
-            return "Freezing Drizzle"
+            return String(localized: "Freezing Drizzle")
         case .freezingRain:
-            return "Freezing Rain"
+            return String(localized: "Freezing Rain")
         case .sleet:
-            return "Sleet"
+            return String(localized: "Sleet")
         case .wintryMix:
-            return "Wintry Mix"
+            return String(localized: "Wintry Mix")
         case .blizzard:
-            return "Blizzard"
+            return String(localized: "Blizzard")
         case .hail:
-            return "Hail"
+            return String(localized: "Hail")
         case .hot:
-            return "Hot"
+            return String(localized: "Hot")
         case .frigid:
-            return "Frigid"
+            return String(localized: "Frigid")
         case .hurricane:
-            return "Hurricane"
+            return String(localized: "Hurricane")
         case .tropicalStorm:
-            return "Tropical Storm"
+            return String(localized: "Tropical Storm")
         @unknown default:
-            return "Unknown"
+            return String(localized: "Unknown")
         }
     }
 }

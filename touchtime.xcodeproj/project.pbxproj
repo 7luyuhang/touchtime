@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		5A5880A12EC78BEE00344D1D /* VariableBlur in Frameworks */ = {isa = PBXBuildFile; productRef = 5A5880A02EC78BEE00344D1D /* VariableBlur */; };
-		5A5896FA2ECA76A500344D1D /* Localizable.strings in Sources */ = {isa = PBXBuildFile; fileRef = 5A5896F92ECA76A500344D1D /* Localizable.strings */; };
 		5A864EA42EAE30FB009D5989 /* MoonKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5A864EA32EAE30FB009D5989 /* MoonKit */; };
 		5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */ = {isa = PBXBuildFile; productRef = 5AD93C242EB62099001DF8F4 /* Shimmer */; };
 		5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */; };
@@ -17,8 +16,6 @@
 
 /* Begin PBXFileReference section */
 		5A42D3782E82CDCE0048963E /* touchtime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = touchtime.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		5A5896F82ECA76A500344D1D /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
-		5A5896FB2ECA76A800344D1D /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -26,17 +23,29 @@
 		5AA12FEF2EC34B01006D2534 /* Exceptions for "touchtime" folder in "touchtime" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"/Localized: Localizable.strings",
 				Info.plist,
 			);
 			target = 5A42D3772E82CDCE0048963E /* touchtime */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
+/* Begin PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+		5A5896FC2ECA8BBA00344D1D /* Exceptions for "touchtime" folder in "Compile Sources" phase from "touchtime" target */ = {
+			isa = PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet;
+			buildPhase = 5A42D3742E82CDCE0048963E /* Sources */;
+			membershipExceptions = (
+				"/Localized: Localizable.strings",
+			);
+		};
+/* End PBXFileSystemSynchronizedGroupBuildPhaseMembershipExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		5A42D37A2E82CDCE0048963E /* touchtime */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				5AA12FEF2EC34B01006D2534 /* Exceptions for "touchtime" folder in "touchtime" target */,
+				5A5896FC2ECA8BBA00344D1D /* Exceptions for "touchtime" folder in "Compile Sources" phase from "touchtime" target */,
 			);
 			path = touchtime;
 			sourceTree = "<group>";
@@ -62,7 +71,6 @@
 		5A42D36F2E82CDCE0048963E = {
 			isa = PBXGroup;
 			children = (
-				5A5896F92ECA76A500344D1D /* Localizable.strings */,
 				5A42D37A2E82CDCE0048963E /* touchtime */,
 				5AEB89DD2EA8FA7A0089C60A /* Frameworks */,
 				5A42D3792E82CDCE0048963E /* Products */,
@@ -170,23 +178,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5A5896FA2ECA76A500344D1D /* Localizable.strings in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
-
-/* Begin PBXVariantGroup section */
-		5A5896F92ECA76A500344D1D /* Localizable.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				5A5896F82ECA76A500344D1D /* en */,
-				5A5896FB2ECA76A800344D1D /* zh-Hans */,
-			);
-			name = Localizable.strings;
-			sourceTree = "<group>";
-		};
-/* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
 		5A42D3812E82CDCF0048963E /* Debug */ = {

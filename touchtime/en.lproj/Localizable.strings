@@ -31,10 +31,10 @@
 "End Time" = "End Time";
 "Daily available time: %@" = "Daily available time: %@";
 "%d minutes" = "%d minutes";
-"%d hours" = "%d hours";
-"%d hours %d minutes" = "%d hours %d minutes";
-"+%d hours" = "+%d hours";
-"%d hours" = "%d hours";
+"%d hours" = "%dh";
+"%d hours %d minutes" = "%d h %d minutes";
+"+%d hours" = "+%dh";
+"%d hours" = "%dh";
 "Please select at least one day." = "Please select at least one day.";
 "Every day" = "Every day";
 "Weekdays" = "Weekdays";
@@ -121,6 +121,10 @@
 /* Other */
 "Share" = "Share";
 "Slide to Adjust" = "Slide to Adjust";
+"%dh %dm" = "%dh %dm";
+"%dh" = "%dh";
+"%dm" = "%dm";
+"0m" = "0m";
 "Create Collection" = "Create Collection";
 "Organize your time in collection" = "Organize your time in collection";
 "Collections" = "Collections";
@@ -143,6 +147,7 @@
 /* Tabs */
 "List" = "List";
 "Earth" = "Earth";
+"Cities & Countries" = "Cities & Countries";
 
 /* Share Cities */
 "Share Cities" = "Share Cities";
@@ -180,3 +185,50 @@
 "Current Time" = "Current Time";
 "Copy as Text" = "Copy as Text";
 "Move to Top" = "Move to Top";
+
+/* Moon Phases */
+"New Moon" = "New Moon";
+"Waxing Crescent" = "Waxing Crescent";
+"First Quarter" = "First Quarter";
+"Waxing Gibbous" = "Waxing Gibbous";
+"Full Moon" = "Full Moon";
+"Waning Gibbous" = "Waning Gibbous";
+"Last Quarter" = "Last Quarter";
+"Waning Crescent" = "Waning Crescent";
+
+/* Weather Conditions */
+"Clear" = "Clear";
+"Mostly Clear" = "Mostly Clear";
+"Partly Cloudy" = "Partly Cloudy";
+"Mostly Cloudy" = "Mostly Cloudy";
+"Cloudy" = "Cloudy";
+"Foggy" = "Foggy";
+"Haze" = "Haze";
+"Smoky" = "Smoky";
+"Blowing Dust" = "Blowing Dust";
+"Breezy" = "Breezy";
+"Windy" = "Windy";
+"Drizzle" = "Drizzle";
+"Rain" = "Rain";
+"Heavy Rain" = "Heavy Rain";
+"Sun Showers" = "Sun Showers";
+"Isolated Thunderstorms" = "Isolated Thunderstorms";
+"Scattered Thunderstorms" = "Scattered Thunderstorms";
+"Strong Storms" = "Strong Storms";
+"Thunderstorms" = "Thunderstorms";
+"Flurries" = "Flurries";
+"Snow" = "Snow";
+"Heavy Snow" = "Heavy Snow";
+"Sun Flurries" = "Sun Flurries";
+"Blowing Snow" = "Blowing Snow";
+"Freezing Drizzle" = "Freezing Drizzle";
+"Freezing Rain" = "Freezing Rain";
+"Sleet" = "Sleet";
+"Wintry Mix" = "Wintry Mix";
+"Blizzard" = "Blizzard";
+"Hail" = "Hail";
+"Hot" = "Hot";
+"Frigid" = "Frigid";
+"Hurricane" = "Hurricane";
+"Tropical Storm" = "Tropical Storm";
+"Unknown" = "Unknown";

@@ -92,24 +92,24 @@ struct SunriseSunsetSheet: View {
             .map { $0.capitalized }
             .joined(separator: " ")
         
-        // Handle common moon phase names
+        // Handle common moon phase names with localization
         switch formatted.lowercased() {
         case "newmoon", "new moon":
-            return "New Moon"
+            return String(localized: "New Moon")
         case "waxingcrescent", "waxing crescent":
-            return "Waxing Crescent"
+            return String(localized: "Waxing Crescent")
         case "firstquarter", "first quarter":
-            return "First Quarter"
+            return String(localized: "First Quarter")
         case "waxinggibbous", "waxing gibbous":
-            return "Waxing Gibbous"
+            return String(localized: "Waxing Gibbous")
         case "fullmoon", "full moon":
-            return "Full Moon"
+            return String(localized: "Full Moon")
         case "waninggibbous", "waning gibbous":
-            return "Waning Gibbous"
+            return String(localized: "Waning Gibbous")
         case "lastquarter", "last quarter", "thirdquarter", "third quarter":
-            return "Last Quarter"
+            return String(localized: "Last Quarter")
         case "waningcrescent", "waning crescent":
-            return "Waning Crescent"
+            return String(localized: "Waning Crescent")
         default:
             // If none match, try to make it readable by inserting spaces before capitals
             let result = phaseString.replacingOccurrences(of: "MoonPhase.", with: "")
@@ -185,7 +185,7 @@ struct SunriseSunsetSheet: View {
         let hours = Int(duration) / 3600
         let minutes = Int(duration) % 3600 / 60
         
-        return "\(hours)hrs \(minutes)min"
+        return String(format: String(localized: "%d hours %d minutes"), hours, minutes)
     }
     
     

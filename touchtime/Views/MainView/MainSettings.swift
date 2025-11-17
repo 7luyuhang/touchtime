@@ -378,7 +378,7 @@ struct SettingsView: View {
                     
                     // Additional Time
                     Picker(selection: $additionalTimeDisplay) {
-                            Text("Time Shift")
+                        Text("Time Shift")
                             .tag("Time Difference")
                         Text("UTC")
                             .tag("UTC")

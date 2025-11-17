@@ -60,7 +60,14 @@ extension Date {
         let formatter = DateFormatter()
         formatter.locale = Locale.current
         formatter.timeZone = timeZone
-        formatter.dateFormat = "E, d MMM"
+        
+        // Use different format for Chinese locale
+        if Locale.current.language.languageCode?.identifier == "zh" {
+            formatter.dateFormat = "MMMd日 E"
+        } else {
+            formatter.dateFormat = "E, d MMM"
+        }
+        
         return formatter.string(from: self)
     }
     

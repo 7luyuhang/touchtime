@@ -30,11 +30,11 @@
 "Start Time" = "开始时间";
 "End Time" = "结束时间";
 "Daily available time: %@" = "每日可用时间：%@";
-"%d minutes" = "%d 分钟";
-"%d hours" = "%d 小时";
-"%d hours %d minutes" = "%d 小时 %d 分钟";
-"+%d hours" = "+%d 小时";
-"%d hours" = "%d 小时";
+"%d minutes" = "%d分钟";
+"%d hours" = "%d小时";
+"%d hours %d minutes" = "%d小时%d分钟";
+"+%d hours" = "+%d小时";
+"%d hours" = "%d小时";
 "Please select at least one day." = "请至少选择一天。";
 "Every day" = "每天";
 "Weekdays" = "工作日";
@@ -64,7 +64,7 @@
 "24-Hour Format" = "24 小时制";
 "Additional Time" = "附加时间";
 "Time Shift" = "时差";
-"UTC" = "协调世界时（UTC）";
+"UTC" = "UTC";
 "None" = "无";
 "Date Style" = "日期样式";
 "Relative" = "相对";
@@ -121,6 +121,10 @@
 /* Other */
 "Share" = "分享";
 "Slide to Adjust" = "滑动以调整";
+"%dh %dm" = "%d小时%d分钟";
+"%dh" = "%d小时";
+"%dm" = "%d分钟";
+"0m" = "0分钟";
 "Create Collection" = "创建集合";
 "Organize your time in collection" = "用集合整理你的时间";
 "Collections" = "集合";
@@ -143,6 +147,7 @@
 /* Tabs */
 "List" = "列表";
 "Earth" = "地球";
+"Cities & Countries" = "城市与国家";
 
 /* Share Cities */
 "Share Cities" = "分享城市";
@@ -180,3 +185,50 @@
 "Current Time" = "当前时间";
 "Copy as Text" = "复制为文本";
 "Move to Top" = "移至顶部";
+
+/* Moon Phases */
+"New Moon" = "新月";
+"Waxing Crescent" = "娥眉月";
+"First Quarter" = "上弦月";
+"Waxing Gibbous" = "盈凸月";
+"Full Moon" = "满月";
+"Waning Gibbous" = "亏凸月";
+"Last Quarter" = "下弦月";
+"Waning Crescent" = "残月";
+
+/* Weather Conditions */
+"Clear" = "晴";
+"Mostly Clear" = "大部晴";
+"Partly Cloudy" = "局部多云";
+"Mostly Cloudy" = "大部多云";
+"Cloudy" = "多云";
+"Foggy" = "浓雾";
+"Haze" = "霾";
+"Smoky" = "烟霾";
+"Blowing Dust" = "扬沙";
+"Breezy" = "微风";
+"Windy" = "大风";
+"Drizzle" = "细雨";
+"Rain" = "小雨";
+"Heavy Rain" = "大雨";
+"Sun Showers" = "阵雨伴阳光";
+"Isolated Thunderstorms" = "局部雷暴";
+"Scattered Thunderstorms" = "分散雷暴";
+"Strong Storms" = "强雷暴";
+"Thunderstorms" = "雷暴";
+"Flurries" = "零星小雪";
+"Snow" = "小雪";
+"Heavy Snow" = "大雪";
+"Sun Flurries" = "阳光小雪";
+"Blowing Snow" = "吹雪";
+"Freezing Drizzle" = "冻细雨";
+"Freezing Rain" = "冻雨";
+"Sleet" = "雨夹雪";
+"Wintry Mix" = "混合降水";
+"Blizzard" = "暴雪";
+"Hail" = "冰雹";
+"Hot" = "炎热";
+"Frigid" = "极寒";
+"Hurricane" = "飓风";
+"Tropical Storm" = "热带风暴";
+"Unknown" = "未知天气";
