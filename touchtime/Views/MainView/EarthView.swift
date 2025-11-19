@@ -379,25 +379,16 @@ struct EarthView: View {
                     
                     if shouldShowLocalTime,
                        let coordinate = getCoordinate(for: TimeZone.current.identifier) {
-                        Annotation(customLocalName.isEmpty ? localCityName : customLocalName, coordinate: coordinate) {
+                        Annotation(String(localized: "Local"), coordinate: coordinate) {
                             VStack(spacing: 6) {
                                 // Time bubble with SkyDot - wrapped in Menu
                                 Menu {
                                     Section(getMenuDateHeader(for: TimeZone.current.identifier)) {
                                         Button(action: {
-                                            let cityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                            let cityName = String(localized: "Local")
                                             addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
                                         }) {
                                             Label(String(localized: "Schedule Event"), systemImage: "calendar.badge.plus")
-                                        }
-                                        
-                                        Button(action: {
-                                            renamingClockId = nil // Use nil to indicate local time
-                                            originalClockName = localCityName
-                                            newClockName = customLocalName.isEmpty ? localCityName : customLocalName
-                                            showingRenameAlert = true
-                                        }) {
-                                            Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
                                         }
                                     }
                                 } label: {
@@ -607,7 +598,7 @@ struct EarthView: View {
                                     impactFeedback.impactOccurred()
                                 }
                                 
-                                withAnimation(.smooth()) {
+                                withAnimation(.spring()) {
                                     isUsingExploreMode.toggle()
                                 }
                             }) {
@@ -627,7 +618,7 @@ struct EarthView: View {
                                         impactFeedback.impactOccurred()
                                     }
                                     
-                                    withAnimation(.smooth()) {
+                                    withAnimation(.spring()) {
                                         showMapLabels.toggle()
                                     }
                                 }) {
@@ -769,11 +760,8 @@ struct EarthView: View {
                 Button(String(localized: "Save")) {
                     let nameToSave = newClockName.isEmpty ? originalClockName : newClockName
                     
-                    if renamingClockId == nil {
-                        // Renaming local time
-                        customLocalName = nameToSave == localCityName ? "" : nameToSave
-                    } else if let clockId = renamingClockId,
-                              let index = worldClocks.firstIndex(where: { $0.id == clockId }) {
+                    if let clockId = renamingClockId,
+                       let index = worldClocks.firstIndex(where: { $0.id == clockId }) {
                         // Renaming a world clock
                         worldClocks[index].cityName = nameToSave
                         saveWorldClocks()

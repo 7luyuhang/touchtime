@@ -310,7 +310,7 @@ struct ArrangeListView: View {
                         Section {
                             HStack {
                                 // City name
-                                Text(customLocalName.isEmpty ? localCityName : customLocalName)
+                                Text(String(localized: "Local"))
                                     .lineLimit(1)
                                     .truncationMode(.tail)
                                 

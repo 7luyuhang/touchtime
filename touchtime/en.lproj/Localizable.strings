@@ -32,7 +32,7 @@
 "Daily available time: %@" = "Daily available time: %@";
 "%d minutes" = "%d minutes";
 "%d hours" = "%dh";
-"%d hours %d minutes" = "%d h %d minutes";
+"%d hours %d minutes" = "%dh %dm";
 "+%d hours" = "+%dh";
 "%d hours" = "%dh";
 "Please select at least one day." = "Please select at least one day.";
@@ -188,6 +188,7 @@
 "Current Time" = "Current Time";
 "Copy as Text" = "Copy as Text";
 "Move to Top" = "Move to Top";
+"Local" = "Local";
 
 /* Moon Phases */
 "New Moon" = "New Moon";

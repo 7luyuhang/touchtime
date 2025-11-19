@@ -59,7 +59,7 @@ struct ShareCitiesSheet: View {
         
         // Add local time if selected and shown in home
         if showLocalTimeInHome && showLocalTime {
-            let localName = customLocalName.isEmpty ? localCityName : customLocalName
+            let localName = String(localized: "Local")
             let localTime = formatTime(for: TimeZone.current)
             shareLines.append("\(localName) \(localTime)")
         }
@@ -137,7 +137,7 @@ struct ShareCitiesSheet: View {
                                 }
                                 
                                 // City name
-                                    Text(customLocalName.isEmpty ? localCityName : customLocalName)
+                                    Text(String(localized: "Local"))
                                         .lineLimit(1)
                                         .truncationMode(.tail)
                            

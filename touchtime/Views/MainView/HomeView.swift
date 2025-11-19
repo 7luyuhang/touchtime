@@ -347,7 +347,7 @@ struct HomeView: View {
                                     // Bottom row: Location and Time (baseline aligned)
                                     HStack(alignment: .lastTextBaseline) {
                                         
-                                        Text(customLocalName.isEmpty ? localCityName : customLocalName)
+                                        Text(String(localized: "Local"))
                                             .font(.headline)
                                             .lineLimit(1)
                                             .truncationMode(.tail)
@@ -427,7 +427,7 @@ struct HomeView: View {
                                 // Tap gesture for local time
                                 .onTapGesture {
                                     selectedTimeZone = TimeZone.current.identifier
-                                    selectedCityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                    selectedCityName = String(localized: "Local")
                                     showSunriseSunsetSheet = true
                                     
                                     // Provide haptic feedback if enabled
@@ -440,7 +440,7 @@ struct HomeView: View {
                                 // Menu Local Time
                                 .contextMenu {
                                     Button(action: {
-                                        let cityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                        let cityName = String(localized: "Local")
                                         addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
                                     }) {
                                         Label("Schedule Event", systemImage: "calendar.badge.plus")
@@ -449,19 +449,10 @@ struct HomeView: View {
                                     Divider()
                                     
                                     Button(action: {
-                                        let cityName = customLocalName.isEmpty ? localCityName : customLocalName
+                                        let cityName = String(localized: "Local")
                                         copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
                                     }) {
                                         Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
-                                    }
-                                    
-                                    Button(action: {
-                                        renamingLocalTime = true
-                                        originalClockName = localCityName
-                                        newClockName = customLocalName.isEmpty ? localCityName : customLocalName
-                                        showingRenameAlert = true
-                                    }) {
-                                        Label("Rename", systemImage: "pencil.tip.crop.circle")
                                     }
                                 }
                             }
@@ -670,7 +661,6 @@ struct HomeView: View {
                                     
                                     // Rename
                                     Button(action: {
-                                        renamingLocalTime = false
                                         renamingClockId = clock.id
                                         // Get original name from timezone identifier
                                         let identifier = clock.timeZoneIdentifier
@@ -867,15 +857,12 @@ struct HomeView: View {
                     newClockName = ""
                     originalClockName = ""
                     renamingClockId = nil
-                    renamingLocalTime = false
                 }
                 Button("Save") {
                     let nameToSave = newClockName.isEmpty ? originalClockName : newClockName
                     
-                    if renamingLocalTime {
-                        customLocalName = nameToSave == localCityName ? "" : nameToSave
-                    } else if let clockId = renamingClockId,
-                              let index = worldClocks.firstIndex(where: { $0.id == clockId }) {
+                    if let clockId = renamingClockId,
+                       let index = worldClocks.firstIndex(where: { $0.id == clockId }) {
                         worldClocks[index].cityName = nameToSave
                         saveWorldClocks()
                         
@@ -890,7 +877,6 @@ struct HomeView: View {
                     newClockName = ""
                     originalClockName = ""
                     renamingClockId = nil
-                    renamingLocalTime = false
                 }
             } message: {
                 Text("Customize the name of this city")

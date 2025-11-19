@@ -41,7 +41,7 @@ struct FlightTimeSheet: View {
     // Create a virtual WorldClock for local time
     var localTimeAsClock: WorldClock {
         WorldClock(
-            cityName: customLocalName.isEmpty ? localCityName : customLocalName,
+            cityName: String(localized: "Local"),
             timeZoneIdentifier: TimeZone.current.identifier
         )
     }
@@ -266,7 +266,7 @@ struct FlightTimeSheet: View {
                                 }
                                 // City name with label
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(customLocalName.isEmpty ? localCityName : customLocalName)
+                                    Text(String(localized: "Local"))
                                         .lineLimit(1)
                                         .truncationMode(.tail)
                                     

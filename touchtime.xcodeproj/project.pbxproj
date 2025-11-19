@@ -72,8 +72,8 @@
 			isa = PBXGroup;
 			children = (
 				5A42D37A2E82CDCE0048963E /* touchtime */,
-				5AEB89DD2EA8FA7A0089C60A /* Frameworks */,
 				5A42D3792E82CDCE0048963E /* Products */,
+				5AEB89DD2EA8FA7A0089C60A /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -315,7 +315,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = touchtime/touchtime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 41;
+				CURRENT_PROJECT_VERSION = 42;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = touchtime/Info.plist;
@@ -356,7 +356,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = touchtime/touchtime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 41;
+				CURRENT_PROJECT_VERSION = 42;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = touchtime/Info.plist;
