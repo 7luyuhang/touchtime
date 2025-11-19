@@ -665,10 +665,11 @@ struct HomeView: View {
                                         // Get original name from timezone identifier
                                         let identifier = clock.timeZoneIdentifier
                                         let components = identifier.split(separator: "/")
-                                        originalClockName = components.count >= 2
+                                        let rawName = components.count >= 2
                                         ? String(components.last!).replacingOccurrences(of: "_", with: " ")
                                         : String(identifier)
-                                        newClockName = clock.cityName
+                                        originalClockName = String(localized: String.LocalizationValue(rawName))
+                                        newClockName = clock.localizedCityName
                                         showingRenameAlert = true
                                     }) {
                                         Label("Rename", systemImage: "pencil.tip.crop.circle")
@@ -724,7 +725,7 @@ struct HomeView: View {
                     ScrollTimeView(timeOffset: $timeOffset, showButtons: $showScrollTimeButtons, worldClocks: $worldClocks)
                         .padding(.horizontal)
                         .padding(.bottom, 8)
-                        .transition(.blurReplace)
+                        .transition(.blurReplace())
                 }
             }
             .background(

@@ -462,14 +462,14 @@ struct EarthView: View {
                     if showLocalTime && clock.timeZoneIdentifier == TimeZone.current.identifier {
                         // Don't show duplicate of local time
                     } else if shouldShowClock, let coordinate = getCoordinate(for: clock.timeZoneIdentifier) {
-                        Annotation(clock.cityName, coordinate: coordinate) {
+                        Annotation(clock.localizedCityName, coordinate: coordinate) {
                             
                             VStack(spacing: 6) {
                                 // Time bubble with SkyDot - wrapped in Menu
                                 Menu {
                                     Section(getMenuDateHeader(for: clock.timeZoneIdentifier)) {
                                         Button(action: {
-                                            addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.cityName)
+                                            addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.localizedCityName)
                                         }) {
                                             Label(String(localized: "Schedule Event"), systemImage: "calendar.badge.plus")
                                         }
@@ -478,10 +478,11 @@ struct EarthView: View {
                                             renamingClockId = clock.id
                                             let identifier = clock.timeZoneIdentifier
                                             let components = identifier.split(separator: "/")
-                                            originalClockName = components.count >= 2
+                                            let rawName = components.count >= 2
                                                 ? String(components.last!).replacingOccurrences(of: "_", with: " ")
                                                 : String(identifier)
-                                            newClockName = clock.cityName
+                                            originalClockName = String(localized: String.LocalizationValue(rawName))
+                                            newClockName = clock.localizedCityName
                                             showingRenameAlert = true
                                         }) {
                                             Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")

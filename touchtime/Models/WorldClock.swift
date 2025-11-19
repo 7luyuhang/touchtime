@@ -39,10 +39,27 @@ struct WorldClock: Identifiable, Codable, Equatable {
     var localizedCityName: String {
         if cityName == originalCityName {
             return String(localized: String.LocalizationValue(originalCityName))
-        } else {
-            return cityName
         }
+        
+        // Check if the stored name matches the localized name in Chinese (Simplified)
+        // This handles the case where default clocks were initialized with localized names
+        if let zhBundle = WorldClock.zhHansBundle {
+             let zhName = zhBundle.localizedString(forKey: originalCityName, value: nil, table: nil)
+             if cityName == zhName && zhName != originalCityName {
+                 return String(localized: String.LocalizationValue(originalCityName))
+             }
+        }
+        
+        return cityName
     }
+    
+    // Cache the Chinese bundle
+    private static var zhHansBundle: Bundle? = {
+        if let path = Bundle.main.path(forResource: "zh-Hans", ofType: "lproj") {
+            return Bundle(path: path)
+        }
+        return nil
+    }()
     
     func currentTime(use24Hour: Bool = false, offset: TimeInterval = 0) -> String {
         let formatter = DateFormatter()
@@ -158,11 +175,11 @@ struct WorldClock: Identifiable, Codable, Equatable {
 // Default world clocks data
 struct WorldClockData {
     static let defaultClocks: [WorldClock] = [
-        WorldClock(cityName: String(localized: "London"), timeZoneIdentifier: "Europe/London"),
-        WorldClock(cityName: String(localized: "Shanghai"), timeZoneIdentifier: "Asia/Shanghai"),
-        WorldClock(cityName: String(localized: "Tokyo"), timeZoneIdentifier: "Asia/Tokyo"),
-        WorldClock(cityName: String(localized: "Los Angeles"), timeZoneIdentifier: "America/Los_Angeles"),
-        WorldClock(cityName: String(localized: "New York"), timeZoneIdentifier: "America/New_York"),
-        WorldClock(cityName: String(localized: "Sydney"), timeZoneIdentifier: "Australia/Sydney")
+        WorldClock(cityName: "London", timeZoneIdentifier: "Europe/London"),
+        WorldClock(cityName: "Shanghai", timeZoneIdentifier: "Asia/Shanghai"),
+        WorldClock(cityName: "Tokyo", timeZoneIdentifier: "Asia/Tokyo"),
+        WorldClock(cityName: "Los Angeles", timeZoneIdentifier: "America/Los_Angeles"),
+        WorldClock(cityName: "New York", timeZoneIdentifier: "America/New_York"),
+        WorldClock(cityName: "Sydney", timeZoneIdentifier: "Australia/Sydney")
     ]
 }

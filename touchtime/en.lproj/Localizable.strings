@@ -26,7 +26,7 @@
 "Tap" = "Tap";
 "and add cities first to enable." = "and add cities first to enable.";
 "Enable showing" = "Enable showing";
-"indicator inside system time." = "indicator inside system time.";
+"indicator inside system time." = "indicator inside local time.";
 "Start Time" = "Start Time";
 "End Time" = "End Time";
 "Daily available time: %@" = "Daily available time: %@";
@@ -54,9 +54,9 @@
 "Chat with me" = "Chat with me";
 "Open to any thoughts or feedback :)" = "Open to any thoughts or feedback :)";
 "General" = "General";
-"Enable showing system time at the top of the list with ambient background." = "Enable showing system time at the top of the list with ambient background.";
+"Enable showing system time at the top of the list with ambient background." = "Enable showing local time at the top of the list with ambient background.";
 "Haptics" = "Haptics";
-"System Time" = "System Time";
+"System Time" = "Local Time";
 "Language" = "Language";
 "Time Display" = "Time Display";
 "Preview" = "Preview";

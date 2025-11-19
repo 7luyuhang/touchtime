@@ -505,4 +505,3 @@ struct SunriseSunsetSheet: View {
         }
     }
 }
-
