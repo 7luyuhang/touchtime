@@ -316,147 +316,138 @@ struct SkyColorGradient {
             // Night (0:00 - 4:00) - Very dark blue to black
             let progress = normalizedTime / 4
             return [
-                Color(red: 0.01, green: 0.01, blue: 0.05 + 0.03 * (1 - progress)),
-                Color(red: 0.02, green: 0.02, blue: 0.08 + 0.04 * (1 - progress)),
-                Color(red: 0.03, green: 0.03, blue: 0.12 + 0.06 * (1 - progress))
+                Color(red: 0.005, green: 0.008, blue: 0.02), // Deep Space
+                Color(red: 0.01, green: 0.015, blue: 0.04),  // Upper Atmosphere
+                Color(red: 0.02, green: 0.03, blue: 0.06 + 0.02 * (1 - progress)) // Horizon
             ]
             
         case 4..<5:
-            // Astronomical twilight (4:00 - 5:00) - Deep greyish-blue dawn
+            // Astronomical Twilight (4:00 - 5:00)
+            // First hint of scattering, deep indigo/violet
             let progress = (normalizedTime - 4)
             return [
-                // Zenith: Dark charcoal blue transitioning to greyish-blue
-                Color(red: 0.05 + 0.03 * progress, green: 0.05 + 0.03 * progress, blue: 0.12 + 0.18 * progress),
-                // Upper sky: Slightly lighter slate blue
-                Color(red: 0.05 + 0.04 * progress, green: 0.05 + 0.04 * progress, blue: 0.15 + 0.2 * progress),
-                // Mid-sky: Greyish-blue with dawn hints
-                Color(red: 0.06 + 0.05 * progress, green: 0.06 + 0.05 * progress, blue: 0.18 + 0.22 * progress),
-                // Horizon: Blue-grey with first light undertones
-                Color(red: 0.07 + 0.06 * progress, green: 0.07 + 0.06 * progress, blue: 0.2 + 0.2 * progress)
+                Color(red: 0.01, green: 0.01, blue: 0.05),   // Zenith
+                Color(red: 0.02, green: 0.025, blue: 0.10 + 0.05 * progress), // Mid
+                Color(red: 0.03, green: 0.04, blue: 0.15 + 0.10 * progress)   // Horizon (Indigo)
             ]
             
         case 5..<6:
-            // Nautical twilight (5:00 - 6:00) - Greyish-blue dawn transition
+            // Nautical Twilight (5:00 - 6:00)
+            // "Blue Hour" begins. Ozone absorption (Chappuis band) contributes to rich blues.
             let progress = (normalizedTime - 5)
             return [
-                // Zenith: Greyish-blue brightening towards civil twilight
-                Color(red: 0.08 + 0.12 * progress, green: 0.08 + 0.07 * progress, blue: 0.3 + 0.15 * progress),
-                // Upper sky: Slate blue with grey undertones
-                Color(red: 0.09 + 0.11 * progress, green: 0.09 + 0.11 * progress, blue: 0.35 + 0.15 * progress),
-                // Mid-sky: Blue-grey with dawn progression
-                Color(red: 0.11 + 0.14 * progress, green: 0.11 + 0.09 * progress, blue: 0.4 + 0.1 * progress),
-                // Horizon: Lighter blue-grey with first warm hints
-                Color(red: 0.13 + 0.17 * progress, green: 0.13 + 0.07 * progress, blue: 0.4 + 0.1 * progress)
+                Color(red: 0.02, green: 0.03, blue: 0.12 + 0.05 * progress), // Zenith
+                Color(red: 0.05, green: 0.08, blue: 0.25 + 0.1 * progress),  // Upper
+                Color(red: 0.10 + 0.05 * progress, green: 0.15 + 0.05 * progress, blue: 0.40 + 0.1 * progress), // Mid
+                Color(red: 0.15 + 0.1 * progress, green: 0.20 + 0.1 * progress, blue: 0.45 + 0.05 * progress)   // Horizon
             ]
             
         case 6..<7:
-            // Civil twilight / Dawn (6:00 - 7:00) - Blue hour with warm horizon
+            // Civil Twilight / Dawn (6:00 - 7:00)
+            // Scattering intensifies. Horizon transitions from blue to cool pink/lavender (Less yellow).
             let progress = (normalizedTime - 6)
             return [
-                Color(red: 0.2 + 0.15 * progress, green: 0.15 + 0.25 * progress, blue: 0.45 + 0.25 * progress),
-                Color(red: 0.3 + 0.2 * progress, green: 0.2 + 0.3 * progress, blue: 0.5 + 0.3 * progress),
-                Color(red: 0.4 + 0.3 * progress, green: 0.2 + 0.2 * progress, blue: 0.5 + 0.2 * progress),
-                Color(red: 0.6 + 0.3 * progress, green: 0.35 + 0.15 * progress, blue: 0.4 + 0.1 * progress)
+                Color(red: 0.05, green: 0.1, blue: 0.35), // Zenith (Deep Blue)
+                Color(red: 0.2, green: 0.25, blue: 0.55), // Mid Sky
+                Color(red: 0.5 + 0.1 * progress, green: 0.35 + 0.05 * progress, blue: 0.55), // Transition (Lavender)
+                Color(red: 0.75 + 0.1 * progress, green: 0.5 + 0.1 * progress, blue: 0.5 + 0.1 * progress) // Horizon (Cool Pink -> Pale Peach)
             ]
             
         case 7..<8:
-            // Sunrise (7:00 - 8:00) - Golden/orange to blue transition
+            // Sunrise (7:00 - 8:00)
+            // Sun breaches horizon. Intense brightness with clean white/blue tones (Less intense yellow).
             let progress = (normalizedTime - 7)
             return [
-                Color(red: 0.35 + 0.05 * progress, green: 0.4 + 0.3 * progress, blue: 0.7 + 0.2 * progress),
-                Color(red: 0.5 - 0.05 * progress, green: 0.5 + 0.25 * progress, blue: 0.8 + 0.15 * progress),
-                Color(red: 0.7 - 0.15 * progress, green: 0.55 + 0.2 * progress, blue: 0.7 + 0.2 * progress),
-                Color(red: 0.9 - 0.3 * progress, green: 0.5 + 0.2 * progress, blue: 0.5 + 0.3 * progress)
+                Color(red: 0.15, green: 0.4 + 0.1 * progress, blue: 0.7 + 0.05 * progress), // Zenith (Clean Blue)
+                Color(red: 0.45 + 0.1 * progress, green: 0.6 + 0.1 * progress, blue: 0.85), // Upper (Sky Blue)
+                Color(red: 0.75 + 0.1 * progress, green: 0.75 + 0.1 * progress, blue: 0.9), // Mid (Pale Blue/White)
+                Color(red: 0.95, green: 0.85 - 0.05 * progress, blue: 0.7 + 0.2 * progress) // Horizon (Bright White-Gold)
             ]
             
         case 8..<11:
-            // Morning (8:00 - 11:00) - Clear blue sky with bright horizon
+            // Morning (8:00 - 11:00)
+            // Atmosphere clears. Rayleigh scattering stabilizes to pure blue.
             let progress = (normalizedTime - 8) / 3
             return [
-                Color(red: 0.4 - 0.1 * progress, green: 0.7 - 0.05 * progress, blue: 0.9),  // Deep blue at zenith
-                Color(red: 0.45 - 0.1 * progress, green: 0.75 - 0.05 * progress, blue: 0.95),  // Mid sky
-                Color(red: 0.6 - 0.1 * progress, green: 0.8 - 0.05 * progress, blue: 0.98),  // Lower sky
-                Color(red: 0.75 + 0.1 * progress, green: 0.85 + 0.05 * progress, blue: 0.95)  // Near horizon - whiter due to atmospheric scattering
+                Color(red: 0.1 + 0.05 * progress, green: 0.4 + 0.1 * progress, blue: 0.75 + 0.05 * progress), // Zenith (Deep Blue)
+                Color(red: 0.25 + 0.05 * progress, green: 0.55 + 0.05 * progress, blue: 0.85), // Mid
+                Color(red: 0.5 + 0.1 * progress, green: 0.7 + 0.05 * progress, blue: 0.9), // Lower
+                Color(red: 0.7 + 0.1 * progress, green: 0.85 + 0.05 * progress, blue: 0.95) // Horizon (Pale due to Mie scattering)
             ]
             
         case 11..<14:
-            // Noon (11:00 - 14:00) - Deep blue zenith with bright horizon
+            // Noon (11:00 - 14:00)
+            // Maximum brightness. Shortest optical path.
             return [
-                Color(red: 0.3, green: 0.65, blue: 0.9),  // Deep blue at zenith
-                Color(red: 0.35, green: 0.7, blue: 0.95),  // Mid sky
-                Color(red: 0.5, green: 0.75, blue: 0.98),  // Lower sky
-                Color(red: 0.85, green: 0.9, blue: 0.95)  // Near horizon - maximum brightness/whiteness
+                Color(red: 0.15, green: 0.48, blue: 0.85), // Zenith (Rich Nitrogen Blue)
+                Color(red: 0.30, green: 0.60, blue: 0.90), // Mid
+                Color(red: 0.60, green: 0.80, blue: 0.95), // Lower
+                Color(red: 0.85, green: 0.92, blue: 0.98)  // Horizon (Haze/White)
             ]
             
         case 14..<17:
-            // Afternoon (14:00 - 17:00) - Slightly warmer blue with bright horizon
+            // Afternoon (14:00 - 17:00)
+            // Light warms slightly as path length increases.
             let progress = (normalizedTime - 14) / 3
             return [
-                Color(red: 0.3 + 0.1 * progress, green: 0.65, blue: 0.9 - 0.05 * progress),  // Zenith
-                Color(red: 0.35 + 0.15 * progress, green: 0.7 + 0.05 * progress, blue: 0.95 - 0.05 * progress),  // Mid sky
-                Color(red: 0.5 + 0.15 * progress, green: 0.75 + 0.05 * progress, blue: 0.98 - 0.08 * progress),  // Lower sky
-                Color(red: 0.85 - 0.1 * progress, green: 0.9 - 0.1 * progress, blue: 0.95 - 0.15 * progress)  // Horizon - transitioning to golden hour
+                Color(red: 0.15, green: 0.48 - 0.05 * progress, blue: 0.85 - 0.1 * progress), // Zenith
+                Color(red: 0.30 + 0.05 * progress, green: 0.60 - 0.05 * progress, blue: 0.90 - 0.05 * progress), // Mid
+                Color(red: 0.60 + 0.1 * progress, green: 0.80 - 0.05 * progress, blue: 0.95 - 0.05 * progress), // Lower
+                Color(red: 0.85 + 0.05 * progress, green: 0.92 - 0.05 * progress, blue: 0.98 - 0.05 * progress)  // Horizon
             ]
             
         case 17..<18:
-            // Golden hour beginning (17:00 - 18:00)
+            // Golden Hour (17:00 - 18:00)
+            // Blue scatters out, leaving warm golden tones. (Desaturated for realism)
             let progress = (normalizedTime - 17)
             return [
-                Color(red: 0.4 + 0.1 * progress, green: 0.65 + 0.05 * progress, blue: 0.85 - 0.15 * progress),
-                Color(red: 0.5 + 0.2 * progress, green: 0.75 - 0.05 * progress, blue: 0.9 - 0.2 * progress),
-                Color(red: 0.6 + 0.3 * progress, green: 0.8 - 0.15 * progress, blue: 0.9 - 0.3 * progress),
-                Color(red: 0.8 + 0.15 * progress, green: 0.7 - 0.1 * progress, blue: 0.5 - 0.1 * progress)
+                Color(red: 0.2 + 0.05 * progress, green: 0.45 - 0.05 * progress, blue: 0.7 - 0.1 * progress), // Zenith (Softer Blue)
+                Color(red: 0.45 + 0.1 * progress, green: 0.58 - 0.03 * progress, blue: 0.75 - 0.1 * progress), // Mid
+                Color(red: 0.7 + 0.1 * progress, green: 0.75 - 0.15 * progress, blue: 0.85 - 0.25 * progress), // Lower
+                Color(red: 0.9 + 0.05 * progress, green: 0.85 - 0.15 * progress, blue: 0.8 - 0.3 * progress) // Horizon (Soft Gold/White)
             ]
             
         case 18..<19:
-            // Sunset (18:00 - 19:00) - Full golden hour
+            // Sunset (18:00 - 19:00)
+            // Dramatic spectrum split. Deep blue above, soft red/orange below (Natural saturation)
             let progress = (normalizedTime - 18)
             return [
-                Color(red: 0.5, green: 0.7 - 0.2 * progress, blue: 0.7 - 0.1 * progress),
-                Color(red: 0.7 + 0.2 * progress, green: 0.7 - 0.15 * progress, blue: 0.7 - 0.2 * progress),
-                Color(red: 0.9 + 0.05 * progress, green: 0.65 - 0.15 * progress, blue: 0.6 - 0.2 * progress),
-                Color(red: 0.95 + 0.05 * progress, green: 0.6 - 0.2 * progress, blue: 0.4 - 0.15 * progress),
-                Color(red: 1.0, green: 0.5 - 0.1 * progress, blue: 0.25 - 0.05 * progress)
+                Color(red: 0.15 + 0.05 * progress, green: 0.3 - 0.1 * progress, blue: 0.5 - 0.1 * progress), // Zenith
+                Color(red: 0.4 + 0.1 * progress, green: 0.4 - 0.05 * progress, blue: 0.55 - 0.15 * progress), // Upper
+                Color(red: 0.75 + 0.1 * progress, green: 0.55 - 0.15 * progress, blue: 0.5 - 0.15 * progress), // Mid (Soft Salmon)
+                Color(red: 0.95 - 0.1 * progress, green: 0.7 - 0.35 * progress, blue: 0.5 - 0.25 * progress) // Horizon (Soft Orange -> Burnt Orange)
             ]
             
         case 19..<20:
-            // Civil twilight / Blue hour (19:00 - 20:00)
-            // Greyish-blue atmosphere with balanced tones
+            // Civil Dusk (19:00 - 20:00)
+            // The "Belt of Venus" effect fading into blue hour.
             let progress = (normalizedTime - 19)
             return [
-                // Zenith: Steel blue with grey undertones
-                Color(red: 0.2 - 0.05 * progress, green: 0.25 - 0.07 * progress, blue: 0.5 - 0.1 * progress),
-                // Upper sky: Lighter greyish-blue
-                Color(red: 0.22 - 0.06 * progress, green: 0.28 - 0.09 * progress, blue: 0.48 - 0.1 * progress),
-                // Mid sky: Blue-grey with twilight transition
-                Color(red: 0.25 - 0.07 * progress, green: 0.3 - 0.1 * progress, blue: 0.45 - 0.1 * progress),
-                // Horizon: Muted blue-grey with last light
-                Color(red: 0.28 - 0.08 * progress, green: 0.3 - 0.09 * progress, blue: 0.4 - 0.08 * progress)
+                Color(red: 0.05 + 0.05 * progress, green: 0.1 - 0.05 * progress, blue: 0.4 - 0.1 * progress), // Zenith
+                Color(red: 0.2, green: 0.25 - 0.1 * progress, blue: 0.5 - 0.1 * progress), // Upper
+                Color(red: 0.5 - 0.2 * progress, green: 0.35 - 0.2 * progress, blue: 0.45 - 0.1 * progress), // Mid (Purple/Fade)
+                Color(red: 0.8 - 0.4 * progress, green: 0.4 - 0.2 * progress, blue: 0.3 - 0.1 * progress) // Horizon (Fading Sunset)
             ]
             
         case 20..<21:
-            // Nautical twilight (20:00 - 21:00)
-            // Sun is 6-12° below horizon - greyish-blue to dark slate transition
+            // Nautical Dusk (20:00 - 21:00)
+            // Horizon glow remains, but colors desaturate rapidly.
             let progress = (normalizedTime - 20)
             return [
-                // Zenith: Dark greyish-blue transitioning to charcoal blue
-                Color(red: 0.15 - 0.1 * progress, green: 0.18 - 0.13 * progress, blue: 0.4 - 0.25 * progress),
-                // Upper sky: Deep slate blue with grey undertones
-                Color(red: 0.16 - 0.11 * progress, green: 0.19 - 0.14 * progress, blue: 0.38 - 0.23 * progress),
-                // Mid sky: Greyish-blue with faint twilight remnants
-                Color(red: 0.18 - 0.13 * progress, green: 0.2 - 0.15 * progress, blue: 0.35 - 0.2 * progress),
-                // Horizon: Last traces of twilight, blue-grey blend
-                Color(red: 0.2 - 0.15 * progress, green: 0.21 - 0.16 * progress, blue: 0.32 - 0.17 * progress)
+                Color(red: 0.02, green: 0.03, blue: 0.15 - 0.05 * progress), // Zenith
+                Color(red: 0.08, green: 0.1, blue: 0.25 - 0.05 * progress), // Upper
+                Color(red: 0.15 - 0.05 * progress, green: 0.15 - 0.05 * progress, blue: 0.3 - 0.1 * progress), // Mid
+                Color(red: 0.25 - 0.15 * progress, green: 0.2 - 0.1 * progress, blue: 0.3 - 0.1 * progress) // Horizon
             ]
             
         default:
-            // Astronomical twilight to Night (21:00 - 24:00)
+            // Astronomical Dusk to Night (21:00 - 24:00)
+            // Returning to deep space black/navy.
             let progress = min((normalizedTime - 21) / 3, 1)
             return [
-                // Deep greyish-blue to charcoal black
-                Color(red: 0.05 - 0.03 * progress, green: 0.05 - 0.03 * progress, blue: 0.15 - 0.1 * progress),
-                Color(red: 0.05 - 0.035 * progress, green: 0.05 - 0.035 * progress, blue: 0.15 - 0.11 * progress),
-                Color(red: 0.05 - 0.04 * progress, green: 0.05 - 0.04 * progress, blue: 0.12 - 0.09 * progress)
+                Color(red: 0.01, green: 0.01, blue: 0.05 - 0.03 * progress), // Zenith
+                Color(red: 0.02, green: 0.02, blue: 0.08 - 0.04 * progress), // Mid
+                Color(red: 0.04 - 0.02 * progress, green: 0.05 - 0.02 * progress, blue: 0.12 - 0.06 * progress) // Horizon
             ]
         }
     }
