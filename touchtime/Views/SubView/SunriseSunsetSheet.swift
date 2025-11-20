@@ -29,7 +29,9 @@ struct SunriseSunsetSheet: View {
     @StateObject private var weatherManager = WeatherManager()
     @State private var currentWeather: CurrentWeather?
     @State private var dailyWeather: DayWeather?
+    @State private var weeklyWeather: [DayWeather] = []
     @State private var weatherLoadAttempted = false // No Weather Data
+    @State private var isWeatherExpanded = false // Track weather section expansion
     
     // Timer to update the current date
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -188,6 +190,16 @@ struct SunriseSunsetSheet: View {
         return String(format: String(localized: "%d hours %d minutes"), hours, minutes)
     }
     
+    private func formatDayOfWeek(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale.current
+        
+        // Use very short weekday format (M, T, W, etc.)
+        formatter.dateFormat = "EEEEE"
+        return formatter.string(from: date)
+    }
+    
     
     var body: some View {
         NavigationStack {
@@ -196,7 +208,7 @@ struct SunriseSunsetSheet: View {
                     // Weather section - only show if weather is enabled in settings
                     if showWeather {
                         if let weather = currentWeather {
-                            VStack(alignment: .leading){
+                            VStack(alignment: .leading, spacing: 8){
                                 // Weather info section
                                 HStack {
                                     HStack(spacing: 16){
@@ -216,40 +228,108 @@ struct SunriseSunsetSheet: View {
                                     
                                     // Temperature
                                     let temp = useCelsius ?
-                                        weather.temperature.converted(to: .celsius) :
-                                        weather.temperature.converted(to: .fahrenheit)
+                                    weather.temperature.converted(to: .celsius) :
+                                    weather.temperature.converted(to: .fahrenheit)
                                     let tempValue = Int(temp.value)
                                     
-                                    HStack(spacing: 6) {
-                                        Text("\(tempValue)°")
-                                            .monospacedDigit()
-                                            .contentTransition(.numericText())
-                                            .animation(.spring(), value: tempValue)
-                                        
-                                        // Minimum temperature
-                                        if let daily = dailyWeather {
-                                            let minTemp = useCelsius ?
-                                            daily.lowTemperature.converted(to: .celsius) :
-                                            daily.lowTemperature.converted(to: .fahrenheit)
-                                            let minTempValue = Int(minTemp.value)
-                                            
-                                            
-                                            Text("\(minTempValue)°")
+                                    HStack(spacing: 10) {
+                                        // Temps
+                                        HStack(spacing: 6){
+                                            Text("\(tempValue)°")
                                                 .monospacedDigit()
                                                 .contentTransition(.numericText())
-                                                .animation(.spring(), value: minTempValue)
-                                                .foregroundStyle(.secondary)
-                                                .blendMode(.plusLighter)
-                                        }
+                                                .animation(.spring(), value: tempValue)
+                                            
+                                            // Minimum temperature
+                                            if let daily = dailyWeather {
+                                                let minTemp = useCelsius ?
+                                                daily.lowTemperature.converted(to: .celsius) :
+                                                daily.lowTemperature.converted(to: .fahrenheit)
+                                                let minTempValue = Int(minTemp.value)
+                                                
+                                                Text("\(minTempValue)°")
+                                                    .monospacedDigit()
+                                                    .contentTransition(.numericText())
+                                                    .animation(.spring(), value: minTempValue)
+                                                    .foregroundStyle(.tertiary)
+                                                    .blendMode(.plusLighter)
+                                            }}
+                                        // Chevron icon
+                                        Image(systemName: "chevron.right")
+                                            .font(.footnote.weight(.semibold))
+                                            .foregroundStyle(isWeatherExpanded ? .primary : .tertiary)
+                                            .blendMode(.plusLighter)
+                                            .rotationEffect(.degrees(isWeatherExpanded ? 90 : 0))
+                                            .animation(.spring(), value: isWeatherExpanded)
                                     }
                                 }
                                 .padding(16)
                                 .background(.white.opacity(0.05))
                                 .blendMode(.plusLighter)
                                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                    }
+                                    withAnimation(.snappy(duration: 0.50)) { // weekly weather animation
+                                        isWeatherExpanded.toggle()
+                                    }
+                                }
                                 .padding(.horizontal, 16)
-                                .padding(.top, 16) // Row top padding
+                                
+                                // Weekly weather section (expandable)
+                                if isWeatherExpanded && !weeklyWeather.isEmpty {
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 8) {
+                                            ForEach(Array(weeklyWeather.enumerated()), id: \.offset) { index, day in
+                                                VStack(spacing: 5) {
+                                                    // High temperature
+                                                    let highTemp = useCelsius ?
+                                                    day.highTemperature.converted(to: .celsius) :
+                                                    day.highTemperature.converted(to: .fahrenheit)
+                                                    Text("\(Int(highTemp.value))°")
+                                                        .font(.subheadline.weight(.medium))
+                                                        .monospacedDigit()
+                                                    
+                                                    // Low temperature
+                                                    let lowTemp = useCelsius ?
+                                                    day.lowTemperature.converted(to: .celsius) :
+                                                    day.lowTemperature.converted(to: .fahrenheit)
+                                                    Text("\(Int(lowTemp.value))°")
+                                                        .font(.subheadline.weight(.medium))
+                                                        .foregroundStyle(.tertiary)
+                                                        .blendMode(.plusLighter)
+                                                        .monospacedDigit()
+                                                    
+                                                    // Weather icon
+                                                    Image(systemName: day.condition.icon)
+                                                        .font(.title3)
+                                                        .foregroundStyle(.secondary)
+                                                        .blendMode(.plusLighter)
+                                                        .frame(height: 28)
+                                                    
+                                                    // Day of week
+                                                    Text(formatDayOfWeek(day.date))
+                                                        .font(.caption.weight(.semibold))
+                                                        .foregroundStyle(.secondary)
+                                                        .blendMode(.plusLighter)
+                                                        .padding(.top, 5)
+                                                }
+                                                .frame(width: 64)
+                                                .padding(.vertical, 12)
+                                                .background(.white.opacity(0.05))
+                                                .blendMode(.plusLighter)
+                                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                            }
+                                        }
+                                        .padding(.horizontal, 16)
+                                    }
+                                    .transition(.blurReplace())
+                                }
                             }
+                            .padding(.top, 16) // Row top padding
+                            
                         } else if weatherLoadAttempted {
                             // Show "No Internet" message when weather is enabled but couldn't be loaded
                             HStack {
@@ -280,7 +360,7 @@ struct SunriseSunsetSheet: View {
                                 .padding(.horizontal, 32)
                                 .padding(.bottom, 4)
                                 .padding(.top, showWeather ? 24 : 8)
-                                
+                            
                             
                             
                             HStack(spacing: 8) {
@@ -464,6 +544,9 @@ struct SunriseSunsetSheet: View {
                         if let daily = weatherManager.dailyWeatherData[timeZoneIdentifier] {
                             dailyWeather = daily
                         }
+                        if let weekly = weatherManager.weeklyWeatherData[timeZoneIdentifier] {
+                            weeklyWeather = weekly
+                        }
                     }
                 }
             }
@@ -482,8 +565,8 @@ struct SunriseSunsetSheet: View {
                             style: dateStyle,
                             timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
                         ))
-                            .font(.footnote.weight(.medium))
-                            .foregroundStyle(.secondary)
+                        .font(.footnote.weight(.medium))
+                        .foregroundStyle(.secondary)
                     }
                 }
                 ToolbarItem(placement: .topBarLeading) {
