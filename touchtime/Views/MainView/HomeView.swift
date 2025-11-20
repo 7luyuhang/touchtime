@@ -851,6 +851,14 @@ struct HomeView: View {
                 loadCollections()
             }
             
+            // Listen for reset notification to reset scroll time
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResetScrollTime"))) { _ in
+                withAnimation(.spring()) {
+                    timeOffset = 0
+                    showScrollTimeButtons = false
+                }
+            }
+            
             // Rename
             .alert("Rename", isPresented: $showingRenameAlert) {
                 TextField(originalClockName, text: $newClockName)

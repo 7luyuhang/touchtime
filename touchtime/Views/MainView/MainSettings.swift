@@ -784,6 +784,9 @@ struct SettingsView: View {
         // Clear selected collection
         UserDefaults.standard.removeObject(forKey: "selectedCollectionId")
         
+        // Post notification to reset scroll time
+        NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
+        
         // Provide haptic feedback if enabled
         if hapticEnabled {
             let impactFeedback = UINotificationFeedbackGenerator()

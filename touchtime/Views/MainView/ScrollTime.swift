@@ -541,6 +541,13 @@ struct ScrollTimeView: View {
             // Stop haptic engine when app goes to background
             hapticEngine?.stop()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResetScrollTime"))) { _ in
+            // Reset drag offset when cities are reset
+            withAnimation(.spring()) {
+                dragOffset = 0
+                lastHapticOffset = 0
+            }
+        }
         .sheet(isPresented: $showTimePicker) {
             TimeOffsetPickerView(
                 timeOffset: $timeOffset,
