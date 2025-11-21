@@ -33,6 +33,9 @@ struct EarthView: View {
     @State private var showMapMenu = false
     @State private var showFlightTimeSheet = false
     @State private var selectedFlightCities: (from: WorldClock?, to: WorldClock?) = (nil, nil)
+    @State private var showSunriseSunsetSheet = false
+    @State private var selectedCityName: String = ""
+    @State private var selectedTimeZoneIdentifier: String = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("isUsingExploreMode") private var isUsingExploreMode = false
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -381,8 +384,72 @@ struct EarthView: View {
                        let coordinate = getCoordinate(for: TimeZone.current.identifier) {
                         Annotation(String(localized: "Local"), coordinate: coordinate) {
                             VStack(spacing: 6) {
-                                // Time bubble with SkyDot - wrapped in Menu
-                                Menu {
+                                // Time bubble with SkyDot - wrapped in contextMenu
+                                HStack(spacing: 8) {
+                                    
+                                    if showSkyDot {
+                                        SkyDotView(
+                                            date: currentDate,
+                                            timeZoneIdentifier: TimeZone.current.identifier
+                                        )
+                                        .overlay(
+                                            Capsule(style: .continuous)
+                                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                                .blendMode(.plusLighter)
+                                        )
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    HStack(spacing: 4) {
+                                        Text({
+                                            let formatter = DateFormatter()
+                                            formatter.timeZone = TimeZone.current
+                                            formatter.locale = Locale(identifier: "en_US_POSIX")
+                                            if use24HourFormat {
+                                                formatter.dateFormat = "HH:mm"
+                                            } else {
+                                                formatter.dateFormat = "h:mma"
+                                            }
+                                            return formatter.string(from: currentDate).lowercased()
+                                        }())
+                                        .font(.caption)
+                                        .fontWeight(.bold)
+                                        .fontDesign(.rounded)
+                                        .foregroundStyle(.white)
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                        .animation(.spring(), value: currentDate)
+                                        
+                                        Image(systemName: "location.fill")
+                                            .font(.caption2)
+                                            .foregroundStyle(.white)
+                                    }
+
+                                }
+                                .animation(.spring(), value: showSkyDot)
+                                
+                                // Overall Paddings
+                                .padding(.leading, showSkyDot ? 4 : 8)
+                                .padding(.trailing, 8)
+                                .padding(.vertical, 4)
+                                .clipShape(Capsule())
+//                                    .glassEffect(.clear.interactive())
+                                .background(
+                                    Capsule()
+                                        .fill(Color.black.opacity(0.25))
+                                        .glassEffect(.clear.interactive())
+                                )
+                                .onTapGesture {
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.prepare()
+                                        impactFeedback.impactOccurred()
+                                    }
+                                    selectedCityName = String(localized: "Local")
+                                    selectedTimeZoneIdentifier = TimeZone.current.identifier
+                                    showSunriseSunsetSheet = true
+                                }
+                                .contextMenu {
                                     Section(getMenuDateHeader(for: TimeZone.current.identifier)) {
                                         Button(action: {
                                             let cityName = String(localized: "Local")
@@ -391,61 +458,6 @@ struct EarthView: View {
                                             Label(String(localized: "Schedule Event"), systemImage: "calendar.badge.plus")
                                         }
                                     }
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        
-                                        if showSkyDot {
-                                            SkyDotView(
-                                                date: currentDate,
-                                                timeZoneIdentifier: TimeZone.current.identifier
-                                            )
-                                            .overlay(
-                                                Capsule(style: .continuous)
-                                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                                    .blendMode(.plusLighter)
-                                            )
-                                            .transition(.blurReplace)
-                                        }
-                                        
-                                        HStack(spacing: 4) {
-                                            Text({
-                                                let formatter = DateFormatter()
-                                                formatter.timeZone = TimeZone.current
-                                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                if use24HourFormat {
-                                                    formatter.dateFormat = "HH:mm"
-                                                } else {
-                                                    formatter.dateFormat = "h:mma"
-                                                }
-                                                return formatter.string(from: currentDate).lowercased()
-                                            }())
-                                            .font(.caption)
-                                            .fontWeight(.bold)
-                                            .fontDesign(.rounded)
-                                            .foregroundStyle(.white)
-                                            .monospacedDigit()
-                                            .contentTransition(.numericText())
-                                            .animation(.spring(), value: currentDate)
-                                            
-                                            Image(systemName: "location.fill")
-                                                .font(.caption2)
-                                                .foregroundStyle(.white)
-                                        }
-
-                                    }
-                                    .animation(.spring(), value: showSkyDot)
-                                    
-                                    // Overall Paddings
-                                    .padding(.leading, showSkyDot ? 4 : 8)
-                                    .padding(.trailing, 8)
-                                    .padding(.vertical, 4)
-                                    .clipShape(Capsule())
-//                                    .glassEffect(.clear.interactive())
-                                    .background(
-                                        Capsule()
-                                            .fill(Color.black.opacity(0.25))
-                                            .glassEffect(.clear.interactive())
-                                    )
                                 }
                             }
                         }
@@ -465,8 +477,62 @@ struct EarthView: View {
                         Annotation(clock.localizedCityName, coordinate: coordinate) {
                             
                             VStack(spacing: 6) {
-                                // Time bubble with SkyDot - wrapped in Menu
-                                Menu {
+                                // Time bubble with SkyDot - wrapped in contextMenu
+                                HStack(spacing: 8) {
+                                    if showSkyDot {
+                                        SkyDotView(
+                                            date: currentDate,
+                                            timeZoneIdentifier: clock.timeZoneIdentifier
+                                        )
+                                        .overlay(
+                                            Capsule(style: .continuous)
+                                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                                                .blendMode(.plusLighter)
+                                        )
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    Text({
+                                        let formatter = DateFormatter()
+                                        formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
+                                        formatter.locale = Locale(identifier: "en_US_POSIX")
+                                        if use24HourFormat {
+                                            formatter.dateFormat = "HH:mm"
+                                        } else {
+                                            formatter.dateFormat = "h:mma"
+                                        }
+                                        return formatter.string(from: currentDate).lowercased()
+                                    }())
+                                    .font(.caption)
+                                    .fontWeight(.bold)
+                                    .fontDesign(.rounded)
+                                    .foregroundColor(.white)
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
+                                    .animation(.spring(), value: currentDate)
+                                }
+                                .animation(.spring(), value: showSkyDot)
+                                .padding(.leading, showSkyDot ? 4 : 8)
+                                .padding(.trailing, 8)
+                                .padding(.vertical, 4)
+                                .clipShape(Capsule())
+//                                    .glassEffect(.clear.interactive())
+                                .background(
+                                    Capsule()
+                                        .fill(Color.black.opacity(0.25))
+                                        .glassEffect(.clear.interactive())
+                                )
+                                .onTapGesture {
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.prepare()
+                                        impactFeedback.impactOccurred()
+                                    }
+                                    selectedCityName = clock.localizedCityName
+                                    selectedTimeZoneIdentifier = clock.timeZoneIdentifier
+                                    showSunriseSunsetSheet = true
+                                }
+                                .contextMenu {
                                     Section(getMenuDateHeader(for: clock.timeZoneIdentifier)) {
                                         Button(action: {
                                             addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.localizedCityName)
@@ -501,51 +567,6 @@ struct EarthView: View {
                                             Label("Delete", systemImage: "xmark.circle")
                                         }
                                     }
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        if showSkyDot {
-                                            SkyDotView(
-                                                date: currentDate,
-                                                timeZoneIdentifier: clock.timeZoneIdentifier
-                                            )
-                                            .overlay(
-                                                Capsule(style: .continuous)
-                                                    .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                                    .blendMode(.plusLighter)
-                                            )
-                                            .transition(.blurReplace)
-                                        }
-                                        
-                                        Text({
-                                            let formatter = DateFormatter()
-                                            formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
-                                            formatter.locale = Locale(identifier: "en_US_POSIX")
-                                            if use24HourFormat {
-                                                formatter.dateFormat = "HH:mm"
-                                            } else {
-                                                formatter.dateFormat = "h:mma"
-                                            }
-                                            return formatter.string(from: currentDate).lowercased()
-                                        }())
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .fontDesign(.rounded)
-                                        .foregroundColor(.white)
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                        .animation(.spring(), value: currentDate)
-                                    }
-                                    .animation(.spring(), value: showSkyDot)
-                                    .padding(.leading, showSkyDot ? 4 : 8)
-                                    .padding(.trailing, 8)
-                                    .padding(.vertical, 4)
-                                    .clipShape(Capsule())
-//                                    .glassEffect(.clear.interactive())
-                                    .background(
-                                        Capsule()
-                                            .fill(Color.black.opacity(0.25))
-                                            .glassEffect(.clear.interactive())
-                                    )
                                 }
                             }
                         }
@@ -783,6 +804,17 @@ struct EarthView: View {
                     eventStore: eventStore
                 )
                 .ignoresSafeArea()
+            }
+            
+            // Sunrise/Sunset Sheet
+            .sheet(isPresented: $showSunriseSunsetSheet) {
+                SunriseSunsetSheet(
+                    cityName: selectedCityName,
+                    timeZoneIdentifier: selectedTimeZoneIdentifier,
+                    initialDate: currentDate,
+                    timeOffset: 0
+                )
+                .presentationDetents([.medium])
             }
         }
     }  

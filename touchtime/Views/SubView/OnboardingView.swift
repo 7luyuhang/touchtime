@@ -114,24 +114,25 @@ struct OnboardingView: View {
     
     var body: some View {
         ZStack {
-// Background
-            LinearGradient(
-                colors: [
-                    Color(.blue
-                        .opacity(0.2)),
-                    Color(.white.opacity(0.05)),
-                    Color(.black)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
+            // Background
+            Color.black
+                .ignoresSafeArea()
+            
+            SkyColorGradient(
+                date: Date(),
+                timeZoneIdentifier: TimeZone.current.identifier
             )
+            .linearGradient()
             .blendMode(.plusLighter)
             .ignoresSafeArea()
+            .blur(radius: 200)
+            .opacity(0.35)
             
             // Dot Matrix Animation
             DotMatrixOverlay()
                 .ignoresSafeArea()
                 .blendMode(.plusLighter)
+                .opacity(0.75)
                 .opacity(animateIcon ? 1.0 : 0.0)
             
             // VariableBlur
@@ -166,8 +167,8 @@ struct OnboardingView: View {
                             Image("TouchTimeAppIcon")
                                 .resizable()
                                 .scaledToFit()
-                                .glassEffect(.regular.interactive(), in:
-                                                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                .glassEffect(.clear, in:
+                                                RoundedRectangle(cornerRadius: 28, style: .continuous)
                                 )
                                 .frame(width: 100, height: 100)
                                 .blur(radius: animateIcon ? 0 : 25)
