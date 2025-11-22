@@ -200,6 +200,56 @@ struct SunriseSunsetSheet: View {
         return formatter.string(from: date)
     }
     
+    // Calculate DST information
+    private var dstInfo: (transitionDate: Date?, isStart: Bool, offsetHours: Int)? {
+        guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
+            return nil
+        }
+        
+        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+        
+        // Check if timezone supports DST by checking if there's a next transition
+        guard let nextTransition = timeZone.nextDaylightSavingTimeTransition(after: adjustedDate) else {
+            return nil
+        }
+        
+        // Check if currently in DST
+        let isCurrentlyDST = timeZone.isDaylightSavingTime(for: adjustedDate)
+        
+        // Check if the next transition will start or end DST
+        // If currently in DST, next transition will end it (isStart = false)
+        // If currently not in DST, next transition will start it (isStart = true)
+        let isStart = !isCurrentlyDST
+        
+        // Calculate DST offset
+        // For DST start: time moves forward (+1 hour)
+        // For DST end: time moves backward (-1 hour)
+        // Get the offset after the transition
+        let offsetAfterTransition = timeZone.daylightSavingTimeOffset(for: nextTransition)
+        let offsetBeforeTransition = timeZone.daylightSavingTimeOffset(for: adjustedDate)
+        
+        // The change in offset is what we want to display
+        let offsetChange = offsetAfterTransition - offsetBeforeTransition
+        let offsetHours = Int(offsetChange / 3600)
+        
+        return (nextTransition, isStart, offsetHours)
+    }
+    
+    private func formatDSTDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale.current
+        
+        // Use short date format
+        if Locale.current.language.languageCode?.identifier == "zh" {
+            formatter.dateFormat = "MMMd日"
+        } else {
+            formatter.dateFormat = "MMM d"
+        }
+        
+        return formatter.string(from: date)
+    }
+    
     
     var body: some View {
         NavigationStack {
@@ -582,6 +632,34 @@ struct SunriseSunsetSheet: View {
                 if showSkyDot {
                     ToolbarItem(placement: .topBarTrailing) {
                         SkyDotView(date: currentDate.addingTimeInterval(timeOffset), timeZoneIdentifier: timeZoneIdentifier)
+                    }
+                }
+                
+                // DST information in bottom bar
+                if let dst = dstInfo, let transitionDate = dst.transitionDate {
+                    ToolbarItem(placement: .bottomBar) {
+                        HStack(spacing: 4) {
+                            Text("DST")
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(.secondary)
+                            
+                            Text(dst.isStart ? String(localized: "Starts") : String(localized: "Ends"))
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(.secondary)
+                            
+                            Text(formatDSTDate(transitionDate))
+                                .font(.footnote.weight(.medium))
+                                .foregroundStyle(.primary)
+                            
+                            if dst.offsetHours != 0 {
+                                Text(dst.offsetHours > 0 ? "+\(dst.offsetHours)h" : "\(dst.offsetHours)h")
+                                    .font(.footnote.weight(.medium))
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 8)
                     }
                 }
             }

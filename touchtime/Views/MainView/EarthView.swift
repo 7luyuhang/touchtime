@@ -814,7 +814,8 @@ struct EarthView: View {
                     initialDate: currentDate,
                     timeOffset: 0
                 )
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.hidden)
             }
         }
     }  
