@@ -110,6 +110,7 @@
 "Thanks for these kind human beings." = "Thanks for these kind human beings.";
 "Version" = "Version";
 "Settings" = "Settings";
+"Copyright © %d Negative Time Limited. \nAll rights reserved." = "Copyright © %d Negative Time Limited. \nAll rights reserved.";
 
 /* Home View */
 "Add cities to track time." = "Add cities to track time.";
@@ -312,5 +313,7 @@
 "Atlantic Ocean" = "Atlantic Ocean";
 "Pacific Ocean" = "Pacific Ocean";
 "Indian Ocean" = "Indian Ocean";
+
+/* Date suffix */
 "starts" = "starts";
 "ends" = "ends";

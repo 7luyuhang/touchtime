@@ -119,6 +119,8 @@ struct SettingsView: View {
         switch preferredLanguage {
         case "zh-Hans":
             return "简体中文"
+        case "zh-Hant":
+            return "繁體中文"
         case "en":
             return "English"
         default:
@@ -685,7 +687,7 @@ struct SettingsView: View {
                             .foregroundColor(.secondary)
                     }
                     // App Info Section
-                    Text("Copyright © \(String(Calendar.current.component(.year, from: Date()))) Negative Time Limited. \nAll rights reserved.") // "\n" 换行
+                    Text(String(format: String(localized: "Copyright © %d Negative Time Limited. \nAll rights reserved."), Calendar.current.component(.year, from: Date())))
                         .font(.subheadline)
                         .fontWeight(.medium)
                         .foregroundStyle(.secondary)

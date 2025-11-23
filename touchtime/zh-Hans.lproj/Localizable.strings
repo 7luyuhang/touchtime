@@ -110,6 +110,7 @@
 "Thanks for these kind human beings." = "感谢这些慷慨的人们。";
 "Version" = "版本";
 "Settings" = "设置";
+"Copyright © %d Negative Time Limited. \nAll rights reserved." = "版权所有 © %d Negative Time Limited。\n保留所有权利。";
 
 /* Home View */
 "Add cities to track time." = "添加城市以追踪时间。";
@@ -757,5 +758,7 @@
 "Zagreb" = "萨格勒布";
 "Zaporozhye" = "扎波罗热";
 "Zurich" = "苏黎世";
+
+/* Date suffix */
 "starts" = "开始";
 "ends" = "结束";
