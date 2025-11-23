@@ -50,6 +50,9 @@ struct EarthView: View {
     // Namespace for Glass Effect morphing
     @Namespace private var glassEffectNamespace
     
+    // Namespace for Zoom Transition
+    @Namespace private var namespace
+    
     // 設置地圖縮放限制
     private let cameraBounds = MapCameraBounds(
         minimumDistance: 5000000,     // 最小高度 1,000km（最大放大）
@@ -748,6 +751,7 @@ struct EarthView: View {
                     }) {
                         Image(systemName: "gear")
                     }
+                    .matchedTransitionSource(id: "settings", in: namespace)
                 }
             }
             .sheet(isPresented: $showShareSheet) {
@@ -760,6 +764,7 @@ struct EarthView: View {
             }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(worldClocks: $worldClocks)
+                    .navigationTransition(.zoom(sourceID: "settings", in: namespace))
             }
             .sheet(isPresented: $showFlightTimeSheet) {
                 FlightTimeSheet(

@@ -263,10 +263,11 @@ struct SunriseSunsetSheet: View {
                                 HStack {
                                     HStack(spacing: 16){
                                         Image(systemName: weather.condition.icon)
+                                            .symbolRenderingMode(.multicolor)
                                             .font(.title3.weight(.semibold))
                                             .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
-                                            .frame(width: 24)
+                                            .frame(width: 24, height: 24)
                                         
                                         Text(weather.condition.displayName)
                                             .font(.headline)
@@ -354,6 +355,7 @@ struct SunriseSunsetSheet: View {
                                                     
                                                     // Weather icon
                                                     Image(systemName: day.condition.icon)
+                                                        .symbolRenderingMode(.multicolor)
                                                         .font(.title3)
                                                         .foregroundStyle(.secondary)
                                                         .blendMode(.plusLighter)
@@ -638,7 +640,7 @@ struct SunriseSunsetSheet: View {
                 // DST information in bottom bar
                 if let dst = dstInfo, let transitionDate = dst.transitionDate {
                     ToolbarItem(placement: .bottomBar) {
-                        HStack(spacing: 4) {
+                        HStack(spacing: 5) {
                             Text("DST")
                                 .font(.footnote.weight(.medium))
                                 .foregroundStyle(.secondary)
@@ -652,7 +654,7 @@ struct SunriseSunsetSheet: View {
                                 .foregroundStyle(.primary)
                             
                             if dst.offsetHours != 0 {
-                                Text(dst.offsetHours > 0 ? "+\(dst.offsetHours)h" : "\(dst.offsetHours)h")
+                                Text(dst.offsetHours > 0 ? String(format: String(localized: "+%d hours"), dst.offsetHours) : String(format: String(localized: "%d hours"), dst.offsetHours))
                                     .font(.footnote.weight(.medium))
                                     .foregroundStyle(.secondary)
                             }

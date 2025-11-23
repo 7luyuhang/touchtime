@@ -38,6 +38,9 @@ struct HomeView: View {
     @State private var selectedCollectionId: UUID? = nil
     @AppStorage("selectedCollectionId") private var savedSelectedCollectionId: String = ""
     
+    // Zoom transition namespace
+    @Namespace private var namespace
+    
     // Computed binding for picker
     private var pickerSelection: Binding<UUID?> {
         Binding(
@@ -840,6 +843,7 @@ struct HomeView: View {
                     }) {
                         Image(systemName: "gear")
                     }
+                    .matchedTransitionSource(id: "settings", in: namespace)
                 }
             }
             
@@ -904,6 +908,7 @@ struct HomeView: View {
             // Settings Sheet
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(worldClocks: $worldClocks)
+                    .navigationTransition(.zoom(sourceID: "settings", in: namespace))
                       //Customize sheet background
 //                    .scrollContentBackground(.hidden)
 //                    .presentationBackground(.ultraThinMaterial)

@@ -256,6 +256,10 @@ struct AvailableTimePicker: View {
                             Text(footerText)
                         }
                     }
+                    .listRowBackground(
+                        Capsule(style:.continuous)
+                            .fill(Color(.secondarySystemGroupedBackground))
+                    )
                 }
                 
                 

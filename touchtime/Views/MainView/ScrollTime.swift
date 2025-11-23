@@ -380,20 +380,12 @@ struct ScrollTimeView: View {
                             let minutes = Int((absoluteHours - Double(hours)) * 60)
                             
                             
-                            // Final time text (tappable) - without sign
-                            Image(systemName: "minus")
-                                .font(.headline)
-                                .foregroundColor(isPositive ? .primary.opacity(0.5) : .primary)
-                                .blendMode(.plusLighter)
-                                .padding(.leading, -8)
-                                .transition(.blurReplace())
-                            
-                            Spacer()
-                            
+                            // Final time text (tappable) - with sign
                             Button(action: {
                                 showTimePicker = true
                             }) {
                                 Text({
+                                    let sign = isPositive ? "+" : "-"
                                     var result = ""
                                     if hours > 0 && minutes > 0 {
                                         result = String(format: String(localized: "%dh %dm"), hours, minutes)
@@ -404,7 +396,7 @@ struct ScrollTimeView: View {
                                     } else {
                                         result = String(localized: "0m")
                                     }
-                                    return result
+                                    return sign + result
                                 }())
                                 .font(.subheadline)
                                 .fontWeight(.medium)
@@ -414,16 +406,6 @@ struct ScrollTimeView: View {
                             }
                             .buttonStyle(.plain)
                             .transition(.blurReplace())
-                            
-                            Spacer()
-                            
-                            // Right Icon
-                            Image(systemName: "plus")
-                                .font(.headline)
-                                .foregroundColor(isPositive ?  .primary : .primary.opacity(0.5))
-                                .blendMode(.plusLighter)
-                                .padding(.trailing, -8)
-                                .transition(.blurReplace())
                             
                         } else {
                             
