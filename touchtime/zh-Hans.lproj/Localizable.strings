@@ -199,6 +199,8 @@
 "Waning Gibbous" = "亏凸月";
 "Last Quarter" = "下弦月";
 "Waning Crescent" = "残月";
+"Next Full Moon" = "下次满月";
+"%d days" = "%d天";
 
 /* Weather Conditions */
 "Clear" = "晴";

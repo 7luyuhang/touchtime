@@ -267,6 +267,11 @@ struct SettingsView: View {
                                         timeZoneIdentifier: TimeZone.current.identifier
                                         
                                     )
+                                    .overlay(
+                                                    Capsule(style: .continuous)
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                        .blendMode(.plusLighter)
+                                                )
                                     .transition(.blurReplace)
                                 }
                                 

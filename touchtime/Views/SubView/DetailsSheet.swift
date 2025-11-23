@@ -84,6 +84,40 @@ struct SunriseSunsetSheet: View {
         return (moonrise, moonset, phase, phaseIcon)
     }
     
+    // Calculate next full moon date
+    private var nextFullMoonDate: Date? {
+        // Get coordinates for the timezone
+        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
+            return nil
+        }
+        
+        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+        
+        // Create Moon object with coordinates and timezone
+        let moon = Moon(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: timeZone)
+        
+        // Start searching from tomorrow to find the next full moon
+        var searchDate = adjustedDate
+        var attempts = 0
+        let maxAttempts = 60 // Search up to 60 days ahead
+        
+        while attempts < maxAttempts {
+            searchDate = Calendar.current.date(byAdding: .day, value: 1, to: searchDate) ?? searchDate
+            moon.setDate(searchDate)
+            
+            // Check if current phase is full moon by comparing string representation
+            let phaseString = String(describing: moon.currentMoonPhase).lowercased()
+            if phaseString.contains("fullmoon") || phaseString.contains("full moon") {
+                return searchDate
+            }
+            
+            attempts += 1
+        }
+        
+        return nil
+    }
+    
     // Format moon phase to readable string
     private func formatMoonPhase(_ phase: MoonKit.MoonPhase) -> String {
         let phaseString = String(describing: phase)
@@ -251,6 +285,42 @@ struct SunriseSunsetSheet: View {
         return formatter.string(from: date)
     }
     
+    private func formatNextFullMoonDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale.current
+        
+        // Use relative date format if within a week, otherwise use short date format
+        let daysUntil = Calendar.current.dateComponents([.day], from: currentDate.addingTimeInterval(timeOffset), to: date).day ?? 0
+        
+        if daysUntil <= 7 {
+            if Locale.current.language.languageCode?.identifier == "zh" {
+                if daysUntil == 0 {
+                    return String(localized: "Today")
+                } else if daysUntil == 1 {
+                    return String(localized: "Tomorrow")
+                } else {
+                    return String(format: String(localized: "%d days"), daysUntil)
+                }
+            } else {
+                if daysUntil == 0 {
+                    return String(localized: "Today")
+                } else if daysUntil == 1 {
+                    return String(localized: "Tomorrow")
+                } else {
+                    return String(format: String(localized: "%d days"), daysUntil)
+                }
+            }
+        } else {
+            if Locale.current.language.languageCode?.identifier == "zh" {
+                formatter.dateFormat = "MMMd日"
+            } else {
+                formatter.dateFormat = "MMM d"
+            }
+            return formatter.string(from: date)
+        }
+    }
+    
     
     var body: some View {
         NavigationStack {
@@ -267,6 +337,11 @@ struct SunriseSunsetSheet: View {
                                             date: currentDate.addingTimeInterval(timeOffset),
                                             timeZoneIdentifier: timeZoneIdentifier
                                         )
+                                        .overlay(
+                                                    Capsule(style: .continuous)
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                        .blendMode(.plusLighter)
+                                                )
                                         .transition(.blurReplace)
                                     }
                                     
@@ -360,11 +435,6 @@ struct SunriseSunsetSheet: View {
                                             RoundedRectangle(cornerRadius: 26, style: .continuous)
                             )
                             .animation(.spring(), value: showSkyDot)
-                            .onTapGesture {
-                                if hapticEnabled {
-                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                                }
-                            }
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
@@ -691,6 +761,36 @@ struct SunriseSunsetSheet: View {
                                 .blendMode(.plusLighter)
                                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                                 .padding(.horizontal, 16)
+                                
+                                // Next Full Moon Section
+                                if let nextFullMoon = nextFullMoonDate {
+                                    HStack {
+                                        HStack(spacing: 16){
+                                            Image(systemName: "moonphase.full.moon")
+                                                .font(.title3.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                                .frame(width: 24)
+                                            
+                                            Text(String(localized: "Next Full Moon"))
+                                                .font(.headline)
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                        }
+                                        Spacer()
+                                        
+                                        Text(formatNextFullMoonDate(nextFullMoon))
+                                            .foregroundStyle(.primary)
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
+                                            .animation(.spring(), value: nextFullMoon)
+                                    }
+                                    .padding(16)
+                                    .background(.white.opacity(0.05))
+                                    .blendMode(.plusLighter)
+                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .padding(.horizontal, 16)
+                                }
                             }
                         }
                     }

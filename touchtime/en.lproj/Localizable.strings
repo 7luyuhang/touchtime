@@ -199,6 +199,8 @@
 "Waning Gibbous" = "Waning Gibbous";
 "Last Quarter" = "Last Quarter";
 "Waning Crescent" = "Waning Crescent";
+"Next Full Moon" = "Next Full Moon";
+"%d days" = "%d days";
 
 /* Weather Conditions */
 "Clear" = "Clear";
