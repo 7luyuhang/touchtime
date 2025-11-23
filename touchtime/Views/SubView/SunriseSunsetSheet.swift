@@ -32,6 +32,7 @@ struct SunriseSunsetSheet: View {
     @State private var weeklyWeather: [DayWeather] = []
     @State private var weatherLoadAttempted = false // No Weather Data
     @State private var isWeatherExpanded = false // Track weather section expansion
+    @State private var currentDetent: PresentationDetent = .medium // Track current sheet size
     
     // Timer to update the current date
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -255,6 +256,121 @@ struct SunriseSunsetSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
+                    // City Time Card - Similar to Settings Preview (only show when expanded to .large)
+                    if currentDetent == .large {
+                        VStack(alignment: .center, spacing: 10) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                // Top row: Weather and Date
+                                HStack {
+                                    if showSkyDot {
+                                        SkyDotView(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZoneIdentifier: timeZoneIdentifier
+                                        )
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    // Weather display
+                                    if showWeather, let weather = currentWeather {
+                                        WeatherView(
+                                            weather: weather,
+                                            useCelsius: useCelsius
+                                        )
+                                        .transition(.blurReplace())
+                                    }
+                                    
+                                    Text(currentDate.formattedDate(
+                                        style: dateStyle,
+                                        timeZoneIdentifier: timeZoneIdentifier,
+                                        timeOffset: timeOffset
+                                    ))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
+                                    .contentTransition(.numericText())
+                                }
+                                .animation(.spring(), value: showSkyDot)
+                                .animation(.spring(), value: showWeather)
+                                .animation(.spring(), value: currentWeather)
+                                
+                                // Bottom row: City name and Time (baseline aligned)
+                                HStack(alignment: .lastTextBaseline) {
+                                    Text(cityName)
+                                        .font(.headline)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                    
+                                    Spacer()
+                                    
+                                    HStack(alignment: .lastTextBaseline, spacing: 2) {
+                                        Text({
+                                            let formatter = DateFormatter()
+                                            formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+                                            formatter.locale = Locale(identifier: "en_US_POSIX")
+                                            if use24HourFormat {
+                                                formatter.dateFormat = "HH:mm"
+                                            } else {
+                                                formatter.dateFormat = "h:mm"
+                                            }
+                                            let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                            return formatter.string(from: adjustedDate)
+                                        }())
+                                        .font(.system(size: 36))
+                                        .fontWeight(.light)
+                                        .fontDesign(.rounded)
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                        
+                                        if !use24HourFormat {
+                                            Text({
+                                                let formatter = DateFormatter()
+                                                formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+                                                formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                formatter.dateFormat = "a"
+                                                formatter.amSymbol = "am"
+                                                formatter.pmSymbol = "pm"
+                                                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                                return formatter.string(from: adjustedDate)
+                                            }())
+                                            .font(.headline)
+                                            .contentTransition(.numericText())
+                                        }
+                                    }
+                                    .id(use24HourFormat)
+                                }
+                            }
+                            .padding()
+                            .padding(.bottom, -4)
+                            .background(
+                                showSkyDot ?
+                                ZStack {
+                                    Color.black
+                                    SkyBackgroundView(
+                                        date: currentDate.addingTimeInterval(timeOffset),
+                                        timeZoneIdentifier: timeZoneIdentifier
+                                    )
+                                } : nil
+                            )
+                            .clipShape(
+                                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            )
+                            .glassEffect(.clear.interactive(), in:
+                                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            )
+                            .animation(.spring(), value: showSkyDot)
+                            .onTapGesture {
+                                if hapticEnabled {
+                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                        .transition(.blurReplace())
+                    }
+                    
                     // Weather section - only show if weather is enabled in settings
                     if showWeather {
                         if let weather = currentWeather {
@@ -302,7 +418,7 @@ struct SunriseSunsetSheet: View {
                                                     .monospacedDigit()
                                                     .contentTransition(.numericText())
                                                     .animation(.spring(), value: minTempValue)
-                                                    .foregroundStyle(.tertiary)
+                                                    .foregroundStyle(.secondary)
                                                     .blendMode(.plusLighter)
                                             }}
                                         // Chevron icon
@@ -349,7 +465,7 @@ struct SunriseSunsetSheet: View {
                                                     day.lowTemperature.converted(to: .fahrenheit)
                                                     Text("\(Int(lowTemp.value))°")
                                                         .font(.subheadline.weight(.medium))
-                                                        .foregroundStyle(.tertiary)
+                                                        .foregroundStyle(.secondary)
                                                         .blendMode(.plusLighter)
                                                         .monospacedDigit()
                                                     
@@ -579,6 +695,7 @@ struct SunriseSunsetSheet: View {
                         }
                     }
                 }
+                .animation(.bouncy(), value: currentDetent)
             }
             .scrollIndicators(.hidden)
             .navigationBarTitleDisplayMode(.inline)
@@ -665,6 +782,8 @@ struct SunriseSunsetSheet: View {
                     }
                 }
             }
+            .presentationDetents([.medium, .large], selection: $currentDetent)
+            .presentationDragIndicator(.hidden)
         }
     }
 }

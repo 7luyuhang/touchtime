@@ -946,8 +946,6 @@ struct HomeView: View {
                     initialDate: currentDate,
                     timeOffset: timeOffset
                 )
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.hidden)
             }
             
             // Arrange List Sheet

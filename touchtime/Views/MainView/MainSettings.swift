@@ -328,7 +328,7 @@ struct SettingsView: View {
                             }
                         }
                         .padding()
-                        .padding(.bottom, -8)
+                        .padding(.bottom, -4)
                         .background(
                             showSkyDot ?
                             ZStack {
