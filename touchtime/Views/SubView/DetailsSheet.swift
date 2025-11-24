@@ -338,10 +338,10 @@ struct SunriseSunsetSheet: View {
                                             timeZoneIdentifier: timeZoneIdentifier
                                         )
                                         .overlay(
-                                                    Capsule(style: .continuous)
-                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                        .blendMode(.plusLighter)
-                                                )
+                                            Capsule(style: .continuous)
+                                                .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                .blendMode(.plusLighter)
+                                        )
                                         .transition(.blurReplace)
                                     }
                                     
@@ -597,9 +597,7 @@ struct SunriseSunsetSheet: View {
                                 .blendMode(.plusLighter)
                                 .padding(.horizontal, 32)
                                 .padding(.bottom, 4)
-                                .padding(.top, showWeather ? 24 : 8)
-                            
-                            
+                                .padding(.top, (showWeather && (currentWeather != nil || weatherLoadAttempted)) || currentDetent == .large ? 24 : 8)
                             
                             HStack(spacing: 8) {
                                 // Sunrise Section
@@ -662,7 +660,6 @@ struct SunriseSunsetSheet: View {
                                         .blendMode(.plusLighter)
                                 }
                                 Spacer()
-                                
                                 Text(formatDuration(from: times.sunrise, to: times.sunset))
                                     .monospacedDigit()
                                     .contentTransition(.numericText(countsDown: false))
@@ -673,21 +670,18 @@ struct SunriseSunsetSheet: View {
                             .blendMode(.plusLighter)
                             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                             .padding(.horizontal, 16)
-                            
-                            
                         }
                         
                         // Moon Time section
                         if let moon = moonInfo {
                             VStack(alignment: .leading){
-                                
                                 Text("Moon Time")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(.secondary)
                                     .blendMode(.plusLighter)
                                     .padding(.horizontal, 32)
                                     .padding(.bottom, 4)
-                                    .padding(.top, 24)
+                                    .padding(.top, currentDetent == .large ? 24 : 8)
                                 
                                 HStack(spacing: 8) {
                                     // Moonrise Section
