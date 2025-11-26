@@ -294,7 +294,7 @@ struct SettingsView: View {
                                             weather: weatherManager.currentWeather,
                                             useCelsius: useCelsius
                                         )
-                                        .transition(.blurReplace())
+                                        .transition(.blurReplace)
                                     }
                                     
                                     // Date
@@ -325,6 +325,7 @@ struct SettingsView: View {
                                         .monospacedDigit()
                                         .contentTransition(.numericText())
                                         .animation(.spring(), value: currentDate)
+                                        .animation(.spring(), value: use24HourFormat)
                                 }
                             }
                             .padding()
@@ -343,6 +344,7 @@ struct SettingsView: View {
                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                         .blendMode(.plusLighter)
                                             )
+                                .transition(.blurReplace)
                             }
                         }
                         .background(
@@ -363,7 +365,7 @@ struct SettingsView: View {
                         )
                         .animation(.spring(), value: showSkyDot)
                         .animation(.spring(), value: showAnalogClock)
-                        .id("\(showSkyDot)-\(dateStyle)-\(showAnalogClock)")
+                        .id("\(showSkyDot)-\(dateStyle)")
                         .onTapGesture {
                             if hapticEnabled {
                                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
