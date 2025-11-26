@@ -344,7 +344,8 @@ struct SettingsView: View {
                                 AnalogClockView(
                                     date: currentDate,
                                     size: 64,
-                                    timeZone: TimeZone.current
+                                    timeZone: TimeZone.current,
+                                    useMaterialBackground: true
                                 )
                                 .overlay(
                                     Circle()
@@ -421,7 +422,7 @@ struct SettingsView: View {
                     Toggle(isOn: $showAnalogClock) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
-                            Text("Analog Clock")
+                            Text(String(localized: "Analog Clock"))
                         }
                     }
                     .tint(.blue)
