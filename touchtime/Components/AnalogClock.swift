@@ -35,7 +35,7 @@ struct AnalogClockView: View {
             // 表盘背景
             if useMaterialBackground {
                 Circle()
-                    .fill(.black.opacity(0.10))
+                    .fill(.black.opacity(0.05))
                     .blendMode(.plusDarker)
             } else {
                 Circle()

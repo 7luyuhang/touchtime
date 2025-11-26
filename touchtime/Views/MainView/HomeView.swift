@@ -404,6 +404,7 @@ struct HomeView: View {
                                             size: 64,
                                             timeZone: TimeZone.current
                                         )
+                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
                                         .transition(.blurReplace)
                                     }
                                 }
