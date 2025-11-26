@@ -362,39 +362,23 @@ struct HomeView: View {
                                             
                                             Spacer()
                                             
-                                            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                                Text({
-                                                    let formatter = DateFormatter()
-                                                    formatter.timeZone = TimeZone.current
-                                                    formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                    if use24HourFormat {
-                                                        formatter.dateFormat = "HH:mm"
-                                                    } else {
-                                                        formatter.dateFormat = "h:mm"
-                                                    }
-                                                    let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                                    return formatter.string(from: adjustedDate)
-                                                }())
-                                                .font(.system(size: 36))
-                                                .fontWeight(.light)
-                                                .fontDesign(.rounded)
-                                                .monospacedDigit()
-                                                .contentTransition(.numericText())
-                                                
-                                                if !use24HourFormat {
-                                                    Text({
-                                                        let formatter = DateFormatter()
-                                                        formatter.timeZone = TimeZone.current
-                                                        formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                        formatter.dateFormat = "a"
-                                                        formatter.amSymbol = "am"
-                                                        formatter.pmSymbol = "pm"
-                                                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                                        return formatter.string(from: adjustedDate)
-                                                    }())
-                                                    .font(.headline)
+                                            Text({
+                                                let formatter = DateFormatter()
+                                                formatter.timeZone = TimeZone.current
+                                                formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                if use24HourFormat {
+                                                    formatter.dateFormat = "HH:mm"
+                                                } else {
+                                                    formatter.dateFormat = "h:mm"
                                                 }
-                                            }
+                                                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                                return formatter.string(from: adjustedDate)
+                                            }())
+                                            .font(.system(size: 36))
+                                            .fontWeight(.light)
+                                            .fontDesign(.rounded)
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
                                         }
                                         .padding(.bottom, -4)
                                         
@@ -581,39 +565,23 @@ struct HomeView: View {
                                             
                                             Spacer()
                                             
-                                            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                                Text({
-                                                    let formatter = DateFormatter()
-                                                    formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
-                                                    formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                    if use24HourFormat {
-                                                        formatter.dateFormat = "HH:mm"
-                                                    } else {
-                                                        formatter.dateFormat = "h:mm"
-                                                    }
-                                                    let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                                    return formatter.string(from: adjustedDate)
-                                                }())
-                                                .font(.system(size: 36))
-                                                .fontWeight(.light)
-                                                .fontDesign(.rounded)
-                                                .monospacedDigit()
-                                                .contentTransition(.numericText())
-                                                
-                                                if !use24HourFormat {
-                                                    Text({
-                                                        let formatter = DateFormatter()
-                                                        formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
-                                                        formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                        formatter.dateFormat = "a"
-                                                        formatter.amSymbol = "am"
-                                                        formatter.pmSymbol = "pm"
-                                                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                                        return formatter.string(from: adjustedDate)
-                                                    }())
-                                                    .font(.headline)
+                                            Text({
+                                                let formatter = DateFormatter()
+                                                formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
+                                                formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                if use24HourFormat {
+                                                    formatter.dateFormat = "HH:mm"
+                                                } else {
+                                                    formatter.dateFormat = "h:mm"
                                                 }
-                                            }
+                                                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                                return formatter.string(from: adjustedDate)
+                                            }())
+                                            .font(.system(size: 36))
+                                            .fontWeight(.light)
+                                            .fontDesign(.rounded)
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText())
                                         }
                                         .padding(.bottom, -4)
                                     }

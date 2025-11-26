@@ -318,22 +318,13 @@ struct SettingsView: View {
                                     
                                     Spacer()
                                     
-                                    HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                        Text(formatTime(use24Hour: use24HourFormat))
-                                            .font(.system(size: 36))
-                                            .fontWeight(.light)
-                                            .fontDesign(.rounded)
-                                            .monospacedDigit()
-                                            .contentTransition(.numericText())
-                                            .animation(.spring(), value: currentDate)
-                                        
-                                        if !use24HourFormat {
-                                            Text(formatAMPM())
-                                                .font(.headline)
-                                                .contentTransition(.numericText())
-                                        }
-                                    }
-                                    .id(use24HourFormat)
+                                    Text(formatTime(use24Hour: use24HourFormat))
+                                        .font(.system(size: 36))
+                                        .fontWeight(.light)
+                                        .fontDesign(.rounded)
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                        .animation(.spring(), value: currentDate)
                                 }
                             }
                             .padding()
