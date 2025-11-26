@@ -71,6 +71,7 @@ struct HomeView: View {
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
+    @AppStorage("showAnalogClock") private var showAnalogClock = false
     
     @StateObject private var weatherManager = WeatherManager()
     
@@ -318,95 +319,107 @@ struct HomeView: View {
                         // Local Time Section
                         if showLocalTime {
                             Section {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    // Top row: "Local" label and Date
-                                    HStack {
-                                        Image(systemName: "location.fill")
+                                ZStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        // Top row: "Local" label and Date
+                                        HStack {
+                                            Image(systemName: "location.fill")
+                                                .font(.subheadline)
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                            
+                                            Spacer()
+                                            
+                                            // Weather display for local time
+                                            if showWeather {
+                                                WeatherView(
+                                                    weather: weatherManager.weatherData[TimeZone.current.identifier],
+                                                    useCelsius: useCelsius
+                                                )
+                                            }
+                                            
+                                            Text(currentDate.formattedDate(
+                                                style: dateStyle,
+                                                timeZoneIdentifier: TimeZone.current.identifier,
+                                                timeOffset: timeOffset
+                                            ))
                                             .font(.subheadline)
                                             .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
-                                        
-                                        Spacer()
-                                        
-                                        // Weather display for local time
-                                        if showWeather {
-                                            WeatherView(
-                                                weather: weatherManager.weatherData[TimeZone.current.identifier],
-                                                useCelsius: useCelsius
-                                            )
+                                            .contentTransition(.numericText())
                                         }
                                         
-                                        Text(currentDate.formattedDate(
-                                            style: dateStyle,
-                                            timeZoneIdentifier: TimeZone.current.identifier,
-                                            timeOffset: timeOffset
-                                        ))
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .contentTransition(.numericText())
-                                    }
-                                    
-                                    // Bottom row: Location and Time (baseline aligned)
-                                    HStack(alignment: .lastTextBaseline) {
-                                        
-                                        Text(String(localized: "Local"))
-                                            .font(.headline)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
-                                            .contentTransition(.numericText())
-                                        
-                                        
-                                        Spacer()
-                                        
-                                        HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                            Text({
-                                                let formatter = DateFormatter()
-                                                formatter.timeZone = TimeZone.current
-                                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                if use24HourFormat {
-                                                    formatter.dateFormat = "HH:mm"
-                                                } else {
-                                                    formatter.dateFormat = "h:mm"
-                                                }
-                                                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                                return formatter.string(from: adjustedDate)
-                                            }())
-                                            .font(.system(size: 36))
-                                            .fontWeight(.light)
-                                            .fontDesign(.rounded)
-                                            .monospacedDigit()
-                                            .contentTransition(.numericText())
+                                        // Bottom row: Location and Time (baseline aligned)
+                                        HStack(alignment: .lastTextBaseline) {
                                             
-                                            if !use24HourFormat {
+                                            Text(String(localized: "Local"))
+                                                .font(.headline)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                                .contentTransition(.numericText())
+                                            
+                                            
+                                            Spacer()
+                                            
+                                            HStack(alignment: .lastTextBaseline, spacing: 2) {
                                                 Text({
                                                     let formatter = DateFormatter()
                                                     formatter.timeZone = TimeZone.current
                                                     formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                    formatter.dateFormat = "a"
-                                                    formatter.amSymbol = "am"
-                                                    formatter.pmSymbol = "pm"
+                                                    if use24HourFormat {
+                                                        formatter.dateFormat = "HH:mm"
+                                                    } else {
+                                                        formatter.dateFormat = "h:mm"
+                                                    }
                                                     let adjustedDate = currentDate.addingTimeInterval(timeOffset)
                                                     return formatter.string(from: adjustedDate)
                                                 }())
-                                                .font(.headline)
+                                                .font(.system(size: 36))
+                                                .fontWeight(.light)
+                                                .fontDesign(.rounded)
+                                                .monospacedDigit()
+                                                .contentTransition(.numericText())
+                                                
+                                                if !use24HourFormat {
+                                                    Text({
+                                                        let formatter = DateFormatter()
+                                                        formatter.timeZone = TimeZone.current
+                                                        formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                        formatter.dateFormat = "a"
+                                                        formatter.amSymbol = "am"
+                                                        formatter.pmSymbol = "pm"
+                                                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                                        return formatter.string(from: adjustedDate)
+                                                    }())
+                                                    .font(.headline)
+                                                }
                                             }
                                         }
-                                    }
-                                    .padding(.bottom, -4)
-                                    
-                                    // Available Time Display with Progress Indicator
-                                    // Only show if enabled AND at least one weekday is selected
-                                    if availableTimeEnabled && !availableWeekdays.isEmpty {
+                                        .padding(.bottom, -4)
                                         
-                                        AvailableTimeIndicator(
-                                            currentDate: currentDate,
-                                            timeOffset: timeOffset,
-                                            availableStartTime: availableStartTime,
-                                            availableEndTime: availableEndTime,
-                                            use24HourFormat: use24HourFormat,
-                                            availableWeekdays: availableWeekdays
+                                        // Available Time Display with Progress Indicator
+                                        // Only show if enabled AND at least one weekday is selected
+                                        if availableTimeEnabled && !availableWeekdays.isEmpty {
+                                            
+                                            AvailableTimeIndicator(
+                                                currentDate: currentDate,
+                                                timeOffset: timeOffset,
+                                                availableStartTime: availableStartTime,
+                                                availableEndTime: availableEndTime,
+                                                use24HourFormat: use24HourFormat,
+                                                availableWeekdays: availableWeekdays
+                                            )
+                                        }
+                                    }
+                                    
+                                    // Analog Clock Overlay - Centered
+                                    if showAnalogClock {
+                                        AnalogClockView(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            size: 64,
+                                            timeZone: TimeZone.current
                                         )
+                                        .transition(.blurReplace)
                                     }
                                 }
                                 // Make entire row tappable
@@ -493,113 +506,125 @@ struct HomeView: View {
                         // City list
                         ForEach(displayedClocks) { clock in
                             Section {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    // Top row: Additional time display and Date
-                                    if additionalTimeDisplay != "None" {
-                                        HStack {
-                                            if showSkyDot {
-                                                SkyDotView(
-                                                    date: currentDate.addingTimeInterval(timeOffset),
-                                                    timeZoneIdentifier: clock.timeZoneIdentifier
-                                                )
-                                            }
-                                            
-                                            // Display based on selected option
-                                            let additionalText = additionalTimeDisplay == "Time Difference" ? clock.timeDifference : clock.utcOffset
-                                            if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
-                                                Text(additionalText)
+                                ZStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        // Top row: Additional time display and Date
+                                        if additionalTimeDisplay != "None" {
+                                            HStack {
+                                                if showSkyDot {
+                                                    SkyDotView(
+                                                        date: currentDate.addingTimeInterval(timeOffset),
+                                                        timeZoneIdentifier: clock.timeZoneIdentifier
+                                                    )
+                                                }
+                                                
+                                                // Display based on selected option
+                                                let additionalText = additionalTimeDisplay == "Time Difference" ? clock.timeDifference : clock.utcOffset
+                                                if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
+                                                    Text(additionalText)
+                                                        .font(.subheadline)
+                                                        .foregroundStyle(.secondary)
+                                                        .blendMode(.plusLighter)
+                                                }
+                                                
+                                                Spacer()
+                                                
+                                                // Weather display for world clock
+                                                if showWeather {
+                                                    WeatherView(
+                                                        weather: weatherManager.weatherData[clock.timeZoneIdentifier],
+                                                        useCelsius: useCelsius
+                                                    )
+                                                }
+                                                
+                                                Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
                                                     .font(.subheadline)
                                                     .foregroundStyle(.secondary)
                                                     .blendMode(.plusLighter)
+                                                    .contentTransition(.numericText())
                                             }
-                                            
-                                            Spacer()
-                                            
-                                            // Weather display for world clock
-                                            if showWeather {
-                                                WeatherView(
-                                                    weather: weatherManager.weatherData[clock.timeZoneIdentifier],
-                                                    useCelsius: useCelsius
-                                                )
-                                            }
-                                            
-                                            Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
-                                                .font(.subheadline)
-                                                .foregroundStyle(.secondary)
-                                                .blendMode(.plusLighter)
-                                                .contentTransition(.numericText())
-                                        }
-                                    } else {
-                                        HStack {
-                                            if showSkyDot {
-                                                SkyDotView(
-                                                    date: currentDate.addingTimeInterval(timeOffset),
-                                                    timeZoneIdentifier: clock.timeZoneIdentifier
-                                                )
-                                            }
-                                            
-                                            Spacer()
-                                            
-                                            // Weather display for world clock (when time difference is hidden)
-                                            if showWeather {
-                                                WeatherView(
-                                                    weather: weatherManager.weatherData[clock.timeZoneIdentifier],
-                                                    useCelsius: useCelsius
-                                                )
-                                            }
-                                            
-                                            Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
-                                                .font(.subheadline)
-                                                .foregroundStyle(.secondary)
-                                                .contentTransition(.numericText())
-                                        }
-                                    }
-                                    
-                                    // Bottom row: City name and Time (baseline aligned)
-                                    HStack(alignment: .lastTextBaseline) {
-                                        Text(getLocalizedCityName(for: clock))
-                                            .font(.headline)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
-                                            .contentTransition(.numericText())
-                                        
-                                        Spacer()
-                                        
-                                        HStack(alignment: .lastTextBaseline, spacing: 2) {
-                                            Text({
-                                                let formatter = DateFormatter()
-                                                formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
-                                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                if use24HourFormat {
-                                                    formatter.dateFormat = "HH:mm"
-                                                } else {
-                                                    formatter.dateFormat = "h:mm"
+                                        } else {
+                                            HStack {
+                                                if showSkyDot {
+                                                    SkyDotView(
+                                                        date: currentDate.addingTimeInterval(timeOffset),
+                                                        timeZoneIdentifier: clock.timeZoneIdentifier
+                                                    )
                                                 }
-                                                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                                return formatter.string(from: adjustedDate)
-                                            }())
-                                            .font(.system(size: 36))
-                                            .fontWeight(.light)
-                                            .fontDesign(.rounded)
-                                            .monospacedDigit()
-                                            .contentTransition(.numericText())
+                                                
+                                                Spacer()
+                                                
+                                                // Weather display for world clock (when time difference is hidden)
+                                                if showWeather {
+                                                    WeatherView(
+                                                        weather: weatherManager.weatherData[clock.timeZoneIdentifier],
+                                                        useCelsius: useCelsius
+                                                    )
+                                                }
+                                                
+                                                Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
+                                                    .font(.subheadline)
+                                                    .foregroundStyle(.secondary)
+                                                    .contentTransition(.numericText())
+                                            }
+                                        }
+                                        
+                                        // Bottom row: City name and Time (baseline aligned)
+                                        HStack(alignment: .lastTextBaseline) {
+                                            Text(getLocalizedCityName(for: clock))
+                                                .font(.headline)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+                                                .contentTransition(.numericText())
                                             
-                                            if !use24HourFormat {
+                                            Spacer()
+                                            
+                                            HStack(alignment: .lastTextBaseline, spacing: 2) {
                                                 Text({
                                                     let formatter = DateFormatter()
                                                     formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
                                                     formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                    formatter.dateFormat = "a"
-                                                    formatter.amSymbol = "am"
-                                                    formatter.pmSymbol = "pm"
+                                                    if use24HourFormat {
+                                                        formatter.dateFormat = "HH:mm"
+                                                    } else {
+                                                        formatter.dateFormat = "h:mm"
+                                                    }
                                                     let adjustedDate = currentDate.addingTimeInterval(timeOffset)
                                                     return formatter.string(from: adjustedDate)
                                                 }())
-                                                .font(.headline)
+                                                .font(.system(size: 36))
+                                                .fontWeight(.light)
+                                                .fontDesign(.rounded)
+                                                .monospacedDigit()
+                                                .contentTransition(.numericText())
+                                                
+                                                if !use24HourFormat {
+                                                    Text({
+                                                        let formatter = DateFormatter()
+                                                        formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
+                                                        formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                        formatter.dateFormat = "a"
+                                                        formatter.amSymbol = "am"
+                                                        formatter.pmSymbol = "pm"
+                                                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                                                        return formatter.string(from: adjustedDate)
+                                                    }())
+                                                    .font(.headline)
+                                                }
                                             }
                                         }
+                                        .padding(.bottom, -4)
                                     }
-                                    .padding(.bottom, -4)
+                                    
+                                    // Analog Clock Overlay - Centered
+                                    if showAnalogClock {
+                                        AnalogClockView(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            size: 64,
+                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current
+                                        )
+                                        .transition(.blurReplace)
+                                    }
                                 }
                                 // Make entire row tappable
                                 .contentShape(Rectangle())
@@ -762,6 +787,7 @@ struct HomeView: View {
             .animation(.spring(), value: showSkyDot)
             .animation(.spring(), value: showLocalTime)
             .animation(.spring(), value: availableTimeEnabled)
+            .animation(.spring(), value: showAnalogClock)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
             // Navigation Title

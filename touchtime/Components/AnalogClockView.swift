@@ -11,16 +11,20 @@ import SwiftUI
 struct AnalogClockView: View {
     let date: Date
     let size: CGFloat
+    let timeZone: TimeZone
     
-    init(date: Date = Date(), size: CGFloat = 100) {
+    init(date: Date = Date(), size: CGFloat = 100, timeZone: TimeZone = .current) {
         self.date = date
         self.size = size
+        self.timeZone = timeZone
     }
     
     @Environment(\.colorScheme) private var colorScheme
     
     private var time: (hour: Int, minute: Int) {
-        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let components = calendar.dateComponents([.hour, .minute], from: date)
         return (components.hour ?? 0, components.minute ?? 0)
     }
     
@@ -31,20 +35,20 @@ struct AnalogClockView: View {
                 .fill(Color.black.opacity(0.25))
                 .background(
                     Circle()
-                        .fill(Color.black.opacity(0.25))
+                        .fill(Color.black.opacity(0.05))
                         .glassEffect(.clear)
                 )
             
             
 //             时刻标记
-            ForEach(0..<12) { hour in
-                Capsule()
-                    .fill(hour % 3 == 0 ? .white : .white.opacity(0.5))
-                    .frame(width: hour % 3 == 0 ? 2 : 1, height: hour % 3 == 0 ? 6 : 6)
-                    .offset(y: -size * 0.4)
-                    .rotationEffect(.degrees(Double(hour) * 30))
-                    .blendMode(.plusLighter)
-            }
+//            ForEach(0..<12) { hour in
+//                Capsule()
+//                    .fill(hour % 3 == 0 ? .white : .white.opacity(0.5))
+//                    .frame(width: hour % 3 == 0 ? 2 : 1, height: hour % 3 == 0 ? 6 : 6)
+//                    .offset(y: -size * 0.4)
+//                    .rotationEffect(.degrees(Double(hour) * 30))
+//                    .blendMode(.plusLighter)
+//            }
             
             // 时针
             Capsule()
