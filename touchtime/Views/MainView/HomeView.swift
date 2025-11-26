@@ -629,7 +629,7 @@ struct HomeView: View {
                                 }
                                 
                                 //Swipe to delete time (only for default view)
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                                     if selectedCollectionId == nil {
                                         Button(role: .destructive) {
                                             deleteCity(withId: clock.id)

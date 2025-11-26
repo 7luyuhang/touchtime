@@ -819,6 +819,11 @@ struct SunriseSunsetSheet: View {
             .onReceive(timer) { _ in
                 currentDate = Date()
             }
+            .onChange(of: currentDetent) { oldValue, newValue in
+                if newValue == .large && hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                }
+            }
             .toolbar {
                 
                 ToolbarItem(placement: .principal) {
