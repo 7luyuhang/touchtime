@@ -24,6 +24,7 @@ struct SunriseSunsetSheet: View {
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("showAnalogClock") private var showAnalogClock = false
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
     @StateObject private var weatherManager = WeatherManager()
@@ -329,57 +330,59 @@ struct SunriseSunsetSheet: View {
                     // City Time Card - Similar to Settings Preview (only show when expanded to .large)
                     if currentDetent == .large {
                         VStack(alignment: .center, spacing: 10) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                // Top row: Weather and Date
-                                HStack {
-                                    if showSkyDot {
-                                        SkyDotView(
-                                            date: currentDate.addingTimeInterval(timeOffset),
-                                            timeZoneIdentifier: timeZoneIdentifier
-                                        )
-                                        .overlay(
-                                            Capsule(style: .continuous)
-                                                .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                .blendMode(.plusLighter)
-                                        )
-                                        .transition(.blurReplace)
+                            ZStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    // Top row: Weather and Date
+                                    HStack {
+                                        if showSkyDot {
+                                            SkyDotView(
+                                                date: currentDate.addingTimeInterval(timeOffset),
+                                                timeZoneIdentifier: timeZoneIdentifier
+                                            )
+                                            .overlay(
+                                                Capsule(style: .continuous)
+                                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                    .blendMode(.plusLighter)
+                                            )
+                                            .transition(.blurReplace)
+                                        }
+                                        
+                                        Spacer()
+                                        
+                                        // Weather display
+                                        if showWeather, let weather = currentWeather {
+                                            WeatherView(
+                                                weather: weather,
+                                                useCelsius: useCelsius
+                                            )
+                                            .transition(.blurReplace())
+                                        }
+                                        
+                                        Text(currentDate.formattedDate(
+                                            style: dateStyle,
+                                            timeZoneIdentifier: timeZoneIdentifier,
+                                            timeOffset: timeOffset
+                                        ))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .contentTransition(.numericText())
                                     }
+                                    .animation(.spring(), value: showSkyDot)
+                                    .animation(.spring(), value: showWeather)
+                                    .animation(.spring(), value: currentWeather)
                                     
-                                    Spacer()
-                                    
-                                    // Weather display
-                                    if showWeather, let weather = currentWeather {
-                                        WeatherView(
-                                            weather: weather,
-                                            useCelsius: useCelsius
-                                        )
-                                        .transition(.blurReplace())
-                                    }
-                                    
-                                    Text(currentDate.formattedDate(
-                                        style: dateStyle,
-                                        timeZoneIdentifier: timeZoneIdentifier,
-                                        timeOffset: timeOffset
-                                    ))
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .blendMode(.plusLighter)
-                                    .contentTransition(.numericText())
-                                }
-                                .animation(.spring(), value: showSkyDot)
-                                .animation(.spring(), value: showWeather)
-                                .animation(.spring(), value: currentWeather)
-                                
-                                // Bottom row: City name and Time (baseline aligned)
-                                HStack(alignment: .lastTextBaseline) {
-                                    Text(cityName)
-                                        .font(.headline)
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                                    
-                                    Spacer()
-                                    
-                                    HStack(alignment: .lastTextBaseline, spacing: 2) {
+                                    // Bottom row: City name and Time (baseline aligned)
+                                    HStack(alignment: .lastTextBaseline) {
+                                        Text(cityName)
+                                            .font(.headline)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                            .frame(maxWidth: showAnalogClock ? 120 : .infinity, alignment: .leading)
+                                            .contentTransition(.numericText())
+                                        
+                                        Spacer()
+                                        
                                         Text({
                                             let formatter = DateFormatter()
                                             formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
@@ -397,27 +400,26 @@ struct SunriseSunsetSheet: View {
                                         .fontDesign(.rounded)
                                         .monospacedDigit()
                                         .contentTransition(.numericText())
-                                        
-                                        if !use24HourFormat {
-                                            Text({
-                                                let formatter = DateFormatter()
-                                                formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
-                                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                formatter.dateFormat = "a"
-                                                formatter.amSymbol = "am"
-                                                formatter.pmSymbol = "pm"
-                                                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                                return formatter.string(from: adjustedDate)
-                                            }())
-                                            .font(.headline)
-                                            .contentTransition(.numericText())
-                                        }
                                     }
-                                    .id(use24HourFormat)
+                                }
+                                .padding()
+                                .padding(.bottom, -4)
+                                
+                                // Analog Clock Overlay - Centered
+                                if showAnalogClock {
+                                    AnalogClockView(
+                                        date: currentDate.addingTimeInterval(timeOffset),
+                                        size: 64,
+                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
+                                        useMaterialBackground: true
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
                                 }
                             }
-                            .padding()
-                            .padding(.bottom, -4)
                             .background(
                                 showSkyDot ?
                                 ZStack {
@@ -435,10 +437,11 @@ struct SunriseSunsetSheet: View {
                                             RoundedRectangle(cornerRadius: 26, style: .continuous)
                             )
                             .animation(.spring(), value: showSkyDot)
+                            .animation(.spring(), value: showAnalogClock)
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
-                        .transition(.blurReplace())
+                        .transition(.blurReplace().combined(with: .scale).combined(with: .opacity)) // Card transition
                     }
                     
                     // Weather section - only show if weather is enabled in settings
@@ -681,7 +684,7 @@ struct SunriseSunsetSheet: View {
                                     .blendMode(.plusLighter)
                                     .padding(.horizontal, 32)
                                     .padding(.bottom, 4)
-                                    .padding(.top, currentDetent == .large ? 24 : 8)
+                                    .padding(.top, 24)
                                 
                                 HStack(spacing: 8) {
                                     // Moonrise Section
@@ -816,7 +819,13 @@ struct SunriseSunsetSheet: View {
             .onReceive(timer) { _ in
                 currentDate = Date()
             }
+            .onChange(of: currentDetent) { oldValue, newValue in
+                if newValue == .large && hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+                }
+            }
             .toolbar {
+                
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 2) {
                         Text(cityName)
@@ -832,7 +841,8 @@ struct SunriseSunsetSheet: View {
                         .foregroundStyle(.secondary)
                     }
                 }
-                ToolbarItem(placement: .topBarLeading) {
+                
+                ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -840,11 +850,6 @@ struct SunriseSunsetSheet: View {
                         dismiss()
                     }) {
                         Image(systemName: "xmark")
-                    }
-                }
-                if showSkyDot {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        SkyDotView(date: currentDate.addingTimeInterval(timeOffset), timeZoneIdentifier: timeZoneIdentifier)
                     }
                 }
                 

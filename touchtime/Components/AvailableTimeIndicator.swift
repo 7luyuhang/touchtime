@@ -126,7 +126,7 @@ struct AvailableTimeIndicator: View {
     }
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             
             // Start Time
             Text(formatAvailableTime(availableStartTime))
@@ -142,11 +142,11 @@ struct AvailableTimeIndicator: View {
                     Circle()
                         .fill(isWithinAvailableTime() ? Color.white : Color.white.opacity(0.25))
                         .glassEffect(.clear)
-                        .frame(width: 12, height: 12)
+                        .frame(width: 10, height: 10)
                         .offset(x: max(0, min(geometry.size.width - 10, geometry.size.width * calculateAvailableTimeProgress() - 5)))
                         .animation(.spring(), value: calculateAvailableTimeProgress())
-                        .padding(.top, 1)
             }
+            .frame(height: 10)
             
             // End Time
             Text(formatAvailableTime(availableEndTime))

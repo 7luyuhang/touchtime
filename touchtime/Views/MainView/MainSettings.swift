@@ -12,7 +12,7 @@ import StoreKit
 
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
-    @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("use24HourFormat") private var use24HourFormat = true
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -27,6 +27,7 @@ struct SettingsView: View {
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
+    @AppStorage("showAnalogClock") private var showAnalogClock = false
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     @State private var showSupportLove = false
@@ -260,63 +261,63 @@ struct SettingsView: View {
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
                         
-                        VStack(alignment: .leading, spacing: 4) {
-                            // Top row: Time difference and Date with Weather
-                            HStack {
-                                if showSkyDot {
-                                    SkyDotView(
-                                        date: currentDate,
-                                        timeZoneIdentifier: TimeZone.current.identifier
-                                        
-                                    )
-                                    .overlay(
-                                                    Capsule(style: .continuous)
-                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                        .blendMode(.plusLighter)
-                                                )
-                                    .transition(.blurReplace)
-                                }
-                                
-                                if additionalTimeDisplay != "None" {
-                                    Text(additionalTimeText())
+                        ZStack {
+                            VStack(alignment: .leading, spacing: 4) {
+                                // Top row: Time difference and Date with Weather
+                                HStack {
+                                    if showSkyDot {
+                                        SkyDotView(
+                                            date: currentDate,
+                                            timeZoneIdentifier: TimeZone.current.identifier
+                                            
+                                        )
+                                        .overlay(
+                                                        Capsule(style: .continuous)
+                                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                            .blendMode(.plusLighter)
+                                                    )
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    if additionalTimeDisplay != "None" {
+                                        Text(additionalTimeText())
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    // Weather for local time (left of date)
+                                    if showWeather {
+                                        WeatherView(
+                                            weather: weatherManager.currentWeather,
+                                            useCelsius: useCelsius
+                                        )
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Date
+                                    Text(formatDate())
                                         .font(.subheadline)
                                         .foregroundStyle(.secondary)
                                         .blendMode(.plusLighter)
+                                        .contentTransition(.numericText())
+                                        .animation(.spring(), value: currentDate)
+                                        .animation(.spring(), value: dateStyle)
+                                    
                                 }
+                                .animation(.spring(), value: showSkyDot)
+                                .animation(.spring(), value: showWeather)
+                                .animation(.spring(), value: weatherManager.currentWeather)
                                 
-                                Spacer()
-                                
-                                // Weather for local time (left of date)
-                                if showWeather {
-                                    WeatherView(
-                                        weather: weatherManager.currentWeather,
-                                        useCelsius: useCelsius
-                                    )
-                                    .transition(.blurReplace())
-                                }
-                                
-                                // Date
-                                Text(formatDate())
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .blendMode(.plusLighter)
-                                    .contentTransition(.numericText())
-                                    .animation(.spring(), value: currentDate)
-                                    .animation(.spring(), value: dateStyle)
-                                
-                            }
-                            .animation(.spring(), value: showSkyDot)
-                            .animation(.spring(), value: showWeather)
-                            .animation(.spring(), value: weatherManager.currentWeather)
-                            
-                            // Bottom row: City name and Time
-                            HStack(alignment: .lastTextBaseline) {
-                                Text("City")
-                                    .font(.headline)
-                                
-                                Spacer()
-                                
-                                HStack(alignment: .lastTextBaseline, spacing: 2) {
+                                // Bottom row: City name and Time
+                                HStack(alignment: .lastTextBaseline) {
+                                    Text("City")
+                                        .font(.headline)
+                                    
+                                    Spacer()
+                                    
                                     Text(formatTime(use24Hour: use24HourFormat))
                                         .font(.system(size: 36))
                                         .fontWeight(.light)
@@ -324,18 +325,28 @@ struct SettingsView: View {
                                         .monospacedDigit()
                                         .contentTransition(.numericText())
                                         .animation(.spring(), value: currentDate)
-                                    
-                                    if !use24HourFormat {
-                                        Text(formatAMPM())
-                                            .font(.headline)
-                                            .contentTransition(.numericText())
-                                    }
+                                        .animation(.spring(), value: use24HourFormat)
                                 }
-                                .id(use24HourFormat)
+                            }
+                            .padding()
+                            .padding(.bottom, -4)
+                            
+                            // Analog Clock Overlay - Centered
+                            if showAnalogClock {
+                                AnalogClockView(
+                                    date: currentDate,
+                                    size: 64,
+                                    timeZone: TimeZone.current,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                            )
+                                .transition(.blurReplace)
                             }
                         }
-                        .padding()
-                        .padding(.bottom, -4)
                         .background(
                             showSkyDot ?
                             ZStack {
@@ -353,6 +364,7 @@ struct SettingsView: View {
                                         RoundedRectangle(cornerRadius: 26, style: .continuous)
                         )
                         .animation(.spring(), value: showSkyDot)
+                        .animation(.spring(), value: showAnalogClock)
                         .id("\(showSkyDot)-\(dateStyle)")
                         .onTapGesture {
                             if hapticEnabled {
@@ -399,6 +411,15 @@ struct SettingsView: View {
                     .tint(.blue)
                     
                     
+                    // Analog Clock
+                    Toggle(isOn: $showAnalogClock) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                            Text(String(localized: "Analog Clock"))
+                        }
+                    }
+                    .tint(.blue)
+                    
                     // Additional Time
                     Picker(selection: $additionalTimeDisplay) {
                         Text("Time Shift")
@@ -423,8 +444,10 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
 
-                        Text("Absolute")
-                            .tag("Absolute")
+                        if !showAnalogClock {
+                            Text("Absolute")
+                                .tag("Absolute")
+                        }
                     } label: {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .orange, bottomColor: .blue)
@@ -433,6 +456,12 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
+                    .disabled(showAnalogClock)
+                    .onChange(of: showAnalogClock) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
                 }
                 
                 // Temperature/Weather Section
