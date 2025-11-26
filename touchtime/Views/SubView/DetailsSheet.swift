@@ -459,7 +459,7 @@ struct SunriseSunsetSheet: View {
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 16)
-                        .transition(.blurReplace())
+                        .transition(.blurReplace().combined(with: .scale).combined(with: .opacity)) // Card transition
                     }
                     
                     // Weather section - only show if weather is enabled in settings
@@ -702,7 +702,7 @@ struct SunriseSunsetSheet: View {
                                     .blendMode(.plusLighter)
                                     .padding(.horizontal, 32)
                                     .padding(.bottom, 4)
-                                    .padding(.top, currentDetent == .large ? 24 : 8)
+                                    .padding(.top, 24)
                                 
                                 HStack(spacing: 8) {
                                     // Moonrise Section
@@ -838,6 +838,7 @@ struct SunriseSunsetSheet: View {
                 currentDate = Date()
             }
             .toolbar {
+                
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 2) {
                         Text(cityName)
@@ -853,7 +854,8 @@ struct SunriseSunsetSheet: View {
                         .foregroundStyle(.secondary)
                     }
                 }
-                ToolbarItem(placement: .topBarLeading) {
+                
+                ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -861,11 +863,6 @@ struct SunriseSunsetSheet: View {
                         dismiss()
                     }) {
                         Image(systemName: "xmark")
-                    }
-                }
-                if showSkyDot {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        SkyDotView(date: currentDate.addingTimeInterval(timeOffset), timeZoneIdentifier: timeZoneIdentifier)
                     }
                 }
                 
