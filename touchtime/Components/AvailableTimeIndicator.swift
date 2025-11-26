@@ -126,7 +126,7 @@ struct AvailableTimeIndicator: View {
     }
     
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(alignment: .center, spacing: 12) {
             
             // Start Time
             Text(formatAvailableTime(availableStartTime))

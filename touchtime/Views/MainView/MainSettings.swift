@@ -451,8 +451,10 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
 
-                        Text("Absolute")
-                            .tag("Absolute")
+                        if !showAnalogClock {
+                            Text("Absolute")
+                                .tag("Absolute")
+                        }
                     } label: {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .orange, bottomColor: .blue)
@@ -461,6 +463,12 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
+                    .disabled(showAnalogClock)
+                    .onChange(of: showAnalogClock) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
                 }
                 
                 // Temperature/Weather Section
