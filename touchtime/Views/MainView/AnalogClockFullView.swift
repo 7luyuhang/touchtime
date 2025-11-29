@@ -80,6 +80,7 @@ struct AnalogClockFullView: View {
                                 selectedTimeZone: selectedTimeZone,
                                 use24HourFormat: use24HourFormat
                             )
+                            .id(currentDate) // Force update when currentDate changes
                             .animation(.spring(), value: selectedTimeZone.identifier)
                             Spacer()
                         }
@@ -96,7 +97,7 @@ struct AnalogClockFullView: View {
                             if selectedCityId != nil {
                                 HStack(spacing: 4) {
                                     Image(systemName: "location.fill")
-                                        .font(.footnote.weight(.semibold))
+                                        .font(.footnote.weight(.medium))
                                     Text({
                                         let formatter = DateFormatter()
                                         formatter.timeZone = TimeZone.current
@@ -107,10 +108,11 @@ struct AnalogClockFullView: View {
                                         }
                                         return formatter.string(from: displayDate)
                                     }())
-                                    .font(.subheadline.weight(.semibold))
+                                    .font(.subheadline.weight(.medium))
                                 }
                                 .foregroundStyle(.secondary)
                                 .blendMode(.plusLighter)
+                                .monospacedDigit()
                                 .contentTransition(.numericText())
                                 .padding(.bottom, 16)
                             }
@@ -144,9 +146,7 @@ struct AnalogClockFullView: View {
                 }
             }
             .onReceive(timer) { _ in
-                withAnimation(.spring()) {
-                    currentDate = Date()
-                }
+                currentDate = Date()
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResetScrollTime"))) { _ in
                 withAnimation(.smooth()) { // Hands Animation
@@ -265,7 +265,7 @@ struct AnalogClockFaceView: View {
                     hour: localTime.hour,
                     minute: localTime.minute,
                     size: size,
-                    color: .yellow,
+                    color: .blue,
                     isSelected: false,
                     isLocal: true,
                     selectedCityId: $selectedCityId,
@@ -299,7 +299,7 @@ struct AnalogClockFaceView: View {
                     hour: localTime.hour,
                     minute: localTime.minute,
                     size: size,
-                    color: .yellow,
+                    color: .blue,
                     isSelected: true,
                     isLocal: true,
                     selectedCityId: $selectedCityId,
@@ -309,7 +309,7 @@ struct AnalogClockFaceView: View {
             
             // Center circle (yellow when Local is selected)
             Circle()
-                .fill(selectedCityId == nil ? Color.yellow : Color.white)
+                .fill(selectedCityId == nil ? Color.blue : Color.white)
                 .frame(width: 8, height: 8)
         }
         .frame(width: size, height: size)
@@ -345,7 +345,7 @@ struct ClockHandWithLabel: View {
     // Hand color: Local always yellow, others white when selected
     private var handColor: Color {
         if isLocal {
-            return .yellow
+            return .blue
         }
         return isSelected ? .white : color
     }
@@ -363,16 +363,15 @@ struct ClockHandWithLabel: View {
             // City label - positioned straight up, at outer end, parallel to hand
             Group {
                 if isLocal {
-                    // Local: always yellow background with black text
                     Text(cityName)
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(.black)
+                        .foregroundColor(.white)
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .padding(.vertical, 4)
                         .padding(.horizontal, 10)
                         .frame(maxWidth: 95)
-                        .background(Color.yellow, in: Capsule(style: .continuous))
+                        .background(Color.blue, in: Capsule(style: .continuous))
                 } else if isSelected {
                     Text(cityName)
                         .font(.caption.weight(.semibold))
@@ -397,12 +396,17 @@ struct ClockHandWithLabel: View {
                 }
             }
             .contentShape(Capsule())
-            .onTapGesture {
+            .onTapGesture { // Tap hand
                 if hapticEnabled {
                     let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
                     impactFeedback.impactOccurred()
                 }
-                selectedCityId = cityId
+                // Allow deselecting non-local cities by tapping again
+                if cityId != nil && selectedCityId == cityId {
+                    selectedCityId = nil
+                } else {
+                    selectedCityId = cityId
+                }
             }
             // Rotate 90° to align parallel with hand, then flip if needed for readability
             .rotationEffect(.degrees(-90 + textCounterRotation))
@@ -460,7 +464,7 @@ struct DigitalTimeDisplayView: View {
             let additionalText = additionalTimeText()
             if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
                 Text(additionalText)
-                    .font(.body.weight(.medium))
+                    .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
                     .contentTransition(.numericText())
                     .transition(.blurReplace.combined(with: .move(edge: .bottom)))
@@ -491,7 +495,7 @@ struct DigitalTimeDisplayView: View {
                 let adjustedDate = currentDate.addingTimeInterval(timeOffset)
                 return adjustedDate.formattedDate(style: dateStyle, timeZone: selectedTimeZone)
             }())
-            .font(.body.weight(.medium))
+            .font(.subheadline.weight(.medium))
             .foregroundColor(.secondary)
             .blendMode(.plusLighter)
             .contentTransition(.numericText())
