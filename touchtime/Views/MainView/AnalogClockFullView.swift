@@ -59,9 +59,21 @@ struct AnalogClockFullView: View {
                         .opacity(0.65)
                         .animation(.spring(), value: selectedTimeZone.identifier)
                     
-                    VStack {
-                        Spacer()
-                        VStack(spacing: 48) {
+                    // Analog Clock - always centered
+                    AnalogClockFaceView(
+                        date: currentDate.addingTimeInterval(timeOffset),
+                        size: size,
+                        worldClocks: worldClocks,
+                        showLocalTime: showLocalTime,
+                        selectedCityId: $selectedCityId,
+                        hapticEnabled: hapticEnabled
+                    )
+                    
+                    // Digital time and scroll controls overlay
+                    VStack(spacing: 0) {
+                        // Top section - Digital time centered between nav bar and clock
+                        VStack {
+                            Spacer()
                             DigitalTimeDisplayView(
                                 currentDate: currentDate,
                                 timeOffset: timeOffset,
@@ -69,24 +81,49 @@ struct AnalogClockFullView: View {
                                 use24HourFormat: use24HourFormat
                             )
                             .animation(.spring(), value: selectedTimeZone.identifier)
-                            
-                            AnalogClockFaceView(
-                                date: currentDate.addingTimeInterval(timeOffset),
-                                size: size,
-                                worldClocks: worldClocks,
-                                showLocalTime: showLocalTime,
-                                selectedCityId: $selectedCityId,
-                                hapticEnabled: hapticEnabled
-                            )
+                            Spacer()
                         }
-                        Spacer()
-                        ScrollTimeView(
-                            timeOffset: $timeOffset,
-                            showButtons: $showScrollTimeButtons,
-                            worldClocks: $worldClocks
-                        )
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
+                        .frame(height: (geometry.size.height - size) / 2)
+                        
+                        // Middle - clock area (transparent placeholder)
+                        Color.clear
+                            .frame(height: size)
+                        
+                        // Bottom section - Scroll controls
+                        VStack {
+                            Spacer()
+                            // Local time display
+                            if selectedCityId != nil {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "location.fill")
+                                        .font(.footnote.weight(.semibold))
+                                    Text({
+                                        let formatter = DateFormatter()
+                                        formatter.timeZone = TimeZone.current
+                                        if use24HourFormat {
+                                            formatter.dateFormat = "HH:mm"
+                                        } else {
+                                            formatter.dateFormat = "h:mm"
+                                        }
+                                        return formatter.string(from: displayDate)
+                                    }())
+                                    .font(.subheadline.weight(.semibold))
+                                }
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                                .contentTransition(.numericText())
+                                .padding(.bottom, 16)
+                            }
+                            Spacer()
+                            ScrollTimeView(
+                                timeOffset: $timeOffset,
+                                showButtons: $showScrollTimeButtons,
+                                worldClocks: $worldClocks
+                            )
+                            .padding(.horizontal)
+                            .padding(.bottom, 8)
+                        }
+                        .frame(height: (geometry.size.height - size) / 2)
                     }
                 }
             }
@@ -168,7 +205,7 @@ struct AnalogClockFaceView: View {
             // Clock face background
             Circle()
                 .fill(Color.black.opacity(0.25))
-                .glassEffect(.clear)
+                .glassEffect(.clear.interactive())
                 .frame(width: max(size - 24, 0), height: max(size - 24, 0))
             
             // Hour numbers - Right side (1-12 for hours 0-12)
@@ -179,7 +216,7 @@ struct AnalogClockFaceView: View {
                 let y = radius * sin(angle * .pi / 180)
                 
                 Text("\(hour)")
-                    .font(.title2)
+                    .font(.title3.weight(.medium))
                     .fontDesign(.rounded)
                     .foregroundColor(.white)
                     .position(x: size / 2 + x, y: size / 2 + y)
@@ -194,7 +231,7 @@ struct AnalogClockFaceView: View {
                 let y = radius * sin(angle * .pi / 180)
                 
                 Text("\(displayHour)")
-                    .font(.title2)
+                    .font(.title3.weight(.medium))
                     .fontDesign(.rounded)
                     .foregroundColor(.white)
                     .position(x: size / 2 + x, y: size / 2 + y)
@@ -384,8 +421,52 @@ struct DigitalTimeDisplayView: View {
     let selectedTimeZone: TimeZone
     let use24HourFormat: Bool
     
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
+    
+    // Calculate additional time display text (follows WorldClock model pattern)
+    private func additionalTimeText() -> String {
+        switch additionalTimeDisplay {
+        case "Time Difference":
+            let selectedOffset = selectedTimeZone.secondsFromGMT()
+            let localOffset = TimeZone.current.secondsFromGMT()
+            let differenceSeconds = selectedOffset - localOffset
+            let differenceHours = differenceSeconds / 3600
+            if differenceHours == 0 {
+                return ""
+            } else if differenceHours > 0 {
+                return String(format: String(localized: "+%d hours"), differenceHours)
+            } else {
+                return String(format: String(localized: "%d hours"), differenceHours)
+            }
+        case "UTC":
+            let offsetSeconds = selectedTimeZone.secondsFromGMT()
+            let offsetHours = offsetSeconds / 3600
+            if offsetHours == 0 {
+                return "UTC +0"
+            } else if offsetHours > 0 {
+                return "UTC +\(offsetHours)"
+            } else {
+                return "UTC \(offsetHours)"
+            }
+        default:
+            return ""
+        }
+    }
+    
     var body: some View {
         VStack(spacing: 0) {
+            // Additional time display
+            let additionalText = additionalTimeText()
+            if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
+                Text(additionalText)
+                    .font(.body.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .contentTransition(.numericText())
+                    .transition(.blurReplace.combined(with: .move(edge: .bottom)))
+                    .blendMode(.plusLighter)
+            }
+            
             Text({
                 let formatter = DateFormatter()
                 formatter.timeZone = selectedTimeZone
@@ -405,18 +486,10 @@ struct DigitalTimeDisplayView: View {
             .foregroundColor(.white)
             .contentTransition(.numericText())
             
-            // Date display
+            // Date display - follows app's dateStyle setting
             Text({
-                let formatter = DateFormatter()
-                formatter.timeZone = selectedTimeZone
-                formatter.locale = Locale.current
-                if Locale.current.language.languageCode?.identifier == "zh" {
-                    formatter.dateFormat = "MMMd日 E"
-                } else {
-                    formatter.dateFormat = "E, d MMM"
-                }
                 let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                return formatter.string(from: adjustedDate)
+                return adjustedDate.formattedDate(style: dateStyle, timeZone: selectedTimeZone)
             }())
             .font(.body.weight(.medium))
             .foregroundColor(.secondary)
