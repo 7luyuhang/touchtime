@@ -32,6 +32,7 @@ struct HomeView: View {
     @State private var selectedTimeZone: String = ""
     @State private var selectedCityName: String = ""
     @State private var showArrangeListSheet = false
+    @State private var showAnalogClockFullView = false
     
     // Collection management
     @State private var collections: [CityCollection] = []
@@ -829,8 +830,24 @@ struct HomeView: View {
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
+                        // Analog Clock Full View Button
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showAnalogClockFullView = true
+                        }) {
+                            Image(systemName: "clock")
+                        }
+                }
+                       
+                ToolbarSpacer(.fixed)
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    // Settings Button
                     Button(action: {
-                        // Provide haptic feedback if enabled
                         if hapticEnabled {
                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                             impactFeedback.prepare()
@@ -842,6 +859,7 @@ struct HomeView: View {
                     }
                     .matchedTransitionSource(id: "settings", in: namespace)
                 }
+                
             }
             
             .onReceive(timer) { _ in
@@ -958,6 +976,11 @@ struct HomeView: View {
                 if !newValue && oldValue { // Sheet was dismissed
                     loadCollections() // Reload collections in case they were modified
                 }
+            }
+            
+            // Analog Clock Full View
+            .fullScreenCover(isPresented: $showAnalogClockFullView) {
+                AnalogClockFullView(worldClocks: $worldClocks)
             }
         }
         
