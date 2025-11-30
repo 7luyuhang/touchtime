@@ -14,14 +14,14 @@ import WeatherKit
 
 struct HomeView: View {
     @Binding var worldClocks: [WorldClock]
+    @Binding var timeOffset: TimeInterval
+    @Binding var showScrollTimeButtons: Bool
     @State private var currentDate = Date()
-    @State private var timeOffset: TimeInterval = 0
     @State private var showingRenameAlert = false
     @State private var renamingClockId: UUID? = nil
     @State private var renamingLocalTime = false
     @State private var newClockName = ""
     @State private var originalClockName = ""
-    @State private var showScrollTimeButtons = false
     @State private var showShareSheet = false
     @State private var showSettingsSheet = false
     @State private var eventStore = EKEventStore()

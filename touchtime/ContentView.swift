@@ -11,6 +11,10 @@ struct ContentView: View {
     @State private var worldClocks: [WorldClock] = []
     @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     
+    // Shared time offset state for HomeView and AnalogClockFullView
+    @State private var timeOffset: TimeInterval = 0
+    @State private var showScrollTimeButtons = false
+    
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
     
@@ -18,11 +22,11 @@ struct ContentView: View {
         if hasCompletedOnboarding {
             TabView {
             Tab(String(localized: "List"), systemImage: "list.bullet") {
-                HomeView(worldClocks: $worldClocks)
+                HomeView(worldClocks: $worldClocks, timeOffset: $timeOffset, showScrollTimeButtons: $showScrollTimeButtons)
             }
             
             Tab(String(localized: "Clock"), systemImage: "clock") {
-                AnalogClockFullView(worldClocks: $worldClocks)
+                AnalogClockFullView(worldClocks: $worldClocks, timeOffset: $timeOffset, showScrollTimeButtons: $showScrollTimeButtons)
             }
             
             Tab(role: .search) {

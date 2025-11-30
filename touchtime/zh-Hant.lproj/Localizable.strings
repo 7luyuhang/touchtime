@@ -764,3 +764,7 @@
 /* Date suffix */
 "starts" = "開始";
 "ends" = "結束";
+
+/* DST */
+"Starts" = "開始於";
+"Ends" = "結束於";

@@ -10,9 +10,9 @@ import Combine
 
 struct AnalogClockFullView: View {
     @Binding var worldClocks: [WorldClock]
+    @Binding var timeOffset: TimeInterval
+    @Binding var showScrollTimeButtons: Bool
     @State private var currentDate = Date()
-    @State private var timeOffset: TimeInterval = 0
-    @State private var showScrollTimeButtons = false
     @State private var selectedCityId: UUID? = nil // nil means Local is selected
     @State private var showDetailsSheet = false
     
@@ -216,6 +216,13 @@ struct AnalogClockFaceView: View {
             
             // Hour numbers
             HourNumbersView(size: size)
+            
+            // Moon icon
+            Image(systemName: "moon.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .blendMode(.plusLighter)
+                .position(x: size / 2, y: size / 2 - (size / 2 - 60))
 
             // World clock hands with city labels (non-selected first)
             ForEach(worldClocks.filter { $0.id != selectedCityId }) { clock in
