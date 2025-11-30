@@ -14,12 +14,12 @@ struct AnalogClockFullView: View {
     @State private var timeOffset: TimeInterval = 0
     @State private var showScrollTimeButtons = false
     @State private var selectedCityId: UUID? = nil // nil means Local is selected
+    @State private var showDetailsSheet = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     
-    @Environment(\.dismiss) private var dismiss
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -66,7 +66,8 @@ struct AnalogClockFullView: View {
                         worldClocks: worldClocks,
                         showLocalTime: showLocalTime,
                         selectedCityId: $selectedCityId,
-                        hapticEnabled: hapticEnabled
+                        hapticEnabled: hapticEnabled,
+                        showDetailsSheet: $showDetailsSheet
                     )
                     
                     // Digital time and scroll controls overlay
@@ -131,20 +132,6 @@ struct AnalogClockFullView: View {
             }
             .navigationTitle(selectedCityName)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        if hapticEnabled {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                            impactFeedback.impactOccurred()
-                        }
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .foregroundStyle(.white)
-                    }
-                }
-            }
             .onReceive(timer) { _ in
                 currentDate = Date()
             }
@@ -152,6 +139,24 @@ struct AnalogClockFullView: View {
                 withAnimation(.smooth()) { // Hands Animation
                     timeOffset = 0
                     showScrollTimeButtons = false
+                }
+            }
+            .sheet(isPresented: $showDetailsSheet) {
+                if let cityId = selectedCityId,
+                   let city = worldClocks.first(where: { $0.id == cityId }) {
+                    SunriseSunsetSheet(
+                        cityName: city.localizedCityName,
+                        timeZoneIdentifier: city.timeZoneIdentifier,
+                        initialDate: currentDate,
+                        timeOffset: timeOffset
+                    )
+                } else {
+                    SunriseSunsetSheet(
+                        cityName: String(localized: "Local"),
+                        timeZoneIdentifier: TimeZone.current.identifier,
+                        initialDate: currentDate,
+                        timeOffset: timeOffset
+                    )
                 }
             }
         }
@@ -167,6 +172,7 @@ struct AnalogClockFaceView: View {
     let showLocalTime: Bool
     @Binding var selectedCityId: UUID?
     let hapticEnabled: Bool
+    @Binding var showDetailsSheet: Bool
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     
@@ -208,35 +214,9 @@ struct AnalogClockFaceView: View {
                 .glassEffect(.clear.interactive())
                 .frame(width: max(size - 24, 0), height: max(size - 24, 0))
             
-            // Hour numbers - Right side (1-12 for hours 0-12)
-            ForEach(1..<13, id: \.self) { hour in
-                let angle = Double(hour) * 15.0 - 90 // 15 degrees per hour, starting from top
-                let radius = size / 2 - 36
-                let x = radius * cos(angle * .pi / 180)
-                let y = radius * sin(angle * .pi / 180)
-                
-                Text("\(hour)")
-                    .font(.title3.weight(.medium))
-                    .fontDesign(.rounded)
-                    .foregroundColor(.white)
-                    .position(x: size / 2 + x, y: size / 2 + y)
-            }
-            
-            // Hour numbers - Left side (1-12 for hours 12-24)
-            ForEach(1..<13, id: \.self) { hour in
-                let displayHour = hour
-                let angle = Double(hour + 12) * 15.0 - 90 // Continue from 12, 15 degrees per hour
-                let radius = size / 2 - 36
-                let x = radius * cos(angle * .pi / 180)
-                let y = radius * sin(angle * .pi / 180)
-                
-                Text("\(displayHour)")
-                    .font(.title3.weight(.medium))
-                    .fontDesign(.rounded)
-                    .foregroundColor(.white)
-                    .position(x: size / 2 + x, y: size / 2 + y)
-            }
-            
+            // Hour numbers
+            HourNumbersView(size: size)
+
             // World clock hands with city labels (non-selected first)
             ForEach(worldClocks.filter { $0.id != selectedCityId }) { clock in
                 let time = getTime(for: clock.timeZoneIdentifier)
@@ -252,7 +232,8 @@ struct AnalogClockFaceView: View {
                         isSelected: false,
                         isLocal: false,
                         selectedCityId: $selectedCityId,
-                        hapticEnabled: hapticEnabled
+                        hapticEnabled: hapticEnabled,
+                        showDetailsSheet: $showDetailsSheet
                     )
                 }
             }
@@ -269,7 +250,8 @@ struct AnalogClockFaceView: View {
                     isSelected: false,
                     isLocal: true,
                     selectedCityId: $selectedCityId,
-                    hapticEnabled: hapticEnabled
+                    hapticEnabled: hapticEnabled,
+                    showDetailsSheet: $showDetailsSheet
                 )
             }
             
@@ -288,7 +270,8 @@ struct AnalogClockFaceView: View {
                         isSelected: true,
                         isLocal: false,
                         selectedCityId: $selectedCityId,
-                        hapticEnabled: hapticEnabled
+                        hapticEnabled: hapticEnabled,
+                        showDetailsSheet: $showDetailsSheet
                     )
                 }
             } else if showLocalTime && selectedCityId == nil {
@@ -303,13 +286,13 @@ struct AnalogClockFaceView: View {
                     isSelected: true,
                     isLocal: true,
                     selectedCityId: $selectedCityId,
-                    hapticEnabled: hapticEnabled
+                    hapticEnabled: hapticEnabled,
+                    showDetailsSheet: $showDetailsSheet
                 )
             }
-            
-            // Center circle (yellow when Local is selected)
+
             Circle()
-                .fill(selectedCityId == nil ? Color.blue : Color.white)
+                .fill(Color.white)
                 .frame(width: 8, height: 8)
         }
         .frame(width: size, height: size)
@@ -328,6 +311,7 @@ struct ClockHandWithLabel: View {
     let isLocal: Bool
     @Binding var selectedCityId: UUID?
     let hapticEnabled: Bool
+    @Binding var showDetailsSheet: Bool
     
     private var angle: Double {
         // 24-hour clock: full rotation = 24 hours
@@ -342,12 +326,15 @@ struct ClockHandWithLabel: View {
         angle > 180 ? 180 : 0
     }
     
-    // Hand color: Local always yellow, others white when selected
+    // Hand color: white when selected, blue for Local when not selected
     private var handColor: Color {
+        if isSelected {
+            return .white
+        }
         if isLocal {
             return .blue
         }
-        return isSelected ? .white : color
+        return color
     }
     
     var body: some View {
@@ -362,17 +349,8 @@ struct ClockHandWithLabel: View {
             
             // City label - positioned straight up, at outer end, parallel to hand
             Group {
-                if isLocal {
-                    Text(cityName)
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 10)
-                        .frame(maxWidth: 95)
-                        .background(Color.blue, in: Capsule(style: .continuous))
-                } else if isSelected {
+                if isSelected {
+                    // Selected (either Local or city) - white background
                     Text(cityName)
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.black)
@@ -382,7 +360,19 @@ struct ClockHandWithLabel: View {
                         .padding(.horizontal, 10)
                         .frame(maxWidth: 95)
                         .background(Color.white, in: Capsule(style: .continuous))
+                } else if isLocal {
+                    // Local not selected - blue style
+                    Text(cityName)
+                        .font(.caption.weight(.semibold))
+                        .foregroundColor(.white)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 10)
+                        .frame(maxWidth: 95)
+                        .background(Color.blue, in: Capsule(style: .continuous))
                 } else {
+                    // Non-local not selected
                     Text(cityName)
                         .font(.caption.weight(.semibold))
                         .foregroundColor(.white)
@@ -401,9 +391,9 @@ struct ClockHandWithLabel: View {
                     let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
                     impactFeedback.impactOccurred()
                 }
-                // Allow deselecting non-local cities by tapping again
-                if cityId != nil && selectedCityId == cityId {
-                    selectedCityId = nil
+                // Open details sheet when tapping selected city
+                if isSelected {
+                    showDetailsSheet = true
                 } else {
                     selectedCityId = cityId
                 }

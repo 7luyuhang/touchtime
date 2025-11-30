@@ -17,12 +17,12 @@ struct ContentView: View {
     var body: some View {
         if hasCompletedOnboarding {
             TabView {
-            Tab(String(localized: "List"), systemImage: "clock") {
+            Tab(String(localized: "List"), systemImage: "list.bullet") {
                 HomeView(worldClocks: $worldClocks)
             }
             
-            Tab(String(localized: "Earth"), systemImage: "globe.americas.fill") {
-                EarthView(worldClocks: $worldClocks)
+            Tab(String(localized: "Clock"), systemImage: "clock") {
+                AnalogClockFullView(worldClocks: $worldClocks)
             }
             
             Tab(role: .search) {

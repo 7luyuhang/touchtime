@@ -32,15 +32,12 @@ struct HomeView: View {
     @State private var selectedTimeZone: String = ""
     @State private var selectedCityName: String = ""
     @State private var showArrangeListSheet = false
-    @State private var showAnalogClockFullView = false
+    @State private var showEarthView = false
     
     // Collection management
     @State private var collections: [CityCollection] = []
     @State private var selectedCollectionId: UUID? = nil
     @AppStorage("selectedCollectionId") private var savedSelectedCollectionId: String = ""
-    
-    // Zoom transition namespace
-    @Namespace private var namespace
     
     // Computed binding for picker
     private var pickerSelection: Binding<UUID?> {
@@ -768,38 +765,37 @@ struct HomeView: View {
             
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    // Show menu if there are world clocks or collections
-                    if !worldClocks.isEmpty || !collections.isEmpty {
-                        Menu {
-                            // Collections
-                            if !collections.isEmpty {
+                    Menu {
+                        // Collections
+                        if !collections.isEmpty {
+                            Button {
+                                selectedCollectionId = nil
+                                saveSelectedCollection()
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.impactOccurred()
+                                }
+                            } label: {
+                                Label("All Cities", systemImage: selectedCollectionId == nil ? "checkmark.circle" : "")
+                            }
+                            
+                            ForEach(collections) { collection in
                                 Button {
-                                    selectedCollectionId = nil
+                                    selectedCollectionId = collection.id
                                     saveSelectedCollection()
                                     if hapticEnabled {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                                         impactFeedback.impactOccurred()
                                     }
                                 } label: {
-                                    Label("All Cities", systemImage: selectedCollectionId == nil ? "checkmark.circle" : "")
+                                    Label(collection.name, systemImage: selectedCollectionId == collection.id ? "checkmark.circle" : "")
                                 }
-                                
-                                ForEach(collections) { collection in
-                                    Button {
-                                        selectedCollectionId = collection.id
-                                        saveSelectedCollection()
-                                        if hapticEnabled {
-                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                            impactFeedback.impactOccurred()
-                                        }
-                                    } label: {
-                                        Label(collection.name, systemImage: selectedCollectionId == collection.id ? "checkmark.circle" : "")
-                                    }
-                                }
-                                Divider()
                             }
-                            
-                            // Share Section
+                            Divider()
+                        }
+                        
+                        // Share Section - only show if there are world clocks
+                        if !worldClocks.isEmpty {
                             Button(action: {
                                 // Provide haptic feedback if enabled
                                 if hapticEnabled {
@@ -811,8 +807,10 @@ struct HomeView: View {
                             }) {
                                 Label("Share", systemImage: "square.and.arrow.up")
                             }
-                        
-                            // Arrange Section
+                        }
+                    
+                        // Arrange Section - only show if there are world clocks or collections
+                        if !worldClocks.isEmpty || !collections.isEmpty {
                             Button(action: {
                                 if hapticEnabled {
                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -823,43 +821,39 @@ struct HomeView: View {
                             }) {
                                 Label(String(localized: "Arrange"), systemImage: "list.bullet")
                             }
-                        } label: {
-                            Image(systemName: "ellipsis")
+                            
+                            Divider()
                         }
-                    }
-                }
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                        // Analog Clock Full View Button
+                        
+                        // Settings Section
                         Button(action: {
                             if hapticEnabled {
                                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                                 impactFeedback.prepare()
                                 impactFeedback.impactOccurred()
                             }
-                            showAnalogClockFullView = true
+                            showSettingsSheet = true
                         }) {
-                            Image(systemName: "clock")
+                            Label("Settings", systemImage: "gear")
                         }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
                 }
-                       
-                ToolbarSpacer(.fixed)
                 
                 ToolbarItem(placement: .topBarTrailing) {
-                    // Settings Button
+                    // Earth View Button
                     Button(action: {
                         if hapticEnabled {
                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                             impactFeedback.prepare()
                             impactFeedback.impactOccurred()
                         }
-                        showSettingsSheet = true
+                        showEarthView = true
                     }) {
-                        Image(systemName: "gear")
+                        Image(systemName: "globe.americas.fill")
                     }
-                    .matchedTransitionSource(id: "settings", in: namespace)
                 }
-                
             }
             
             .onReceive(timer) { _ in
@@ -923,10 +917,6 @@ struct HomeView: View {
             // Settings Sheet
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(worldClocks: $worldClocks)
-                    .navigationTransition(.zoom(sourceID: "settings", in: namespace))
-                      //Customize sheet background
-//                    .scrollContentBackground(.hidden)
-//                    .presentationBackground(.ultraThinMaterial)
             }
             .onChange(of: showSettingsSheet) { oldValue, newValue in
                 if !newValue && oldValue { // Sheet was dismissed
@@ -978,9 +968,9 @@ struct HomeView: View {
                 }
             }
             
-            // Analog Clock Full View
-            .fullScreenCover(isPresented: $showAnalogClockFullView) {
-                AnalogClockFullView(worldClocks: $worldClocks)
+            // Earth View
+            .fullScreenCover(isPresented: $showEarthView) {
+                EarthView(worldClocks: $worldClocks)
             }
         }
         
