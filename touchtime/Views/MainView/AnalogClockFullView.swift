@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import UIKit
 
 struct AnalogClockFullView: View {
     @Binding var worldClocks: [WorldClock]
@@ -15,6 +16,8 @@ struct AnalogClockFullView: View {
     @State private var currentDate = Date()
     @State private var selectedCityId: UUID? = nil // nil means Local is selected
     @State private var showDetailsSheet = false
+    @State private var showShareSheet = false
+    @State private var showEarthView = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showLocalTime") private var showLocalTime = true
@@ -132,6 +135,37 @@ struct AnalogClockFullView: View {
             }
             .navigationTitle(selectedCityName)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    // Share button - only show if there are world clocks
+                    if !worldClocks.isEmpty {
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showShareSheet = true
+                        }) {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                    }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    // Earth View Button
+                    Button(action: {
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.prepare()
+                            impactFeedback.impactOccurred()
+                        }
+                        showEarthView = true
+                    }) {
+                        Image(systemName: "globe.americas.fill")
+                    }
+                }
+            }
             .onReceive(timer) { _ in
                 currentDate = Date()
             }
@@ -158,6 +192,17 @@ struct AnalogClockFullView: View {
                         timeOffset: timeOffset
                     )
                 }
+            }
+            .sheet(isPresented: $showShareSheet) {
+                ShareCitiesSheet(
+                    worldClocks: $worldClocks,
+                    showSheet: $showShareSheet,
+                    currentDate: currentDate,
+                    timeOffset: timeOffset
+                )
+            }
+            .fullScreenCover(isPresented: $showEarthView) {
+                EarthView(worldClocks: $worldClocks)
             }
         }
         .preferredColorScheme(.dark)
