@@ -17,6 +17,7 @@ struct AnalogClockFullView: View {
     @State private var selectedCityId: UUID? = nil // nil means Local is selected
     @State private var showDetailsSheet = false
     @State private var showShareSheet = false
+    @State private var showSettingsSheet = false
     @State private var showEarthView = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
@@ -137,18 +138,36 @@ struct AnalogClockFullView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    // Share button - only show if there are world clocks
-                    if !worldClocks.isEmpty {
+                    Menu {
+                        // Share Section - only show if there are world clocks
+                        if !worldClocks.isEmpty {
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showShareSheet = true
+                            }) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                            }
+                            
+                            Divider()
+                        }
+                        
+                        // Settings Section
                         Button(action: {
                             if hapticEnabled {
                                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                                 impactFeedback.prepare()
                                 impactFeedback.impactOccurred()
                             }
-                            showShareSheet = true
+                            showSettingsSheet = true
                         }) {
-                            Image(systemName: "square.and.arrow.up")
+                            Label("Settings", systemImage: "gear")
                         }
+                    } label: {
+                        Image(systemName: "ellipsis")
                     }
                 }
                 
@@ -200,6 +219,9 @@ struct AnalogClockFullView: View {
                     currentDate: currentDate,
                     timeOffset: timeOffset
                 )
+            }
+            .sheet(isPresented: $showSettingsSheet) {
+                SettingsView(worldClocks: $worldClocks)
             }
             .fullScreenCover(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
@@ -403,31 +425,52 @@ struct ClockHandWithLabel: View {
             Group {
                 if isSelected {
                     // Selected (either Local or city) - white background
-                    Text(cityName)
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(.black)
+                    if isLocal {
+                        HStack(spacing: 4) {
+                            Image(systemName: "location.fill")
+                                .font(.caption2.weight(.semibold))
+                                .foregroundStyle(.black)
+                            Text(cityName)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.black)
+                        }
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .padding(.vertical, 4)
                         .padding(.horizontal, 10)
                         .frame(maxWidth: 95)
                         .background(Color.white, in: Capsule(style: .continuous))
+                    } else {
+                        Text(cityName)
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.black)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 10)
+                            .frame(maxWidth: 95)
+                            .background(Color.white, in: Capsule(style: .continuous))
+                    }
                 } else if isLocal {
                     // Local not selected - blue style
-                    Text(cityName)
-                        .font(.caption.weight(.semibold))
-                        .foregroundColor(.white)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 10)
-                        .frame(maxWidth: 95)
-                        .background(Color.blue, in: Capsule(style: .continuous))
+                    HStack(spacing: 4) {
+                        Image(systemName: "location.fill")
+                            .font(.caption2.weight(.semibold))
+                        Text(cityName)
+                            .font(.caption.weight(.semibold))
+                    }
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .padding(.vertical, 4)
+                    .padding(.horizontal, 10)
+                    .frame(maxWidth: 95)
+                    .background(Color.blue, in: Capsule(style: .continuous))
                 } else {
                     // Non-local not selected
                     Text(cityName)
                         .font(.caption.weight(.semibold))
-                        .foregroundColor(.white)
+                        .foregroundStyle(.white)
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .padding(.vertical, 4)
@@ -529,7 +572,7 @@ struct DigitalTimeDisplayView: View {
             .fontWeight(.light)
             .fontDesign(.rounded)
             .monospacedDigit()
-            .foregroundColor(.white)
+            .foregroundStyle(.white)
             .contentTransition(.numericText())
             
             // Date display - follows app's dateStyle setting
@@ -538,7 +581,7 @@ struct DigitalTimeDisplayView: View {
                 return adjustedDate.formattedDate(style: dateStyle, timeZone: selectedTimeZone)
             }())
             .font(.subheadline.weight(.medium))
-            .foregroundColor(.secondary)
+            .foregroundStyle(.secondary)
             .blendMode(.plusLighter)
             .contentTransition(.numericText())
         }
