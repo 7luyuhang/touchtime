@@ -231,7 +231,7 @@ struct SettingsView: View {
                     
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
+                            SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .blue)
                             Text("Haptics")
                         }
                     }

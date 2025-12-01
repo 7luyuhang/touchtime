@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import UIKit
+import WeatherKit
 
 struct AnalogClockFullView: View {
     @Binding var worldClocks: [WorldClock]
@@ -20,9 +21,13 @@ struct AnalogClockFullView: View {
     @State private var showSettingsSheet = false
     @State private var showEarthView = false
     
-    @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("use24HourFormat") private var use24HourFormat = true
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("useCelsius") private var useCelsius = true
+    
+    @StateObject private var weatherManager = WeatherManager()
     
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -83,10 +88,23 @@ struct AnalogClockFullView: View {
                                 currentDate: currentDate,
                                 timeOffset: timeOffset,
                                 selectedTimeZone: selectedTimeZone,
-                                use24HourFormat: use24HourFormat
+                                use24HourFormat: use24HourFormat,
+                                weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                                showWeather: showWeather,
+                                useCelsius: useCelsius
                             )
                             .id(currentDate) // Force update when currentDate changes
                             .animation(.spring(), value: selectedTimeZone.identifier)
+                            .task(id: showWeather) {
+                                if showWeather {
+                                    await weatherManager.getWeather(for: selectedTimeZone.identifier)
+                                }
+                            }
+                            .task(id: selectedTimeZone.identifier) {
+                                if showWeather {
+                                    await weatherManager.getWeather(for: selectedTimeZone.identifier)
+                                }
+                            }
                             Spacer()
                         }
                         .frame(height: (geometry.size.height - size) / 2)
@@ -105,6 +123,7 @@ struct AnalogClockFullView: View {
                                         .font(.footnote.weight(.medium))
                                     Text({
                                         let formatter = DateFormatter()
+                                        formatter.locale = Locale(identifier: "en_US_POSIX")
                                         formatter.timeZone = TimeZone.current
                                         if use24HourFormat {
                                             formatter.dateFormat = "HH:mm"
@@ -272,6 +291,45 @@ struct AnalogClockFaceView: View {
         return hourAngle + minuteAngle - 90 // Adjust so 0 hours is at top
     }
     
+    // Group non-selected world clocks by time - show only one city per unique time
+    // Also excludes times that match the selected city's time
+    private var groupedNonSelectedClocks: [WorldClock] {
+        // Get selected city's time if any
+        var selectedTime: (hour: Int, minute: Int)? = nil
+        if let cityId = selectedCityId,
+           let selectedClock = worldClocks.first(where: { $0.id == cityId }) {
+            selectedTime = getTime(for: selectedClock.timeZoneIdentifier)
+        }
+        
+        var seenTimes: Set<String> = []
+        var result: [WorldClock] = []
+        
+        for clock in worldClocks where clock.id != selectedCityId {
+            let time = getTime(for: clock.timeZoneIdentifier)
+            let key = "\(time.hour):\(time.minute)"
+            
+            // Skip if we already have a clock at this time
+            if seenTimes.contains(key) {
+                continue
+            }
+            
+            // Skip if this time matches local time (when showLocalTime is enabled)
+            if showLocalTime && time.hour == localTime.hour && time.minute == localTime.minute {
+                continue
+            }
+            
+            // Skip if this time matches the selected city's time
+            if let selectedTime = selectedTime,
+               time.hour == selectedTime.hour && time.minute == selectedTime.minute {
+                continue
+            }
+            
+            seenTimes.insert(key)
+            result.append(clock)
+        }
+        
+        return result
+    }
     
     var body: some View {
         ZStack {
@@ -284,32 +342,39 @@ struct AnalogClockFaceView: View {
             // Hour numbers
             HourNumbersView(size: size)
             
+            // Sun icon
+            Image(systemName: "sun.max.fill")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .blendMode(.plusLighter)
+                .frame(height: 24)
+                .position(x: size / 2,  y: size / 2 + (size / 2 - 62))
+
             // Moon icon
             Image(systemName: "moon.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
+                .frame(height: 24)
                 .position(x: size / 2, y: size / 2 - (size / 2 - 60))
 
             // World clock hands with city labels (non-selected first)
-            ForEach(worldClocks.filter { $0.id != selectedCityId }) { clock in
+            // Grouped by time to avoid overlapping labels - only one city shown per unique time
+            ForEach(groupedNonSelectedClocks) { clock in
                 let time = getTime(for: clock.timeZoneIdentifier)
-                // Only show if time is different from local time
-                if !showLocalTime || time.hour != localTime.hour || time.minute != localTime.minute {
-                    ClockHandWithLabel(
-                        cityId: clock.id,
-                        cityName: clock.localizedCityName,
-                        hour: time.hour,
-                        minute: time.minute,
-                        size: size,
-                        color: .white.opacity(0.25), // Hand colour
-                        isSelected: false,
-                        isLocal: false,
-                        selectedCityId: $selectedCityId,
-                        hapticEnabled: hapticEnabled,
-                        showDetailsSheet: $showDetailsSheet
-                    )
-                }
+                ClockHandWithLabel(
+                    cityId: clock.id,
+                    cityName: clock.localizedCityName,
+                    hour: time.hour,
+                    minute: time.minute,
+                    size: size,
+                    color: .white.opacity(0.25), // Hand colour
+                    isSelected: false,
+                    isLocal: false,
+                    selectedCityId: $selectedCityId,
+                    hapticEnabled: hapticEnabled,
+                    showDetailsSheet: $showDetailsSheet
+                )
             }
             
             // Local time hand (non-selected)
@@ -483,7 +548,7 @@ struct ClockHandWithLabel: View {
             .contentShape(Capsule())
             .onTapGesture { // Tap hand
                 if hapticEnabled {
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                     impactFeedback.impactOccurred()
                 }
                 // Open details sheet when tapping selected city
@@ -509,6 +574,9 @@ struct DigitalTimeDisplayView: View {
     let timeOffset: TimeInterval
     let selectedTimeZone: TimeZone
     let use24HourFormat: Bool
+    let weather: CurrentWeather?
+    let showWeather: Bool
+    let useCelsius: Bool
     
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
@@ -575,15 +643,24 @@ struct DigitalTimeDisplayView: View {
             .foregroundStyle(.white)
             .contentTransition(.numericText())
             
-            // Date display - follows app's dateStyle setting
-            Text({
-                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                return adjustedDate.formattedDate(style: dateStyle, timeZone: selectedTimeZone)
-            }())
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(.secondary)
-            .blendMode(.plusLighter)
-            .contentTransition(.numericText())
+            // Date display with weather - follows app's dateStyle setting
+            HStack(spacing: 4) {
+                if showWeather {
+                    WeatherView(
+                        weather: weather,
+                        useCelsius: useCelsius
+                    )
+                }
+                
+                Text({
+                    let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                    return adjustedDate.formattedDate(style: dateStyle, timeZone: selectedTimeZone)
+                }())
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
+                .contentTransition(.numericText())
+            }
         }
     }
 }

@@ -206,8 +206,8 @@
 "%d days" = "%d 天";
 
 /* Weather Conditions */
-"Clear" = "晴";
-"Mostly Clear" = "大部晴";
+"Clear" = "晴朗";
+"Mostly Clear" = "大部晴朗";
 "Partly Cloudy" = "局部多雲";
 "Mostly Cloudy" = "大部多雲";
 "Cloudy" = "多雲";
