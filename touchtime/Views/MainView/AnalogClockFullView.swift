@@ -71,6 +71,8 @@ struct AnalogClockFullView: View {
                     // Analog Clock - always centered
                     AnalogClockFaceView(
                         date: currentDate.addingTimeInterval(timeOffset),
+                        timeOffset: timeOffset,
+                        selectedTimeZone: selectedTimeZone,
                         size: size,
                         worldClocks: worldClocks,
                         showLocalTime: showLocalTime,
@@ -250,9 +252,53 @@ struct AnalogClockFullView: View {
     }
 }
 
+// MARK: - Time Offset Arc View
+struct TimeOffsetArcView: View {
+    let timeOffset: TimeInterval
+    let currentDate: Date  // 原始时间（未加偏移）
+    let timeZone: TimeZone
+    let size: CGFloat
+    
+    // 计算指定日期在给定时区的角度（弧度，从顶部顺时针）
+    private func angleRadians(for date: Date) -> Double {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let components = calendar.dateComponents([.hour, .minute, .second], from: date)
+        let hour = Double(components.hour ?? 0)
+        let minute = Double(components.minute ?? 0)
+        let second = Double(components.second ?? 0)
+        // 24小时制：0时在顶部，每小时15度
+        // -90 度调整使 0 时在顶部（标准坐标系中0度在右边）
+        let degrees = (hour + minute / 60 + second / 3600) * 15 - 90
+        return degrees * .pi / 180
+    }
+    
+    var body: some View {
+        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+        let startAngle = angleRadians(for: currentDate)
+        let endAngle = angleRadians(for: adjustedDate)
+        
+        Path { path in
+            let center = CGPoint(x: size / 2, y: size / 2)
+            let radius = (size - 24) / 2  // 与背景圆相同
+            
+            path.addArc(
+                center: center,
+                radius: radius,
+                startAngle: Angle(radians: startAngle),
+                endAngle: Angle(radians: endAngle),
+                clockwise: timeOffset < 0
+            )
+        }
+        .stroke(Color.white, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+    }
+}
+
 // MARK: - Analog Clock Face View
 struct AnalogClockFaceView: View {
     let date: Date
+    let timeOffset: TimeInterval
+    let selectedTimeZone: TimeZone
     let size: CGFloat
     let worldClocks: [WorldClock]
     let showLocalTime: Bool
@@ -261,6 +307,7 @@ struct AnalogClockFaceView: View {
     @Binding var showDetailsSheet: Bool
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("showArcIndicator") private var showArcIndicator = true
     
     // Get local time components
     private var localTime: (hour: Int, minute: Int) {
@@ -331,6 +378,11 @@ struct AnalogClockFaceView: View {
         return result
     }
     
+    // 计算原始日期（不带偏移）
+    private var originalDate: Date {
+        date.addingTimeInterval(-timeOffset)
+    }
+    
     var body: some View {
         ZStack {
             // Clock face background
@@ -338,6 +390,17 @@ struct AnalogClockFaceView: View {
                 .fill(Color.black.opacity(0.25))
                 .glassEffect(.clear.interactive())
                 .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+            
+            // Time offset arc (显示滚动时间的起点到终点)
+            if showArcIndicator && timeOffset != 0 {
+                TimeOffsetArcView(
+                    timeOffset: timeOffset,
+                    currentDate: originalDate,
+                    timeZone: selectedTimeZone,
+                    size: size
+                )
+                .transition(.blurReplace.combined(with: .opacity))
+            }
             
             // Hour numbers
             HourNumbersView(size: size)
@@ -562,8 +625,8 @@ struct ClockHandWithLabel: View {
             .rotationEffect(.degrees(-90 + textCounterRotation))
             // Position closer to center
             .offset(y: -(size / 2 - 95))
-            .animation(nil, value: angle)
         }
+        .animation(.none, value: angle)
         .rotationEffect(.degrees(angle))
     }
 }

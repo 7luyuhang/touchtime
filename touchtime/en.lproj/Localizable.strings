@@ -58,7 +58,10 @@
 "Haptics" = "Haptics";
 "System Time" = "Local Time";
 "Language" = "Language";
-"Time Display" = "Time Display";
+"Digital Time" = "Digital Time";
+"Analog Time" = "Analog Time";
+"Arc Indicator" = "Arc Indicator";
+"Enable showing arc indicator for time offset." = "Enable showing arc indicator for time offset.";
 "Preview" = "Preview";
 "Sky Colour" = "Sky Colour";
 "24-Hour Format" = "24-Hour Format";

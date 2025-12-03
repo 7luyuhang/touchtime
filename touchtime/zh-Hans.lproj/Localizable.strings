@@ -58,7 +58,10 @@
 "Haptics" = "触觉反馈";
 "System Time" = "本地时间";
 "Language" = "语言";
-"Time Display" = "时间显示";
+"Digital Time" = "数字时间";
+"Analog Time" = "模拟时间";
+"Arc Indicator" = "弧形指示器";
+"Enable showing arc indicator for time offset." = "启用显示时间偏移的弧形指示器。";
 "Preview" = "预览";
 "Sky Colour" = "天空色彩";
 "24-Hour Format" = "24 小时制";

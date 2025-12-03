@@ -28,6 +28,7 @@ struct SettingsView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     @State private var showSupportLove = false
@@ -256,8 +257,8 @@ struct SettingsView: View {
                     }
                 }
                 
-                // Display Section
-                Section("Time Display") {
+                // Digital Time Section
+                Section(String(localized: "Digital Time")) {
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
                         
@@ -462,6 +463,21 @@ struct SettingsView: View {
                             dateStyle = "Relative"
                         }
                     }
+                }
+                
+                // Analog Time Section
+                Section {
+                    Toggle(isOn: $showArcIndicator) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "circle", topColor: .black, bottomColor: .black)
+                            Text("Arc Indicator")
+                        }
+                    }
+                    .tint(.blue)
+                } header: {
+                    Text(String(localized: "Analog Time"))
+                } footer: {
+                    Text("Enable showing arc indicator for time offset.")
                 }
                 
                 // Temperature/Weather Section
