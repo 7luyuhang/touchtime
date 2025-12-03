@@ -68,6 +68,16 @@ struct AnalogClockFullView: View {
                         .opacity(0.65)
                         .animation(.spring(), value: selectedTimeZone.identifier)
                     
+                    // Stars overlay for nighttime
+                    if skyGradient.starOpacity > 0 {
+                        StarsView(starCount: 100)
+                            .ignoresSafeArea()
+                            .opacity(skyGradient.starOpacity)
+                            .blendMode(.plusLighter)
+                            .animation(.spring(), value: skyGradient.starOpacity)
+                            .allowsHitTesting(false)
+                    }
+                    
                     // Analog Clock - always centered
                     AnalogClockFaceView(
                         date: currentDate.addingTimeInterval(timeOffset),
@@ -399,7 +409,7 @@ struct AnalogClockFaceView: View {
                     timeZone: selectedTimeZone,
                     size: size
                 )
-                .transition(.blurReplace.combined(with: .opacity))
+                .transition(.blurReplace().combined(with: .opacity))
             }
             
             // Hour numbers

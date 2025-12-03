@@ -17,10 +17,6 @@ struct SettingsView: View {
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
-    @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
-    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
-    @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
-    @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
@@ -33,9 +29,6 @@ struct SettingsView: View {
     @State private var showResetConfirmation = false
     @State private var showSupportLove = false
     @State private var showOnboarding = false
-    @State private var eventStore = EKEventStore()
-    @State private var availableCalendars: [EKCalendar] = []
-    @State private var hasCalendarPermission = false
     @Environment(\.dismiss) private var dismiss
     @StateObject private var weatherManager = WeatherManager()
     
@@ -94,27 +87,6 @@ struct SettingsView: View {
         }
     }
     
-    // Get city count text for Notes setting
-    func getCityCountText() -> String {
-        if !showCitiesInNotes {
-            return ""
-        }
-        
-        let selectedIds = selectedCitiesForNotes.split(separator: ",").map { String($0) }
-        // Filter to only count cities that still exist in worldClocks
-        let existingIds = worldClocks.map { $0.id.uuidString }
-        let validSelectedIds = selectedIds.filter { !$0.isEmpty && existingIds.contains($0) }
-        let count = validSelectedIds.count
-        
-        if count == 0 {
-            return ""
-        } else if count == 1 {
-            return "1 City"
-        } else {
-            return "\(count) Cities"
-        }
-    }
-    
     // Get current language display name
     var currentLanguageName: String {
         let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "en"
@@ -128,43 +100,6 @@ struct SettingsView: View {
         default:
             return "English"
         }
-    }
-    
-    // Load available calendars
-    func loadCalendars() {
-        eventStore.requestFullAccessToEvents { granted, error in
-            DispatchQueue.main.async {
-                self.hasCalendarPermission = granted
-                if granted {
-                    self.availableCalendars = self.eventStore.calendars(for: .event)
-                        .filter { $0.allowsContentModifications }
-                        .sorted {
-                            // Sort by source title first, then by calendar title
-                            if $0.source.title == $1.source.title {
-                                return $0.title < $1.title
-                            }
-                            return $0.source.title < $1.source.title
-                        }
-                    
-                    // If no calendar is selected, set to default
-                    if self.selectedCalendarIdentifier.isEmpty || !self.availableCalendars.contains(where: { $0.calendarIdentifier == self.selectedCalendarIdentifier }) {
-                        if let defaultCalendar = self.eventStore.defaultCalendarForNewEvents {
-                            self.selectedCalendarIdentifier = defaultCalendar.calendarIdentifier
-                        }
-                    }
-                } else {
-                    self.availableCalendars = []
-                }
-            }
-        }
-    }
-    
-    // Get selected calendar or default
-    var selectedCalendar: EKCalendar? {
-        if let calendar = availableCalendars.first(where: { $0.calendarIdentifier == selectedCalendarIdentifier }) {
-            return calendar
-        }
-        return eventStore.defaultCalendarForNewEvents
     }
     
     var body: some View {
@@ -194,15 +129,15 @@ struct SettingsView: View {
                 .foregroundStyle(.primary)
                 .listRowBackground(
                     RoundedRectangle(cornerRadius: 26, style: .continuous)
-//                        .fill(
-//                            LinearGradient(
-//                                colors: [
-//                                    .pink,.red
-//                                ],
-//                                startPoint: .topLeading,
-//                                endPoint: .bottomTrailing
-//                            ).opacity(0.25)
-//                        )
+                    //                        .fill(
+                    //                            LinearGradient(
+                    //                                colors: [
+                    //                                    .pink,.red
+                    //                                ],
+                    //                                startPoint: .topLeading,
+                    //                                endPoint: .bottomTrailing
+                    //                            ).opacity(0.25)
+                    //                        )
                         .fill(Color.black.opacity(0.20))
                         .glassEffect(.clear.interactive(),
                                      in: RoundedRectangle(cornerRadius: 26, style: .continuous))
@@ -232,7 +167,7 @@ struct SettingsView: View {
                     
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .blue)
+                            SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
                             Text("Haptics")
                         }
                     }
@@ -273,10 +208,10 @@ struct SettingsView: View {
                                             
                                         )
                                         .overlay(
-                                                        Capsule(style: .continuous)
-                                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                            .blendMode(.plusLighter)
-                                                    )
+                                            Capsule(style: .continuous)
+                                                .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                .blendMode(.plusLighter)
+                                        )
                                         .transition(.blurReplace)
                                     }
                                     
@@ -344,7 +279,7 @@ struct SettingsView: View {
                                     Circle()
                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                         .blendMode(.plusLighter)
-                                            )
+                                )
                                 .transition(.blurReplace)
                             }
                         }
@@ -401,7 +336,7 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
-
+                    
                     // 24 Hours Format
                     Toggle(isOn: $use24HourFormat) {
                         HStack(spacing: 12) {
@@ -444,7 +379,7 @@ struct SettingsView: View {
                     Picker(selection: $dateStyle) {
                         Text("Relative")
                             .tag("Relative")
-
+                        
                         if !showAnalogClock {
                             Text("Absolute")
                                 .tag("Absolute")
@@ -506,81 +441,12 @@ struct SettingsView: View {
                 
                 
                 // Calendar
-                Section("Calendar") {
-                    if hasCalendarPermission {
-                        // Default Calendar Selection
-                        if !availableCalendars.isEmpty {
-                            NavigationLink(destination: CalendarSelectionView(
-                                availableCalendars: availableCalendars,
-                                selectedCalendarIdentifier: $selectedCalendarIdentifier
-                            )) {
-                                HStack {
-                                    HStack(spacing: 12) {
-                                        SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                                        Text("Default Calendar")
-                                    }
-                                    .layoutPriority(1)
-                                    
-                                    Spacer(minLength: 8)
-                                    
-                                    Text(selectedCalendar?.title ?? "None")
-                                        .foregroundStyle(.secondary)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
-                                }
-                            }
+                Section{
+                    NavigationLink(destination: CalendarView(worldClocks: worldClocks)) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            Text("Calendar")
                         }
-                        
-                        // Event Duration
-                        Picker(selection: $defaultEventDuration) {
-                            Text("15 min", comment: "Event duration option").tag(900.0)
-                            Text("30 min", comment: "Event duration option").tag(1800.0)
-                            Text("45 min", comment: "Event duration option").tag(2700.0)
-                            Text("1 hr", comment: "Event duration option").tag(3600.0)
-                            Text("2 hrs", comment: "Event duration option").tag(7200.0)
-                        } label: {
-                            HStack(spacing: 12) {
-                                SystemIconImage(systemName: "clock.fill", topColor: .blue, bottomColor: .cyan)
-                                Text("Event Duration")
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .tint(.secondary)
-                        
-                        // Show cities in note
-                        NavigationLink(destination: CitySelectionSheet(
-                            worldClocks: worldClocks,
-                            selectedCitiesForNotes: $selectedCitiesForNotes,
-                            showCitiesInNotes: $showCitiesInNotes
-                        )) {
-                            HStack {
-                                HStack(spacing: 12) {
-                                    SystemIconImage(systemName: "pencil.tip", topColor: .orange, bottomColor: .yellow)
-                                    Text("Time in Notes")
-                                }
-                                Spacer()
-                                Text(getCityCountText())
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    } else {
-                        // No calendar permission
-                        Text("Need full calendar access.")
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .foregroundStyle(.secondary)
-                        
-                        Button(action: {
-                            if let url = URL(string: UIApplication.openSettingsURLString) {
-                                UIApplication.shared.open(url)
-                            }
-                        }) {
-                            HStack(spacing: 12) {
-                                SystemIconImage(systemName: "gear", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                                Text("Go to Settings")
-                            }
-                        }
-                        .foregroundStyle(.primary)
                     }
                 }
                 
@@ -626,7 +492,7 @@ struct SettingsView: View {
                     Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
                 }
                 
- 
+                
                 // Others Section
                 Section{
                     
@@ -698,7 +564,7 @@ struct SettingsView: View {
                             Link(destination: URL(string: "https://x.com/yuhanglu")!) {
                                 Text("X")
                             }}
- 
+                        
                         Section("More apps from team") {
                             Link(destination: URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720")!) {
                                 Text("Hands Time - Minimalist Widget")
@@ -760,7 +626,6 @@ struct SettingsView: View {
                 currentDate = Date()
             }
             .onAppear {
-                loadCalendars()
                 // Fetch weather for local timezone
                 Task {
                     await weatherManager.getWeather(for: TimeZone.current.identifier)
@@ -797,21 +662,21 @@ struct SettingsView: View {
                         }
                     }
                 ))
-                    .overlay(alignment: .topTrailing) {
-                        Button(action: {
-                            if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
-                            showOnboarding = false
-                        }) {
-                            Image(systemName: "xmark")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-                                .frame(width: 36, height: 36)
-                                .glassEffect(.clear.interactive())
+                .overlay(alignment: .topTrailing) {
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         }
-                        .padding(.horizontal)
+                        showOnboarding = false
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(width: 36, height: 36)
+                            .glassEffect(.clear.interactive())
                     }
+                    .padding(.horizontal)
+                }
             }
         }
     }

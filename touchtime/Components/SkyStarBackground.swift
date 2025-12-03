@@ -51,7 +51,7 @@ struct StarParticle: View {
 
 // Container for multiple stars
 struct StarsView: View {
-    let starCount: Int = 50  // Number of stars
+    var starCount: Int = 50  // Number of stars (configurable)
     @State private var stars: [(id: Int, x: CGFloat, y: CGFloat, size: CGFloat, twinkleDelay: Double, twinkleDuration: Double)] = []
     
     var body: some View {
@@ -67,7 +67,15 @@ struct StarsView: View {
                 }
             }
             .onAppear {
-                generateStars(in: geometry.size)
+                if geometry.size.width > 0 && geometry.size.height > 0 {
+                    generateStars(in: geometry.size)
+                }
+            }
+            .onChange(of: geometry.size) { oldSize, newSize in
+                // Regenerate stars when size changes from zero to valid size
+                if stars.isEmpty && newSize.width > 0 && newSize.height > 0 {
+                    generateStars(in: newSize)
+                }
             }
         }
     }
