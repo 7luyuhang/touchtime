@@ -68,9 +68,10 @@ struct AnalogClockFullView: View {
                         .opacity(0.65)
                         .animation(.spring(), value: selectedTimeZone.identifier)
                     
+                    
                     // Stars overlay for nighttime
                     if skyGradient.starOpacity > 0 {
-                        StarsView(starCount: 100)
+                        StarsView(starCount: 150)
                             .ignoresSafeArea()
                             .opacity(skyGradient.starOpacity)
                             .blendMode(.plusLighter)
@@ -301,6 +302,7 @@ struct TimeOffsetArcView: View {
             )
         }
         .stroke(Color.white, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+        .drawingGroup()
     }
 }
 
@@ -409,7 +411,7 @@ struct AnalogClockFaceView: View {
                     timeZone: selectedTimeZone,
                     size: size
                 )
-                .transition(.blurReplace().combined(with: .opacity))
+                .transition(.identity)
             }
             
             // Hour numbers
@@ -422,7 +424,7 @@ struct AnalogClockFaceView: View {
                 .blendMode(.plusLighter)
                 .frame(height: 24)
                 .position(x: size / 2,  y: size / 2 + (size / 2 - 62))
-
+            
             // Moon icon
             Image(systemName: "moon.fill")
                 .font(.subheadline.weight(.semibold))
@@ -430,7 +432,7 @@ struct AnalogClockFaceView: View {
                 .blendMode(.plusLighter)
                 .frame(height: 24)
                 .position(x: size / 2, y: size / 2 - (size / 2 - 60))
-
+            
             // World clock hands with city labels (non-selected first)
             // Grouped by time to avoid overlapping labels - only one city shown per unique time
             ForEach(groupedNonSelectedClocks) { clock in
@@ -502,7 +504,7 @@ struct AnalogClockFaceView: View {
                     showDetailsSheet: $showDetailsSheet
                 )
             }
-
+            
             Circle()
                 .fill(Color.white)
                 .frame(width: 8, height: 8)
