@@ -138,7 +138,7 @@ struct SettingsView: View {
                     //                                endPoint: .bottomTrailing
                     //                            ).opacity(0.25)
                     //                        )
-                        .fill(Color.black.opacity(0.35))
+                        .fill(Color.black.opacity(0.55))
                         .glassEffect(.clear.interactive(),
                                      in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 )
@@ -192,8 +192,35 @@ struct SettingsView: View {
                     }
                 }
                 
+                Section(header: Text("Display")) {
+                    // Options in Settings
+                    Toggle(isOn: $showSkyDot) {
+                        HStack(spacing: 12) {
+                            // Use SkyColorGradient colors for the background
+                            let gradient = SkyColorGradient(date: currentDate, timeZoneIdentifier: TimeZone.current.identifier)
+                            let colors = gradient.colors
+                            SystemIconImage(
+                                systemName: "cloud.fill",
+                                topColor: colors.first ?? .blue,
+                                bottomColor: colors.last ?? .white
+                            )
+                            Text("Sky Colour")
+                        }
+                    }
+                    .tint(.blue)
+                    
+                    // 24 Hours Format
+                    Toggle(isOn: $use24HourFormat) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            Text("24-Hour Format")
+                        }
+                    }
+                    .tint(.blue)
+                }
+                
                 // Digital Time Section
-                Section(String(localized: "Digital Time")) {
+                Section {
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
                         
@@ -280,7 +307,7 @@ struct SettingsView: View {
                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                         .blendMode(.plusLighter)
                                 )
-                                .transition(.blurReplace)
+                                .transition(.blurReplace.combined(with: .scale))
                             }
                         }
                         .background(
@@ -318,43 +345,6 @@ struct SettingsView: View {
                             .padding(.bottom, -16)
                     }
                     .listRowSeparator(.hidden)
-                    
-                    
-                    // Options in Settings
-                    Toggle(isOn: $showSkyDot) {
-                        HStack(spacing: 12) {
-                            // Use SkyColorGradient colors for the background
-                            let gradient = SkyColorGradient(date: currentDate, timeZoneIdentifier: TimeZone.current.identifier)
-                            let colors = gradient.colors
-                            SystemIconImage(
-                                systemName: "cloud.fill",
-                                topColor: colors.first ?? .blue,
-                                bottomColor: colors.last ?? .white
-                            )
-                            Text("Sky Colour")
-                        }
-                    }
-                    .tint(.blue)
-                    
-                    
-                    // 24 Hours Format
-                    Toggle(isOn: $use24HourFormat) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                            Text("24-Hour Format")
-                        }
-                    }
-                    .tint(.blue)
-                    
-                    
-                    // Analog Clock
-                    Toggle(isOn: $showAnalogClock) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
-                            Text(String(localized: "Analog Clock"))
-                        }
-                    }
-                    .tint(.blue)
                     
                     // Additional Time
                     Picker(selection: $additionalTimeDisplay) {
@@ -398,6 +388,15 @@ struct SettingsView: View {
                             dateStyle = "Relative"
                         }
                     }
+                    
+                    // Analog Clock
+                    Toggle(isOn: $showAnalogClock) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                            Text(String(localized: "Analog Clock"))
+                        }
+                    }
+                    .tint(.blue)
                 }
                 
                 // Analog Time Section
@@ -409,8 +408,6 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
-                } header: {
-                    Text(String(localized: "Analog Time"))
                 } footer: {
                     Text("Enable showing arc indicator for time offset.")
                 }

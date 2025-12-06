@@ -58,8 +58,7 @@
 "Haptics" = "觸覺回饋";
 "System Time" = "本地時間";
 "Language" = "語言";
-"Digital Time" = "數位時間";
-"Analog Time" = "模擬時間";
+"Display" = "顯示";
 "Arc Indicator" = "弧形指示器";
 "Enable showing arc indicator for time offset." = "啟用顯示時間偏移的弧形指示器。";
 "Preview" = "預覽";

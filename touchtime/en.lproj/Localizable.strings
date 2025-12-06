@@ -58,8 +58,7 @@
 "Haptics" = "Haptics";
 "System Time" = "Local Time";
 "Language" = "Language";
-"Digital Time" = "Digital Time";
-"Analog Time" = "Analog Time";
+"Display" = "Display";
 "Arc Indicator" = "Arc Indicator";
 "Enable showing arc indicator for time offset." = "Enable showing arc indicator for time offset.";
 "Preview" = "Preview";

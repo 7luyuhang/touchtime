@@ -26,8 +26,12 @@ struct AnalogClockFullView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
+    @AppStorage("showSkyDot") private var showSkyDot = true
     
     @StateObject private var weatherManager = WeatherManager()
+    
+    // Namespace for zoom transition
+    @Namespace private var earthViewNamespace
     
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -63,21 +67,30 @@ struct AnalogClockFullView: View {
                 
                 ZStack {
                     // Background
-                    skyGradient.linearGradient()
-                        .ignoresSafeArea()
-                        .opacity(0.65)
-                        .animation(.spring(), value: selectedTimeZone.identifier)
-                    
-                    
-                    // Stars overlay for nighttime
-                    if skyGradient.starOpacity > 0 {
-                        StarsView(starCount: 150)
-                            .ignoresSafeArea()
-                            .opacity(skyGradient.starOpacity)
-                            .blendMode(.plusLighter)
-                            .animation(.spring(), value: skyGradient.starOpacity)
-                            .allowsHitTesting(false)
+                    Group {
+                        if showSkyDot {
+                            ZStack {
+                                skyGradient.linearGradient()
+                                    .ignoresSafeArea()
+                                    .opacity(0.65)
+                                    .animation(.spring(), value: selectedTimeZone.identifier)
+                                
+                                // Stars overlay for nighttime
+                                if skyGradient.starOpacity > 0 {
+                                    StarsView(starCount: 150)
+                                        .ignoresSafeArea()
+                                        .opacity(skyGradient.starOpacity)
+                                        .blendMode(.plusLighter)
+                                        .animation(.spring(), value: skyGradient.starOpacity)
+                                        .allowsHitTesting(false)
+                                }
+                            }
+                        } else {
+                            Color(UIColor.systemBackground)
+                                .ignoresSafeArea()
+                        }
                     }
+                    .animation(.spring(), value: showSkyDot)
                     
                     // Analog Clock - always centered
                     AnalogClockFaceView(
@@ -215,6 +228,7 @@ struct AnalogClockFullView: View {
                     }) {
                         Image(systemName: "globe.americas.fill")
                     }
+                    .matchedTransitionSource(id: "earthView", in: earthViewNamespace)
                 }
             }
             .onReceive(timer) { _ in
@@ -257,6 +271,7 @@ struct AnalogClockFullView: View {
             }
             .sheet(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
+                    .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
             }
         }
         .preferredColorScheme(.dark)

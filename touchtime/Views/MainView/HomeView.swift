@@ -73,6 +73,9 @@ struct HomeView: View {
     
     @StateObject private var weatherManager = WeatherManager()
     
+    // Namespace for zoom transition
+    @Namespace private var earthViewNamespace
+    
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // UserDefaults key for storing world clocks
@@ -853,6 +856,7 @@ struct HomeView: View {
                     }) {
                         Image(systemName: "globe.americas.fill")
                     }
+                    .matchedTransitionSource(id: "earthView", in: earthViewNamespace)
                 }
             }
             
@@ -971,6 +975,7 @@ struct HomeView: View {
             // Earth View
             .sheet(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
+                    .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
             }
         }
         
