@@ -969,7 +969,7 @@ struct HomeView: View {
             }
             
             // Earth View
-            .fullScreenCover(isPresented: $showEarthView) {
+            .sheet(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
             }
         }

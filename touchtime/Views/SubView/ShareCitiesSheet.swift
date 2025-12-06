@@ -251,10 +251,8 @@ struct ShareCitiesSheet: View {
                         
                         ShareLink(item: generateShareText()) {
                             Text(String(localized: "Share"))
-//                                .foregroundStyle(.white)
                                 .font(.headline)
                         }
-//                        .buttonStyle(.glassProminent)
                     }
                 }
                 

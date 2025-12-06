@@ -255,7 +255,7 @@ struct AnalogClockFullView: View {
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(worldClocks: $worldClocks)
             }
-            .fullScreenCover(isPresented: $showEarthView) {
+            .sheet(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
             }
         }

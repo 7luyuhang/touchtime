@@ -138,7 +138,7 @@ struct SettingsView: View {
                     //                                endPoint: .bottomTrailing
                     //                            ).opacity(0.25)
                     //                        )
-                        .fill(Color.black.opacity(0.20))
+                        .fill(Color.black.opacity(0.35))
                         .glassEffect(.clear.interactive(),
                                      in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 )
