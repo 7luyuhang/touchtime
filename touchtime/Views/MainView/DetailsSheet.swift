@@ -28,12 +28,22 @@ struct SunriseSunsetSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
     @StateObject private var weatherManager = WeatherManager()
-    @State private var currentWeather: CurrentWeather?
-    @State private var dailyWeather: DayWeather?
-    @State private var weeklyWeather: [DayWeather] = []
     @State private var weatherLoadAttempted = false // No Weather Data
     @State private var isWeatherExpanded = false // Track weather section expansion
     @State private var currentDetent: PresentationDetent = .medium // Track current sheet size
+    
+    // Computed properties to get weather data directly from weatherManager
+    private var currentWeather: CurrentWeather? {
+        weatherManager.weatherData[timeZoneIdentifier]
+    }
+    
+    private var dailyWeather: DayWeather? {
+        weatherManager.dailyWeatherData[timeZoneIdentifier]
+    }
+    
+    private var weeklyWeather: [DayWeather] {
+        weatherManager.weeklyWeatherData[timeZoneIdentifier] ?? []
+    }
     
     // Timer to update the current date
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -749,7 +759,7 @@ struct SunriseSunsetSheet: View {
                                             .animation(.spring(), value: goldenHour.start)
                                         
                                         // Golden Hour Gradient Indicator
-                                        RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                        RoundedRectangle(cornerRadius: 5, style: .continuous)
                                             .fill(
                                                 LinearGradient(
                                                     colors: goldenHourGradientColors.reversed(),
@@ -757,7 +767,7 @@ struct SunriseSunsetSheet: View {
                                                     endPoint: .trailing
                                                 )
                                             )
-                                            .frame(width: 40, height: 6)
+                                            .frame(width: 40, height: 5)
                                         
                                         Text(formatTime(goldenHour.end))
                                             .font(.subheadline)
@@ -901,23 +911,13 @@ struct SunriseSunsetSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 currentDate = initialDate
-                
+            }
+            .task(id: timeZoneIdentifier) {
                 // Fetch weather data only if weather is enabled
-                if showWeather {
-                    Task {
-                        await weatherManager.getWeather(for: timeZoneIdentifier)
-                        weatherLoadAttempted = true
-                        if let weather = weatherManager.weatherData[timeZoneIdentifier] {
-                            currentWeather = weather
-                        }
-                        if let daily = weatherManager.dailyWeatherData[timeZoneIdentifier] {
-                            dailyWeather = daily
-                        }
-                        if let weekly = weatherManager.weeklyWeatherData[timeZoneIdentifier] {
-                            weeklyWeather = weekly
-                        }
-                    }
-                }
+                // Using .task(id:) ensures this runs when timeZoneIdentifier changes
+                guard showWeather else { return }
+                await weatherManager.getWeather(for: timeZoneIdentifier)
+                weatherLoadAttempted = true
             }
             .onReceive(timer) { _ in
                 currentDate = Date()
