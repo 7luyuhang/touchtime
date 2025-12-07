@@ -22,7 +22,6 @@ struct EarthView: View {
     @State private var currentDate = Date()
     @State private var timerCancellable: AnyCancellable?
     @State private var showShareSheet = false
-    @State private var showSettingsSheet = false
     @State private var showingRenameAlert = false
     @State private var renamingClockId: UUID? = nil
     @State private var newClockName = ""
@@ -47,11 +46,10 @@ struct EarthView: View {
     @AppStorage("showMapLabels") private var showMapLabels = true // 默认显示地图标签
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     
+    @Environment(\.dismiss) private var dismiss
+    
     // Namespace for Glass Effect morphing
     @Namespace private var glassEffectNamespace
-    
-    // Namespace for Zoom Transition
-    @Namespace private var namespace
     
     // 設置地圖縮放限制
     private let cameraBounds = MapCameraBounds(
@@ -708,50 +706,33 @@ struct EarthView: View {
             stopTimer()
         }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    // Hide share button when no cities
-                    if !worldClocks.isEmpty {
-                        Button(action: {
-                            // Provide haptic feedback if enabled
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                            showShareSheet = true
-                        }) {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                    }
-                }
-                
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                        // Flight Time button - Only show when no flight path is active and there are cities
-                        if (selectedFlightCities.from == nil || selectedFlightCities.to == nil) && !worldClocks.isEmpty {
-                            Button(action: {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
-                                showFlightTimeSheet = true
-                            }) {
-                                Image(systemName: "airplane.up.right")
-                            }
-                        }
-                        
-                        // Settings button
-                        Button(action: {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(action: {
                         if hapticEnabled {
                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                             impactFeedback.prepare()
                             impactFeedback.impactOccurred()
                         }
-                        showSettingsSheet = true
+                        dismiss()
                     }) {
-                        Image(systemName: "gear")
+                        Image(systemName: "xmark")
                     }
-                    .matchedTransitionSource(id: "settings", in: namespace)
+                }
+                
+                ToolbarItem(placement: .topBarLeading) {
+                    // Flight Time button - Only show when no flight path is active and there are cities
+                    if (selectedFlightCities.from == nil || selectedFlightCities.to == nil) && !worldClocks.isEmpty {
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showFlightTimeSheet = true
+                        }) {
+                            Image(systemName: "airplane.up.right")
+                        }
+                    }
                 }
             }
             .sheet(isPresented: $showShareSheet) {
@@ -761,10 +742,6 @@ struct EarthView: View {
                     currentDate: currentDate,
                     timeOffset: 0
                 )
-            }
-            .sheet(isPresented: $showSettingsSheet) {
-                SettingsView(worldClocks: $worldClocks)
-                    .navigationTransition(.zoom(sourceID: "settings", in: namespace))
             }
             .sheet(isPresented: $showFlightTimeSheet) {
                 FlightTimeSheet(

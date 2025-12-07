@@ -106,8 +106,8 @@ struct ScrollTimeView: View {
         
         do {
             // Create a reusable pattern for tick feedback
-            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25)
-            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5)
+            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.20)
+            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.50)
             
             let tickEvent = CHHapticEvent(eventType: .hapticTransient,
                                           parameters: [sharpness, intensity],
@@ -121,7 +121,7 @@ struct ScrollTimeView: View {
     }
     
     // Play tick haptic feedback (simulating physical detent/notch)
-    func playTickHaptic(intensity: Float = 0.5) {
+    func playTickHaptic(intensity: Float = 0.50) {
         guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
         
         // Ensure engine is running before playing
@@ -135,7 +135,7 @@ struct ScrollTimeView: View {
                 // Fallback: Create new player if needed
                 guard let engine = hapticEngine else { return }
                 
-                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25)
+                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.20)
                 let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity)
                 
                 let tickEvent = CHHapticEvent(eventType: .hapticTransient,

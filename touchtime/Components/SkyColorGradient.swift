@@ -318,6 +318,7 @@ struct SkyColorGradient {
             return [
                 Color(red: 0.005, green: 0.008, blue: 0.02), // Deep Space
                 Color(red: 0.01, green: 0.015, blue: 0.04),  // Upper Atmosphere
+                Color(red: 0.015, green: 0.022, blue: 0.05 + 0.01 * (1 - progress)), // Lower Atmosphere (Interpolated)
                 Color(red: 0.02, green: 0.03, blue: 0.06 + 0.02 * (1 - progress)) // Horizon
             ]
             
@@ -328,6 +329,7 @@ struct SkyColorGradient {
             return [
                 Color(red: 0.01, green: 0.01, blue: 0.05),   // Zenith
                 Color(red: 0.02, green: 0.025, blue: 0.10 + 0.05 * progress), // Mid
+                Color(red: 0.025, green: 0.032, blue: 0.125 + 0.075 * progress), // Lower (Interpolated)
                 Color(red: 0.03, green: 0.04, blue: 0.15 + 0.10 * progress)   // Horizon (Indigo)
             ]
             
@@ -447,6 +449,7 @@ struct SkyColorGradient {
             return [
                 Color(red: 0.01, green: 0.01, blue: 0.05 - 0.03 * progress), // Zenith
                 Color(red: 0.02, green: 0.02, blue: 0.08 - 0.04 * progress), // Mid
+                Color(red: 0.03 - 0.01 * progress, green: 0.035 - 0.01 * progress, blue: 0.10 - 0.05 * progress), // Lower (Interpolated)
                 Color(red: 0.04 - 0.02 * progress, green: 0.05 - 0.02 * progress, blue: 0.12 - 0.06 * progress) // Horizon
             ]
         }

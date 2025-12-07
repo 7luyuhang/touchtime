@@ -58,7 +58,10 @@
 "Haptics" = "触觉反馈";
 "System Time" = "本地时间";
 "Language" = "语言";
-"Time Display" = "时间显示";
+"Digital Time" = "数字时间";
+"Analog Time" = "模拟时间";
+"Arc Indicator" = "弧形指示器";
+"Enable showing arc indicator for time offset." = "启用显示时间偏移的弧形指示器。";
 "Preview" = "预览";
 "Sky Colour" = "天空色彩";
 "24-Hour Format" = "24 小时制";
@@ -151,6 +154,7 @@
 
 /* Tabs */
 "List" = "列表";
+"Clock" = "表盘";
 "Earth" = "地球";
 "Cities & Countries" = "城市与国家";
 
@@ -205,8 +209,8 @@
 "%d days" = "%d天";
 
 /* Weather Conditions */
-"Clear" = "晴";
-"Mostly Clear" = "大部晴";
+"Clear" = "晴朗";
+"Mostly Clear" = "大部晴朗";
 "Partly Cloudy" = "局部多云";
 "Mostly Cloudy" = "大部多云";
 "Cloudy" = "多云";
@@ -763,3 +767,7 @@
 /* Date suffix */
 "starts" = "开始";
 "ends" = "结束";
+
+/* DST */
+"Starts" = "开始于";
+"Ends" = "结束于";
