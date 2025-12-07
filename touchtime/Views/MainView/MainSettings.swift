@@ -389,7 +389,10 @@ struct SettingsView: View {
                         }
                     }
                     
-                    // Analog Clock
+                }
+                
+                // Analog Clock Section
+                Section {
                     Toggle(isOn: $showAnalogClock) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)

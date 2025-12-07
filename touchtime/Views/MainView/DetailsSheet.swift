@@ -233,6 +233,9 @@ struct SunriseSunsetSheet: View {
         let hours = Int(duration) / 3600
         let minutes = Int(duration) % 3600 / 60
         
+        if minutes == 0 {
+            return String(format: String(localized: "%d hours"), hours)
+        }
         return String(format: String(localized: "%d hours %d minutes"), hours, minutes)
     }
     
