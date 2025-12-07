@@ -70,52 +70,6 @@ struct SunriseSunsetSheet: View {
         return (sunrise, sunset)
     }
     
-    // Calculate evening golden hour times
-    private var goldenHourTimes: (start: Date?, end: Date?)? {
-        // Get coordinates for the timezone
-        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
-            return nil
-        }
-        
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        
-        // Create Sun object with coordinates and timezone
-        var sun = Sun(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current)
-        
-        // Set the date for calculations
-        sun.setDate(adjustedDate)
-        
-        // Get evening golden hour start and end times
-        let start = sun.eveningGoldenHourStart
-        let end = sun.eveningGoldenHourEnd
-        
-        return (start, end)
-    }
-    
-    // Check if weather is clear/sunny for golden hour display
-    private var isWeatherClearForGoldenHour: Bool {
-        guard let weather = currentWeather else { return false }
-        
-        // Check for clear or mostly clear conditions
-        switch weather.condition {
-        case .clear, .mostlyClear, .partlyCloudy:
-            return true
-        default:
-            return false
-        }
-    }
-    
-    // Get golden hour gradient colors from SkyColorGradient
-    private var goldenHourGradientColors: [Color] {
-        // Golden hour colors (17-18 normalized time range)
-        return [
-            Color(red: 0.2, green: 0.45, blue: 0.7),      // Zenith (Softer Blue)
-            Color(red: 0.45, green: 0.58, blue: 0.75),    // Mid
-            Color(red: 0.7, green: 0.75, blue: 0.85),     // Lower
-            Color(red: 0.9, green: 0.85, blue: 0.8)       // Horizon (Soft Gold/White)
-        ]
-    }
-    
     // Calculate moon information
     private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)? {
         // Get coordinates for the timezone
@@ -729,63 +683,6 @@ struct SunriseSunsetSheet: View {
                             .blendMode(.plusLighter)
                             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                             .padding(.horizontal, 16)
-                            
-                            // Golden Time Section - Only show when weather is clear
-                            if let goldenHour = goldenHourTimes, isWeatherClearForGoldenHour {
-                                HStack {
-                                    HStack(spacing: 16){
-                                        Image(systemName: "sun.horizon.fill")
-                                            .font(.title3.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                            .frame(width: 24)
-                                        
-                                        Text(String(localized: "Golden Hour"))
-                                            .font(.headline)
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                            .lineLimit(1)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    // Golden hour start & end & indicator
-                                    HStack(spacing: 10) {
-                                        Text(formatTime(goldenHour.start))
-                                            .font(.subheadline)
-                                            .monospacedDigit()
-                                            .lineLimit(1)
-                                            .fixedSize(horizontal: true, vertical: false)
-                                            .contentTransition(.numericText(countsDown: false))
-                                            .animation(.spring(), value: goldenHour.start)
-                                        
-                                        // Golden Hour Gradient Indicator
-                                        RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                            .fill(
-                                                LinearGradient(
-                                                    colors: goldenHourGradientColors.reversed(),
-                                                    startPoint: .leading,
-                                                    endPoint: .trailing
-                                                )
-                                            )
-                                            .frame(width: 40, height: 5)
-                                        
-                                        Text(formatTime(goldenHour.end))
-                                            .font(.subheadline)
-                                            .monospacedDigit()
-                                            .lineLimit(1)
-                                            .fixedSize(horizontal: true, vertical: false)
-                                            .contentTransition(.numericText(countsDown: false))
-                                            .animation(.spring(), value: goldenHour.end)
-                                    }
-                                    .padding(.vertical, 4) // Keep same height
-                                }
-                                .padding(16)
-                                .background(.white.opacity(0.05))
-                                .blendMode(.plusLighter)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                .padding(.horizontal, 16)
-                                .transition(.blurReplace())
-                            }
                         }
                         
                         // Moon Time section

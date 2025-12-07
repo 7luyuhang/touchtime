@@ -402,9 +402,12 @@ struct ScrollTimeView: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(.primary)
                                 .monospacedDigit()
-                                .frame(maxWidth: .infinity)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
                             .transition(.blurReplace())
                             
                         } else {

@@ -192,35 +192,8 @@ struct SettingsView: View {
                     }
                 }
                 
-                Section(header: Text("Display")) {
-                    // Options in Settings
-                    Toggle(isOn: $showSkyDot) {
-                        HStack(spacing: 12) {
-                            // Use SkyColorGradient colors for the background
-                            let gradient = SkyColorGradient(date: currentDate, timeZoneIdentifier: TimeZone.current.identifier)
-                            let colors = gradient.colors
-                            SystemIconImage(
-                                systemName: "cloud.fill",
-                                topColor: colors.first ?? .blue,
-                                bottomColor: colors.last ?? .white
-                            )
-                            Text("Sky Colour")
-                        }
-                    }
-                    .tint(.blue)
-                    
-                    // 24 Hours Format
-                    Toggle(isOn: $use24HourFormat) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                            Text("24-Hour Format")
-                        }
-                    }
-                    .tint(.blue)
-                }
-                
                 // Digital Time Section
-                Section {
+                Section(header: Text("Display")) {
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
                         
@@ -345,6 +318,33 @@ struct SettingsView: View {
                             .padding(.bottom, -16)
                     }
                     .listRowSeparator(.hidden)
+                    
+                    
+                    // Options in Settings
+                    Toggle(isOn: $showSkyDot) {
+                        HStack(spacing: 12) {
+                            // Use SkyColorGradient colors for the background
+                            let gradient = SkyColorGradient(date: currentDate, timeZoneIdentifier: TimeZone.current.identifier)
+                            let colors = gradient.colors
+                            SystemIconImage(
+                                systemName: "cloud.fill",
+                                topColor: colors.first ?? .blue,
+                                bottomColor: colors.last ?? .white
+                            )
+                            Text("Sky Colour")
+                        }
+                    }
+                    .tint(.blue)
+                    
+                    // 24 Hours Format
+                    Toggle(isOn: $use24HourFormat) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            Text("24-Hour Format")
+                        }
+                    }
+                    .tint(.blue)
+                    
                     
                     // Additional Time
                     Picker(selection: $additionalTimeDisplay) {
