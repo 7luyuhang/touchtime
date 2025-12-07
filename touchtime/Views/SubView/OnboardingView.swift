@@ -167,7 +167,7 @@ struct OnboardingView: View {
                             Image("TouchTimeAppIcon")
                                 .resizable()
                                 .scaledToFit()
-                                .glassEffect(.clear, in:
+                                .glassEffect(.clear.interactive(), in:
                                                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                                 )
                                 .frame(width: 100, height: 100)
