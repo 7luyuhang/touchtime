@@ -273,6 +273,28 @@ struct AnalogClockFullView: View {
                 EarthView(worldClocks: $worldClocks)
                     .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
             }
+            .onAppear {
+                // If showLocalTime is disabled, default to first city instead of Local
+                if !showLocalTime && selectedCityId == nil {
+                    selectedCityId = worldClocks.first?.id
+                }
+            }
+            .onChange(of: showLocalTime) { oldValue, newValue in
+                // When showLocalTime is turned off and Local is selected, switch to first city
+                if !newValue && selectedCityId == nil {
+                    selectedCityId = worldClocks.first?.id
+                }
+            }
+            .onChange(of: worldClocks) { oldValue, newValue in
+                // When worldClocks changes and showLocalTime is disabled
+                if !showLocalTime {
+                    // Always select the first city when showLocalTime is off
+                    let firstCityId = newValue.first?.id
+                    if selectedCityId != firstCityId {
+                        selectedCityId = firstCityId
+                    }
+                }
+            }
         }
         .preferredColorScheme(.dark)
     }
