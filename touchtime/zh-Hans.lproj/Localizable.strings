@@ -178,6 +178,7 @@
 "Flight Time" = "飞行时间";
 "Departure" = "出发";
 "Arrive" = "到达";
+"No Cities" = "暂无城市";
 
 /* Weekdays */
 "Mon" = "一";

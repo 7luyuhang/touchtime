@@ -298,7 +298,7 @@ struct ArrangeListView: View {
                         Text("Collections")
                     }
                 } footer: {
-                    if !collections.isEmpty {
+                    if !collections.isEmpty && !worldClocks.isEmpty {
                         Text("Press and hold a city to add it to the collection.")
                     }
                 }
@@ -333,6 +333,14 @@ struct ArrangeListView: View {
                     }
                     
                     // World Clocks Section (All Cities)
+                    if !showLocalTimeInHome && worldClocks.isEmpty {
+                        HStack {
+                            Spacer()
+                            Text(String(localized: "No Cities"))
+                                .foregroundStyle(.secondary)
+                            Spacer()}
+                    }
+                    
                     ForEach(worldClocks) { clock in
                         HStack {
                             // City name

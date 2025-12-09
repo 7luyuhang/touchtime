@@ -38,6 +38,10 @@ struct AnalogClockFullView: View {
     
     // Get selected city name
     private var selectedCityName: String {
+        // Return empty when no local time and no cities
+        if worldClocks.isEmpty && !showLocalTime {
+            return ""
+        }
         if let cityId = selectedCityId,
            let city = worldClocks.first(where: { $0.id == cityId }) {
             return city.localizedCityName
@@ -92,90 +96,101 @@ struct AnalogClockFullView: View {
                     }
                     .animation(.spring(), value: showSkyDot)
                     
-                    // Analog Clock - always centered
-                    AnalogClockFaceView(
-                        date: currentDate.addingTimeInterval(timeOffset),
-                        timeOffset: timeOffset,
-                        selectedTimeZone: selectedTimeZone,
-                        size: size,
-                        worldClocks: worldClocks,
-                        showLocalTime: showLocalTime,
-                        selectedCityId: $selectedCityId,
-                        hapticEnabled: hapticEnabled,
-                        showDetailsSheet: $showDetailsSheet
-                    )
-                    
-                    // Digital time and scroll controls overlay
-                    VStack(spacing: 0) {
-                        // Top section - Digital time centered between nav bar and clock
-                        VStack {
-                            Spacer()
-                            DigitalTimeDisplayView(
-                                currentDate: currentDate,
-                                timeOffset: timeOffset,
-                                selectedTimeZone: selectedTimeZone,
-                                use24HourFormat: use24HourFormat,
-                                weather: weatherManager.weatherData[selectedTimeZone.identifier],
-                                showWeather: showWeather,
-                                useCelsius: useCelsius
-                            )
-                            .id(currentDate) // Force update when currentDate changes
-                            .animation(.spring(), value: selectedTimeZone.identifier)
-                            .task(id: showWeather) {
-                                if showWeather {
-                                    await weatherManager.getWeather(for: selectedTimeZone.identifier)
-                                }
-                            }
-                            .task(id: selectedTimeZone.identifier) {
-                                if showWeather {
-                                    await weatherManager.getWeather(for: selectedTimeZone.identifier)
-                                }
-                            }
-                            Spacer()
-                        }
-                        .frame(height: (geometry.size.height - size) / 2)
-                        
-                        // Middle - clock area (transparent placeholder)
-                        Color.clear
-                            .frame(height: size)
-                        
-                        // Bottom section - Scroll controls
-                        VStack {
-                            Spacer()
-                            // Local time display
-                            if selectedCityId != nil {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "location.fill")
-                                        .font(.footnote.weight(.medium))
-                                    Text({
-                                        let formatter = DateFormatter()
-                                        formatter.locale = Locale(identifier: "en_US_POSIX")
-                                        formatter.timeZone = TimeZone.current
-                                        if use24HourFormat {
-                                            formatter.dateFormat = "HH:mm"
-                                        } else {
-                                            formatter.dateFormat = "h:mm"
-                                        }
-                                        return formatter.string(from: displayDate)
-                                    }())
-                                    .font(.subheadline.weight(.medium))
-                                }
-                                .foregroundStyle(.secondary)
+                    // Empty state when no local time and no cities
+                    if worldClocks.isEmpty && !showLocalTime {
+                        ContentUnavailableView {
+                            Label("Nothing here", systemImage: "location.magnifyingglass")
                                 .blendMode(.plusLighter)
-                                .monospacedDigit()
-                                .contentTransition(.numericText())
-                                .padding(.bottom, 16)
-                            }
-                            Spacer()
-                            ScrollTimeView(
-                                timeOffset: $timeOffset,
-                                showButtons: $showScrollTimeButtons,
-                                worldClocks: $worldClocks
-                            )
-                            .padding(.horizontal)
-                            .padding(.bottom, 8)
+                        } description: {
+                            Text("Add cities to track time.")
+                                .blendMode(.plusLighter)
                         }
-                        .frame(height: (geometry.size.height - size) / 2)
+                    } else {
+                        // Analog Clock - always centered
+                        AnalogClockFaceView(
+                            date: currentDate.addingTimeInterval(timeOffset),
+                            timeOffset: timeOffset,
+                            selectedTimeZone: selectedTimeZone,
+                            size: size,
+                            worldClocks: worldClocks,
+                            showLocalTime: showLocalTime,
+                            selectedCityId: $selectedCityId,
+                            hapticEnabled: hapticEnabled,
+                            showDetailsSheet: $showDetailsSheet
+                        )
+                        
+                        // Digital time and scroll controls overlay
+                        VStack(spacing: 0) {
+                            // Top section - Digital time centered between nav bar and clock
+                            VStack {
+                                Spacer()
+                                DigitalTimeDisplayView(
+                                    currentDate: currentDate,
+                                    timeOffset: timeOffset,
+                                    selectedTimeZone: selectedTimeZone,
+                                    use24HourFormat: use24HourFormat,
+                                    weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                                    showWeather: showWeather,
+                                    useCelsius: useCelsius
+                                )
+                                .id(currentDate) // Force update when currentDate changes
+                                .animation(.spring(), value: selectedTimeZone.identifier)
+                                .task(id: showWeather) {
+                                    if showWeather {
+                                        await weatherManager.getWeather(for: selectedTimeZone.identifier)
+                                    }
+                                }
+                                .task(id: selectedTimeZone.identifier) {
+                                    if showWeather {
+                                        await weatherManager.getWeather(for: selectedTimeZone.identifier)
+                                    }
+                                }
+                                Spacer()
+                            }
+                            .frame(height: (geometry.size.height - size) / 2)
+                            
+                            // Middle - clock area (transparent placeholder)
+                            Color.clear
+                                .frame(height: size)
+                            
+                            // Bottom section - Scroll controls
+                            VStack {
+                                Spacer()
+                                // Local time display
+                                if selectedCityId != nil {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "location.fill")
+                                            .font(.footnote.weight(.medium))
+                                        Text({
+                                            let formatter = DateFormatter()
+                                            formatter.locale = Locale(identifier: "en_US_POSIX")
+                                            formatter.timeZone = TimeZone.current
+                                            if use24HourFormat {
+                                                formatter.dateFormat = "HH:mm"
+                                            } else {
+                                                formatter.dateFormat = "h:mm"
+                                            }
+                                            return formatter.string(from: displayDate)
+                                        }())
+                                        .font(.subheadline.weight(.medium))
+                                    }
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
+                                    .padding(.bottom, 16)
+                                }
+                                Spacer()
+                                ScrollTimeView(
+                                    timeOffset: $timeOffset,
+                                    showButtons: $showScrollTimeButtons,
+                                    worldClocks: $worldClocks
+                                )
+                                .padding(.horizontal)
+                                .padding(.bottom, 8)
+                            }
+                            .frame(height: (geometry.size.height - size) / 2)
+                        }
                     }
                 }
             }

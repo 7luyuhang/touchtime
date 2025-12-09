@@ -177,6 +177,7 @@
 "Flight Time" = "Flight Time";
 "Departure" = "Departure";
 "Arrive" = "Arrive";
+"No Cities" = "No Cities";
 
 /* Weekdays */
 "Mon" = "M";

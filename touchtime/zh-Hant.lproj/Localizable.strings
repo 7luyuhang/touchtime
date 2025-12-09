@@ -177,6 +177,7 @@
 "Flight Time" = "飛行時間";
 "Departure" = "出發";
 "Arrive" = "抵達";
+"No Cities" = "暫無城市";
 
 /* Weekdays */
 "Mon" = "一";
