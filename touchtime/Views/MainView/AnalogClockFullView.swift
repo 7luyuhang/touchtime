@@ -517,7 +517,7 @@ struct AnalogClockFaceView: View {
             // Clock face background
             Circle()
                 .fill(Color.black.opacity(0.25))
-                .glassEffect(.clear.interactive())
+                .glassEffect(.clear)
                 .frame(width: max(size - 24, 0), height: max(size - 24, 0))
             
             // Time offset arc (显示滚动时间的起点到终点)
@@ -550,7 +550,7 @@ struct AnalogClockFaceView: View {
                 
                 // End time indicator
                 Circle()
-                    .fill(.white.opacity(0.25))
+                    .fill(.white.opacity(0.50))
                     .frame(width: 6, height: 6)
                     .blendMode(.plusLighter)
                     .position(positionForTime(hour: endTime.hour, minute: endTime.minute, radius: indicatorRadius, center: center))

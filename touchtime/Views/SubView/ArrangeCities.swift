@@ -297,10 +297,6 @@ struct ArrangeListView: View {
                     if !collections.isEmpty {
                         Text("Collections")
                     }
-                } footer: {
-                    if !collections.isEmpty && !worldClocks.isEmpty {
-                        Text("Tap the plus to add a city to the collection.")
-                    }
                 }
                 
                 // City Time Section
