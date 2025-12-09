@@ -543,7 +543,7 @@ struct AnalogClockFaceView: View {
                 
                 // Start time indicator
                 Circle()
-                    .fill(.white.opacity(0.25))
+                    .fill(.white.opacity(0.50))
                     .frame(width: 6, height: 6)
                     .blendMode(.plusLighter)
                     .position(positionForTime(hour: startTime.hour, minute: startTime.minute, radius: indicatorRadius, center: center))

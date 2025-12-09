@@ -299,7 +299,7 @@ struct ArrangeListView: View {
                     }
                 } footer: {
                     if !collections.isEmpty && !worldClocks.isEmpty {
-                        Text("Press and hold a city to add it to the collection.")
+                        Text("Tap the plus to add a city to the collection.")
                     }
                 }
                 
@@ -342,7 +342,34 @@ struct ArrangeListView: View {
                     }
                     
                     ForEach(worldClocks) { clock in
-                        HStack {
+                        HStack(spacing: 12) {
+                            // Plus icon for collection selection
+                            if !collections.isEmpty {
+                                Menu {
+                                    Section(String(localized: "Add to Collection")) {
+                                        ForEach(collections) { collection in
+                                            Button {
+                                                if isCityInCollection(city: clock, collectionId: collection.id) {
+                                                    removeCityFromCollection(city: clock, collectionId: collection.id)
+                                                } else {
+                                                    copyCityToCollection(city: clock, collectionId: collection.id)
+                                                }
+                                            } label: {
+                                                if isCityInCollection(city: clock, collectionId: collection.id) {
+                                                    Label(collection.name, systemImage: "checkmark.circle")
+                                                } else {
+                                                    Text(collection.name)
+                                                }
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: "plus.circle")
+                                        .font(.title3)
+                                }
+                                .tint(.secondary)
+                            }
+                            
                             // City name
                             Text(clock.localizedCityName)
                                 .lineLimit(1)
@@ -355,27 +382,6 @@ struct ArrangeListView: View {
                                 Text(formatTime(for: timeZone))
                                     .monospacedDigit()
                                     .foregroundStyle(.secondary)
-                            }
-                        }
-                        .contextMenu {
-                            if !collections.isEmpty {
-                                Section(String(localized: "Add to Collection")) {
-                                    ForEach(collections) { collection in
-                                        Button {
-                                            if isCityInCollection(city: clock, collectionId: collection.id) {
-                                                removeCityFromCollection(city: clock, collectionId: collection.id)
-                                            } else {
-                                                copyCityToCollection(city: clock, collectionId: collection.id)
-                                            }
-                                        } label: {
-                                            if isCityInCollection(city: clock, collectionId: collection.id) {
-                                                Label(collection.name, systemImage: "checkmark.circle")
-                                            } else {
-                                                Text(collection.name)
-                                            }
-                                        }
-                                    }
-                                }
                             }
                         }
                     }
