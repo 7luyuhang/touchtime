@@ -9,6 +9,8 @@ import SwiftUI
 import Combine
 import UIKit
 import WeatherKit
+import MoonKit
+import CoreLocation
 
 struct AnalogClockFullView: View {
     @Binding var worldClocks: [WorldClock]
@@ -372,6 +374,29 @@ struct AnalogClockFaceView: View {
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
+    @AppStorage("availableStartTime") private var availableStartTime = "09:00"
+    @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    
+    // Parse time string like "09:00" to (hour, minute)
+    private func parseTimeString(_ timeString: String) -> (hour: Int, minute: Int) {
+        let components = timeString.split(separator: ":")
+        guard components.count == 2,
+              let hour = Int(components[0]),
+              let minute = Int(components[1]) else {
+            return (9, 0)
+        }
+        return (hour, minute)
+    }
+    
+    // Calculate position for available time indicator
+    private func positionForTime(hour: Int, minute: Int, radius: CGFloat, center: CGFloat) -> CGPoint {
+        let angleDegrees = Double(hour) * 15.0 + Double(minute) * 0.25 - 90
+        let angleRadians = angleDegrees * .pi / 180
+        let x = center + radius * CGFloat(cos(angleRadians))
+        let y = center + radius * CGFloat(sin(angleRadians))
+        return CGPoint(x: x, y: y)
+    }
     
     // Get local time components
     private var localTime: (hour: Int, minute: Int) {
@@ -447,6 +472,46 @@ struct AnalogClockFaceView: View {
         date.addingTimeInterval(-timeOffset)
     }
     
+    // Get SF Symbol for current moon phase
+    private var moonPhaseIcon: String {
+        // Get coordinates for the timezone
+        guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
+            return "moon.fill"
+        }
+        
+        let moon = Moon(
+            location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude),
+            timeZone: selectedTimeZone
+        )
+        moon.setDate(date)
+        
+        let phaseString = String(describing: moon.currentMoonPhase)
+            .replacingOccurrences(of: "MoonPhase.", with: "")
+            .replacingOccurrences(of: "_", with: " ")
+            .lowercased()
+        
+        switch phaseString {
+        case "newmoon", "new moon":
+            return "moonphase.new.moon"
+        case "waxingcrescent", "waxing crescent":
+            return "moonphase.waxing.crescent"
+        case "firstquarter", "first quarter":
+            return "moonphase.first.quarter"
+        case "waxinggibbous", "waxing gibbous":
+            return "moonphase.waxing.gibbous"
+        case "fullmoon", "full moon":
+            return "moonphase.full.moon"
+        case "waninggibbous", "waning gibbous":
+            return "moonphase.waning.gibbous"
+        case "lastquarter", "last quarter", "thirdquarter", "third quarter":
+            return "moonphase.last.quarter"
+        case "waningcrescent", "waning crescent":
+            return "moonphase.waning.crescent"
+        default:
+            return "moon.fill"
+        }
+    }
+    
     var body: some View {
         ZStack {
             // Clock face background
@@ -469,21 +534,45 @@ struct AnalogClockFaceView: View {
             // Hour numbers
             HourNumbersView(size: size)
             
+            // Available time indicators
+            if availableTimeEnabled {
+                let startTime = parseTimeString(availableStartTime)
+                let endTime = parseTimeString(availableEndTime)
+                let indicatorRadius = (size - 24) / 2 - 10
+                let center = size / 2
+                
+                // Start time indicator
+                Circle()
+                    .fill(.white.opacity(0.25))
+                    .frame(width: 6, height: 6)
+                    .blendMode(.plusLighter)
+                    .position(positionForTime(hour: startTime.hour, minute: startTime.minute, radius: indicatorRadius, center: center))
+                
+                // End time indicator
+                Circle()
+                    .fill(.white.opacity(0.25))
+                    .frame(width: 6, height: 6)
+                    .blendMode(.plusLighter)
+                    .position(positionForTime(hour: endTime.hour, minute: endTime.minute, radius: indicatorRadius, center: center))
+            }
+            
             // Sun icon
             Image(systemName: "sun.max.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
                 .frame(height: 24)
-                .position(x: size / 2,  y: size / 2 + (size / 2 - 62))
+                .position(x: size / 2,  y: size / 2 + (size / 2 - 64))
             
-            // Moon icon
-            Image(systemName: "moon.fill")
+            // Moon phase icon
+            Image(systemName: moonPhaseIcon)
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
                 .frame(height: 24)
-                .position(x: size / 2, y: size / 2 - (size / 2 - 60))
+                .position(x: size / 2, y: size / 2 - (size / 2 - 62))
+                .contentTransition(.symbolEffect(.replace))
+                .animation(.spring(), value: moonPhaseIcon)
             
             // World clock hands with city labels (non-selected first)
             // Grouped by time to avoid overlapping labels - only one city shown per unique time

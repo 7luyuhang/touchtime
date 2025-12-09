@@ -587,8 +587,8 @@ struct EarthView: View {
                     HStack(spacing: 8) {
                         // Group of main buttons
                         HStack(spacing: 0) {
-                            // Back to Local Time Button - Hide when no clocks and local time not shown, or when flight time is active
-                            if !(worldClocks.isEmpty && !showLocalTime) && !(selectedFlightCities.from != nil && selectedFlightCities.to != nil) {
+                            // Back to Local Time Button - Only show when local time is enabled and flight time is not active
+                            if showLocalTime && !(selectedFlightCities.from != nil && selectedFlightCities.to != nil) {
                                 Button(action: {
                                     if hapticEnabled {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
