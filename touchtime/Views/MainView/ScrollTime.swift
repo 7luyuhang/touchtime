@@ -9,6 +9,7 @@ import SwiftUI
 import EventKit
 import EventKitUI
 import CoreHaptics
+import StoreKit
 
 struct ScrollTimeView: View {
     @Binding var timeOffset: TimeInterval
@@ -28,6 +29,8 @@ struct ScrollTimeView: View {
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
+    @AppStorage("hasRequestedReviewAfterFirstReset") private var hasRequestedReviewAfterFirstReset = false
+    @Environment(\.requestReview) private var requestReview
     @Namespace private var glassNamespace
     
     // Calculate hours from drag offset
@@ -300,6 +303,15 @@ struct ScrollTimeView: View {
             dragOffset = 0
             lastHapticOffset = 0
             showButtons = false
+        }
+        
+        // Request app review after first reset
+        if !hasRequestedReviewAfterFirstReset {
+            hasRequestedReviewAfterFirstReset = true
+            // Delay the review request slightly to allow the UI animation to complete
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                requestReview()
+            }
         }
     }
     
