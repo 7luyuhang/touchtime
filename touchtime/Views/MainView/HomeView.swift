@@ -33,6 +33,9 @@ struct HomeView: View {
     @State private var selectedCityName: String = ""
     @State private var showArrangeListSheet = false
     @State private var showEarthView = false
+    @State private var showCityTimeAdjustmentSheet = false
+    @State private var adjustingCityName: String = ""
+    @State private var adjustingTimeZoneIdentifier: String = ""
     
     // Collection management
     @State private var collections: [CityCollection] = []
@@ -440,6 +443,23 @@ struct HomeView: View {
                                     }
                                 }
                                 
+                                // Swipe to adjust time (leading edge - swipe right) for local time
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button {
+                                        adjustingCityName = String(localized: "Local")
+                                        adjustingTimeZoneIdentifier = TimeZone.current.identifier
+                                        showCityTimeAdjustmentSheet = true
+                                        
+                                        if hapticEnabled {
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                            impactFeedback.impactOccurred()
+                                        }
+                                    } label: {
+                                        Label("", systemImage: "clock.fill")
+                                    }
+                                    .tint(.blue)
+                                }
+                                
                                 // Menu Local Time
                                 .contextMenu {
                                     Button(action: {
@@ -627,6 +647,23 @@ struct HomeView: View {
                                         impactFeedback.prepare()
                                         impactFeedback.impactOccurred()
                                     }
+                                }
+                                
+                                // Swipe to adjust time (leading edge - swipe right)
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button {
+                                        adjustingCityName = getLocalizedCityName(for: clock)
+                                        adjustingTimeZoneIdentifier = clock.timeZoneIdentifier
+                                        showCityTimeAdjustmentSheet = true
+                                        
+                                        if hapticEnabled {
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                            impactFeedback.impactOccurred()
+                                        }
+                                    } label: {
+                                        Label("", systemImage: "clock.fill")
+                                    }
+                                    .tint(.blue)
                                 }
                                 
                                 //Swipe to delete time (only for default view)
@@ -976,6 +1013,17 @@ struct HomeView: View {
             .sheet(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
                     .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
+            }
+            
+            // City Time Adjustment Sheet
+            .sheet(isPresented: $showCityTimeAdjustmentSheet) {
+                CityTimeAdjustmentSheet(
+                    cityName: adjustingCityName,
+                    timeZoneIdentifier: adjustingTimeZoneIdentifier,
+                    timeOffset: $timeOffset,
+                    showSheet: $showCityTimeAdjustmentSheet,
+                    showScrollTimeButtons: $showScrollTimeButtons
+                )
             }
         }
         
