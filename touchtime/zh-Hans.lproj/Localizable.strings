@@ -117,6 +117,7 @@
 "Copyright © %d Negative Time Limited. \nAll rights reserved." = "版权所有 © %d Negative Time Limited。\n保留所有权利。";
 
 /* Home View */
+"Swipe right for precise time adjustment" = "右滑城市以精确调整时间";
 "Add cities to track time." = "添加城市以追踪时间。";
 "No cities in this collection." = "此集合中暂无城市。";
 "Add Cities" = "添加城市";

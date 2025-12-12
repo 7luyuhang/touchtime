@@ -78,6 +78,7 @@ struct HomeView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     
     @StateObject private var weatherManager = WeatherManager()
     
@@ -325,6 +326,47 @@ struct HomeView: View {
                 } else {
                     // Main List Content
                     List {
+                        
+                        // What's New Section
+                        if showWhatsNewSwipeAdjust {
+                            Section {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "hand.draw.fill")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .frame(width: 24, height: 24)
+                                    
+                                        Text("Swipe right for precise time adjustment")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "xmark")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .frame(width: 24, height: 24)
+                                }
+                                .listRowBackground(
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                        .fill(Color.black.opacity(0.10))
+                                        .glassEffect(.clear.interactive(),
+                                                     in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    withAnimation(.spring()) {
+                                        showWhatsNewSwipeAdjust = false
+                                    }
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                }
+                            }
+                        }
+                        
                         // Local Time Section
                         if showLocalTime {
                             Section {
@@ -804,6 +846,7 @@ struct HomeView: View {
             .animation(.spring(), value: showLocalTime)
             .animation(.spring(), value: availableTimeEnabled)
             .animation(.spring(), value: showAnalogClock)
+            .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
             // Navigation Title
