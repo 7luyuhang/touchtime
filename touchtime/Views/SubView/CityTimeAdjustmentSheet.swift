@@ -17,6 +17,7 @@ struct CityTimeAdjustmentSheet: View {
     @State private var selectedTime: Date
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     
     init(cityName: String, timeZoneIdentifier: String, timeOffset: Binding<TimeInterval>, showSheet: Binding<Bool>, showScrollTimeButtons: Binding<Bool>) {
         self.cityName = cityName
@@ -53,6 +54,37 @@ struct CityTimeAdjustmentSheet: View {
     // Calculate the current time displayed in the target city
     private var currentCityTime: Date {
         Date().addingTimeInterval(timeOffset)
+    }
+    
+    // Calculate additional time text for this city
+    private var additionalTimeText: String {
+        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else { return "" }
+        
+        switch additionalTimeDisplay {
+        case "Time Difference":
+            let localOffset = TimeZone.current.secondsFromGMT()
+            let targetOffset = targetTimeZone.secondsFromGMT()
+            let diffHours = (targetOffset - localOffset) / 3600
+            if diffHours == 0 {
+                return String(format: String(localized: "%d hours"), 0)
+            } else if diffHours > 0 {
+                return String(format: String(localized: "+%d hours"), diffHours)
+            } else {
+                return String(format: String(localized: "%d hours"), diffHours)
+            }
+        case "UTC":
+            let offsetSeconds = targetTimeZone.secondsFromGMT()
+            let offsetHours = offsetSeconds / 3600
+            if offsetHours == 0 {
+                return "UTC +0"
+            } else if offsetHours > 0 {
+                return "UTC +\(offsetHours)"
+            } else {
+                return "UTC \(offsetHours)"
+            }
+        default:
+            return ""
+        }
     }
     
     // Reset to current time
@@ -123,9 +155,21 @@ struct CityTimeAdjustmentSheet: View {
                 .labelsHidden()
                 .environment(\.locale, Locale(identifier: use24HourFormat ? "de_DE" : "en_US"))
             }
-            .navigationTitle(cityName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 4) {
+                        Text(cityName)
+                            .font(.headline)
+                        if !additionalTimeText.isEmpty {
+                            Text(additionalTimeText)
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                        }
+                    }
+                }
+                
                 ToolbarItem(placement: .topBarLeading) {
                     if showScrollTimeButtons {
                         Button(action: resetTime) {
