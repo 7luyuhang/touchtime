@@ -12,6 +12,13 @@ import EventKit
 import EventKitUI
 import WeatherKit
 
+// Data struct for city time adjustment sheet
+struct CityTimeAdjustmentData: Identifiable {
+    let id = UUID()
+    let cityName: String
+    let timeZoneIdentifier: String
+}
+
 struct HomeView: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
@@ -33,9 +40,7 @@ struct HomeView: View {
     @State private var selectedCityName: String = ""
     @State private var showArrangeListSheet = false
     @State private var showEarthView = false
-    @State private var showCityTimeAdjustmentSheet = false
-    @State private var adjustingCityName: String = ""
-    @State private var adjustingTimeZoneIdentifier: String = ""
+    @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
     
     // Collection management
     @State private var collections: [CityCollection] = []
@@ -446,9 +451,10 @@ struct HomeView: View {
                                 // Swipe to adjust time (leading edge - swipe right) for local time
                                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                     Button {
-                                        adjustingCityName = String(localized: "Local")
-                                        adjustingTimeZoneIdentifier = TimeZone.current.identifier
-                                        showCityTimeAdjustmentSheet = true
+                                        cityTimeAdjustmentData = CityTimeAdjustmentData(
+                                            cityName: String(localized: "Local"),
+                                            timeZoneIdentifier: TimeZone.current.identifier
+                                        )
                                         
                                         if hapticEnabled {
                                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -652,9 +658,10 @@ struct HomeView: View {
                                 // Swipe to adjust time (leading edge - swipe right)
                                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                                     Button {
-                                        adjustingCityName = getLocalizedCityName(for: clock)
-                                        adjustingTimeZoneIdentifier = clock.timeZoneIdentifier
-                                        showCityTimeAdjustmentSheet = true
+                                        cityTimeAdjustmentData = CityTimeAdjustmentData(
+                                            cityName: getLocalizedCityName(for: clock),
+                                            timeZoneIdentifier: clock.timeZoneIdentifier
+                                        )
                                         
                                         if hapticEnabled {
                                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -1016,12 +1023,15 @@ struct HomeView: View {
             }
             
             // City Time Adjustment Sheet
-            .sheet(isPresented: $showCityTimeAdjustmentSheet) {
+            .sheet(item: $cityTimeAdjustmentData) { data in
                 CityTimeAdjustmentSheet(
-                    cityName: adjustingCityName,
-                    timeZoneIdentifier: adjustingTimeZoneIdentifier,
+                    cityName: data.cityName,
+                    timeZoneIdentifier: data.timeZoneIdentifier,
                     timeOffset: $timeOffset,
-                    showSheet: $showCityTimeAdjustmentSheet,
+                    showSheet: Binding(
+                        get: { cityTimeAdjustmentData != nil },
+                        set: { if !$0 { cityTimeAdjustmentData = nil } }
+                    ),
                     showScrollTimeButtons: $showScrollTimeButtons
                 )
             }
