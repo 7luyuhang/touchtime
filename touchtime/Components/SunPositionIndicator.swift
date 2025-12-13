@@ -176,6 +176,7 @@ struct SunPositionIndicator: View {
                             .frame(width: size * 2, height: size / 2)
                             .offset(y: size / 4)
                     }
+                    .opacity(0.5)
                     .blendMode(.plusLighter)
             }
         }
