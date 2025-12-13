@@ -323,3 +323,6 @@
 /* Date suffix */
 "starts" = "starts";
 "ends" = "ends";
+
+/* Sun Position */
+"Sun Position" = "Sun Position";

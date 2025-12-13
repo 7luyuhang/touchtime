@@ -12,7 +12,7 @@ import StoreKit
 
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
-    @AppStorage("use24HourFormat") private var use24HourFormat = true
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -24,6 +24,7 @@ struct SettingsView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
@@ -267,21 +268,37 @@ struct SettingsView: View {
                             .padding()
                             .padding(.bottom, -4)
                             
-                            // Analog Clock Overlay - Centered
-                            if showAnalogClock {
-                                AnalogClockView(
-                                    date: currentDate,
-                                    size: 64,
-                                    timeZone: TimeZone.current,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.blurReplace.combined(with: .scale))
-                            }
+// Analog Clock Overlay - Centered
+                                            if showAnalogClock {
+                                                AnalogClockView(
+                                                    date: currentDate,
+                                                    size: 64,
+                                                    timeZone: TimeZone.current,
+                                                    useMaterialBackground: true
+                                                )
+                                                .overlay(
+                                                    Circle()
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                        .blendMode(.plusLighter)
+                                                )
+                                                .transition(.blurReplace.combined(with: .scale))
+                                            }
+                                            
+                                            // Sun Position Overlay - Centered
+                                            if showSunPosition {
+                                                SunPositionIndicator(
+                                                    date: currentDate,
+                                                    timeZone: TimeZone.current,
+                                                    size: 64,
+                                                    useMaterialBackground: true
+                                                )
+                                                .overlay(
+                                                    Circle()
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                        .blendMode(.plusLighter)
+                                                )
+                                                .transition(.blurReplace.combined(with: .scale))
+                                            }
                         }
                         .background(
                             showSkyDot ?
@@ -301,6 +318,7 @@ struct SettingsView: View {
                         )
                         .animation(.spring(), value: showSkyDot)
                         .animation(.spring(), value: showAnalogClock)
+                        .animation(.spring(), value: showSunPosition)
                         .id("\(showSkyDot)-\(dateStyle)")
                         .onTapGesture {
                             if hapticEnabled {
@@ -370,7 +388,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock {
+                        if !showAnalogClock && !showSunPosition {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -382,8 +400,13 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock)
+                    .disabled(showAnalogClock || showSunPosition)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showSunPosition) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
@@ -393,10 +416,34 @@ struct SettingsView: View {
                 
                 // Analog Clock Section
                 Section {
-                    Toggle(isOn: $showAnalogClock) {
+                    Toggle(isOn: Binding(
+                        get: { showAnalogClock },
+                        set: { newValue in
+                            showAnalogClock = newValue
+                            if newValue {
+                                showSunPosition = false
+                            }
+                        }
+                    )) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
                             Text(String(localized: "Analog Clock"))
+                        }
+                    }
+                    .tint(.blue)
+                    
+                    Toggle(isOn: Binding(
+                        get: { showSunPosition },
+                        set: { newValue in
+                            showSunPosition = newValue
+                            if newValue {
+                                showAnalogClock = false
+                            }
+                        }
+                    )) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "sun.max.fill", topColor: .yellow, bottomColor: .orange)
+                            Text(String(localized: "Sun Position"))
                         }
                     }
                     .tint(.blue)
