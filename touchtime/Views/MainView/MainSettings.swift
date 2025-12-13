@@ -447,6 +447,10 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
+                } header: {
+                    Text("Complications")
+                } footer: {
+                   Text("Add complications in the middle of the city list.")
                 }
                 
                 // Analog Time Section

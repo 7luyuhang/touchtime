@@ -773,6 +773,10 @@
 /* Sun Elevation */
 "Sun Elevation" = "太阳高度";
 
+/* Complications */
+"Complications" = "复杂功能";
+"Add complications in the middle of the city list." = "在城市列表中间添加复杂功能。";
+
 /* DST */
 "Starts" = "开始于";
 "Ends" = "结束于";

@@ -345,7 +345,7 @@ struct TimeOffsetArcView: View {
         
         Path { path in
             let center = CGPoint(x: size / 2, y: size / 2)
-            let radius = (size - 24) / 2  // 与背景圆相同
+            let radius = (size - 24) / 2
             
             path.addArc(
                 center: center,
