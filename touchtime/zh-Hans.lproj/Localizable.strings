@@ -770,8 +770,8 @@
 "starts" = "开始";
 "ends" = "结束";
 
-/* Sun Position */
-"Sun Position" = "太阳位置";
+/* Sun Elevation */
+"Sun Elevation" = "太阳高度";
 
 /* DST */
 "Starts" = "开始于";

@@ -442,8 +442,8 @@ struct SettingsView: View {
                         }
                     )) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "sun.max.fill", topColor: .yellow, bottomColor: .orange)
-                            Text(String(localized: "Sun Position"))
+                            SystemIconImage(systemName: "sun.horizon.fill", topColor: .yellow, bottomColor: .orange)
+                            Text(String(localized: "Sun Elevation"))
                         }
                     }
                     .tint(.blue)
