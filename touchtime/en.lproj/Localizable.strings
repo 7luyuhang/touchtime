@@ -326,6 +326,7 @@
 
 /* Sun Elevation */
 "Sun Elevation" = "Sun Elevation";
+"Sun Azimuth" = "Sun Azimuth";
 
 /* Complications */
 "Complications" = "Complications";

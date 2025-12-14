@@ -26,6 +26,7 @@ struct SettingsView: View {
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
@@ -349,6 +350,22 @@ struct SettingsView: View {
                                 )
                                 .transition(.blurReplace.combined(with: .scale))
                             }
+                            
+                            // Sun Azimuth Overlay - Centered
+                            if showSunAzimuth {
+                                SunAzimuthIndicator(
+                                    date: currentDate,
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.blurReplace.combined(with: .scale))
+                            }
                         }
                         .background(
                             showSkyDot ?
@@ -370,6 +387,7 @@ struct SettingsView: View {
                         .animation(.spring(), value: showAnalogClock)
                         .animation(.spring(), value: showSunPosition)
                         .animation(.spring(), value: showWeatherCondition)
+                        .animation(.spring(), value: showSunAzimuth)
                         .id("\(showSkyDot)-\(dateStyle)")
                         .onTapGesture {
                             if hapticEnabled {
@@ -439,7 +457,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition && !showWeatherCondition {
+                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showSunAzimuth {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -451,7 +469,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition)
+                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
@@ -463,6 +481,11 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: showWeatherCondition) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showSunAzimuth) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
@@ -479,6 +502,7 @@ struct SettingsView: View {
                             if newValue {
                                 showSunPosition = false
                                 showWeatherCondition = false
+                                showSunAzimuth = false
                             }
                         }
                     )) {
@@ -496,12 +520,31 @@ struct SettingsView: View {
                             if newValue {
                                 showAnalogClock = false
                                 showWeatherCondition = false
+                                showSunAzimuth = false
                             }
                         }
                     )) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "sun.horizon.fill", topColor: .yellow, bottomColor: .orange)
                             Text(String(localized: "Sun Elevation"))
+                        }
+                    }
+                    .tint(.blue)
+                    
+                    Toggle(isOn: Binding(
+                        get: { showSunAzimuth },
+                        set: { newValue in
+                            showSunAzimuth = newValue
+                            if newValue {
+                                showAnalogClock = false
+                                showSunPosition = false
+                                showWeatherCondition = false
+                            }
+                        }
+                    )) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "compass.drawing", topColor: .blue, bottomColor: .blue)
+                            Text(String(localized: "Sun Azimuth"))
                         }
                     }
                     .tint(.blue)
@@ -514,6 +557,7 @@ struct SettingsView: View {
                                 if newValue {
                                     showAnalogClock = false
                                     showSunPosition = false
+                                    showSunAzimuth = false
                                 }
                             }
                         )) {

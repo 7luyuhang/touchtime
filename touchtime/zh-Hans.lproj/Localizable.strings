@@ -772,6 +772,7 @@
 
 /* Sun Elevation */
 "Sun Elevation" = "太阳高度";
+"Sun Azimuth" = "太阳方位角";
 
 /* Complications */
 "Complications" = "复杂功能";

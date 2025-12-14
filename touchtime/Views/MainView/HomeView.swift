@@ -80,6 +80,7 @@ struct HomeView: View {
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     
     @StateObject private var weatherManager = WeatherManager()
@@ -409,7 +410,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             
@@ -479,6 +480,17 @@ struct HomeView: View {
                                             size: 64
                                         )
                                         .environmentObject(weatherManager)
+                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Sun Azimuth Overlay - Centered
+                                    if showSunAzimuth {
+                                        SunAzimuthIndicator(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZone: TimeZone.current,
+                                            size: 64
+                                        )
                                         .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
                                         .transition(.blurReplace)
                                     }
@@ -660,7 +672,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             Spacer()
@@ -713,6 +725,16 @@ struct HomeView: View {
                                             size: 64
                                         )
                                         .environmentObject(weatherManager)
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Sun Azimuth Overlay - Centered
+                                    if showSunAzimuth {
+                                        SunAzimuthIndicator(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
+                                            size: 64
+                                        )
                                         .transition(.blurReplace)
                                     }
                                 }
@@ -904,6 +926,7 @@ struct HomeView: View {
             .animation(.spring(), value: showAnalogClock)
             .animation(.spring(), value: showSunPosition)
             .animation(.spring(), value: showWeatherCondition)
+            .animation(.spring(), value: showSunAzimuth)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
