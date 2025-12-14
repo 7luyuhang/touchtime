@@ -15,86 +15,130 @@ struct SunAzimuthIndicator: View {
     let size: CGFloat
     let useMaterialBackground: Bool
     
-    // Cache sun azimuth per timezone to avoid repeated SunKit calculations
-    private struct SunAzimuthData {
-        let azimuth: Double // in degrees, 0 = North, clockwise
-        let altitude: Double // for determining if sun is visible
+    // Cache hourly sun positions for a given day/timezone, then interpolate for smooth animation
+    private struct HourlySunData {
+        let azimuths: [Double]   // 25 values: hour 0-24 (24 is next day midnight for interpolation)
+        let altitudes: [Double]  // 25 values
     }
     
-    // Use NSCache for thread-safe, efficient caching without blocking main thread
-    private static let azimuthCache = NSCache<NSString, SunAzimuthDataWrapper>()
-    
-    // Wrapper class for NSCache (requires class type)
-    private final class SunAzimuthDataWrapper {
-        let data: SunAzimuthData
-        init(_ data: SunAzimuthData) {
-            self.data = data
-        }
-    }
+    private static var sunDataCache: [String: HourlySunData] = [:]
+    private static let cacheQueue = DispatchQueue(label: "SunAzimuthIndicator.cache")
     
     init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false) {
         self.date = date
         self.timeZone = timeZone
         self.size = size
         self.useMaterialBackground = useMaterialBackground
-        
-        // Configure cache limit
-        Self.azimuthCache.countLimit = 120
     }
     
-    // Calculate sun azimuth using SunKit - computed once and stored
-    private func calculateSunAzimuthData() -> SunAzimuthData {
+    // Interpolated sun position based on cached hourly data
+    private var sunAzimuthData: (azimuth: Double, altitude: Double) {
         var calendar = Calendar.current
         calendar.timeZone = timeZone
         
-        let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
-        // Cache key updates every 10 minutes (sufficient for sun azimuth visual accuracy ~1px)
-        let minuteSlot = (components.minute ?? 0) / 10
-        let cacheKey = "\(timeZone.identifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)_\(components.hour ?? 0)_\(minuteSlot)" as NSString
+        let hourlyData = cachedHourlySunData(for: date)
         
-        // Return cached value if present (NSCache is thread-safe, no lock needed)
-        if let cached = Self.azimuthCache.object(forKey: cacheKey) {
-            return cached.data
+        // Get fractional hour for interpolation
+        let components = calendar.dateComponents([.hour, .minute, .second], from: date)
+        let hour = Double(components.hour ?? 0)
+        let minute = Double(components.minute ?? 0)
+        let second = Double(components.second ?? 0)
+        let fractionalHour = hour + minute / 60.0 + second / 3600.0
+        
+        // Interpolate between hourly values
+        let lowerHour = Int(fractionalHour)
+        let upperHour = min(lowerHour + 1, 24)
+        let t = fractionalHour - Double(lowerHour)
+        
+        // Handle azimuth wraparound (e.g., 350° to 10° should go through 360°/0°)
+        var azimuth1 = hourlyData.azimuths[lowerHour]
+        var azimuth2 = hourlyData.azimuths[upperHour]
+        
+        // If the difference is more than 180°, we need to wrap around
+        if azimuth2 - azimuth1 > 180 {
+            azimuth1 += 360
+        } else if azimuth1 - azimuth2 > 180 {
+            azimuth2 += 360
         }
         
-        let data: SunAzimuthData
+        var interpolatedAzimuth = azimuth1 + (azimuth2 - azimuth1) * t
+        // Normalize to 0-360
+        if interpolatedAzimuth >= 360 {
+            interpolatedAzimuth -= 360
+        } else if interpolatedAzimuth < 0 {
+            interpolatedAzimuth += 360
+        }
+        
+        let interpolatedAltitude = hourlyData.altitudes[lowerHour] + (hourlyData.altitudes[upperHour] - hourlyData.altitudes[lowerHour]) * t
+        
+        return (interpolatedAzimuth, interpolatedAltitude)
+    }
+    
+    // Get (or compute) hourly sun data for the given day and timezone
+    private func cachedHourlySunData(for date: Date) -> HourlySunData {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        let cacheKey = "\(timeZone.identifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
+        
+        // Return cached value if present
+        if let cached = Self.cacheQueue.sync(execute: { Self.sunDataCache[cacheKey] }) {
+            return cached
+        }
+        
+        let startOfDay = calendar.startOfDay(for: date)
+        var azimuths: [Double] = []
+        var altitudes: [Double] = []
+        
         if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
             let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
             var sun = Sun(location: location, timeZone: timeZone)
-            sun.setDate(date)
             
-            // SunKit provides azimuth in Radians, convert to degrees
-            let azimuthDegrees = sun.azimuth.degrees
-            let altitudeDegrees = sun.altitude.degrees
-            
-            data = SunAzimuthData(azimuth: azimuthDegrees, altitude: altitudeDegrees)
+            // Calculate for each hour (0-24)
+            for hour in 0...24 {
+                let hourDate = startOfDay.addingTimeInterval(Double(hour) * 3600)
+                sun.setDate(hourDate)
+                azimuths.append(sun.azimuth.degrees)
+                altitudes.append(sun.altitude.degrees)
+            }
         } else {
             // Fallback: estimate based on time of day
-            let hour = Double(components.hour ?? 12) + Double(components.minute ?? 0) / 60.0
-            // Rough approximation: sun moves from East (6am) to South (noon) to West (6pm)
-            // This is a simplified linear interpolation
-            let azimuth: Double
-            if hour < 6 {
-                azimuth = 90.0 - (hour / 6.0) * 90.0 // Night, east side
-            } else if hour < 12 {
-                azimuth = 90.0 + ((hour - 6.0) / 6.0) * 90.0 // Morning, moving to south
-            } else if hour < 18 {
-                azimuth = 180.0 + ((hour - 12.0) / 6.0) * 90.0 // Afternoon, moving to west
-            } else {
-                azimuth = 270.0 + ((hour - 18.0) / 6.0) * 90.0 // Evening, moving to north
+            for hour in 0...24 {
+                let h = Double(hour)
+                let azimuth: Double
+                if h < 6 {
+                    azimuth = 90.0 - (h / 6.0) * 90.0
+                } else if h < 12 {
+                    azimuth = 90.0 + ((h - 6.0) / 6.0) * 90.0
+                } else if h < 18 {
+                    azimuth = 180.0 + ((h - 12.0) / 6.0) * 90.0
+                } else {
+                    azimuth = 270.0 + ((h - 18.0) / 6.0) * 90.0
+                }
+                azimuths.append(azimuth.truncatingRemainder(dividingBy: 360))
+                altitudes.append(h > 6 && h < 18 ? 30 : -30)
             }
-            data = SunAzimuthData(azimuth: azimuth, altitude: hour > 6 && hour < 18 ? 30 : -30)
         }
         
-        // Store in cache (NSCache handles limits automatically)
-        Self.azimuthCache.setObject(SunAzimuthDataWrapper(data), forKey: cacheKey)
+        let data = HourlySunData(azimuths: azimuths, altitudes: altitudes)
+        
+        // Store in cache with a small cap
+        Self.cacheQueue.sync {
+            Self.sunDataCache[cacheKey] = data
+            if Self.sunDataCache.count > 60 {
+                let keysToRemove = Array(Self.sunDataCache.keys.prefix(Self.sunDataCache.count - 60))
+                for key in keysToRemove {
+                    Self.sunDataCache.removeValue(forKey: key)
+                }
+            }
+        }
         
         return data
     }
     
     var body: some View {
-        // Calculate data once for the entire body
-        let data = calculateSunAzimuthData()
+        // Use interpolated data for smooth animation
+        let data = sunAzimuthData
         let isSunVisible = data.altitude > 0
         let sunRadius: CGFloat = size * 0.15
         let orbitRadius: CGFloat = size * 0.35
@@ -132,12 +176,12 @@ struct SunAzimuthIndicator: View {
                 .frame(width: size * 0.35 , height: 1.5)
                 .blendMode(.plusLighter)
             
-            // North Indicator
-            Circle()
-                .fill(.white.opacity(0.25))
-                .frame(width: 3, height: 3)
-                .offset(y: -size * 0.35)
-                .blendMode(.plusLighter)
+//            // North Indicator
+//            Circle()
+//                .fill(.white.opacity(0.25))
+//                .frame(width: 3, height: 3)
+//                .offset(y: -size * 0.35)
+//                .blendMode(.plusLighter)
             
             // Sun Indicator
             ZStack {
