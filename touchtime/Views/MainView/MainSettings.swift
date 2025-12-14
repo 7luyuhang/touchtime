@@ -408,6 +408,19 @@ struct SettingsView: View {
                     
                     
                     // Options in Settings
+                    NavigationLink(destination: ComplicationsSettingsView(
+                        showAnalogClock: $showAnalogClock,
+                        showSunPosition: $showSunPosition,
+                        showSunAzimuth: $showSunAzimuth,
+                        showWeatherCondition: $showWeatherCondition,
+                        showWeather: showWeather
+                    )) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                            Text("Complications")
+                        }
+                    }
+                    
                     Toggle(isOn: $showSkyDot) {
                         HStack(spacing: 12) {
                             // Use SkyColorGradient colors for the background
@@ -491,87 +504,6 @@ struct SettingsView: View {
                         }
                     }
                     
-                }
-                
-                // Analog Clock Section
-                Section {
-                    Toggle(isOn: Binding(
-                        get: { showAnalogClock },
-                        set: { newValue in
-                            showAnalogClock = newValue
-                            if newValue {
-                                showSunPosition = false
-                                showWeatherCondition = false
-                                showSunAzimuth = false
-                            }
-                        }
-                    )) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
-                            Text(String(localized: "Analog Clock"))
-                        }
-                    }
-                    .tint(.blue)
-                    
-                    Toggle(isOn: Binding(
-                        get: { showSunPosition },
-                        set: { newValue in
-                            showSunPosition = newValue
-                            if newValue {
-                                showAnalogClock = false
-                                showWeatherCondition = false
-                                showSunAzimuth = false
-                            }
-                        }
-                    )) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "sun.horizon.fill", topColor: .yellow, bottomColor: .orange)
-                            Text(String(localized: "Sun Elevation"))
-                        }
-                    }
-                    .tint(.blue)
-                    
-                    Toggle(isOn: Binding(
-                        get: { showSunAzimuth },
-                        set: { newValue in
-                            showSunAzimuth = newValue
-                            if newValue {
-                                showAnalogClock = false
-                                showSunPosition = false
-                                showWeatherCondition = false
-                            }
-                        }
-                    )) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "compass.drawing", topColor: .blue, bottomColor: .blue)
-                            Text(String(localized: "Sun Azimuth"))
-                        }
-                    }
-                    .tint(.blue)
-                    
-                    if showWeather {
-                        Toggle(isOn: Binding(
-                            get: { showWeatherCondition },
-                            set: { newValue in
-                                showWeatherCondition = newValue
-                                if newValue {
-                                    showAnalogClock = false
-                                    showSunPosition = false
-                                    showSunAzimuth = false
-                                }
-                            }
-                        )) {
-                            HStack(spacing: 12) {
-                                SystemIconImage(systemName: "snowflake", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                                Text(String(localized: "Weather Condition"))
-                            }
-                        }
-                        .tint(.blue)
-                    }
-                } header: {
-                    Text("Complications")
-                } footer: {
-                    Text("Add complications in the middle of the city list.")
                 }
                 
                 // Analog Time Section
