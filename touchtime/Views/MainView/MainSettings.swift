@@ -25,6 +25,7 @@ struct SettingsView: View {
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("showSunPosition") private var showSunPosition = false
+    @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
@@ -193,6 +194,39 @@ struct SettingsView: View {
                     }
                 }
                 
+                // Temperature/Weather Section
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { showWeather },
+                        set: { newValue in
+                            showWeather = newValue
+                            if !newValue {
+                                showWeatherCondition = false
+                            }
+                        }
+                    )) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "sun.max.fill", topColor: .red, bottomColor: .orange)
+                            Text("Weather")
+                        }
+                    }
+                    .tint(.blue)
+                    
+                    // Temperature Unit Picker - only show when weather is enabled
+                    if showWeather {
+                        Picker(selection: $useCelsius) {
+                            Text("Celsius").tag(true)
+                            Text("Fahrenheit").tag(false)
+                        } label: {
+                            Text("Temperature Units")
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.secondary)
+                    }} footer: {
+                        Text("Data provided by  Weather.")
+                    }
+                
+                
                 // Digital Time Section
                 Section(header: Text("Display")) {
                     // Preview Section
@@ -268,37 +302,53 @@ struct SettingsView: View {
                             .padding()
                             .padding(.bottom, -4)
                             
-// Analog Clock Overlay - Centered
-                                            if showAnalogClock {
-                                                AnalogClockView(
-                                                    date: currentDate,
-                                                    size: 64,
-                                                    timeZone: TimeZone.current,
-                                                    useMaterialBackground: true
-                                                )
-                                                .overlay(
-                                                    Circle()
-                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                        .blendMode(.plusLighter)
-                                                )
-                                                .transition(.blurReplace.combined(with: .scale))
-                                            }
-                                            
-                                            // Sun Position Overlay - Centered
-                                            if showSunPosition {
-                                                SunPositionIndicator(
-                                                    date: currentDate,
-                                                    timeZone: TimeZone.current,
-                                                    size: 64,
-                                                    useMaterialBackground: true
-                                                )
-                                                .overlay(
-                                                    Circle()
-                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                        .blendMode(.plusLighter)
-                                                )
-                                                .transition(.blurReplace.combined(with: .scale))
-                                            }
+                            // Analog Clock Overlay - Centered
+                            if showAnalogClock {
+                                AnalogClockView(
+                                    date: currentDate,
+                                    size: 64,
+                                    timeZone: TimeZone.current,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.blurReplace.combined(with: .scale))
+                            }
+                            
+                            // Sun Position Overlay - Centered
+                            if showSunPosition {
+                                SunPositionIndicator(
+                                    date: currentDate,
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.blurReplace.combined(with: .scale))
+                            }
+                            
+                            // Weather Condition Overlay - Centered
+                            if showWeatherCondition {
+                                WeatherConditionView(
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .environmentObject(weatherManager)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.blurReplace.combined(with: .scale))
+                            }
                         }
                         .background(
                             showSkyDot ?
@@ -319,6 +369,7 @@ struct SettingsView: View {
                         .animation(.spring(), value: showSkyDot)
                         .animation(.spring(), value: showAnalogClock)
                         .animation(.spring(), value: showSunPosition)
+                        .animation(.spring(), value: showWeatherCondition)
                         .id("\(showSkyDot)-\(dateStyle)")
                         .onTapGesture {
                             if hapticEnabled {
@@ -388,7 +439,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition {
+                        if !showAnalogClock && !showSunPosition && !showWeatherCondition {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -400,13 +451,18 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition)
+                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
                     }
                     .onChange(of: showSunPosition) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showWeatherCondition) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
@@ -422,6 +478,7 @@ struct SettingsView: View {
                             showAnalogClock = newValue
                             if newValue {
                                 showSunPosition = false
+                                showWeatherCondition = false
                             }
                         }
                     )) {
@@ -438,6 +495,7 @@ struct SettingsView: View {
                             showSunPosition = newValue
                             if newValue {
                                 showAnalogClock = false
+                                showWeatherCondition = false
                             }
                         }
                     )) {
@@ -447,10 +505,29 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
+                    
+                    if showWeather {
+                        Toggle(isOn: Binding(
+                            get: { showWeatherCondition },
+                            set: { newValue in
+                                showWeatherCondition = newValue
+                                if newValue {
+                                    showAnalogClock = false
+                                    showSunPosition = false
+                                }
+                            }
+                        )) {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "snowflake", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                                Text(String(localized: "Weather Condition"))
+                            }
+                        }
+                        .tint(.blue)
+                    }
                 } header: {
                     Text("Complications")
                 } footer: {
-                   Text("Add complications in the middle of the city list.")
+                    Text("Add complications in the middle of the city list.")
                 }
                 
                 // Analog Time Section
@@ -466,32 +543,9 @@ struct SettingsView: View {
                     Text("Enable showing arc indicator for time offset.")
                 }
                 
-                // Temperature/Weather Section
-                Section {
-                    Toggle(isOn: $showWeather) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "sun.max.fill", topColor: .red, bottomColor: .orange)
-                            Text("Weather")
-                        }
-                    }
-                    .tint(.blue)
-                    
-                    // Temperature Unit Picker - only show when weather is enabled
-                    if showWeather {
-                        Picker(selection: $useCelsius) {
-                            Text("Celsius").tag(true)
-                            Text("Fahrenheit").tag(false)
-                        } label: {
-                            Text("Temperature Units")
-                        }
-                        .pickerStyle(.menu)
-                        .tint(.secondary)
-                    }} footer: {
-                        Text("Data provided by  Weather.")
-                    }
                 
                 
-                // Calendar
+                // Calendar Section
                 Section{
                     NavigationLink(destination: CalendarView(worldClocks: worldClocks)) {
                         HStack(spacing: 12) {

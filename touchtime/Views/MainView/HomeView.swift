@@ -79,6 +79,7 @@ struct HomeView: View {
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("showSunPosition") private var showSunPosition = false
+    @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     
     @StateObject private var weatherManager = WeatherManager()
@@ -338,9 +339,9 @@ struct HomeView: View {
                                         .blendMode(.plusLighter)
                                         .frame(width: 24, height: 24)
                                     
-                                        Text("Swipe right for precise time adjustment")
-                                            .font(.subheadline)
-                                            .foregroundStyle(.primary)
+                                    Text("Swipe right for precise time adjustment")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
                                     
                                     Spacer()
                                     
@@ -408,7 +409,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: showAnalogClock ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             
@@ -449,27 +450,38 @@ struct HomeView: View {
                                         }
                                     }
                                     
-// Analog Clock Overlay - Centered
-                                                    if showAnalogClock {
-                                                        AnalogClockView(
-                                                            date: currentDate.addingTimeInterval(timeOffset),
-                                                            size: 64,
-                                                            timeZone: TimeZone.current
-                                                        )
-                                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
-                                                        .transition(.blurReplace)
-                                                    }
-                                                    
-                                                    // Sun Position Overlay - Centered
-                                                    if showSunPosition {
-                                                        SunPositionIndicator(
-                                                            date: currentDate.addingTimeInterval(timeOffset),
-                                                            timeZone: TimeZone.current,
-                                                            size: 64
-                                                        )
-                                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
-                                                        .transition(.blurReplace)
-                                                    }
+                                    // Analog Clock Overlay - Centered
+                                    if showAnalogClock {
+                                        AnalogClockView(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            size: 64,
+                                            timeZone: TimeZone.current
+                                        )
+                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Sun Position Overlay - Centered
+                                    if showSunPosition {
+                                        SunPositionIndicator(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZone: TimeZone.current,
+                                            size: 64
+                                        )
+                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Weather Condition Overlay - Centered
+                                    if showWeatherCondition {
+                                        WeatherConditionView(
+                                            timeZone: TimeZone.current,
+                                            size: 64
+                                        )
+                                        .environmentObject(weatherManager)
+                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
+                                        .transition(.blurReplace)
+                                    }
                                 }
                                 // Make entire row tappable
                                 .contentShape(Rectangle())
@@ -484,6 +496,12 @@ struct HomeView: View {
                                 // Fetch weather when weather toggle changes or view appears
                                 .task(id: showWeather) {
                                     if showWeather {
+                                        await weatherManager.getWeather(for: TimeZone.current.identifier)
+                                    }
+                                }
+                                // Fetch weather for weather condition complication
+                                .task(id: showWeatherCondition) {
+                                    if showWeatherCondition {
                                         await weatherManager.getWeather(for: TimeZone.current.identifier)
                                     }
                                 }
@@ -642,7 +660,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: showAnalogClock ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             Spacer()
@@ -668,25 +686,35 @@ struct HomeView: View {
                                         .padding(.bottom, -4)
                                     }
                                     
-// Analog Clock Overlay - Centered
-                                                    if showAnalogClock {
-                                                        AnalogClockView(
-                                                            date: currentDate.addingTimeInterval(timeOffset),
-                                                            size: 64,
-                                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current
-                                                        )
-                                                        .transition(.blurReplace)
-                                                    }
-                                                    
-                                                    // Sun Position Overlay - Centered
-                                                    if showSunPosition {
-                                                        SunPositionIndicator(
-                                                            date: currentDate.addingTimeInterval(timeOffset),
-                                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
-                                                            size: 64
-                                                        )
-                                                        .transition(.blurReplace)
-                                                    }
+                                    // Analog Clock Overlay - Centered
+                                    if showAnalogClock {
+                                        AnalogClockView(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            size: 64,
+                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current
+                                        )
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Sun Position Overlay - Centered
+                                    if showSunPosition {
+                                        SunPositionIndicator(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
+                                            size: 64
+                                        )
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Weather Condition Overlay - Centered
+                                    if showWeatherCondition {
+                                        WeatherConditionView(
+                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
+                                            size: 64
+                                        )
+                                        .environmentObject(weatherManager)
+                                        .transition(.blurReplace)
+                                    }
                                 }
                                 // Make entire row tappable
                                 .contentShape(Rectangle())
@@ -701,6 +729,12 @@ struct HomeView: View {
                                 // Fetch weather for this city when weather toggle changes
                                 .task(id: showWeather) {
                                     if showWeather {
+                                        await weatherManager.getWeather(for: clock.timeZoneIdentifier)
+                                    }
+                                }
+                                // Fetch weather for weather condition complication
+                                .task(id: showWeatherCondition) {
+                                    if showWeatherCondition {
                                         await weatherManager.getWeather(for: clock.timeZoneIdentifier)
                                     }
                                 }
@@ -869,6 +903,7 @@ struct HomeView: View {
             .animation(.spring(), value: availableTimeEnabled)
             .animation(.spring(), value: showAnalogClock)
             .animation(.spring(), value: showSunPosition)
+            .animation(.spring(), value: showWeatherCondition)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
@@ -921,7 +956,7 @@ struct HomeView: View {
                                 Label("Share", systemImage: "square.and.arrow.up")
                             }
                         }
-                    
+                        
                         // Arrange Section - only show if there are world clocks or collections
                         if !worldClocks.isEmpty || !collections.isEmpty {
                             Button(action: {
