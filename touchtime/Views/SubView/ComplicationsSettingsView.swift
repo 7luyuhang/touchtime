@@ -14,9 +14,9 @@ struct ComplicationsSettingsView: View {
     @Binding var showSunAzimuth: Bool
     @Binding var showWeatherCondition: Bool
     var showWeather: Bool
+    @ObservedObject var weatherManager: WeatherManager
     
     @State private var currentDate = Date()
-    @StateObject private var weatherManager = WeatherManager()
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("dateStyle") private var dateStyle = "Relative"
@@ -127,11 +127,6 @@ struct ComplicationsSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onReceive(timer) { _ in
             currentDate = Date()
-        }
-        .onAppear {
-            Task {
-                await weatherManager.getWeather(for: TimeZone.current.identifier)
-            }
         }
     }
     

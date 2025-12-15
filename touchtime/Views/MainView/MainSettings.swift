@@ -413,7 +413,8 @@ struct SettingsView: View {
                         showSunPosition: $showSunPosition,
                         showSunAzimuth: $showSunAzimuth,
                         showWeatherCondition: $showWeatherCondition,
-                        showWeather: showWeather
+                        showWeather: showWeather,
+                        weatherManager: weatherManager
                     )) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
