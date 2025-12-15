@@ -32,6 +32,7 @@ struct SettingsView: View {
     @State private var showResetConfirmation = false
     @State private var showSupportLove = false
     @State private var showOnboarding = false
+    @State private var showComplicationsSheet = false
     @Environment(\.dismiss) private var dismiss
     @StateObject private var weatherManager = WeatherManager()
     
@@ -103,6 +104,20 @@ struct SettingsView: View {
         default:
             return "English"
         }
+    }
+    
+    // Get current complication name
+    var currentComplicationName: String? {
+        if showAnalogClock {
+            return String(localized: "Analog Clock")
+        } else if showSunPosition {
+            return String(localized: "Sun Elevation")
+        } else if showSunAzimuth {
+            return String(localized: "Sun Azimuth")
+        } else if showWeatherCondition {
+            return String(localized: "Weather Condition")
+        }
+        return nil
     }
     
     var body: some View {
@@ -408,20 +423,6 @@ struct SettingsView: View {
                     
                     
                     // Options in Settings
-                    NavigationLink(destination: ComplicationsSettingsView(
-                        showAnalogClock: $showAnalogClock,
-                        showSunPosition: $showSunPosition,
-                        showSunAzimuth: $showSunAzimuth,
-                        showWeatherCondition: $showWeatherCondition,
-                        showWeather: showWeather,
-                        weatherManager: weatherManager
-                    )) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
-                            Text("Complications")
-                        }
-                    }
-                    
                     Toggle(isOn: $showSkyDot) {
                         HStack(spacing: 12) {
                             // Use SkyColorGradient colors for the background
@@ -504,6 +505,28 @@ struct SettingsView: View {
                             dateStyle = "Relative"
                         }
                     }
+                    
+                    // Complications
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        showComplicationsSheet = true
+                    }) {
+                        HStack {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                                Text("Complications")
+                            }
+                            .layoutPriority(1)
+                            Spacer(minLength: 8)
+                            if let complicationName = currentComplicationName {
+                                Text(complicationName)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                    .foregroundStyle(.primary)
                     
                 }
                 
@@ -759,6 +782,33 @@ struct SettingsView: View {
                     }
                     .padding(.horizontal)
                 }
+            }
+            // Complications Sheet
+            .sheet(isPresented: $showComplicationsSheet) {
+                NavigationStack {
+                    ComplicationsSettingsView(
+                        showAnalogClock: $showAnalogClock,
+                        showSunPosition: $showSunPosition,
+                        showSunAzimuth: $showSunAzimuth,
+                        showWeatherCondition: $showWeatherCondition,
+                        showWeather: showWeather,
+                        weatherManager: weatherManager
+                    )
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(action: {
+                                if hapticEnabled {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                }
+                                showComplicationsSheet = false
+                            }) {
+                                Image(systemName: "xmark")
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                    }
+                }
+                .presentationDetents([.height(220)])
             }
         }
     }
