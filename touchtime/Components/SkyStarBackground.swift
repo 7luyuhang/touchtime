@@ -27,7 +27,7 @@ struct StarParticle: View {
 
 // Container for multiple stars
 struct StarsView: View {
-    var starCount: Int = 50  // Number of stars (configurable)
+    var starCount: Int = 25  // Number of stars (configurable)
     @State private var stars: [(id: Int, x: CGFloat, y: CGFloat, size: CGFloat)] = []
     
     var body: some View {
