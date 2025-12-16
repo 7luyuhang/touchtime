@@ -545,19 +545,17 @@ struct SettingsView: View {
                 
                 
                 
-                // Calendar Section
+                // Others
                 Section{
+                    // Calendar Section
                     NavigationLink(destination: CalendarView(worldClocks: worldClocks)) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
                             Text("Calendar")
                         }
                     }
-                }
-                
-                
-                // Onboarding Section
-                Section {
+                    
+                    // Onboarding Section
                     Button(action: {
                         showOnboarding = true
                     }) {
@@ -567,11 +565,8 @@ struct SettingsView: View {
                         }
                     }
                     .foregroundStyle(.primary)
-                }
-                
-                
-                // Reset Section
-                Section{
+                    
+                    // Reset Section
                     Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
@@ -598,7 +593,7 @@ struct SettingsView: View {
                 }
                 
                 
-                // Others Section
+                // Contact Sections
                 Section{
                     
                     Button(action: {

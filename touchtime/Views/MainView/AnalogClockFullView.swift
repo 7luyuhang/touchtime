@@ -118,7 +118,9 @@ struct AnalogClockFullView: View {
                             showLocalTime: showLocalTime,
                             selectedCityId: $selectedCityId,
                             hapticEnabled: hapticEnabled,
-                            showDetailsSheet: $showDetailsSheet
+                            showDetailsSheet: $showDetailsSheet,
+                            weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                            showWeather: showWeather
                         )
                         
                         // Digital time and scroll controls overlay
@@ -371,6 +373,8 @@ struct AnalogClockFaceView: View {
     @Binding var selectedCityId: UUID?
     let hapticEnabled: Bool
     @Binding var showDetailsSheet: Bool
+    let weather: CurrentWeather?
+    let showWeather: Bool
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true
@@ -556,13 +560,15 @@ struct AnalogClockFaceView: View {
                     .position(positionForTime(hour: endTime.hour, minute: endTime.minute, radius: indicatorRadius, center: center))
             }
             
-            // Sun icon
-            Image(systemName: "sun.max.fill")
+            // Sun/Weather icon
+            Image(systemName: showWeather && weather != nil ? weather!.condition.icon : "sun.max.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
                 .frame(height: 24)
                 .position(x: size / 2,  y: size / 2 + (size / 2 - 64))
+                .contentTransition(.symbolEffect(.replace))
+                .animation(.spring(), value: weather?.condition)
             
             // Moon phase icon
             Image(systemName: moonPhaseIcon)
