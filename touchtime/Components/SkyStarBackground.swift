@@ -38,6 +38,7 @@ struct StarsView: View {
                         .position(x: star.x, y: star.y)
                 }
             }
+            .drawingGroup()
             .onAppear {
                 if geometry.size.width > 0 && geometry.size.height > 0 {
                     generateStars(in: geometry.size)
