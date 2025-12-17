@@ -41,6 +41,7 @@ struct HomeView: View {
     @State private var showArrangeListSheet = false
     @State private var showEarthView = false
     @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
+    @State private var showCalendarPermissionAlert = false
     
     // Collection management
     @State private var collections: [CityCollection] = []
@@ -238,9 +239,10 @@ struct HomeView: View {
                 }
             } else {
                 print("Calendar access denied or error: \(String(describing: error))")
-                // Provide haptic feedback on permission denied if enabled
-                if self.hapticEnabled {
-                    DispatchQueue.main.async {
+                DispatchQueue.main.async {
+                    self.showCalendarPermissionAlert = true
+                    // Provide haptic feedback on permission denied if enabled
+                    if self.hapticEnabled {
                         let impactFeedback = UINotificationFeedbackGenerator()
                         impactFeedback.prepare()
                         impactFeedback.notificationOccurred(.warning)
@@ -1074,6 +1076,18 @@ struct HomeView: View {
                 }
             } message: {
                 Text("Customize the name of this city")
+            }
+            
+            // Calendar Permission Alert
+            .alert("", isPresented: $showCalendarPermissionAlert) {
+                Button(String(localized: "Cancel"), role: .cancel) { }
+                Button(String(localized: "Go to Settings")) {
+                    if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(settingsURL)
+                    }
+                }
+            } message: {
+                Text("Please allow calendar access in Settings to add events.")
             }
             
             // Share Cities Sheet
