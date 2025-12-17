@@ -89,6 +89,7 @@
 "1 City" = "1 個城市";
 "%d Cities" = "%d 個城市";
 "Need full calendar access." = "需要完整的日曆存取權限。";
+"Please allow calendar access in Settings to add events." = "請在設定中允許日曆存取以新增活動。";
 "Go to Settings" = "前往設定";
 "Show Onboarding" = "顯示引導";
 "Reset Cities" = "重置城市";

@@ -89,6 +89,7 @@
 "1 City" = "1 City";
 "%d Cities" = "%d Cities";
 "Need full calendar access." = "Need full calendar access.";
+"Please allow calendar access in Settings to add events." = "Please allow calendar access in Settings to add events.";
 "Go to Settings" = "Go to Settings";
 "Show Onboarding" = "Show Onboarding";
 "Reset Cities" = "Reset Cities";

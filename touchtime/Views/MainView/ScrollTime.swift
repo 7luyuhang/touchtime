@@ -32,6 +32,7 @@ struct ScrollTimeView: View {
     @AppStorage("hasRequestedReviewAfterFirstReset") private var hasRequestedReviewAfterFirstReset = false
     @Environment(\.requestReview) private var requestReview
     @Namespace private var glassNamespace
+    @State private var showCalendarPermissionAlert = false
     
     // Calculate hours from drag offset
     func hoursFromOffset(_ offset: CGFloat) -> Double {
@@ -275,9 +276,12 @@ struct ScrollTimeView: View {
                 }
             } else {
                 print("Calendar access denied or error: \(String(describing: error))")
-                // Provide haptic feedback on permission denied if enabled
-                if hapticEnabled {
-                    DispatchQueue.main.async {
+                DispatchQueue.main.async {
+                    // Show permission alert
+                    self.showCalendarPermissionAlert = true
+                    
+                    // Provide haptic feedback on permission denied if enabled
+                    if self.hapticEnabled {
                         let impactFeedback = UINotificationFeedbackGenerator()
                         impactFeedback.prepare()
                         impactFeedback.notificationOccurred(.warning)
@@ -559,6 +563,16 @@ struct ScrollTimeView: View {
                 eventStore: eventStore
             )
             .ignoresSafeArea()
+        }
+        .alert("", isPresented: $showCalendarPermissionAlert) {
+            Button(String(localized: "Cancel"), role: .cancel) { }
+            Button(String(localized: "Go to Settings")) {
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsURL)
+                }
+            }
+        } message: {
+            Text("Please allow calendar access in Settings to add events.")
         }
     }
 }
