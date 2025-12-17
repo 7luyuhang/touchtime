@@ -268,6 +268,7 @@ struct AnalogClockFullView: View {
                         initialDate: currentDate,
                         timeOffset: timeOffset
                     )
+                    .environmentObject(weatherManager)
                 } else {
                     SunriseSunsetSheet(
                         cityName: String(localized: "Local"),
@@ -275,6 +276,7 @@ struct AnalogClockFullView: View {
                         initialDate: currentDate,
                         timeOffset: timeOffset
                     )
+                    .environmentObject(weatherManager)
                 }
             }
             .sheet(isPresented: $showShareSheet) {

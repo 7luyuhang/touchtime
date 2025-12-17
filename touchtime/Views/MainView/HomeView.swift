@@ -1137,6 +1137,7 @@ struct HomeView: View {
                     initialDate: currentDate,
                     timeOffset: timeOffset
                 )
+                .environmentObject(weatherManager)
             }
             
             // Arrange List Sheet

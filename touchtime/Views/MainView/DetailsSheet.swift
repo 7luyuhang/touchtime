@@ -27,7 +27,7 @@ struct SunriseSunsetSheet: View {
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
-    @StateObject private var weatherManager = WeatherManager()
+    @EnvironmentObject private var weatherManager: WeatherManager
     @State private var weatherLoadAttempted = false // No Weather Data
     @State private var isWeatherExpanded = false // Track weather section expansion
     @State private var currentDetent: PresentationDetent = .medium // Track current sheet size

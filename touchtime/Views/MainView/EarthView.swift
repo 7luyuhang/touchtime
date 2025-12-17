@@ -46,6 +46,7 @@ struct EarthView: View {
     @AppStorage("showMapLabels") private var showMapLabels = true // 默认显示地图标签
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     
+    @StateObject private var weatherManager = WeatherManager()
     @Environment(\.dismiss) private var dismiss
     
     // Namespace for Glass Effect morphing
@@ -796,6 +797,7 @@ struct EarthView: View {
                     initialDate: currentDate,
                     timeOffset: 0
                 )
+                .environmentObject(weatherManager)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
             }
