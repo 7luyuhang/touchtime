@@ -520,10 +520,8 @@ struct SettingsView: View {
                             }
                             .layoutPriority(1)
                             Spacer(minLength: 8)
-                            if let complicationName = currentComplicationName {
-                                Text(complicationName)
-                                    .foregroundStyle(.secondary)
-                            }
+                            Text(currentComplicationName ?? String(localized: "None"))
+                                .foregroundStyle(.secondary)
                         }
                     }
                     .foregroundStyle(.primary)
