@@ -83,6 +83,9 @@ struct HomeView: View {
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
+    @AppStorage("showWhatsNewComplication") private var showWhatsNewComplication = true
+    
+    @State private var showWhatsNewSheet = false
     
     @StateObject private var weatherManager = WeatherManager()
     
@@ -452,6 +455,7 @@ struct HomeView: View {
                                             )
                                         }
                                     }
+                                    .frame(minHeight: 64) // For Complication Overlays
                                     
                                     // Analog Clock Overlay - Centered
                                     if showAnalogClock {
@@ -699,6 +703,7 @@ struct HomeView: View {
                                         }
                                         .padding(.bottom, -4)
                                     }
+                                    .frame(minHeight: 64) // For Complication Overlays
                                     
                                     // Analog Clock Overlay - Centered
                                     if showAnalogClock {
@@ -1036,6 +1041,13 @@ struct HomeView: View {
             
             .onAppear {
                 loadCollections()
+                
+                // Show What's New sheet for complication feature
+                if showWhatsNewComplication {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showWhatsNewSheet = true
+                    }
+                }
             }
             
             // Listen for reset notification to reset scroll time
@@ -1173,6 +1185,28 @@ struct HomeView: View {
                     ),
                     showScrollTimeButtons: $showScrollTimeButtons
                 )
+            }
+            
+            // What's New Complication Sheet
+            .sheet(isPresented: $showWhatsNewSheet) {
+                WhatsNewSheet(
+                    showAnalogClock: $showAnalogClock,
+                    showSunPosition: $showSunPosition,
+                    showSunAzimuth: $showSunAzimuth,
+                    showWeatherCondition: $showWeatherCondition,
+                    showWeather: showWeather,
+                    weatherManager: weatherManager,
+                    isPresented: $showWhatsNewSheet
+                )
+//                .presentationDetents([.medium])
+                .presentationDetents([.height(400)])
+                .interactiveDismissDisabled()
+            }
+            .onChange(of: showWhatsNewSheet) { oldValue, newValue in
+                if !newValue && oldValue {
+                    // Mark as seen when sheet is dismissed
+                    showWhatsNewComplication = false
+                }
             }
         }
         

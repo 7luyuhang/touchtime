@@ -801,7 +801,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                .presentationDetents([.height(220)])
+                .presentationDetents([.height(280)])
             }
         }
     }

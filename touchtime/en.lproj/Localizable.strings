@@ -333,3 +333,12 @@
 "Complications" = "Complications";
 "Add complications in the middle of the city list." = "Add complications in the middle of the city list.";
 "Weather Condition" = "Weather Condition";
+"Use your current location" = "Use your current location";
+
+/* What's New */
+"What's New" = "What's New";
+"Add a city complication for quick insights." = "Add a city complication for quick insights.";
+"Add complications for quick, at-a-glance insights." = "Add complications for quick, at-a-glance insights.";
+"Tap to Select" = "Tap to Select";
+"Skip" = "Skip";
+"Done" = "Done";

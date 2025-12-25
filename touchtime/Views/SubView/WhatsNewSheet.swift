@@ -1,27 +1,33 @@
 //
-//  ComplicationsSettingsView.swift
+//  WhatsNewSheet.swift
 //  touchtime
 //
-//  Created on 14/12/2025.
+//  Created on 25/12/2025.
 //
 
 import SwiftUI
 import Combine
 
-struct ComplicationsSettingsView: View {
+struct WhatsNewSheet: View {
     @Binding var showAnalogClock: Bool
     @Binding var showSunPosition: Bool
     @Binding var showSunAzimuth: Bool
     @Binding var showWeatherCondition: Bool
     var showWeather: Bool
     @ObservedObject var weatherManager: WeatherManager
+    @Binding var isPresented: Bool
     
     @State private var currentDate = Date()
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    // Currently selected complication type
+    // Check if any complication is selected
+    private var hasSelectedComplication: Bool {
+        showAnalogClock || showSunPosition || showSunAzimuth || showWeatherCondition
+    }
+    
+    // Complication type enum
     private enum ComplicationType: CaseIterable {
         case analogClock
         case sunElevation
@@ -36,7 +42,6 @@ struct ComplicationsSettingsView: View {
             case .weatherCondition: return String(localized: "Weather Condition")
             }
         }
-        
     }
     
     private func selectComplication(_ type: ComplicationType?) {
@@ -49,30 +54,71 @@ struct ComplicationsSettingsView: View {
     }
     
     var body: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 48){
-                // Complications
-                complicationSelector
-                    .padding(.horizontal, 24)
-                //Text
-                HStack {
-                    Image(systemName: "location.fill")
-                        .font(.footnote.weight(.semibold))
-                    Text(String(localized: "Use your current location"))
-                        .font(.footnote.weight(.medium))
+        NavigationStack {
+            VStack(spacing: 0) {
+                Spacer()
+                VStack(spacing: 32) {
+                    // Description
+                        Text(String(localized: "Add complications for quick, at-a-glance insights."))
+                            .multilineTextAlignment(.center)
+                    
+                    // Complications
+                    complicationSelector
                 }
-                .foregroundStyle(.secondary)
-                .blendMode(.plusLighter)
+                .padding(.horizontal, 24)
+                
+                Spacer()
+                
+                Button {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                    isPresented = false
+                } label: {
+                    Text(hasSelectedComplication ? String(localized: "Done") : String(localized: "Tap to Select"))
+                        .font(.headline)
+                        .foregroundStyle(hasSelectedComplication ? .black : .white)
+                        .contentTransition(.numericText())
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical)
+                        .background(
+                            Capsule()
+                                .fill(hasSelectedComplication ? .white : .secondary)
+                                .glassEffect(.clear.interactive())
+                        )
+                }
+                .buttonStyle(.plain)
+                .disabled(!hasSelectedComplication)
+                .padding(.horizontal, 24)
+                .animation(.spring(), value: hasSelectedComplication)
             }
-            
-            Spacer()
-        }
-        .scrollIndicators(.hidden)
-        .navigationTitle("Complications")
-        .navigationBarTitleDisplayMode(.inline)
-        .onReceive(timer) { _ in
-            currentDate = Date()
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        isPresented = false
+                    } label: {
+                        Text(String(localized: "Skip"))
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            .onReceive(timer) { _ in
+                currentDate = Date()
+            }
+            .navigationTitle("What's New")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                // Fetch weather for local timezone
+                if showWeather {
+                    Task {
+                        await weatherManager.getWeather(for: TimeZone.current.identifier)
+                    }
+                }
+            }
         }
     }
     
@@ -179,3 +225,4 @@ struct ComplicationsSettingsView: View {
         .animation(.spring(), value: isSelected)
     }
 }
+

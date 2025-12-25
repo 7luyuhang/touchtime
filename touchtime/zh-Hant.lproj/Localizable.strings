@@ -778,6 +778,15 @@
 "Complications" = "複雜功能";
 "Add complications in the middle of the city list." = "在城市列表中間添加複雜功能。";
 "Weather Condition" = "天氣狀況";
+"Use your current location" = "使用您目前的位置";
+
+/* What's New */
+"What's New" = "新功能";
+"Add a city complication for quick insights." = "添加城市複雜功能，快速獲取資訊。";
+"Add complications for quick, at-a-glance insights." = "添加複雜功能，快速獲取資訊。";
+"Tap to Select" = "輕點選擇";
+"Skip" = "跳過";
+"Done" = "完成";
 
 /* DST */
 "Starts" = "開始於";
