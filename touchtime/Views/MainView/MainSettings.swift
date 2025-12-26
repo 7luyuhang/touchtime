@@ -717,6 +717,15 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    ShareLink(
+                        item: URL(string: "https://apps.apple.com/us/app/touch-time-world-clock/id6753721487")!,
+                        message: Text("Download Touch Time.")
+                    ) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
                         if hapticEnabled {
@@ -725,7 +734,6 @@ struct SettingsView: View {
                         dismiss()
                     }) {
                         Image(systemName: "xmark")
-                            .fontWeight(.semibold)
                     }
                 }
             }

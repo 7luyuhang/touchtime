@@ -224,8 +224,14 @@ struct ArrangeListView: View {
                         ForEach(collections) { collection in
                             DisclosureGroup(
                                 isExpanded: Binding(
-                                    get: { expandedCollections.contains(collection.id) },
+                                    get: { 
+                                        // Disable expansion if collection has no cities
+                                        guard !collection.cities.isEmpty else { return false }
+                                        return expandedCollections.contains(collection.id) 
+                                    },
                                     set: { isExpanding in
+                                        // Prevent expansion if collection has no cities
+                                        guard !collection.cities.isEmpty else { return }
                                         if isExpanding {
                                             expandedCollections.insert(collection.id)
                                         } else {
