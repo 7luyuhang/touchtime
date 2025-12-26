@@ -10,6 +10,7 @@ import Combine
 import UIKit
 import WeatherKit
 import MoonKit
+import SunKit
 import CoreLocation
 
 struct AnalogClockFullView: View {
@@ -383,6 +384,35 @@ struct AnalogClockFaceView: View {
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
+    
+    // Calculate sunrise and sunset times using SunKit
+    private var sunTimes: (sunrise: Date?, sunset: Date?)? {
+        guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
+            return nil
+        }
+        
+        var sun = Sun(
+            location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude),
+            timeZone: selectedTimeZone
+        )
+        sun.setDate(date)
+        
+        return (sun.sunrise, sun.sunset)
+    }
+    
+    // Calculate angle for a date (hour and minute extracted from the date)
+    private func angleForDate(_ date: Date?) -> Double? {
+        guard let date = date else { return nil }
+        var calendar = Calendar.current
+        calendar.timeZone = selectedTimeZone
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        guard let hour = components.hour, let minute = components.minute else { return nil }
+        // 24-hour clock: full rotation = 24 hours
+        let hourAngle = Double(hour) * 15.0 // 15 degrees per hour
+        let minuteAngle = Double(minute) * 0.25 // 15/60 degrees per minute
+        return hourAngle + minuteAngle
+    }
     
     // Parse time string like "09:00" to (hour, minute)
     private func parseTimeString(_ timeString: String) -> (hour: Int, minute: Int) {
@@ -540,6 +570,27 @@ struct AnalogClockFaceView: View {
             // Hour numbers
             HourNumbersView(size: size)
             
+            // Sunrise and Sunset indicator lines
+            if showSunriseSunsetLines, let times = sunTimes {
+                // Sunrise line
+                if let sunriseAngle = angleForDate(times.sunrise) {
+                    SunriseSunsetLineView(
+                        angle: sunriseAngle,
+                        size: size,
+                        isSunrise: true
+                    )
+                }
+                
+                // Sunset line
+                if let sunsetAngle = angleForDate(times.sunset) {
+                    SunriseSunsetLineView(
+                        angle: sunsetAngle,
+                        size: size,
+                        isSunrise: false
+                    )
+                }
+            }
+            
             // Available time indicators
             if availableTimeEnabled {
                 let startTime = parseTimeString(availableStartTime)
@@ -549,14 +600,14 @@ struct AnalogClockFaceView: View {
                 
                 // Start time indicator
                 Circle()
-                    .fill(.white.opacity(0.50))
+                    .glassEffect(.clear)
                     .frame(width: 6, height: 6)
                     .blendMode(.plusLighter)
                     .position(positionForTime(hour: startTime.hour, minute: startTime.minute, radius: indicatorRadius, center: center))
                 
                 // End time indicator
                 Circle()
-                    .fill(.white.opacity(0.50))
+                    .glassEffect(.clear)
                     .frame(width: 6, height: 6)
                     .blendMode(.plusLighter)
                     .position(positionForTime(hour: endTime.hour, minute: endTime.minute, radius: indicatorRadius, center: center))
@@ -790,6 +841,44 @@ struct ClockHandWithLabel: View {
         }
         .animation(.none, value: angle)
         .rotationEffect(.degrees(angle))
+    }
+}
+
+// MARK: - Sunrise/Sunset Line View
+struct SunriseSunsetLineView: View {
+    let angle: Double
+    let size: CGFloat
+    let isSunrise: Bool
+    
+    var body: some View {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let radius = (size - 24) / 2 - 50
+        let angleRadians = (angle - 90) * .pi / 180
+        let endPoint = CGPoint(
+            x: center.x + radius * CGFloat(cos(angleRadians)),
+            y: center.y + radius * CGFloat(sin(angleRadians))
+        )
+        
+        Path { path in
+            path.move(to: center)
+            path.addLine(to: endPoint)
+        }
+        .stroke(
+            LinearGradient(
+                colors: [Color.white.opacity(0.25), Color.white.opacity(0)],
+                startPoint: UnitPoint(x: 0.5, y: 0.5),
+                endPoint: UnitPoint(
+                    x: 0.5 + (radius / size) * CGFloat(cos(angleRadians)),
+                    y: 0.5 + (radius / size) * CGFloat(sin(angleRadians))
+                )
+            ),
+            style: StrokeStyle(
+                lineWidth: 1.25,
+                lineCap: .round
+            )
+        )
+        .blendMode(.plusLighter)
+        .allowsHitTesting(false)
     }
 }
 

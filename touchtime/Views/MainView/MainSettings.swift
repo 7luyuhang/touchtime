@@ -28,6 +28,7 @@ struct SettingsView: View {
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
+    @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     @State private var showSupportLove = false
@@ -530,6 +531,14 @@ struct SettingsView: View {
                 
                 // Analog Time Section
                 Section {
+                    Toggle(isOn: $showSunriseSunsetLines) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            Text(String(localized: "Sunrise & Sunset Lines"))
+                        }
+                    }
+                    .tint(.blue)
+                    
                     Toggle(isOn: $showArcIndicator) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "circle", topColor: .black, bottomColor: .black)
