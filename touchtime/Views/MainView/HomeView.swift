@@ -438,6 +438,7 @@ struct HomeView: View {
                                             .fontDesign(.rounded)
                                             .monospacedDigit()
                                             .contentTransition(.numericText())
+                                            .clipped()
                                         }
                                         .padding(.bottom, -4)
                                         
@@ -700,6 +701,7 @@ struct HomeView: View {
                                             .fontDesign(.rounded)
                                             .monospacedDigit()
                                             .contentTransition(.numericText())
+                                            .clipped()
                                         }
                                         .padding(.bottom, -4)
                                     }
