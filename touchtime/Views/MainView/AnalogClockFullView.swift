@@ -602,19 +602,25 @@ struct AnalogClockFaceView: View {
             // Hour numbers
             HourNumbersView(size: size)
             
-            // Sunrise and Sunset indicator lines
+            // Sunrise and Sunset indicator lines with daylight arc
             if showSunriseSunsetLines, let times = sunTimes {
-                // Sunrise line
-                if let sunriseAngle = angleForDate(times.sunrise) {
+                // Daylight arc fill between sunrise and sunset
+                if let sunriseAngle = angleForDate(times.sunrise),
+                   let sunsetAngle = angleForDate(times.sunset) {
+                    DaylightArcView(
+                        sunriseAngle: sunriseAngle,
+                        sunsetAngle: sunsetAngle,
+                        size: size
+                    )
+                    
+                    // Sunrise line
                     SunriseSunsetLineView(
                         angle: sunriseAngle,
                         size: size,
                         isSunrise: true
                     )
-                }
-                
-                // Sunset line
-                if let sunsetAngle = angleForDate(times.sunset) {
+                    
+                    // Sunset line
                     SunriseSunsetLineView(
                         angle: sunsetAngle,
                         size: size,
@@ -876,6 +882,47 @@ struct ClockHandWithLabel: View {
         }
         .animation(.none, value: angle)
         .rotationEffect(.degrees(angle))
+    }
+}
+
+// MARK: - Daylight Arc View
+struct DaylightArcView: View {
+    let sunriseAngle: Double
+    let sunsetAngle: Double
+    let size: CGFloat
+    
+    var body: some View {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let radius = (size - 24) / 2
+        
+        // Convert to radians (subtract 90 to align with clock where 0 is at top)
+        let startRadians = (sunriseAngle - 90) * .pi / 180
+        let endRadians = (sunsetAngle - 90) * .pi / 180
+        
+        Path { path in
+            path.move(to: center)
+            path.addArc(
+                center: center,
+                radius: radius,
+                startAngle: Angle(radians: startRadians),
+                endAngle: Angle(radians: endRadians),
+                clockwise: false
+            )
+            path.closeSubpath()
+        }
+        .fill(
+            RadialGradient(
+                colors: [
+                    Color.white.opacity(0.1),
+                    Color.white.opacity(0.0)
+                ],
+                center: .center,
+                startRadius: 0,
+                endRadius: radius
+            )
+        )
+        .blendMode(.plusLighter)
+        .allowsHitTesting(false)
     }
 }
 
