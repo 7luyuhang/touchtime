@@ -553,7 +553,7 @@ struct AnalogClockFaceView: View {
             // Clock face background
             Circle()
                 .fill(Color.black.opacity(0.25))
-                .glassEffect(.clear)
+                .glassEffect(.clear.interactive())
                 .frame(width: max(size - 24, 0), height: max(size - 24, 0))
             
             // Time offset arc (显示滚动时间的起点到终点)
