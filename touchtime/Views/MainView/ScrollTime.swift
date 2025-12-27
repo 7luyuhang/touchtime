@@ -30,6 +30,7 @@ struct ScrollTimeView: View {
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @AppStorage("hasRequestedReviewAfterFirstReset") private var hasRequestedReviewAfterFirstReset = false
+    @AppStorage("resetCount") private var resetCount: Int = 0
     @Environment(\.requestReview) private var requestReview
     @Namespace private var glassNamespace
     @State private var showCalendarPermissionAlert = false
@@ -309,8 +310,12 @@ struct ScrollTimeView: View {
             showButtons = false
         }
         
-        // Request app review after first reset
-        if !hasRequestedReviewAfterFirstReset {
+        // Increase reset count
+        resetCount += 1
+        
+        // Request app review after 3 resets
+        let reviewRequestThreshold = 3
+        if resetCount >= reviewRequestThreshold && !hasRequestedReviewAfterFirstReset {
             hasRequestedReviewAfterFirstReset = true
             // Delay the review request slightly to allow the UI animation to complete
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
