@@ -164,27 +164,31 @@ struct AnalogClockFullView: View {
                                 Spacer()
                                 // Local time display
                                 if selectedCityId != nil {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "location.fill")
-                                            .font(.footnote.weight(.medium))
-                                        Text({
-                                            let formatter = DateFormatter()
-                                            formatter.locale = Locale(identifier: "en_US_POSIX")
-                                            formatter.timeZone = TimeZone.current
-                                            if use24HourFormat {
-                                                formatter.dateFormat = "HH:mm"
-                                            } else {
-                                                formatter.dateFormat = "h:mm"
-                                            }
-                                            return formatter.string(from: displayDate)
-                                        }())
+                                    let timeString = {
+                                        let formatter = DateFormatter()
+                                        formatter.locale = Locale(identifier: "en_US_POSIX")
+                                        formatter.timeZone = TimeZone.current
+                                        if use24HourFormat {
+                                            formatter.dateFormat = "HH:mm"
+                                        } else {
+                                            formatter.dateFormat = "h:mm"
+                                        }
+                                        return formatter.string(from: displayDate)
+                                    }()
+                                    
+                                    let locationIcon = Text(Image(systemName: "location.fill"))
+                                        .font(.footnote.weight(.medium))
+                                    
+                                    let timeText = Text(timeString)
+                                        .customAttribute(EmphasisAttribute())
                                         .font(.subheadline.weight(.medium))
-                                    }
-                                    .foregroundStyle(.secondary)
-                                    .blendMode(.plusLighter)
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText())
-                                    .padding(.bottom, 16)
+                                    
+                                    Text("\(locationIcon) \(timeText)")
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .monospacedDigit()
+                                        .padding(.bottom, 16)
+                                        .transition(TextTransition())
                                 }
                                 Spacer()
                                 ScrollTimeView(
