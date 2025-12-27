@@ -12,6 +12,7 @@ import WeatherKit
 import MoonKit
 import SunKit
 import CoreLocation
+import TipKit
 
 struct AnalogClockFullView: View {
     @Binding var worldClocks: [WorldClock]
@@ -365,6 +366,25 @@ struct TimeOffsetArcView: View {
     }
 }
 
+// MARK: - Double Tap Tip
+struct DoubleTapClockFaceTip: Tip {
+    var title: Text {
+        Text(String(localized: "Focus Time"))
+    }
+    
+    var message: Text? {
+        Text(String(localized: "Double-tap to focus on the selected time."))
+    }
+    
+    var image: Image? {
+        Image(systemName: "hand.rays.fill")
+    }
+    
+    var options: [TipOption] {
+        MaxDisplayCount(1)
+    }
+}
+
 // MARK: - Analog Clock Face View
 struct AnalogClockFaceView: View {
     let date: Date
@@ -385,6 +405,10 @@ struct AnalogClockFaceView: View {
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
+    
+    @State private var hideOtherHands = false
+    
+    private let doubleTapTip = DoubleTapClockFaceTip()
     
     // Calculate sunrise and sunset times using SunKit
     private var sunTimes: (sunrise: Date?, sunset: Date?)? {
@@ -555,6 +579,14 @@ struct AnalogClockFaceView: View {
                 .fill(Color.black.opacity(0.25))
                 .glassEffect(.clear.interactive())
                 .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+                .onTapGesture(count: 2) {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                    hideOtherHands.toggle()
+                    doubleTapTip.invalidate(reason: .actionPerformed)
+                }
+                .popoverTip(doubleTapTip)
             
             // Time offset arc (显示滚动时间的起点到终点)
             if showArcIndicator && timeOffset != 0 {
@@ -635,21 +667,24 @@ struct AnalogClockFaceView: View {
             
             // World clock hands with city labels (non-selected first)
             // Grouped by time to avoid overlapping labels - only one city shown per unique time
-            ForEach(groupedNonSelectedClocks) { clock in
-                let time = getTime(for: clock.timeZoneIdentifier)
-                ClockHandWithLabel(
-                    cityId: clock.id,
-                    cityName: clock.localizedCityName,
-                    hour: time.hour,
-                    minute: time.minute,
-                    size: size,
-                    color: .white.opacity(0.25), // Hand colour
-                    isSelected: false,
-                    isLocal: false,
-                    selectedCityId: $selectedCityId,
-                    hapticEnabled: hapticEnabled,
-                    showDetailsSheet: $showDetailsSheet
-                )
+            // Hidden when hideOtherHands is true (double-tap to toggle)
+            if !hideOtherHands {
+                ForEach(groupedNonSelectedClocks) { clock in
+                    let time = getTime(for: clock.timeZoneIdentifier)
+                    ClockHandWithLabel(
+                        cityId: clock.id,
+                        cityName: clock.localizedCityName,
+                        hour: time.hour,
+                        minute: time.minute,
+                        size: size,
+                        color: .white.opacity(0.25), // Hand colour
+                        isSelected: false,
+                        isLocal: false,
+                        selectedCityId: $selectedCityId,
+                        hapticEnabled: hapticEnabled,
+                        showDetailsSheet: $showDetailsSheet
+                    )
+                }
             }
             
             // Local time hand (non-selected)

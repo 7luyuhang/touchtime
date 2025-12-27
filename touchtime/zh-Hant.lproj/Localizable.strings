@@ -789,6 +789,10 @@
 "Skip" = "跳過";
 "Done" = "完成";
 
+/* Focus Time Tip */
+"Focus Time" = "專注時間";
+"Double-tap to focus on the selected time." = "雙擊錶盤以專注於所選時間";
+
 /* DST */
 "Starts" = "開始於";
 "Ends" = "結束於";

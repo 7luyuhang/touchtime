@@ -343,3 +343,7 @@
 "Tap to Select" = "Tap to Select";
 "Skip" = "Skip";
 "Done" = "Done";
+
+/* Focus Time Tip */
+"Focus Time" = "Focus Time";
+"Double-tap to focus on the selected time." = "Double-tap to focus on the selected time.";

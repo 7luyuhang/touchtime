@@ -790,6 +790,10 @@
 "Skip" = "跳过";
 "Done" = "完成";
 
+/* Focus Time Tip */
+"Focus Time" = "专注时间";
+"Double-tap to focus on the selected time." = "双击表盘以专注于所选时间";
+
 /* DST */
 "Starts" = "开始于";
 "Ends" = "结束于";
