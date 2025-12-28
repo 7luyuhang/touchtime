@@ -635,23 +635,6 @@ struct SettingsView: View {
                 }
                 
                 
-                Section {
-                    Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
-                        HStack {
-                            Text("Terms of Use")
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                    
-                    Link(destination: URL(string: "https://www.handstime.app/privacy")!) {
-                        HStack {
-                            Text("Privacy Policy")
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                }
-                
-                
                 Section(footer:
                             HStack(spacing: 4) {
                     Text("Designed & built by")
@@ -691,24 +674,9 @@ struct SettingsView: View {
                 }
                     .foregroundStyle(.primary)
                 ) {
-                    
-                    
-                    // Credits
-                    NavigationLink(destination: CreditsView()) {
-                        Text("Acknowledgements")
+                    NavigationLink(destination: AboutView()) {
+                        Text("About")
                     }
-                    // Version
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text(getVersionString())
-                            .foregroundColor(.secondary)
-                    }
-                    // App Info Section
-                    Text(String(format: String(localized: "Copyright © %d Negative Time Limited. \nAll rights reserved."), Calendar.current.component(.year, from: Date())))
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
                 }
                 
                 
@@ -873,10 +841,4 @@ struct SettingsView: View {
         }
     }
     
-    // Get version and build number string
-    func getVersionString() -> String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
-        return "\(version) (\(build))"
-    }
 }

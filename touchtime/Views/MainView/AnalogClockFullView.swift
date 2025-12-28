@@ -200,9 +200,18 @@ struct AnalogClockFullView: View {
                     }
                 }
             }
-            .navigationTitle(selectedCityName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(selectedCityName)
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                        .padding(.horizontal, 16)
+                        .frame(height: 44)
+                        .glassEffect(.regular.interactive())
+                        .lineLimit(1)
+                }
+                
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         // Share Section - only show if there are world clocks
