@@ -184,6 +184,36 @@ struct SettingsView: View {
                     }
                     .foregroundStyle(.primary)
                     
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        // Check if handstime app is installed
+                        if let handsTimeURL = URL(string: "handstime://"),
+                           UIApplication.shared.canOpenURL(handsTimeURL) {
+                            // Open handstime app
+                            UIApplication.shared.open(handsTimeURL)
+                        } else {
+                            // Open App Store page for handstime
+                            if let appStoreURL = URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720") {
+                                UIApplication.shared.open(appStoreURL)
+                            }
+                        }
+                    }) {
+                        HStack {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "widget.small", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                                Text("Widget")
+                            }
+                            .layoutPriority(1)
+                            Spacer(minLength: 8)
+                            Image(systemName: "arrow.up.forward")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
