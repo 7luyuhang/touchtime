@@ -11,13 +11,24 @@ struct AboutView: View {
     
     var body: some View {
         List {
-            Image("TouchTimeAppIcon")
-                .resizable()
-                .scaledToFit()
-                .glassEffect(.clear, in:
-                                RoundedRectangle(cornerRadius: 20, style: .continuous)
-                )
-                .frame(width: 80, height: 80)
+            VStack(spacing: 16){
+                Image("TouchTimeAppIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .glassEffect(.clear, in:
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    )
+                    .frame(width: 100, height: 100)
+                
+                VStack(spacing: 4) {
+                    Text("Touch Time")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+                    
+                    Text(getVersionString())
+                        .foregroundColor(.secondary)
+                }
+            }
                 .frame(maxWidth: .infinity, alignment: .center)
                 .listRowBackground(Color.clear)
             
@@ -37,18 +48,10 @@ struct AboutView: View {
                 .foregroundStyle(.primary)
             }
             
+            // Credits Section
             Section {
-                // Credits
                 NavigationLink(destination: CreditsView()) {
                     Text("Acknowledgements")
-                }
-                
-                // Version
-                HStack {
-                    Text("Version")
-                    Spacer()
-                    Text(getVersionString())
-                        .foregroundColor(.secondary)
                 }
                 
                 // App Info Section
@@ -57,6 +60,16 @@ struct AboutView: View {
                     .fontWeight(.medium)
                     .foregroundStyle(.secondary)
             }
+            
+//            Section {
+//                // Version
+//                HStack {
+//                    Text("Version")
+//                    Spacer()
+//                    Text(getVersionString())
+//                        .foregroundColor(.secondary)
+//                }
+//            }
         }
         .scrollIndicators(.hidden)
         .navigationTitle("About")

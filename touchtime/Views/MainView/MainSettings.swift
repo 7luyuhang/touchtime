@@ -186,7 +186,7 @@ struct SettingsView: View {
                     
                     Button(action: {
                         if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                         }
                         // Check if handstime app is installed
                         if let handsTimeURL = URL(string: "handstime://"),

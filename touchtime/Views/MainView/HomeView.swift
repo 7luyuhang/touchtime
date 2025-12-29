@@ -406,6 +406,7 @@ struct HomeView: View {
                                             .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
                                             .contentTransition(.numericText())
+                                            .clipped()
                                         }
                                         
                                         // Bottom row: Location and Time (baseline aligned)
@@ -646,6 +647,7 @@ struct HomeView: View {
                                                     .foregroundStyle(.secondary)
                                                     .blendMode(.plusLighter)
                                                     .contentTransition(.numericText())
+                                                    .clipped()
                                             }
                                         } else {
                                             HStack {
@@ -670,6 +672,7 @@ struct HomeView: View {
                                                     .font(.subheadline)
                                                     .foregroundStyle(.secondary)
                                                     .contentTransition(.numericText())
+                                                    .clipped()
                                             }
                                         }
                                         

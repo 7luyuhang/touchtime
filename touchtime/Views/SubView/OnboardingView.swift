@@ -190,6 +190,7 @@ struct OnboardingView: View {
                             // App Name
                             Text("Touch Time")
                                 .font(.system(size: 24).weight(.semibold))
+                                .blur(radius: animateText ? 0 : 10)
                                 .opacity(animateText ? 1.0 : 0.0)
                                 .offset(y: animateText ? 0 : 75)
                                 .animation(
@@ -201,6 +202,7 @@ struct OnboardingView: View {
                                 .blendMode(.plusLighter)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 40)
+                                .blur(radius: animateText ? 0 : 10)
                                 .opacity(animateText ? 1.0 : 0.0)
                                 .offset(y: animateText ? 0 : 75)
                                 .animation(
