@@ -204,11 +204,10 @@ struct AnalogClockFullView: View {
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     Text(selectedCityName)
-                        .font(.subheadline)
-                        .fontWeight(.semibold)
+                        .font(.subheadline.weight(.semibold))
                         .padding(.horizontal, 16)
                         .frame(height: 44)
-                        .glassEffect(.regular.interactive())
+                        .glassEffect(.regular, in: Capsule(style: .continuous))
                         .lineLimit(1)
                 }
                 

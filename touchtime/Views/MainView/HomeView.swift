@@ -943,10 +943,21 @@ struct HomeView: View {
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
             // Navigation Title
-            .navigationTitle(selectedCollectionId != nil ? currentCollectionName : "")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
+                // Collection Name (styled like AnalogClockFullView)
+                if selectedCollectionId != nil {
+                    ToolbarItem(placement: .principal) {
+                        Text(currentCollectionName)
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
+                            .frame(height: 44)
+                            .glassEffect(.regular, in: Capsule(style: .continuous))
+                            .lineLimit(1)
+                    }
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         // Collections

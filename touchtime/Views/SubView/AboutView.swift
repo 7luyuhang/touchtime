@@ -26,6 +26,7 @@ struct AboutView: View {
                         .foregroundStyle(.primary)
                     
                     Text(getVersionString())
+                        .font(.subheadline)
                         .foregroundColor(.secondary)
                 }
             }
