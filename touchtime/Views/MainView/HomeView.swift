@@ -869,6 +869,13 @@ struct HomeView: View {
                                         }
                                     }
                                     
+                                    // Arrange Cities
+                                    Button {
+                                        showArrangeListSheet = true
+                                    } label: {
+                                        Label(String(localized: "Arrange"), systemImage: "list.bullet")
+                                    }
+                                    
                                     // Only show delete for default view
                                     if selectedCollectionId == nil {
                                         Divider()
@@ -928,6 +935,7 @@ struct HomeView: View {
                     }
                 }
             )
+            
             // Animations
             .animation(.spring(), value: showingRenameAlert)
             .animation(.spring(), value: customLocalName)
