@@ -183,6 +183,9 @@
 "Departure" = "出发";
 "Arrive" = "到达";
 "No Cities" = "暂无城市";
+"Sort by" = "排序方式";
+"West to East" = "从西向东";
+"East to West" = "从东向西";
 
 /* Weekdays */
 "Mon" = "一";

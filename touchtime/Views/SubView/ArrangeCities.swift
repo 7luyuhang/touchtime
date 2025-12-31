@@ -182,6 +182,36 @@ struct ArrangeListView: View {
         collectionToRename = nil
     }
     
+    // Sort cities from West to East (by longitude, smallest to largest)
+    func sortCitiesWestToEast() {
+        worldClocks.sort { clock1, clock2 in
+            let coords1 = TimeZoneCoordinates.getCoordinate(for: clock1.timeZoneIdentifier)
+            let coords2 = TimeZoneCoordinates.getCoordinate(for: clock2.timeZoneIdentifier)
+            return (coords1?.longitude ?? 0) < (coords2?.longitude ?? 0)
+        }
+        saveWorldClocks()
+        
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+    
+    // Sort cities from East to West (by longitude, largest to smallest)
+    func sortCitiesEastToWest() {
+        worldClocks.sort { clock1, clock2 in
+            let coords1 = TimeZoneCoordinates.getCoordinate(for: clock1.timeZoneIdentifier)
+            let coords2 = TimeZoneCoordinates.getCoordinate(for: clock2.timeZoneIdentifier)
+            return (coords1?.longitude ?? 0) > (coords2?.longitude ?? 0)
+        }
+        saveWorldClocks()
+        
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             List {
@@ -397,7 +427,29 @@ struct ArrangeListView: View {
                         }
                     }
                 } header: {
-                    Text("All Cities")
+                    HStack {
+                        Text("All Cities")
+                        Spacer()
+                        Menu {
+                            Section(String(localized: "Sort by")) {
+                                Button {
+                                    sortCitiesEastToWest()
+                                } label: {
+                                    Label(String(localized: "East to West"), systemImage: "arrow.left")
+                                }
+
+                                Button {
+                                    sortCitiesWestToEast()
+                                } label: {
+                                    Label(String(localized: "West to East"), systemImage: "arrow.right")
+                                }
+                            }
+                        } label: {
+                            Image(systemName: "arrow.up.arrow.down")
+                                .font(.subheadline.weight(.medium))
+                                .tint(.primary)
+                        }
+                    }
                 }
             }
             .scrollIndicators(.hidden)

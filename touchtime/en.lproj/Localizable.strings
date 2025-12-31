@@ -182,6 +182,9 @@
 "Departure" = "Departure";
 "Arrive" = "Arrive";
 "No Cities" = "No Cities";
+"Sort by" = "Sort by";
+"West to East" = "West to East";
+"East to West" = "East to West";
 
 /* Weekdays */
 "Mon" = "M";

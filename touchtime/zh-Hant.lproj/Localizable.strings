@@ -182,6 +182,9 @@
 "Departure" = "出發";
 "Arrive" = "抵達";
 "No Cities" = "暫無城市";
+"Sort by" = "排序方式";
+"West to East" = "從西向東";
+"East to West" = "從東向西";
 
 /* Weekdays */
 "Mon" = "一";
