@@ -380,8 +380,9 @@ struct ScrollTimeView: View {
                             let totalHours = timeOffset / 3600
                             let isPositive = totalHours >= 0
                             let absoluteHours = abs(totalHours)
-                            let hours = Int(absoluteHours)
-                            let minutes = Int((absoluteHours - Double(hours)) * 60)
+                            let days = Int(absoluteHours / 24)
+                            let hours = Int(absoluteHours) % 24
+                            let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
                             
                             
                             // Final time text (tappable) - with sign
@@ -391,14 +392,22 @@ struct ScrollTimeView: View {
                                 Text({
                                     let sign = isPositive ? "+" : "-"
                                     var result = ""
-                                    if hours > 0 && minutes > 0 {
-                                        result = String(format: String(localized: "%dh %dm"), hours, minutes)
+                                    if days > 0 {
+                                        result = String(format: String(localized: "%dd"), days)
+                                        if hours > 0 {
+                                            result += " " + String(format: String(localized: "%dh"), hours)
+                                        }
+                                        if minutes > 0 {
+                                            result += " " + String(format: String(localized: "%02dm"), minutes)
+                                        }
+                                    } else if hours > 0 && minutes > 0 {
+                                        result = String(format: String(localized: "%dh %02dm"), hours, minutes)
                                     } else if hours > 0 {
                                         result = String(format: String(localized: "%dh"), hours)
                                     } else if minutes > 0 {
-                                        result = String(format: String(localized: "%dm"), minutes)
+                                        result = String(format: String(localized: "%02dm"), minutes)
                                     } else {
-                                        result = String(localized: "0m")
+                                        result = String(localized: "00m")
                                     }
                                     return sign + result
                                 }())
@@ -495,8 +504,38 @@ struct ScrollTimeView: View {
                     HStack(spacing: 8) {
                         Image(systemName: "arrow.counterclockwise")
                             .font(.footnote.weight(.semibold))
-                        Text("Reset")
-                            .font(.subheadline.weight(.medium))
+                        
+                        Text({
+                            let totalHours = timeOffset / 3600
+                            let isPositive = totalHours >= 0
+                            let absoluteHours = abs(totalHours)
+                            let days = Int(absoluteHours / 24)
+                            let hours = Int(absoluteHours) % 24
+                            let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
+                            
+                            let sign = isPositive ? "+" : "-"
+                            var result = ""
+                            if days > 0 {
+                                result = String(format: String(localized: "%dd"), days)
+                                if hours > 0 {
+                                    result += " " + String(format: String(localized: "%dh"), hours)
+                                }
+                                if minutes > 0 {
+                                    result += " " + String(format: String(localized: "%02dm"), minutes)
+                                }
+                            } else if hours > 0 && minutes > 0 {
+                                result = String(format: String(localized: "%dh %02dm"), hours, minutes)
+                            } else if hours > 0 {
+                                result = String(format: String(localized: "%dh"), hours)
+                            } else if minutes > 0 {
+                                result = String(format: String(localized: "%02dm"), minutes)
+                            } else {
+                                result = String(localized: "00m")
+                            }
+                            return sign + result
+                        }())
+                        .font(.footnote.weight(.semibold))
+                        .monospacedDigit()
                     }
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
@@ -580,6 +619,13 @@ struct ScrollTimeView: View {
                 dragOffset = 0
                 lastHapticOffset = 0
                 accumulatedOffset = 0 // Reset accumulated offset for continuous mode
+            }
+        }
+        .onChange(of: timeOffset) { oldValue, newValue in
+            // Sync accumulatedOffset when timeOffset is changed externally (e.g., from CityTimeAdjustmentSheet)
+            // Only sync when not currently dragging (dragOffset == 0) and in continuous scroll mode
+            if continuousScrollMode && dragOffset == 0 {
+                accumulatedOffset = newValue
             }
         }
         .sheet(isPresented: $showTimePicker) {

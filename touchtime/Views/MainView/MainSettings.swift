@@ -237,7 +237,7 @@ struct SettingsView: View {
                 Section {
                     Toggle(isOn: $continuousScrollMode) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "lines.measurement.horizontal", topColor: .pink, bottomColor: .indigo)
+                            SystemIconImage(systemName: "lines.measurement.horizontal", topColor: .white, bottomColor: .white, foregroundColor: .black)
                             Text("Continuous Scroll")
                         }
                     }

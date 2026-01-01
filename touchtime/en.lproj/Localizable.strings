@@ -131,9 +131,13 @@
 "Share" = "Share";
 "Slide to Adjust" = "Slide to Adjust";
 "%dh %dm" = "%dh %dm";
+"%dh %02dm" = "%dh %02dm";
+"%dd" = "%dd";
 "%dh" = "%dh";
 "%dm" = "%dm";
+"%02dm" = "%02dm";
 "0m" = "0m";
+"00m" = "00m";
 "Create Collection" = "Create Collection";
 "Organize your time in collection" = "Organize your time in collection";
 "Collections" = "Collections";

@@ -18,6 +18,7 @@ struct CityTimeAdjustmentSheet: View {
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
     
     init(cityName: String, timeZoneIdentifier: String, timeOffset: Binding<TimeInterval>, showSheet: Binding<Bool>, showScrollTimeButtons: Binding<Bool>) {
         self.cityName = cityName
@@ -143,8 +144,8 @@ struct CityTimeAdjustmentSheet: View {
                             
                             timeOffset = TimeInterval(minuteDifference * 60)
                             
-                            // Show buttons when time is adjusted
-                            if minuteDifference != 0 {
+                            // Show buttons when time is adjusted (only in normal mode, not continuous scroll mode)
+                            if minuteDifference != 0 && !continuousScrollMode {
                                 showScrollTimeButtons = true
                             }
                         }
@@ -171,7 +172,7 @@ struct CityTimeAdjustmentSheet: View {
                 }
                 
                 ToolbarItem(placement: .topBarLeading) {
-                    if showScrollTimeButtons {
+                    if showScrollTimeButtons || (continuousScrollMode && timeOffset != 0) {
                         Button(action: resetTime) {
                             Image(systemName: "arrow.counterclockwise")
                         }

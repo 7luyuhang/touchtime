@@ -132,9 +132,13 @@
 "Share" = "分享";
 "Slide to Adjust" = "滑动以调整";
 "%dh %dm" = "%d小时%d分钟";
+"%dh %02dm" = "%d小时%02d分钟";
+"%dd" = "%d天";
 "%dh" = "%d小时";
 "%dm" = "%d分钟";
+"%02dm" = "%02d分钟";
 "0m" = "0分钟";
+"00m" = "00分钟";
 "Create Collection" = "创建集合";
 "Organize your time in collection" = "用集合整理你的时间";
 "Collections" = "集合";
