@@ -352,3 +352,8 @@
 /* Focus Time Tip */
 "Focus Time" = "Focus Time";
 "Double-tap to focus on the selected time." = "Double-tap to focus on the selected time.";
+
+/* Continuous Scroll Mode */
+"Continuous Scroll" = "Continuous Scroll";
+"Reset" = "Reset";
+"System time shows at the top of the list with ambient background." = "System time shows at the top of the list with ambient background.";

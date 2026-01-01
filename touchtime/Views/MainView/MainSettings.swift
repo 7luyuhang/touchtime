@@ -17,6 +17,7 @@ struct SettingsView: View {
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
@@ -164,7 +165,7 @@ struct SettingsView: View {
                 
                 
                 // General Section
-                Section(header: Text("General"), footer: Text("Enable showing system time at the top of the list with ambient background.")) {
+                Section(header: Text("General"), footer: Text("System time shows at the top of the list with ambient background.")) {
                     
                     Button(action: {
                         if let url = URL(string: UIApplication.openSettingsURLString) {
@@ -222,6 +223,7 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
+                    
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
@@ -229,6 +231,21 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
+                }
+                
+                // Continuous Scroll
+                Section {
+                    Toggle(isOn: $continuousScrollMode) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "lines.measurement.horizontal", topColor: .pink, bottomColor: .indigo)
+                            Text("Continuous Scroll")
+                        }
+                    }
+                    .tint(.blue)
+                    .onChange(of: continuousScrollMode) { _, _ in
+                        // Reset scroll time when continuous scroll mode is toggled
+                        NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
+                    }
                 }
                 
                 // Available Time Section - only show when System Time is enabled
@@ -240,6 +257,7 @@ struct SettingsView: View {
                         }
                     }
                 }
+                
                 
                 // Temperature/Weather Section
                 Section {

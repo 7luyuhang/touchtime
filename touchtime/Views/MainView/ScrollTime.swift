@@ -16,6 +16,7 @@ struct ScrollTimeView: View {
     @Binding var showButtons: Bool
     @Binding var worldClocks: [WorldClock]
     @State private var dragOffset: CGFloat = 0
+    @State private var accumulatedOffset: TimeInterval = 0 // For continuous scroll mode
     @State private var eventStore = EKEventStore()
     @State private var showTimePicker = false
     @State private var showEventEditor = false
@@ -31,6 +32,7 @@ struct ScrollTimeView: View {
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @AppStorage("hasRequestedReviewAfterFirstReset") private var hasRequestedReviewAfterFirstReset = false
     @AppStorage("resetCount") private var resetCount: Int = 0
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
     @Environment(\.requestReview) private var requestReview
     @Namespace private var glassNamespace
     @State private var showCalendarPermissionAlert = false
@@ -307,6 +309,7 @@ struct ScrollTimeView: View {
             timeOffset = 0
             dragOffset = 0
             lastHapticOffset = 0
+            accumulatedOffset = 0 // Reset accumulated offset for continuous mode
             showButtons = false
         }
         
@@ -348,32 +351,11 @@ struct ScrollTimeView: View {
                     // Main content
                     HStack {
                         // Time adjustment indicator
-                        if dragOffset != 0 {
-                            // During dragging - ZStack with dots and chevrons
+                        if dragOffset != 0 || (continuousScrollMode && timeOffset != 0) {
+                            // During dragging or in continuous mode with offset - ZStack with dots and chevrons
                             ZStack {
-                                // Dots indicator in the background
-                                HStack(spacing: 8) {
-                                    ForEach(0..<24) { index in
-                                        Capsule()
-                                            .fill(.primary.opacity({
-                                                // Calculate opacity based on distance from center
-                                                let center = 11.5 // Center of 24 items (0-23)
-                                                let distance = abs(Double(index) - center)
-                                                let maxDistance = 11.5
-                                                let opacity = 1.0 * (1 - (distance / maxDistance)) // From 1 at center to 0 at edges
-                                                return opacity
-                                            }()))
-                                            .frame(width: 2, height: 12)
-                                            .blur(radius: {
-                                                // Calculate blur based on distance from center
-                                                let center = 11.5 // Center of 24 items (0-23)
-                                                let distance = abs(Double(index) - center)
-                                                let maxDistance = 11.5
-                                                let blurAmount = (distance / maxDistance) * 1 // Max blur of 1
-                                                return blurAmount
-                                            }())
-                                    }
-                                }
+                                // Static dots indicator - doesn't re-render
+                                ScrollTimeDotsIndicator()
                                 
                                 // Chevrons in the foreground
                                 HStack {
@@ -393,7 +375,8 @@ struct ScrollTimeView: View {
                                 }
                             }
                             
-                        } else if timeOffset != 0 {
+                        } else if timeOffset != 0 && !continuousScrollMode {
+                            // Only show time text in normal mode, not in continuous scroll mode
                             let totalHours = timeOffset / 3600
                             let isPositive = totalHours >= 0
                             let absoluteHours = abs(totalHours)
@@ -460,7 +443,7 @@ struct ScrollTimeView: View {
                                 .blendMode(.plusLighter)
                         }
                     }
-                    .padding(.horizontal, (timeOffset == 0 || dragOffset != 0) ? 16 : 0)
+                    .padding(.horizontal, (timeOffset == 0 || dragOffset != 0 || continuousScrollMode) ? 16 : 0)
                     .font(.subheadline)
                     .animation(.spring(duration: 0.25), value: dragOffset)
                     .animation(.spring(duration: 0.25), value: timeOffset)
@@ -501,12 +484,47 @@ struct ScrollTimeView: View {
         
         // Overall composer
         .padding(.horizontal, 5)
+        .overlay(alignment: .top) {
+            // Reset button for continuous scroll mode
+            if continuousScrollMode && timeOffset != 0 && !showButtons {
+                Button(action: {
+                    DispatchQueue.main.async {
+                        resetTimeOffset()
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.footnote.weight(.semibold))
+                        Text("Reset")
+                            .font(.subheadline.weight(.medium))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .clipShape(Capsule())
+                .contentShape(Capsule())
+                .glassEffect(.regular.interactive())
+                .highPriorityGesture(DragGesture())
+                .transition(.blurReplace.combined(with: .scale).combined(with: .move(edge: .bottom)).combined(with: .opacity))
+                .offset(y: -52)
+            }
+        }
+        .animation(.spring(), value: continuousScrollMode)
+        .animation(.spring(), value: timeOffset != 0)
         .gesture(
             showButtons ? nil : DragGesture()
                 .onChanged { value in
                     dragOffset = value.translation.width
                     let hours = hoursFromOffset(dragOffset)
-                    timeOffset = hours * 3600 // Convert hours to seconds
+                    
+                    if continuousScrollMode {
+                        // In continuous mode, add to accumulated offset
+                        timeOffset = accumulatedOffset + hours * 3600
+                    } else {
+                        timeOffset = hours * 3600 // Convert hours to seconds
+                    }
                     
                     // Check and play haptic tick when crossing time marks
                     checkAndPlayHapticTick()
@@ -522,10 +540,19 @@ struct ScrollTimeView: View {
                         impactFeedback.impactOccurred()
                     }
                     
-                    // Show buttons after drag ends with morph animation
-                    withAnimation(.spring()) {
-                        showButtons = true
-                        dragOffset = 0
+                    if continuousScrollMode {
+                        // In continuous mode, accumulate the offset and reset drag
+                        let hours = hoursFromOffset(dragOffset)
+                        accumulatedOffset += hours * 3600
+                        withAnimation(.spring()) {
+                            dragOffset = 0
+                        }
+                    } else {
+                        // Show buttons after drag ends with morph animation
+                        withAnimation(.spring()) {
+                            showButtons = true
+                            dragOffset = 0
+                        }
                     }
                 }
         )
@@ -552,6 +579,7 @@ struct ScrollTimeView: View {
             withAnimation(.spring()) {
                 dragOffset = 0
                 lastHapticOffset = 0
+                accumulatedOffset = 0 // Reset accumulated offset for continuous mode
             }
         }
         .sheet(isPresented: $showTimePicker) {
@@ -578,6 +606,32 @@ struct ScrollTimeView: View {
             }
         } message: {
             Text("Please allow calendar access in Settings to add events.")
+        }
+    }
+}
+
+// MARK: - Static Dots Indicator
+struct ScrollTimeDotsIndicator: View {
+    // Pre-calculated static values - computed once
+    private static let dotData: [(opacity: Double, blur: CGFloat)] = {
+        let center = 11.5
+        let maxDistance = 11.5
+        return (0..<24).map { index in
+            let distance = abs(Double(index) - center)
+            let opacity = 1.0 - (distance / maxDistance)
+            let blur = CGFloat((distance / maxDistance) * 1.0)
+            return (opacity, blur)
+        }
+    }()
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<24, id: \.self) { index in
+                Capsule()
+                    .fill(.primary.opacity(Self.dotData[index].opacity))
+                    .frame(width: 2, height: 12)
+                    .blur(radius: Self.dotData[index].blur)
+            }
         }
     }
 }

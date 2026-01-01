@@ -799,6 +799,11 @@
 "Focus Time" = "专注时间";
 "Double-tap to focus on the selected time." = "双击表盘以专注于所选时间";
 
+/* Continuous Scroll Mode */
+"Continuous Scroll" = "连续滑动";
+"Reset" = "重置";
+"System time shows at the top of the list with ambient background." = "系统时间显示在列表顶部，带有环境背景。";
+
 /* DST */
 "Starts" = "开始于";
 "Ends" = "结束于";
