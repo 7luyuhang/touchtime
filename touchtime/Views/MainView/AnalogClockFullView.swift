@@ -31,6 +31,7 @@ struct AnalogClockFullView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showSkyDot") private var showSkyDot = true
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
     
     @StateObject private var weatherManager = WeatherManager()
     
@@ -162,8 +163,8 @@ struct AnalogClockFullView: View {
                             // Bottom section - Scroll controls
                             VStack {
                                 Spacer()
-                                // Local time display
-                                if selectedCityId != nil {
+                                // Local time display (hidden in continuous scroll mode)
+                                if selectedCityId != nil && !continuousScrollMode {
                                     HStack(spacing: 4) {
                                         Image(systemName: "location.fill")
                                             .font(.footnote.weight(.medium))
@@ -418,10 +419,50 @@ struct AnalogClockFaceView: View {
     
     private let doubleTapTip = DoubleTapClockFaceTip()
     
-    // Calculate sunrise and sunset times using SunKit
-    private var sunTimes: (sunrise: Date?, sunset: Date?)? {
+    // MARK: - Sun Times Cache
+    private struct SunTimesData {
+        let sunrise: Date?
+        let sunset: Date?
+    }
+    
+    private class SunTimesDataWrapper {
+        let data: SunTimesData
+        init(_ data: SunTimesData) { self.data = data }
+    }
+    
+    private static let sunTimesCache: NSCache<NSString, SunTimesDataWrapper> = {
+        let cache = NSCache<NSString, SunTimesDataWrapper>()
+        cache.countLimit = 30
+        return cache
+    }()
+    
+    // MARK: - Moon Phase Cache
+    private class MoonPhaseWrapper {
+        let icon: String
+        init(_ icon: String) { self.icon = icon }
+    }
+    
+    private static let moonPhaseCache: NSCache<NSString, MoonPhaseWrapper> = {
+        let cache = NSCache<NSString, MoonPhaseWrapper>()
+        cache.countLimit = 30
+        return cache
+    }()
+    
+    // Calculate sunrise and sunset times using SunKit (with caching)
+    private var sunTimes: SunTimesData? {
         guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
             return nil
+        }
+        
+        // Create cache key based on day-level precision and timezone
+        var calendar = Calendar.current
+        calendar.timeZone = selectedTimeZone
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        let cacheKey = "\(selectedTimeZone.identifier)_sun_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
+        
+        // Lock-free read from NSCache (thread-safe without blocking)
+        if let cached = Self.sunTimesCache.object(forKey: cacheKey) {
+            return cached.data
         }
         
         var sun = Sun(
@@ -430,7 +471,9 @@ struct AnalogClockFaceView: View {
         )
         sun.setDate(date)
         
-        return (sun.sunrise, sun.sunset)
+        let data = SunTimesData(sunrise: sun.sunrise, sunset: sun.sunset)
+        Self.sunTimesCache.setObject(SunTimesDataWrapper(data), forKey: cacheKey)
+        return data
     }
     
     // Calculate angle for a date (hour and minute extracted from the date)
@@ -540,11 +583,22 @@ struct AnalogClockFaceView: View {
         date.addingTimeInterval(-timeOffset)
     }
     
-    // Get SF Symbol for current moon phase
+    // Get SF Symbol for current moon phase (with caching)
     private var moonPhaseIcon: String {
         // Get coordinates for the timezone
         guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
             return "moon.fill"
+        }
+        
+        // Create cache key based on day-level precision and timezone
+        var calendar = Calendar.current
+        calendar.timeZone = selectedTimeZone
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        let cacheKey = "\(selectedTimeZone.identifier)_moon_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
+        
+        // Lock-free read from NSCache (thread-safe without blocking)
+        if let cached = Self.moonPhaseCache.object(forKey: cacheKey) {
+            return cached.icon
         }
         
         let moon = Moon(
@@ -558,26 +612,30 @@ struct AnalogClockFaceView: View {
             .replacingOccurrences(of: "_", with: " ")
             .lowercased()
         
+        let icon: String
         switch phaseString {
         case "newmoon", "new moon":
-            return "moonphase.new.moon"
+            icon = "moonphase.new.moon"
         case "waxingcrescent", "waxing crescent":
-            return "moonphase.waxing.crescent"
+            icon = "moonphase.waxing.crescent"
         case "firstquarter", "first quarter":
-            return "moonphase.first.quarter"
+            icon = "moonphase.first.quarter"
         case "waxinggibbous", "waxing gibbous":
-            return "moonphase.waxing.gibbous"
+            icon = "moonphase.waxing.gibbous"
         case "fullmoon", "full moon":
-            return "moonphase.full.moon"
+            icon = "moonphase.full.moon"
         case "waninggibbous", "waning gibbous":
-            return "moonphase.waning.gibbous"
+            icon = "moonphase.waning.gibbous"
         case "lastquarter", "last quarter", "thirdquarter", "third quarter":
-            return "moonphase.last.quarter"
+            icon = "moonphase.last.quarter"
         case "waningcrescent", "waning crescent":
-            return "moonphase.waning.crescent"
+            icon = "moonphase.waning.crescent"
         default:
-            return "moon.fill"
+            icon = "moon.fill"
         }
+        
+        Self.moonPhaseCache.setObject(MoonPhaseWrapper(icon), forKey: cacheKey)
+        return icon
     }
     
     var body: some View {

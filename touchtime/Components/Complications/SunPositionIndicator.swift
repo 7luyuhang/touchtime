@@ -22,8 +22,18 @@ struct SunPositionIndicator: View {
         let solarNoon: Date?
     }
     
-    private static var sunTimesCache: [String: SunTimes] = [:]
-    private static let cacheQueue = DispatchQueue(label: "SunPositionIndicator.cache")
+    // Wrapper class for NSCache (NSCache requires reference types)
+    private class SunTimesWrapper {
+        let times: SunTimes
+        init(_ times: SunTimes) { self.times = times }
+    }
+    
+    // Thread-safe, lock-free cache using NSCache
+    private static let sunTimesCache: NSCache<NSString, SunTimesWrapper> = {
+        let cache = NSCache<NSString, SunTimesWrapper>()
+        cache.countLimit = 60 // Keep last 60 entries
+        return cache
+    }()
     
     init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false) {
         self.date = date
@@ -86,11 +96,11 @@ struct SunPositionIndicator: View {
         var calendar = Calendar.current
         calendar.timeZone = timeZone
         let components = calendar.dateComponents([.year, .month, .day], from: date)
-        let cacheKey = "\(timeZone.identifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
+        let cacheKey = "\(timeZone.identifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
         
-        // Return cached value if present
-        if let cached = SunPositionIndicator.cacheQueue.sync(execute: { SunPositionIndicator.sunTimesCache[cacheKey] }) {
-            return cached
+        // Lock-free read from NSCache (thread-safe without blocking)
+        if let cached = SunPositionIndicator.sunTimesCache.object(forKey: cacheKey) {
+            return cached.times
         }
         
         let times: SunTimes
@@ -108,16 +118,8 @@ struct SunPositionIndicator: View {
             )
         }
         
-        // Store in cache with a small cap
-        SunPositionIndicator.cacheQueue.sync {
-            SunPositionIndicator.sunTimesCache[cacheKey] = times
-            if SunPositionIndicator.sunTimesCache.count > 60 {
-                let keysToRemove = Array(SunPositionIndicator.sunTimesCache.keys.prefix(SunPositionIndicator.sunTimesCache.count - 60))
-                for key in keysToRemove {
-                    SunPositionIndicator.sunTimesCache.removeValue(forKey: key)
-                }
-            }
-        }
+        // Store in cache (NSCache handles size limits automatically)
+        SunPositionIndicator.sunTimesCache.setObject(SunTimesWrapper(times), forKey: cacheKey)
         
         return times
     }

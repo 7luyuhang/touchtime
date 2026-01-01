@@ -21,8 +21,18 @@ struct SunAzimuthIndicator: View {
         let altitudes: [Double]  // 25 values
     }
     
-    private static var sunDataCache: [String: HourlySunData] = [:]
-    private static let cacheQueue = DispatchQueue(label: "SunAzimuthIndicator.cache")
+    // Wrapper class for NSCache (NSCache requires reference types)
+    private class HourlySunDataWrapper {
+        let data: HourlySunData
+        init(_ data: HourlySunData) { self.data = data }
+    }
+    
+    // Thread-safe, lock-free cache using NSCache
+    private static let sunDataCache: NSCache<NSString, HourlySunDataWrapper> = {
+        let cache = NSCache<NSString, HourlySunDataWrapper>()
+        cache.countLimit = 60 // Keep last 60 entries
+        return cache
+    }()
     
     init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false) {
         self.date = date
@@ -79,11 +89,11 @@ struct SunAzimuthIndicator: View {
         var calendar = Calendar.current
         calendar.timeZone = timeZone
         let components = calendar.dateComponents([.year, .month, .day], from: date)
-        let cacheKey = "\(timeZone.identifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
+        let cacheKey = "\(timeZone.identifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
         
-        // Return cached value if present
-        if let cached = Self.cacheQueue.sync(execute: { Self.sunDataCache[cacheKey] }) {
-            return cached
+        // Lock-free read from NSCache (thread-safe without blocking)
+        if let cached = Self.sunDataCache.object(forKey: cacheKey) {
+            return cached.data
         }
         
         let startOfDay = calendar.startOfDay(for: date)
@@ -122,16 +132,8 @@ struct SunAzimuthIndicator: View {
         
         let data = HourlySunData(azimuths: azimuths, altitudes: altitudes)
         
-        // Store in cache with a small cap
-        Self.cacheQueue.sync {
-            Self.sunDataCache[cacheKey] = data
-            if Self.sunDataCache.count > 60 {
-                let keysToRemove = Array(Self.sunDataCache.keys.prefix(Self.sunDataCache.count - 60))
-                for key in keysToRemove {
-                    Self.sunDataCache.removeValue(forKey: key)
-                }
-            }
-        }
+        // Store in cache (NSCache handles size limits automatically)
+        Self.sunDataCache.setObject(HourlySunDataWrapper(data), forKey: cacheKey)
         
         return data
     }
