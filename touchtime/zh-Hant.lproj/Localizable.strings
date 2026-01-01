@@ -806,6 +806,7 @@
 "Continuous Scroll" = "連續滑動";
 "Reset" = "重置";
 "System time shows at the top of the list with ambient background." = "系統時間顯示在列表頂部，帶有環境背景。";
+"Enable continuous scroll for slide to adjust." = "啟用使滑動調整支持連續滑動。"; 
 
 /* DST */
 "Starts" = "開始於";

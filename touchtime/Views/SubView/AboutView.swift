@@ -8,6 +8,22 @@
 import SwiftUI
 
 struct AboutView: View {
+    @State private var showOnboarding = false
+    
+    // Get current language display name
+    var currentLanguageName: String {
+        let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "en"
+        switch preferredLanguage {
+        case "zh-Hans":
+            return "简体中文"
+        case "zh-Hant":
+            return "繁體中文"
+        case "en":
+            return "English"
+        default:
+            return "English"
+        }
+    }
     
     var body: some View {
         List {
@@ -33,6 +49,36 @@ struct AboutView: View {
                 .listRowBackground(Color.clear)
             
             Section {
+                // Language
+                Button(action: {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }) {
+                    HStack {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "character", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            Text("Language")
+                        }
+                        .layoutPriority(1)
+                        Spacer(minLength: 8)
+                        Text(currentLanguageName)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+                .foregroundStyle(.primary)
+                
+                // Onboarding
+                Button(action: {
+                    showOnboarding = true
+                }) {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "sparkle.magnifyingglass", topColor: .blue, bottomColor: .pink)
+                        Text("Show Onboarding")
+                    }
+                }
+                .foregroundStyle(.primary)
+                
                 Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
                     HStack {
                         Text("Terms of Use")
@@ -74,6 +120,29 @@ struct AboutView: View {
         .scrollIndicators(.hidden)
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
+        // Onboarding
+        .fullScreenCover(isPresented: $showOnboarding) {
+            OnboardingView(hasCompletedOnboarding: Binding(
+                get: { !showOnboarding },
+                set: { newValue in
+                    if newValue {
+                        showOnboarding = false
+                    }
+                }
+            ))
+            .overlay(alignment: .topTrailing) {
+                Button(action: {
+                    showOnboarding = false
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .glassEffect(.clear.interactive())
+                }
+                .padding(.horizontal)
+            }
+        }
     }
     
     // Get version and build number string

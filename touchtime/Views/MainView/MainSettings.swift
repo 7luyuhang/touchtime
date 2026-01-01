@@ -33,7 +33,6 @@ struct SettingsView: View {
     @State private var currentDate = Date()
     @State private var showResetConfirmation = false
     @State private var showSupportLove = false
-    @State private var showOnboarding = false
     @State private var showComplicationsSheet = false
     @Environment(\.dismiss) private var dismiss
     @StateObject private var weatherManager = WeatherManager()
@@ -90,21 +89,6 @@ struct SettingsView: View {
             }
         default:
             return ""
-        }
-    }
-    
-    // Get current language display name
-    var currentLanguageName: String {
-        let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "en"
-        switch preferredLanguage {
-        case "zh-Hans":
-            return "简体中文"
-        case "zh-Hant":
-            return "繁體中文"
-        case "en":
-            return "English"
-        default:
-            return "English"
         }
     }
     
@@ -168,24 +152,6 @@ struct SettingsView: View {
                 Section(header: Text("General"), footer: Text("System time shows at the top of the list with ambient background.")) {
                     
                     Button(action: {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
-                        }
-                    }) {
-                        HStack {
-                            HStack(spacing: 12) {
-                                SystemIconImage(systemName: "character", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
-                                Text("Language")
-                            }
-                            .layoutPriority(1)
-                            Spacer(minLength: 8)
-                            Text(currentLanguageName)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                    
-                    Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                         }
@@ -237,7 +203,7 @@ struct SettingsView: View {
                 Section {
                     Toggle(isOn: $continuousScrollMode) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "lines.measurement.horizontal", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                            SystemIconImage(systemName: "lines.measurement.horizontal", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
                             Text("Continuous Scroll")
                         }
                     }
@@ -246,6 +212,8 @@ struct SettingsView: View {
                         // Reset scroll time when continuous scroll mode is toggled
                         NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
                     }
+                } footer: {
+                    Text("Enable continuous scroll for slide to adjust.")
                 }
                 
                 // Available Time Section - only show when System Time is enabled
@@ -598,28 +566,15 @@ struct SettingsView: View {
                     Text("Enable showing arc indicator for time offset.")
                 }
                 
-                
-                
                 // Others
                 Section{
                     // Calendar Section
                     NavigationLink(destination: CalendarView(worldClocks: worldClocks)) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "calendar", topColor: .red, bottomColor: .red)
                             Text("Calendar")
                         }
                     }
-                    
-                    // Onboarding Section
-                    Button(action: {
-                        showOnboarding = true
-                    }) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "sparkle.magnifyingglass", topColor: .blue, bottomColor: .pink)
-                            Text("Show Onboarding")
-                        }
-                    }
-                    .foregroundStyle(.primary)
                     
                     // Reset Section
                     Button(action: {
@@ -781,32 +736,6 @@ struct SettingsView: View {
                                 }
                             }
                         }
-                }
-            }
-            // Onboarding
-            .fullScreenCover(isPresented: $showOnboarding) {
-                OnboardingView(hasCompletedOnboarding: Binding(
-                    get: { !showOnboarding },
-                    set: { newValue in
-                        if newValue {
-                            showOnboarding = false
-                        }
-                    }
-                ))
-                .overlay(alignment: .topTrailing) {
-                    Button(action: {
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
-                        showOnboarding = false
-                    }) {
-                        Image(systemName: "xmark")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
-                            .glassEffect(.clear.interactive())
-                    }
-                    .padding(.horizontal)
                 }
             }
             // Complications Sheet
