@@ -163,8 +163,8 @@ struct AnalogClockFullView: View {
                             // Bottom section - Scroll controls
                             VStack {
                                 Spacer()
-                                // Local time display (hidden in continuous scroll mode)
-                                if selectedCityId != nil && !continuousScrollMode {
+                                // Local time display (hidden when continuous scroll reset button is showing)
+                                if selectedCityId != nil && !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
                                     HStack(spacing: 4) {
                                         Image(systemName: "location.fill")
                                             .font(.footnote.weight(.medium))
