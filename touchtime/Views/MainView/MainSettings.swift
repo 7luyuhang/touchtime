@@ -142,7 +142,7 @@ struct SettingsView: View {
                     //                                endPoint: .bottomTrailing
                     //                            ).opacity(0.25)
                     //                        )
-                        .fill(Color.black.opacity(0.55))
+                        .fill(Color.black.opacity(0.25))
                         .glassEffect(.clear.interactive(),
                                      in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 )
@@ -203,13 +203,12 @@ struct SettingsView: View {
                 Section {
                     Toggle(isOn: $continuousScrollMode) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "lines.measurement.horizontal", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
+                            SystemIconImage(systemName: "lines.measurement.horizontal.aligned.bottom", topColor: .white, bottomColor: .white, foregroundColor: .black)
                             Text("Continuous Scroll")
                         }
                     }
                     .tint(.blue)
                     .onChange(of: continuousScrollMode) { _, _ in
-                        // Reset scroll time when continuous scroll mode is toggled
                         NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
                     }
                 } footer: {

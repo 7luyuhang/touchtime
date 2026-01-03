@@ -78,7 +78,13 @@ struct AboutView: View {
                     }
                 }
                 .foregroundStyle(.primary)
+    
+            }
+            
+            // Credits Section
+            Section {
                 
+                // Terms & Privacy
                 Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
                     HStack {
                         Text("Terms of Use")
@@ -92,10 +98,8 @@ struct AboutView: View {
                     }
                 }
                 .foregroundStyle(.primary)
-            }
-            
-            // Credits Section
-            Section {
+                
+                
                 NavigationLink(destination: CreditsView()) {
                     Text("Acknowledgements")
                 }
