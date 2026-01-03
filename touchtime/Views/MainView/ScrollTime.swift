@@ -24,6 +24,9 @@ struct ScrollTimeView: View {
     @State private var hapticEngine: CHHapticEngine?
     @State private var lastHapticOffset: CGFloat = 0
     @State private var hapticPlayer: CHHapticPatternPlayer?
+    @State private var inertiaTimer: Timer?
+    @State private var inertiaVelocity: CGFloat = 0
+    @State private var lastInertiaHapticOffset: TimeInterval = 0
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
     @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
@@ -196,6 +199,71 @@ struct ScrollTimeView: View {
         }
     }
     
+    // Check if we should play haptic based on time offset change (for inertia scroll)
+    func checkAndPlayInertiaHapticTick() {
+        // Play haptic every 30 minutes (1800 seconds) during inertia
+        let tickInterval: TimeInterval = 1800
+        
+        let currentTicks = Int(timeOffset / tickInterval)
+        let lastTicks = Int(lastInertiaHapticOffset / tickInterval)
+        
+        if currentTicks != lastTicks {
+            playTickHaptic(intensity: 0.35) // Lighter haptic during inertia
+            lastInertiaHapticOffset = timeOffset
+        }
+    }
+    
+    // Stop any ongoing inertia animation
+    func stopInertia() {
+        inertiaTimer?.invalidate()
+        inertiaTimer = nil
+        inertiaVelocity = 0
+    }
+    
+    // Start inertia scroll animation
+    func startInertiaScroll(velocity: CGFloat) {
+        // Stop any existing inertia
+        stopInertia()
+        
+        // Only start inertia if velocity is significant enough
+        guard abs(velocity) > 200 else { return }
+        
+        // Cap the initial velocity to prevent extreme scrolling
+        let maxVelocity: CGFloat = 1000
+        inertiaVelocity = min(max(velocity, -maxVelocity), maxVelocity)
+        
+        // Initialize haptic tracking
+        lastInertiaHapticOffset = timeOffset
+        
+        // Use a timer for smooth deceleration (60 fps)
+        let frameInterval: TimeInterval = 1.0 / 60.0
+        
+        inertiaTimer = Timer.scheduledTimer(withTimeInterval: frameInterval, repeats: true) { [self] timer in
+            let decelerationRate: CGFloat = 0.96
+            inertiaVelocity *= decelerationRate
+            
+            // Stop when velocity is negligible
+            if abs(inertiaVelocity) < 5 {
+                timer.invalidate()
+                inertiaTimer = nil
+                return
+            }
+            
+            // Calculate time change from velocity
+            // velocity is in points/second, convert to hours then to seconds
+            let deltaPoints = inertiaVelocity * CGFloat(frameInterval)
+            let deltaHours = hoursFromOffset(deltaPoints)
+            let deltaSeconds = deltaHours * 3600
+            
+            // Update offsets
+            accumulatedOffset += deltaSeconds
+            timeOffset = accumulatedOffset
+            
+            // Play haptic during inertia scroll
+            checkAndPlayInertiaHapticTick()
+        }
+    }
+    
     // Generate notes text with selected cities and their times
     func generateCityNotesText() -> String? {
         guard showCitiesInNotes && !selectedCitiesForNotes.isEmpty else { return nil }
@@ -296,6 +364,8 @@ struct ScrollTimeView: View {
     
     // Reset time offset
     func resetTimeOffset() {
+        // Stop any ongoing inertia animation
+        stopInertia()
         
         // Provide haptic feedback if enabled
         if hapticEnabled {
@@ -309,6 +379,7 @@ struct ScrollTimeView: View {
             timeOffset = 0
             dragOffset = 0
             lastHapticOffset = 0
+            lastInertiaHapticOffset = 0
             accumulatedOffset = 0 // Reset accumulated offset for continuous mode
             showButtons = false
         }
@@ -555,6 +626,11 @@ struct ScrollTimeView: View {
         .gesture(
             showButtons ? nil : DragGesture()
                 .onChanged { value in
+                    // Stop any ongoing inertia when user starts dragging again
+                    if continuousScrollMode {
+                        stopInertia()
+                    }
+                    
                     dragOffset = value.translation.width
                     let hours = hoursFromOffset(dragOffset)
                     
@@ -568,7 +644,7 @@ struct ScrollTimeView: View {
                     // Check and play haptic tick when crossing time marks
                     checkAndPlayHapticTick()
                 }
-                .onEnded { _ in
+                .onEnded { value in
                     // Reset last haptic offset
                     lastHapticOffset = 0
                     
@@ -583,9 +659,16 @@ struct ScrollTimeView: View {
                         // In continuous mode, accumulate the offset and reset drag
                         let hours = hoursFromOffset(dragOffset)
                         accumulatedOffset += hours * 3600
+                        
+                        // Calculate velocity for inertia (points per second)
+                        let velocity = value.velocity.width
+                        
                         withAnimation(.spring()) {
                             dragOffset = 0
                         }
+                        
+                        // Start inertia animation with the release velocity
+                        startInertiaScroll(velocity: velocity)
                     } else {
                         // Show buttons after drag ends with morph animation
                         withAnimation(.spring()) {
@@ -600,6 +683,8 @@ struct ScrollTimeView: View {
             prepareHaptics()
         }
         .onDisappear {
+            // Stop any ongoing inertia animation
+            stopInertia()
             // Stop the haptic engine to save resources
             hapticEngine?.stop()
         }
@@ -610,14 +695,19 @@ struct ScrollTimeView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            // Stop inertia animation when app goes to background
+            stopInertia()
             // Stop haptic engine when app goes to background
             hapticEngine?.stop()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResetScrollTime"))) { _ in
+            // Stop any ongoing inertia animation
+            stopInertia()
             // Reset drag offset when cities are reset
             withAnimation(.spring()) {
                 dragOffset = 0
                 lastHapticOffset = 0
+                lastInertiaHapticOffset = 0
                 accumulatedOffset = 0 // Reset accumulated offset for continuous mode
             }
         }

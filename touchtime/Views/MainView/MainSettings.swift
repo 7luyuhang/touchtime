@@ -31,7 +31,6 @@ struct SettingsView: View {
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @State private var currentDate = Date()
-    @State private var showResetConfirmation = false
     @State private var showSupportLove = false
     @State private var showComplicationsSheet = false
     @Environment(\.dismiss) private var dismiss
@@ -566,7 +565,7 @@ struct SettingsView: View {
                 }
                 
                 // Others
-                Section{
+                Section {
                     // Calendar Section
                     NavigationLink(destination: CalendarView(worldClocks: worldClocks)) {
                         HStack(spacing: 12) {
@@ -574,31 +573,6 @@ struct SettingsView: View {
                             Text("Calendar")
                         }
                     }
-                    
-                    // Reset Section
-                    Button(action: {
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                        }
-                        showResetConfirmation = true
-                    }) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .indigo, bottomColor: .orange)
-                            Text("Reset Cities")
-                        }
-                        
-                    }
-                    .foregroundStyle(.primary)
-                    .alert("Reset Cities", isPresented: $showResetConfirmation) {
-                        Button("Cancel", role: .cancel) {}
-                        Button("Reset", role: .destructive) {
-                            resetToDefault()
-                        }
-                    } message: {
-                        Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
-                    }
-                } footer: {
-                    Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
                 }
                 
                 
@@ -676,7 +650,7 @@ struct SettingsView: View {
                 }
                     .foregroundStyle(.primary)
                 ) {
-                    NavigationLink(destination: AboutView()) {
+                    NavigationLink(destination: AboutView(worldClocks: $worldClocks)) {
                         Text("About")
                     }
                 }
@@ -764,37 +738,6 @@ struct SettingsView: View {
                 }
                 .presentationDetents([.height(280)])
             }
-        }
-    }
-    
-    // UserDefaults key for storing world clocks
-    private let worldClocksKey = "savedWorldClocks"
-    private let collectionsKey = "savedCityCollections"
-    
-    // Reset to default clocks
-    func resetToDefault() {
-        // Set to default clocks
-        worldClocks = WorldClockData.defaultClocks
-        
-        // Save to UserDefaults
-        if let encoded = try? JSONEncoder().encode(worldClocks) {
-            UserDefaults.standard.set(encoded, forKey: worldClocksKey)
-        }
-        
-        // Clear all collections
-        UserDefaults.standard.removeObject(forKey: collectionsKey)
-        
-        // Clear selected collection
-        UserDefaults.standard.removeObject(forKey: "selectedCollectionId")
-        
-        // Post notification to reset scroll time
-        NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
-        
-        // Provide haptic feedback if enabled
-        if hapticEnabled {
-            let impactFeedback = UINotificationFeedbackGenerator()
-            impactFeedback.prepare()
-            impactFeedback.notificationOccurred(.success)
         }
     }
     

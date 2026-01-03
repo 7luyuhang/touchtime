@@ -430,24 +430,26 @@ struct ArrangeListView: View {
                     HStack {
                         Text("All Cities")
                         Spacer()
-                        Menu {
-                            Section(String(localized: "Sort by")) {
-                                Button {
-                                    sortCitiesEastToWest()
-                                } label: {
-                                    Label(String(localized: "East to West"), systemImage: "arrow.left")
-                                }
+                        if worldClocks.count >= 2 {
+                            Menu {
+                                Section(String(localized: "Sort by")) {
+                                    Button {
+                                        sortCitiesEastToWest()
+                                    } label: {
+                                        Label(String(localized: "East to West"), systemImage: "arrow.left")
+                                    }
 
-                                Button {
-                                    sortCitiesWestToEast()
-                                } label: {
-                                    Label(String(localized: "West to East"), systemImage: "arrow.right")
+                                    Button {
+                                        sortCitiesWestToEast()
+                                    } label: {
+                                        Label(String(localized: "West to East"), systemImage: "arrow.right")
+                                    }
                                 }
+                            } label: {
+                                Image(systemName: "arrow.up.arrow.down")
+                                    .font(.subheadline.weight(.medium))
+                                    .tint(.primary)
                             }
-                        } label: {
-                            Image(systemName: "arrow.up.arrow.down")
-                                .font(.subheadline.weight(.medium))
-                                .tint(.primary)
                         }
                     }
                 }

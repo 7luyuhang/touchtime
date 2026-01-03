@@ -204,12 +204,15 @@ struct AnalogClockFullView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
-                    Text(selectedCityName)
-                        .font(.subheadline.weight(.semibold))
-                        .padding(.horizontal, 16)
-                        .frame(height: 44)
-                        .glassEffect(.regular, in: Capsule(style: .continuous))
-                        .lineLimit(1)
+                    // Hide when empty state (no cities and no local time)
+                    if !worldClocks.isEmpty || showLocalTime {
+                        Text(selectedCityName)
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
+                            .frame(height: 44)
+                            .glassEffect(.regular, in: Capsule(style: .continuous))
+                            .lineLimit(1)
+                    }
                 }
                 
                 ToolbarItem(placement: .topBarLeading) {
