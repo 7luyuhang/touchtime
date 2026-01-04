@@ -238,7 +238,8 @@ struct ScrollTimeView: View {
         // Use a timer for smooth deceleration (60 fps)
         let frameInterval: TimeInterval = 1.0 / 60.0
         
-        inertiaTimer = Timer.scheduledTimer(withTimeInterval: frameInterval, repeats: true) { [self] timer in
+        // Create timer and add to .common mode so it continues running during List scrolling
+        let timer = Timer(timeInterval: frameInterval, repeats: true) { [self] timer in
             let decelerationRate: CGFloat = 0.96
             inertiaVelocity *= decelerationRate
             
@@ -262,6 +263,8 @@ struct ScrollTimeView: View {
             // Play haptic during inertia scroll
             checkAndPlayInertiaHapticTick()
         }
+        RunLoop.current.add(timer, forMode: .common)
+        inertiaTimer = timer
     }
     
     // Generate notes text with selected cities and their times
