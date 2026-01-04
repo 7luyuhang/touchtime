@@ -15,6 +15,8 @@ struct ContentView: View {
     @State private var timeOffset: TimeInterval = 0
     @State private var showScrollTimeButtons = false
     
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
+    
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
     
@@ -31,6 +33,13 @@ struct ContentView: View {
             
             Tab(role: .search) {
                 SearchTabView(worldClocks: $worldClocks)
+                    .onAppear {
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                            impactFeedback.prepare()
+                            impactFeedback.impactOccurred()
+                        }
+                    }
             }
             }
             .tabViewStyle(.automatic)

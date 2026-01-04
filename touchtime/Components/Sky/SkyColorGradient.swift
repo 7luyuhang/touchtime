@@ -29,9 +29,18 @@ struct SkyColorGradient {
         let solarNoonHour: Double
     }
     
-    // Static cache to avoid recalculating SunKit for the same day and timezone
-    private static var sunTimesCache: [String: SunEventTimes] = [:]
-    private static let cacheQueue = DispatchQueue(label: "SkyColorGradient.cache")
+    // Wrapper class for NSCache (NSCache requires reference types)
+    private class SunEventTimesWrapper {
+        let times: SunEventTimes
+        init(_ times: SunEventTimes) { self.times = times }
+    }
+    
+    // Thread-safe, lock-free cache using NSCache
+    private static let sunTimesCache: NSCache<NSString, SunEventTimesWrapper> = {
+        let cache = NSCache<NSString, SunEventTimesWrapper>()
+        cache.countLimit = 30 // Keep last 30 entries
+        return cache
+    }()
     
     // Initialize and calculate normalized time once
     init(date: Date, timeZoneIdentifier: String) {
@@ -45,27 +54,17 @@ struct SkyColorGradient {
         // Create cache key based on day-level precision and timezone
         let calendar = Calendar.current
         let dayComponents = calendar.dateComponents([.year, .month, .day], from: date)
-        let cacheKey = "\(timeZoneIdentifier)_\(dayComponents.year ?? 0)_\(dayComponents.month ?? 0)_\(dayComponents.day ?? 0)"
+        let cacheKey = "\(timeZoneIdentifier)_\(dayComponents.year ?? 0)_\(dayComponents.month ?? 0)_\(dayComponents.day ?? 0)" as NSString
         
-        // Get or calculate sun event times (cached per day)
-        let sunTimes = cacheQueue.sync {
-            if let cached = sunTimesCache[cacheKey] {
-                return cached
-            }
-            
+        // Lock-free read from NSCache (thread-safe without blocking)
+        let sunTimes: SunEventTimes
+        if let cached = sunTimesCache.object(forKey: cacheKey) {
+            sunTimes = cached.times
+        } else {
             // Calculate sun event times once per day
             let times = calculateSunEventTimes(date: date, timeZoneIdentifier: timeZoneIdentifier)
-            sunTimesCache[cacheKey] = times
-            
-            // Limit cache size (keep last 30 days)
-            if sunTimesCache.count > 30 {
-                let keysToRemove = Array(sunTimesCache.keys.prefix(sunTimesCache.count - 30))
-                for key in keysToRemove {
-                    sunTimesCache.removeValue(forKey: key)
-                }
-            }
-            
-            return times
+            sunTimesCache.setObject(SunEventTimesWrapper(times), forKey: cacheKey)
+            sunTimes = times
         }
         
         // Fast calculation using cached sun times
@@ -465,8 +464,8 @@ struct SkyColorGradient {
         )
     }
     
-    // Get the animation value for smooth transitions
+    // Get the animation value for smooth transitions (hourly granularity to reduce animation overhead)
     var animationValue: Int {
-        return Int(timeValue * 4)
+        return Int(timeValue)
     }
 }

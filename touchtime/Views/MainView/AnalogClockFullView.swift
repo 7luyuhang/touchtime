@@ -9,6 +9,10 @@ import SwiftUI
 import Combine
 import UIKit
 import WeatherKit
+import MoonKit
+import SunKit
+import CoreLocation
+import TipKit
 
 struct AnalogClockFullView: View {
     @Binding var worldClocks: [WorldClock]
@@ -26,14 +30,23 @@ struct AnalogClockFullView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
+    @AppStorage("showSkyDot") private var showSkyDot = true
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
     
     @StateObject private var weatherManager = WeatherManager()
+    
+    // Namespace for zoom transition
+    @Namespace private var earthViewNamespace
     
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Get selected city name
     private var selectedCityName: String {
+        // Return empty when no local time and no cities
+        if worldClocks.isEmpty && !showLocalTime {
+            return ""
+        }
         if let cityId = selectedCityId,
            let city = worldClocks.first(where: { $0.id == cityId }) {
             return city.localizedCityName
@@ -63,112 +76,145 @@ struct AnalogClockFullView: View {
                 
                 ZStack {
                     // Background
-                    skyGradient.linearGradient()
-                        .ignoresSafeArea()
-                        .opacity(0.65)
-                        .animation(.spring(), value: selectedTimeZone.identifier)
-                    
-                    
-                    // Stars overlay for nighttime
-                    if skyGradient.starOpacity > 0 {
-                        StarsView(starCount: 150)
-                            .ignoresSafeArea()
-                            .opacity(skyGradient.starOpacity)
-                            .blendMode(.plusLighter)
-                            .animation(.spring(), value: skyGradient.starOpacity)
-                            .allowsHitTesting(false)
+                    Group {
+                        if showSkyDot {
+                            ZStack {
+                                skyGradient.linearGradient()
+                                    .ignoresSafeArea()
+                                    .opacity(0.65)
+                                    .animation(.spring(), value: selectedTimeZone.identifier)
+                                
+                                // Stars overlay for nighttime
+                                if skyGradient.starOpacity > 0 {
+                                    StarsView(starCount: 150)
+                                        .ignoresSafeArea()
+                                        .opacity(skyGradient.starOpacity)
+                                        .blendMode(.plusLighter)
+                                        .animation(.spring(), value: skyGradient.starOpacity)
+                                        .allowsHitTesting(false)
+                                }
+                            }
+                        } else {
+                            Color(UIColor.systemBackground)
+                                .ignoresSafeArea()
+                        }
                     }
+                    .animation(.spring(), value: showSkyDot)
                     
-                    // Analog Clock - always centered
-                    AnalogClockFaceView(
-                        date: currentDate.addingTimeInterval(timeOffset),
-                        timeOffset: timeOffset,
-                        selectedTimeZone: selectedTimeZone,
-                        size: size,
-                        worldClocks: worldClocks,
-                        showLocalTime: showLocalTime,
-                        selectedCityId: $selectedCityId,
-                        hapticEnabled: hapticEnabled,
-                        showDetailsSheet: $showDetailsSheet
-                    )
-                    
-                    // Digital time and scroll controls overlay
-                    VStack(spacing: 0) {
-                        // Top section - Digital time centered between nav bar and clock
-                        VStack {
-                            Spacer()
-                            DigitalTimeDisplayView(
-                                currentDate: currentDate,
-                                timeOffset: timeOffset,
-                                selectedTimeZone: selectedTimeZone,
-                                use24HourFormat: use24HourFormat,
-                                weather: weatherManager.weatherData[selectedTimeZone.identifier],
-                                showWeather: showWeather,
-                                useCelsius: useCelsius
-                            )
-                            .id(currentDate) // Force update when currentDate changes
-                            .animation(.spring(), value: selectedTimeZone.identifier)
-                            .task(id: showWeather) {
-                                if showWeather {
-                                    await weatherManager.getWeather(for: selectedTimeZone.identifier)
-                                }
-                            }
-                            .task(id: selectedTimeZone.identifier) {
-                                if showWeather {
-                                    await weatherManager.getWeather(for: selectedTimeZone.identifier)
-                                }
-                            }
-                            Spacer()
-                        }
-                        .frame(height: (geometry.size.height - size) / 2)
-                        
-                        // Middle - clock area (transparent placeholder)
-                        Color.clear
-                            .frame(height: size)
-                        
-                        // Bottom section - Scroll controls
-                        VStack {
-                            Spacer()
-                            // Local time display
-                            if selectedCityId != nil {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "location.fill")
-                                        .font(.footnote.weight(.medium))
-                                    Text({
-                                        let formatter = DateFormatter()
-                                        formatter.locale = Locale(identifier: "en_US_POSIX")
-                                        formatter.timeZone = TimeZone.current
-                                        if use24HourFormat {
-                                            formatter.dateFormat = "HH:mm"
-                                        } else {
-                                            formatter.dateFormat = "h:mm"
-                                        }
-                                        return formatter.string(from: displayDate)
-                                    }())
-                                    .font(.subheadline.weight(.medium))
-                                }
-                                .foregroundStyle(.secondary)
+                    // Empty state when no local time and no cities
+                    if worldClocks.isEmpty && !showLocalTime {
+                        ContentUnavailableView {
+                            Label("Nothing here", systemImage: "location.magnifyingglass")
                                 .blendMode(.plusLighter)
-                                .monospacedDigit()
-                                .contentTransition(.numericText())
-                                .padding(.bottom, 16)
-                            }
-                            Spacer()
-                            ScrollTimeView(
-                                timeOffset: $timeOffset,
-                                showButtons: $showScrollTimeButtons,
-                                worldClocks: $worldClocks
-                            )
-                            .padding(.horizontal)
-                            .padding(.bottom, 8)
+                        } description: {
+                            Text("Add cities to track time.")
+                                .blendMode(.plusLighter)
                         }
-                        .frame(height: (geometry.size.height - size) / 2)
+                    } else {
+                        // Analog Clock - always centered
+                        AnalogClockFaceView(
+                            date: currentDate.addingTimeInterval(timeOffset),
+                            timeOffset: timeOffset,
+                            selectedTimeZone: selectedTimeZone,
+                            size: size,
+                            worldClocks: worldClocks,
+                            showLocalTime: showLocalTime,
+                            selectedCityId: $selectedCityId,
+                            hapticEnabled: hapticEnabled,
+                            showDetailsSheet: $showDetailsSheet,
+                            weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                            showWeather: showWeather
+                        )
+                        
+                        // Digital time and scroll controls overlay
+                        VStack(spacing: 0) {
+                            // Top section - Digital time centered between nav bar and clock
+                            VStack {
+                                Spacer()
+                                DigitalTimeDisplayView(
+                                    currentDate: currentDate,
+                                    timeOffset: timeOffset,
+                                    selectedTimeZone: selectedTimeZone,
+                                    use24HourFormat: use24HourFormat,
+                                    weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                                    showWeather: showWeather,
+                                    useCelsius: useCelsius
+                                )
+                                .id(currentDate) // Force update when currentDate changes
+                                .animation(.spring(), value: selectedTimeZone.identifier)
+                                .task(id: showWeather) {
+                                    if showWeather {
+                                        await weatherManager.getWeather(for: selectedTimeZone.identifier)
+                                    }
+                                }
+                                .task(id: selectedTimeZone.identifier) {
+                                    if showWeather {
+                                        await weatherManager.getWeather(for: selectedTimeZone.identifier)
+                                    }
+                                }
+                                Spacer()
+                            }
+                            .frame(height: (geometry.size.height - size) / 2)
+                            
+                            // Middle - clock area (transparent placeholder)
+                            Color.clear
+                                .frame(height: size)
+                            
+                            // Bottom section - Scroll controls
+                            VStack {
+                                Spacer()
+                                // Local time display (hidden when continuous scroll reset button is showing)
+                                if selectedCityId != nil && !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "location.fill")
+                                            .font(.footnote.weight(.medium))
+                                        Text({
+                                            let formatter = DateFormatter()
+                                            formatter.locale = Locale(identifier: "en_US_POSIX")
+                                            formatter.timeZone = TimeZone.current
+                                            if use24HourFormat {
+                                                formatter.dateFormat = "HH:mm"
+                                            } else {
+                                                formatter.dateFormat = "h:mm"
+                                            }
+                                            return formatter.string(from: displayDate)
+                                        }())
+                                        .font(.subheadline.weight(.medium))
+                                    }
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
+                                    .padding(.bottom, 16)
+                                }
+                                Spacer()
+                                ScrollTimeView(
+                                    timeOffset: $timeOffset,
+                                    showButtons: $showScrollTimeButtons,
+                                    worldClocks: $worldClocks
+                                )
+                                .padding(.horizontal)
+                                .padding(.bottom, 8)
+                            }
+                            .frame(height: (geometry.size.height - size) / 2)
+                        }
                     }
                 }
             }
-            .navigationTitle(selectedCityName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    // Hide when empty state (no cities and no local time)
+                    if !worldClocks.isEmpty || showLocalTime {
+                        Text(selectedCityName)
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
+                            .frame(height: 44)
+                            .glassEffect(.regular, in: Capsule(style: .continuous))
+                            .lineLimit(1)
+                    }
+                }
+                
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         // Share Section - only show if there are world clocks
@@ -215,6 +261,7 @@ struct AnalogClockFullView: View {
                     }) {
                         Image(systemName: "globe.americas.fill")
                     }
+                    .matchedTransitionSource(id: "earthView", in: earthViewNamespace)
                 }
             }
             .onReceive(timer) { _ in
@@ -235,6 +282,7 @@ struct AnalogClockFullView: View {
                         initialDate: currentDate,
                         timeOffset: timeOffset
                     )
+                    .environmentObject(weatherManager)
                 } else {
                     SunriseSunsetSheet(
                         cityName: String(localized: "Local"),
@@ -242,6 +290,7 @@ struct AnalogClockFullView: View {
                         initialDate: currentDate,
                         timeOffset: timeOffset
                     )
+                    .environmentObject(weatherManager)
                 }
             }
             .sheet(isPresented: $showShareSheet) {
@@ -255,8 +304,31 @@ struct AnalogClockFullView: View {
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(worldClocks: $worldClocks)
             }
-            .fullScreenCover(isPresented: $showEarthView) {
+            .sheet(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
+                    .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
+            }
+            .onAppear {
+                // If showLocalTime is disabled, default to first city instead of Local
+                if !showLocalTime && selectedCityId == nil {
+                    selectedCityId = worldClocks.first?.id
+                }
+            }
+            .onChange(of: showLocalTime) { oldValue, newValue in
+                // When showLocalTime is turned off and Local is selected, switch to first city
+                if !newValue && selectedCityId == nil {
+                    selectedCityId = worldClocks.first?.id
+                }
+            }
+            .onChange(of: worldClocks) { oldValue, newValue in
+                // When worldClocks changes and showLocalTime is disabled
+                if !showLocalTime {
+                    // Always select the first city when showLocalTime is off
+                    let firstCityId = newValue.first?.id
+                    if selectedCityId != firstCityId {
+                        selectedCityId = firstCityId
+                    }
+                }
             }
         }
         .preferredColorScheme(.dark)
@@ -291,7 +363,7 @@ struct TimeOffsetArcView: View {
         
         Path { path in
             let center = CGPoint(x: size / 2, y: size / 2)
-            let radius = (size - 24) / 2  // 与背景圆相同
+            let radius = (size - 24) / 2
             
             path.addArc(
                 center: center,
@@ -306,6 +378,25 @@ struct TimeOffsetArcView: View {
     }
 }
 
+// MARK: - Double Tap Tip
+struct DoubleTapClockFaceTip: Tip {
+    var title: Text {
+        Text(String(localized: "Focus Time"))
+    }
+    
+    var message: Text? {
+        Text(String(localized: "Double-tap to focus on the selected time."))
+    }
+    
+    var image: Image? {
+        Image(systemName: "hand.rays.fill")
+    }
+    
+    var options: [TipOption] {
+        MaxDisplayCount(1)
+    }
+}
+
 // MARK: - Analog Clock Face View
 struct AnalogClockFaceView: View {
     let date: Date
@@ -317,9 +408,109 @@ struct AnalogClockFaceView: View {
     @Binding var selectedCityId: UUID?
     let hapticEnabled: Bool
     @Binding var showDetailsSheet: Bool
+    let weather: CurrentWeather?
+    let showWeather: Bool
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
+    @AppStorage("availableStartTime") private var availableStartTime = "09:00"
+    @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
+    
+    @State private var hideOtherHands = false
+    
+    private let doubleTapTip = DoubleTapClockFaceTip()
+    
+    // MARK: - Sun Times Cache
+    private struct SunTimesData {
+        let sunrise: Date?
+        let sunset: Date?
+    }
+    
+    private class SunTimesDataWrapper {
+        let data: SunTimesData
+        init(_ data: SunTimesData) { self.data = data }
+    }
+    
+    private static let sunTimesCache: NSCache<NSString, SunTimesDataWrapper> = {
+        let cache = NSCache<NSString, SunTimesDataWrapper>()
+        cache.countLimit = 30
+        return cache
+    }()
+    
+    // MARK: - Moon Phase Cache
+    private class MoonPhaseWrapper {
+        let icon: String
+        init(_ icon: String) { self.icon = icon }
+    }
+    
+    private static let moonPhaseCache: NSCache<NSString, MoonPhaseWrapper> = {
+        let cache = NSCache<NSString, MoonPhaseWrapper>()
+        cache.countLimit = 30
+        return cache
+    }()
+    
+    // Calculate sunrise and sunset times using SunKit (with caching)
+    private var sunTimes: SunTimesData? {
+        guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
+            return nil
+        }
+        
+        // Create cache key based on day-level precision and timezone
+        var calendar = Calendar.current
+        calendar.timeZone = selectedTimeZone
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        let cacheKey = "\(selectedTimeZone.identifier)_sun_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
+        
+        // Lock-free read from NSCache (thread-safe without blocking)
+        if let cached = Self.sunTimesCache.object(forKey: cacheKey) {
+            return cached.data
+        }
+        
+        var sun = Sun(
+            location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude),
+            timeZone: selectedTimeZone
+        )
+        sun.setDate(date)
+        
+        let data = SunTimesData(sunrise: sun.sunrise, sunset: sun.sunset)
+        Self.sunTimesCache.setObject(SunTimesDataWrapper(data), forKey: cacheKey)
+        return data
+    }
+    
+    // Calculate angle for a date (hour and minute extracted from the date)
+    private func angleForDate(_ date: Date?) -> Double? {
+        guard let date = date else { return nil }
+        var calendar = Calendar.current
+        calendar.timeZone = selectedTimeZone
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        guard let hour = components.hour, let minute = components.minute else { return nil }
+        // 24-hour clock: full rotation = 24 hours
+        let hourAngle = Double(hour) * 15.0 // 15 degrees per hour
+        let minuteAngle = Double(minute) * 0.25 // 15/60 degrees per minute
+        return hourAngle + minuteAngle
+    }
+    
+    // Parse time string like "09:00" to (hour, minute)
+    private func parseTimeString(_ timeString: String) -> (hour: Int, minute: Int) {
+        let components = timeString.split(separator: ":")
+        guard components.count == 2,
+              let hour = Int(components[0]),
+              let minute = Int(components[1]) else {
+            return (9, 0)
+        }
+        return (hour, minute)
+    }
+    
+    // Calculate position for available time indicator
+    private func positionForTime(hour: Int, minute: Int, radius: CGFloat, center: CGFloat) -> CGPoint {
+        let angleDegrees = Double(hour) * 15.0 + Double(minute) * 0.25 - 90
+        let angleRadians = angleDegrees * .pi / 180
+        let x = center + radius * CGFloat(cos(angleRadians))
+        let y = center + radius * CGFloat(sin(angleRadians))
+        return CGPoint(x: x, y: y)
+    }
     
     // Get local time components
     private var localTime: (hour: Int, minute: Int) {
@@ -395,6 +586,61 @@ struct AnalogClockFaceView: View {
         date.addingTimeInterval(-timeOffset)
     }
     
+    // Get SF Symbol for current moon phase (with caching)
+    private var moonPhaseIcon: String {
+        // Get coordinates for the timezone
+        guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
+            return "moon.fill"
+        }
+        
+        // Create cache key based on day-level precision and timezone
+        var calendar = Calendar.current
+        calendar.timeZone = selectedTimeZone
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        let cacheKey = "\(selectedTimeZone.identifier)_moon_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
+        
+        // Lock-free read from NSCache (thread-safe without blocking)
+        if let cached = Self.moonPhaseCache.object(forKey: cacheKey) {
+            return cached.icon
+        }
+        
+        let moon = Moon(
+            location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude),
+            timeZone: selectedTimeZone
+        )
+        moon.setDate(date)
+        
+        let phaseString = String(describing: moon.currentMoonPhase)
+            .replacingOccurrences(of: "MoonPhase.", with: "")
+            .replacingOccurrences(of: "_", with: " ")
+            .lowercased()
+        
+        let icon: String
+        switch phaseString {
+        case "newmoon", "new moon":
+            icon = "moonphase.new.moon"
+        case "waxingcrescent", "waxing crescent":
+            icon = "moonphase.waxing.crescent"
+        case "firstquarter", "first quarter":
+            icon = "moonphase.first.quarter"
+        case "waxinggibbous", "waxing gibbous":
+            icon = "moonphase.waxing.gibbous"
+        case "fullmoon", "full moon":
+            icon = "moonphase.full.moon"
+        case "waninggibbous", "waning gibbous":
+            icon = "moonphase.waning.gibbous"
+        case "lastquarter", "last quarter", "thirdquarter", "third quarter":
+            icon = "moonphase.last.quarter"
+        case "waningcrescent", "waning crescent":
+            icon = "moonphase.waning.crescent"
+        default:
+            icon = "moon.fill"
+        }
+        
+        Self.moonPhaseCache.setObject(MoonPhaseWrapper(icon), forKey: cacheKey)
+        return icon
+    }
+    
     var body: some View {
         ZStack {
             // Clock face background
@@ -402,6 +648,14 @@ struct AnalogClockFaceView: View {
                 .fill(Color.black.opacity(0.25))
                 .glassEffect(.clear.interactive())
                 .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+                .onTapGesture(count: 2) {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                    hideOtherHands.toggle()
+                    doubleTapTip.invalidate(reason: .actionPerformed)
+                }
+                .popoverTip(doubleTapTip)
             
             // Time offset arc (显示滚动时间的起点到终点)
             if showArcIndicator && timeOffset != 0 {
@@ -417,39 +671,95 @@ struct AnalogClockFaceView: View {
             // Hour numbers
             HourNumbersView(size: size)
             
-            // Sun icon
-            Image(systemName: "sun.max.fill")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .blendMode(.plusLighter)
-                .frame(height: 24)
-                .position(x: size / 2,  y: size / 2 + (size / 2 - 62))
+            // Sunrise and Sunset indicator lines with daylight arc
+            if showSunriseSunsetLines, let times = sunTimes {
+                // Daylight arc fill between sunrise and sunset
+                if let sunriseAngle = angleForDate(times.sunrise),
+                   let sunsetAngle = angleForDate(times.sunset) {
+                    DaylightArcView(
+                        sunriseAngle: sunriseAngle,
+                        sunsetAngle: sunsetAngle,
+                        size: size
+                    )
+                    
+                    // Sunrise line
+                    SunriseSunsetLineView(
+                        angle: sunriseAngle,
+                        size: size,
+                        isSunrise: true
+                    )
+                    
+                    // Sunset line
+                    SunriseSunsetLineView(
+                        angle: sunsetAngle,
+                        size: size,
+                        isSunrise: false
+                    )
+                }
+            }
             
-            // Moon icon
-            Image(systemName: "moon.fill")
+            // Available time indicators
+            if availableTimeEnabled {
+                let startTime = parseTimeString(availableStartTime)
+                let endTime = parseTimeString(availableEndTime)
+                let indicatorRadius = (size - 24) / 2 - 10
+                let center = size / 2
+                
+                // Start time indicator
+                Circle()
+                    .glassEffect(.clear)
+                    .frame(width: 6, height: 6)
+                    .blendMode(.plusLighter)
+                    .position(positionForTime(hour: startTime.hour, minute: startTime.minute, radius: indicatorRadius, center: center))
+                
+                // End time indicator
+                Circle()
+                    .glassEffect(.clear)
+                    .frame(width: 6, height: 6)
+                    .blendMode(.plusLighter)
+                    .position(positionForTime(hour: endTime.hour, minute: endTime.minute, radius: indicatorRadius, center: center))
+            }
+            
+            // Sun/Weather icon
+            Image(systemName: showWeather && weather != nil ? weather!.condition.icon : "sun.max.fill")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
                 .frame(height: 24)
-                .position(x: size / 2, y: size / 2 - (size / 2 - 60))
+                .position(x: size / 2,  y: size / 2 + (size / 2 - 64))
+                .contentTransition(.symbolEffect(.replace))
+                .animation(.spring(), value: weather?.condition)
+            
+            // Moon phase icon
+            Image(systemName: moonPhaseIcon)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.tertiary)
+                .blendMode(.plusLighter)
+                .frame(height: 24)
+                .position(x: size / 2, y: size / 2 - (size / 2 - 62))
+                .contentTransition(.symbolEffect(.replace))
+                .animation(.spring(), value: moonPhaseIcon)
             
             // World clock hands with city labels (non-selected first)
             // Grouped by time to avoid overlapping labels - only one city shown per unique time
-            ForEach(groupedNonSelectedClocks) { clock in
-                let time = getTime(for: clock.timeZoneIdentifier)
-                ClockHandWithLabel(
-                    cityId: clock.id,
-                    cityName: clock.localizedCityName,
-                    hour: time.hour,
-                    minute: time.minute,
-                    size: size,
-                    color: .white.opacity(0.25), // Hand colour
-                    isSelected: false,
-                    isLocal: false,
-                    selectedCityId: $selectedCityId,
-                    hapticEnabled: hapticEnabled,
-                    showDetailsSheet: $showDetailsSheet
-                )
+            // Hidden when hideOtherHands is true (double-tap to toggle)
+            if !hideOtherHands {
+                ForEach(groupedNonSelectedClocks) { clock in
+                    let time = getTime(for: clock.timeZoneIdentifier)
+                    ClockHandWithLabel(
+                        cityId: clock.id,
+                        cityName: clock.localizedCityName,
+                        hour: time.hour,
+                        minute: time.minute,
+                        size: size,
+                        color: .white.opacity(0.25), // Hand colour
+                        isSelected: false,
+                        isLocal: false,
+                        selectedCityId: $selectedCityId,
+                        hapticEnabled: hapticEnabled,
+                        showDetailsSheet: $showDetailsSheet
+                    )
+                }
             }
             
             // Local time hand (non-selected)
@@ -506,8 +816,9 @@ struct AnalogClockFaceView: View {
             }
             
             Circle()
-                .fill(Color.white)
+                .fill(.white)
                 .frame(width: 8, height: 8)
+//                .glassEffect(.clear.tint(.white.opacity(0.25)))
         }
         .frame(width: size, height: size)
     }
@@ -640,6 +951,85 @@ struct ClockHandWithLabel: View {
         }
         .animation(.none, value: angle)
         .rotationEffect(.degrees(angle))
+    }
+}
+
+// MARK: - Daylight Arc View
+struct DaylightArcView: View {
+    let sunriseAngle: Double
+    let sunsetAngle: Double
+    let size: CGFloat
+    
+    var body: some View {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let radius = (size - 24) / 2
+        
+        // Convert to radians (subtract 90 to align with clock where 0 is at top)
+        let startRadians = (sunriseAngle - 90) * .pi / 180
+        let endRadians = (sunsetAngle - 90) * .pi / 180
+        
+        Path { path in
+            path.move(to: center)
+            path.addArc(
+                center: center,
+                radius: radius,
+                startAngle: Angle(radians: startRadians),
+                endAngle: Angle(radians: endRadians),
+                clockwise: false
+            )
+            path.closeSubpath()
+        }
+        .fill(
+            RadialGradient(
+                colors: [
+                    Color.white.opacity(0.1),
+                    Color.white.opacity(0.0)
+                ],
+                center: .center,
+                startRadius: 0,
+                endRadius: radius
+            )
+        )
+        .blendMode(.plusLighter)
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Sunrise/Sunset Line View
+struct SunriseSunsetLineView: View {
+    let angle: Double
+    let size: CGFloat
+    let isSunrise: Bool
+    
+    var body: some View {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let radius = (size - 24) / 2 - 50
+        let angleRadians = (angle - 90) * .pi / 180
+        let endPoint = CGPoint(
+            x: center.x + radius * CGFloat(cos(angleRadians)),
+            y: center.y + radius * CGFloat(sin(angleRadians))
+        )
+        
+        Path { path in
+            path.move(to: center)
+            path.addLine(to: endPoint)
+        }
+        .stroke(
+            LinearGradient(
+                colors: [Color.white.opacity(0.25), Color.white.opacity(0)],
+                startPoint: UnitPoint(x: 0.5, y: 0.5),
+                endPoint: UnitPoint(
+                    x: 0.5 + (radius / size) * CGFloat(cos(angleRadians)),
+                    y: 0.5 + (radius / size) * CGFloat(sin(angleRadians))
+                )
+            ),
+            style: StrokeStyle(
+                lineWidth: 1.25,
+                lineCap: .round
+            )
+        )
+        .blendMode(.plusLighter)
+        .allowsHitTesting(false)
     }
 }
 

@@ -58,9 +58,11 @@
 "Haptics" = "触觉反馈";
 "System Time" = "本地时间";
 "Language" = "语言";
+"Widget" = "小组件";
 "Digital Time" = "数字时间";
 "Analog Time" = "模拟时间";
 "Arc Indicator" = "弧形指示器";
+"Sunrise & Sunset Lines" = "日出日落线";
 "Enable showing arc indicator for time offset." = "启用显示时间偏移的弧形指示器。";
 "Preview" = "预览";
 "Sky Colour" = "天空色彩";
@@ -90,6 +92,7 @@
 "1 City" = "1 个城市";
 "%d Cities" = "%d 个城市";
 "Need full calendar access." = "需要完整的日历访问权限。";
+"Please allow calendar access in Settings to add events." = "请在设置中允许日历访问以添加活动。";
 "Go to Settings" = "前往设置";
 "Show Onboarding" = "显示引导";
 "Reset Cities" = "重置城市";
@@ -114,9 +117,11 @@
 "Thanks for these kind human beings." = "感谢这些慷慨的人们。";
 "Version" = "版本";
 "Settings" = "设置";
+"About" = "关于";
 "Copyright © %d Negative Time Limited. \nAll rights reserved." = "版权所有 © %d Negative Time Limited。\n保留所有权利。";
 
 /* Home View */
+"Swipe right for precise time adjustment" = "右滑城市以精确调整时间";
 "Add cities to track time." = "添加城市以追踪时间。";
 "No cities in this collection." = "此集合中暂无城市。";
 "Add Cities" = "添加城市";
@@ -127,13 +132,16 @@
 "Share" = "分享";
 "Slide to Adjust" = "滑动以调整";
 "%dh %dm" = "%d小时%d分钟";
+"%dh %02dm" = "%d小时%02d分钟";
+"%dd" = "%d天";
 "%dh" = "%d小时";
 "%dm" = "%d分钟";
+"%02dm" = "%02d分钟";
 "0m" = "0分钟";
+"00m" = "00分钟";
 "Create Collection" = "创建集合";
 "Organize your time in collection" = "用集合整理你的时间";
 "Collections" = "集合";
-"Press and hold a city to add it to the collection." = "长按城市即可添加到集合。";
 "All Cities" = "所有城市";
 "Enter a name for your new collection" = "输入新集合名称";
 "Enter a new name for your collection" = "输入新的集合名称";
@@ -145,6 +153,7 @@
 "Time in other cities:" = "其他城市时间：";
 "Solar Time" = "太阳时";
 "Daylight" = "日光";
+"Golden Hour" = "黄金时刻";
 "Moon Time" = "月亮时";
 "Moon Phase" = "月相";
 "No Weather Data" = "暂无天气数据";
@@ -177,6 +186,10 @@
 "Flight Time" = "飞行时间";
 "Departure" = "出发";
 "Arrive" = "到达";
+"No Cities" = "暂无城市";
+"Sort by" = "排序方式";
+"West to East" = "从西向东";
+"East to West" = "从东向西";
 
 /* Weekdays */
 "Mon" = "一";
@@ -767,6 +780,34 @@
 /* Date suffix */
 "starts" = "开始";
 "ends" = "结束";
+
+/* Sun Elevation */
+"Sun Elevation" = "太阳高度";
+"Sun Azimuth" = "太阳方位角";
+
+/* Complications */
+"Complications" = "复杂功能";
+"Add complications in the middle of the city list." = "在城市列表中间添加复杂功能。";
+"Weather Condition" = "天气状况";
+"Use your current location" = "使用您当前的位置";
+
+/* What's New */
+"What's New" = "新功能";
+"Add a city complication for quick insights." = "添加城市复杂功能，快速获取信息。";
+"Add complications for quick, at-a-glance insights." = "添加复杂功能，快速获取信息。";
+"Tap to Select" = "轻点选择";
+"Skip" = "跳过";
+"Done" = "完成";
+
+/* Focus Time Tip */
+"Focus Time" = "专注时间";
+"Double-tap to focus on the selected time." = "双击表盘以专注于所选时间";
+
+/* Continuous Scroll Mode */
+"Continuous Scroll" = "连续滑动";
+"Reset" = "重置";
+"System time shows at the top of the list with ambient background." = "系统时间显示在列表顶部，带有环境背景。";
+"Enable continuous scroll for slide to adjust." = "启用使滑动调整支持连续滚动。";
 
 /* DST */
 "Starts" = "开始于";

@@ -9,12 +9,14 @@ import SwiftUI
 import EventKit
 import EventKitUI
 import CoreHaptics
+import StoreKit
 
 struct ScrollTimeView: View {
     @Binding var timeOffset: TimeInterval
     @Binding var showButtons: Bool
     @Binding var worldClocks: [WorldClock]
     @State private var dragOffset: CGFloat = 0
+    @State private var accumulatedOffset: TimeInterval = 0 // For continuous scroll mode
     @State private var eventStore = EKEventStore()
     @State private var showTimePicker = false
     @State private var showEventEditor = false
@@ -22,13 +24,21 @@ struct ScrollTimeView: View {
     @State private var hapticEngine: CHHapticEngine?
     @State private var lastHapticOffset: CGFloat = 0
     @State private var hapticPlayer: CHHapticPatternPlayer?
+    @State private var inertiaTimer: Timer?
+    @State private var inertiaVelocity: CGFloat = 0
+    @State private var lastInertiaHapticOffset: TimeInterval = 0
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
     @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
+    @AppStorage("hasRequestedReviewAfterFirstReset") private var hasRequestedReviewAfterFirstReset = false
+    @AppStorage("resetCount") private var resetCount: Int = 0
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
+    @Environment(\.requestReview) private var requestReview
     @Namespace private var glassNamespace
+    @State private var showCalendarPermissionAlert = false
     
     // Calculate hours from drag offset
     func hoursFromOffset(_ offset: CGFloat) -> Double {
@@ -189,6 +199,74 @@ struct ScrollTimeView: View {
         }
     }
     
+    // Check if we should play haptic based on time offset change (for inertia scroll)
+    func checkAndPlayInertiaHapticTick() {
+        // Play haptic every 30 minutes (1800 seconds) during inertia
+        let tickInterval: TimeInterval = 1800
+        
+        let currentTicks = Int(timeOffset / tickInterval)
+        let lastTicks = Int(lastInertiaHapticOffset / tickInterval)
+        
+        if currentTicks != lastTicks {
+            playTickHaptic(intensity: 0.35) // Lighter haptic during inertia
+            lastInertiaHapticOffset = timeOffset
+        }
+    }
+    
+    // Stop any ongoing inertia animation
+    func stopInertia() {
+        inertiaTimer?.invalidate()
+        inertiaTimer = nil
+        inertiaVelocity = 0
+    }
+    
+    // Start inertia scroll animation
+    func startInertiaScroll(velocity: CGFloat) {
+        // Stop any existing inertia
+        stopInertia()
+        
+        // Only start inertia if velocity is significant enough
+        guard abs(velocity) > 200 else { return }
+        
+        // Cap the initial velocity to prevent extreme scrolling
+        let maxVelocity: CGFloat = 1000
+        inertiaVelocity = min(max(velocity, -maxVelocity), maxVelocity)
+        
+        // Initialize haptic tracking
+        lastInertiaHapticOffset = timeOffset
+        
+        // Use a timer for smooth deceleration (60 fps)
+        let frameInterval: TimeInterval = 1.0 / 60.0
+        
+        // Create timer and add to .common mode so it continues running during List scrolling
+        let timer = Timer(timeInterval: frameInterval, repeats: true) { [self] timer in
+            let decelerationRate: CGFloat = 0.96
+            inertiaVelocity *= decelerationRate
+            
+            // Stop when velocity is negligible
+            if abs(inertiaVelocity) < 5 {
+                timer.invalidate()
+                inertiaTimer = nil
+                return
+            }
+            
+            // Calculate time change from velocity
+            // velocity is in points/second, convert to hours then to seconds
+            let deltaPoints = inertiaVelocity * CGFloat(frameInterval)
+            let deltaHours = hoursFromOffset(deltaPoints)
+            let deltaSeconds = deltaHours * 3600
+            
+            // Update offsets
+            accumulatedOffset += deltaSeconds
+            timeOffset = accumulatedOffset
+            
+            // Play haptic during inertia scroll
+            checkAndPlayInertiaHapticTick()
+        }
+        RunLoop.current.add(timer, forMode: .common)
+        inertiaTimer = timer
+    }
+    
     // Generate notes text with selected cities and their times
     func generateCityNotesText() -> String? {
         guard showCitiesInNotes && !selectedCitiesForNotes.isEmpty else { return nil }
@@ -272,9 +350,12 @@ struct ScrollTimeView: View {
                 }
             } else {
                 print("Calendar access denied or error: \(String(describing: error))")
-                // Provide haptic feedback on permission denied if enabled
-                if hapticEnabled {
-                    DispatchQueue.main.async {
+                DispatchQueue.main.async {
+                    // Show permission alert
+                    self.showCalendarPermissionAlert = true
+                    
+                    // Provide haptic feedback on permission denied if enabled
+                    if self.hapticEnabled {
                         let impactFeedback = UINotificationFeedbackGenerator()
                         impactFeedback.prepare()
                         impactFeedback.notificationOccurred(.warning)
@@ -286,6 +367,8 @@ struct ScrollTimeView: View {
     
     // Reset time offset
     func resetTimeOffset() {
+        // Stop any ongoing inertia animation
+        stopInertia()
         
         // Provide haptic feedback if enabled
         if hapticEnabled {
@@ -299,7 +382,22 @@ struct ScrollTimeView: View {
             timeOffset = 0
             dragOffset = 0
             lastHapticOffset = 0
+            lastInertiaHapticOffset = 0
+            accumulatedOffset = 0 // Reset accumulated offset for continuous mode
             showButtons = false
+        }
+        
+        // Increase reset count
+        resetCount += 1
+        
+        // Request app review after 3 resets
+        let reviewRequestThreshold = 3
+        if resetCount >= reviewRequestThreshold && !hasRequestedReviewAfterFirstReset {
+            hasRequestedReviewAfterFirstReset = true
+            // Delay the review request slightly to allow the UI animation to complete
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                requestReview()
+            }
         }
     }
     
@@ -327,32 +425,11 @@ struct ScrollTimeView: View {
                     // Main content
                     HStack {
                         // Time adjustment indicator
-                        if dragOffset != 0 {
-                            // During dragging - ZStack with dots and chevrons
+                        if dragOffset != 0 || (continuousScrollMode && timeOffset != 0) {
+                            // During dragging or in continuous mode with offset - ZStack with dots and chevrons
                             ZStack {
-                                // Dots indicator in the background
-                                HStack(spacing: 8) {
-                                    ForEach(0..<24) { index in
-                                        Capsule()
-                                            .fill(.primary.opacity({
-                                                // Calculate opacity based on distance from center
-                                                let center = 11.5 // Center of 24 items (0-23)
-                                                let distance = abs(Double(index) - center)
-                                                let maxDistance = 11.5
-                                                let opacity = 1.0 * (1 - (distance / maxDistance)) // From 1 at center to 0 at edges
-                                                return opacity
-                                            }()))
-                                            .frame(width: 2, height: 12)
-                                            .blur(radius: {
-                                                // Calculate blur based on distance from center
-                                                let center = 11.5 // Center of 24 items (0-23)
-                                                let distance = abs(Double(index) - center)
-                                                let maxDistance = 11.5
-                                                let blurAmount = (distance / maxDistance) * 1 // Max blur of 1
-                                                return blurAmount
-                                            }())
-                                    }
-                                }
+                                // Static dots indicator - doesn't re-render
+                                ScrollTimeDotsIndicator()
                                 
                                 // Chevrons in the foreground
                                 HStack {
@@ -372,12 +449,14 @@ struct ScrollTimeView: View {
                                 }
                             }
                             
-                        } else if timeOffset != 0 {
+                        } else if timeOffset != 0 && !continuousScrollMode {
+                            // Only show time text in normal mode, not in continuous scroll mode
                             let totalHours = timeOffset / 3600
                             let isPositive = totalHours >= 0
                             let absoluteHours = abs(totalHours)
-                            let hours = Int(absoluteHours)
-                            let minutes = Int((absoluteHours - Double(hours)) * 60)
+                            let days = Int(absoluteHours / 24)
+                            let hours = Int(absoluteHours) % 24
+                            let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
                             
                             
                             // Final time text (tappable) - with sign
@@ -387,14 +466,22 @@ struct ScrollTimeView: View {
                                 Text({
                                     let sign = isPositive ? "+" : "-"
                                     var result = ""
-                                    if hours > 0 && minutes > 0 {
-                                        result = String(format: String(localized: "%dh %dm"), hours, minutes)
+                                    if days > 0 {
+                                        result = String(format: String(localized: "%dd"), days)
+                                        if hours > 0 {
+                                            result += " " + String(format: String(localized: "%dh"), hours)
+                                        }
+                                        if minutes > 0 {
+                                            result += " " + String(format: String(localized: "%02dm"), minutes)
+                                        }
+                                    } else if hours > 0 && minutes > 0 {
+                                        result = String(format: String(localized: "%dh %02dm"), hours, minutes)
                                     } else if hours > 0 {
                                         result = String(format: String(localized: "%dh"), hours)
                                     } else if minutes > 0 {
-                                        result = String(format: String(localized: "%dm"), minutes)
+                                        result = String(format: String(localized: "%02dm"), minutes)
                                     } else {
-                                        result = String(localized: "0m")
+                                        result = String(localized: "00m")
                                     }
                                     return sign + result
                                 }())
@@ -402,9 +489,12 @@ struct ScrollTimeView: View {
                                 .fontWeight(.medium)
                                 .foregroundColor(.primary)
                                 .monospacedDigit()
-                                .frame(maxWidth: .infinity)
+                                .frame(maxWidth: .infinity, alignment: .center)
+                                .contentShape(Rectangle())
                             }
                             .buttonStyle(.plain)
+                            .frame(maxWidth: .infinity)
+                            .contentShape(Rectangle())
                             .transition(.blurReplace())
                             
                         } else {
@@ -436,7 +526,7 @@ struct ScrollTimeView: View {
                                 .blendMode(.plusLighter)
                         }
                     }
-                    .padding(.horizontal, (timeOffset == 0 || dragOffset != 0) ? 16 : 0)
+                    .padding(.horizontal, (timeOffset == 0 || dragOffset != 0 || continuousScrollMode) ? 16 : 0)
                     .font(.subheadline)
                     .animation(.spring(duration: 0.25), value: dragOffset)
                     .animation(.spring(duration: 0.25), value: timeOffset)
@@ -477,17 +567,87 @@ struct ScrollTimeView: View {
         
         // Overall composer
         .padding(.horizontal, 5)
+        .overlay(alignment: .top) {
+            // Reset button for continuous scroll mode
+            if continuousScrollMode && timeOffset != 0 && !showButtons {
+                Button(action: {
+                    DispatchQueue.main.async {
+                        resetTimeOffset()
+                    }
+                }) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.footnote.weight(.semibold))
+                        
+                        Text({
+                            let totalHours = timeOffset / 3600
+                            let isPositive = totalHours >= 0
+                            let absoluteHours = abs(totalHours)
+                            let days = Int(absoluteHours / 24)
+                            let hours = Int(absoluteHours) % 24
+                            let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
+                            
+                            let sign = isPositive ? "+" : "-"
+                            var result = ""
+                            if days > 0 {
+                                result = String(format: String(localized: "%dd"), days)
+                                if hours > 0 {
+                                    result += " " + String(format: String(localized: "%dh"), hours)
+                                }
+                                if minutes > 0 {
+                                    result += " " + String(format: String(localized: "%02dm"), minutes)
+                                }
+                            } else if hours > 0 && minutes > 0 {
+                                result = String(format: String(localized: "%dh %02dm"), hours, minutes)
+                            } else if hours > 0 {
+                                result = String(format: String(localized: "%dh"), hours)
+                            } else if minutes > 0 {
+                                result = String(format: String(localized: "%02dm"), minutes)
+                            } else {
+                                result = String(localized: "00m")
+                            }
+                            return sign + result
+                        }())
+                        .font(.footnote.weight(.semibold))
+                        .monospacedDigit()
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .contentShape(Capsule())
+                }
+                .buttonStyle(.plain)
+                .clipShape(Capsule())
+                .contentShape(Capsule())
+                .glassEffect(.regular.interactive())
+                .highPriorityGesture(DragGesture())
+                .transition(.blurReplace.combined(with: .scale).combined(with: .move(edge: .bottom)).combined(with: .opacity))
+                .offset(y: -52)
+            }
+        }
+        .animation(.spring(), value: continuousScrollMode)
+        .animation(.spring(), value: timeOffset != 0)
         .gesture(
             showButtons ? nil : DragGesture()
                 .onChanged { value in
+                    // Stop any ongoing inertia when user starts dragging again
+                    if continuousScrollMode {
+                        stopInertia()
+                    }
+                    
                     dragOffset = value.translation.width
                     let hours = hoursFromOffset(dragOffset)
-                    timeOffset = hours * 3600 // Convert hours to seconds
+                    
+                    if continuousScrollMode {
+                        // In continuous mode, add to accumulated offset
+                        timeOffset = accumulatedOffset + hours * 3600
+                    } else {
+                        timeOffset = hours * 3600 // Convert hours to seconds
+                    }
                     
                     // Check and play haptic tick when crossing time marks
                     checkAndPlayHapticTick()
                 }
-                .onEnded { _ in
+                .onEnded { value in
                     // Reset last haptic offset
                     lastHapticOffset = 0
                     
@@ -498,10 +658,26 @@ struct ScrollTimeView: View {
                         impactFeedback.impactOccurred()
                     }
                     
-                    // Show buttons after drag ends with morph animation
-                    withAnimation(.spring()) {
-                        showButtons = true
-                        dragOffset = 0
+                    if continuousScrollMode {
+                        // In continuous mode, accumulate the offset and reset drag
+                        let hours = hoursFromOffset(dragOffset)
+                        accumulatedOffset += hours * 3600
+                        
+                        // Calculate velocity for inertia (points per second)
+                        let velocity = value.velocity.width
+                        
+                        withAnimation(.spring()) {
+                            dragOffset = 0
+                        }
+                        
+                        // Start inertia animation with the release velocity
+                        startInertiaScroll(velocity: velocity)
+                    } else {
+                        // Show buttons after drag ends with morph animation
+                        withAnimation(.spring()) {
+                            showButtons = true
+                            dragOffset = 0
+                        }
                     }
                 }
         )
@@ -510,6 +686,8 @@ struct ScrollTimeView: View {
             prepareHaptics()
         }
         .onDisappear {
+            // Stop any ongoing inertia animation
+            stopInertia()
             // Stop the haptic engine to save resources
             hapticEngine?.stop()
         }
@@ -520,14 +698,27 @@ struct ScrollTimeView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            // Stop inertia animation when app goes to background
+            stopInertia()
             // Stop haptic engine when app goes to background
             hapticEngine?.stop()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResetScrollTime"))) { _ in
+            // Stop any ongoing inertia animation
+            stopInertia()
             // Reset drag offset when cities are reset
             withAnimation(.spring()) {
                 dragOffset = 0
                 lastHapticOffset = 0
+                lastInertiaHapticOffset = 0
+                accumulatedOffset = 0 // Reset accumulated offset for continuous mode
+            }
+        }
+        .onChange(of: timeOffset) { oldValue, newValue in
+            // Sync accumulatedOffset when timeOffset is changed externally (e.g., from CityTimeAdjustmentSheet)
+            // Only sync when not currently dragging (dragOffset == 0) and in continuous scroll mode
+            if continuousScrollMode && dragOffset == 0 {
+                accumulatedOffset = newValue
             }
         }
         .sheet(isPresented: $showTimePicker) {
@@ -544,6 +735,42 @@ struct ScrollTimeView: View {
                 eventStore: eventStore
             )
             .ignoresSafeArea()
+        }
+        .alert("", isPresented: $showCalendarPermissionAlert) {
+            Button(String(localized: "Cancel"), role: .cancel) { }
+            Button(String(localized: "Go to Settings")) {
+                if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(settingsURL)
+                }
+            }
+        } message: {
+            Text("Please allow calendar access in Settings to add events.")
+        }
+    }
+}
+
+// MARK: - Static Dots Indicator
+struct ScrollTimeDotsIndicator: View {
+    // Pre-calculated static values - computed once
+    private static let dotData: [(opacity: Double, blur: CGFloat)] = {
+        let center = 11.5
+        let maxDistance = 11.5
+        return (0..<24).map { index in
+            let distance = abs(Double(index) - center)
+            let opacity = 1.0 - (distance / maxDistance)
+            let blur = CGFloat((distance / maxDistance) * 1.0)
+            return (opacity, blur)
+        }
+    }()
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<24, id: \.self) { index in
+                Capsule()
+                    .fill(.primary.opacity(Self.dotData[index].opacity))
+                    .frame(width: 2, height: 12)
+                    .blur(radius: Self.dotData[index].blur)
+            }
         }
     }
 }

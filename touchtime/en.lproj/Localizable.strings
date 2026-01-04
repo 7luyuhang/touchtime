@@ -58,9 +58,10 @@
 "Haptics" = "Haptics";
 "System Time" = "Local Time";
 "Language" = "Language";
-"Digital Time" = "Digital Time";
-"Analog Time" = "Analog Time";
+"Widget" = "Widget";
+"Display" = "Display";
 "Arc Indicator" = "Arc Indicator";
+"Sunrise & Sunset Lines" = "Sunrise & Sunset Lines";
 "Enable showing arc indicator for time offset." = "Enable showing arc indicator for time offset.";
 "Preview" = "Preview";
 "Sky Colour" = "Sky Colour";
@@ -90,6 +91,7 @@
 "1 City" = "1 City";
 "%d Cities" = "%d Cities";
 "Need full calendar access." = "Need full calendar access.";
+"Please allow calendar access in Settings to add events." = "Please allow calendar access in Settings to add events.";
 "Go to Settings" = "Go to Settings";
 "Show Onboarding" = "Show Onboarding";
 "Reset Cities" = "Reset Cities";
@@ -114,9 +116,11 @@
 "Thanks for these kind human beings." = "Thanks for these kind human beings.";
 "Version" = "Version";
 "Settings" = "Settings";
+"About" = "About";
 "Copyright © %d Negative Time Limited. \nAll rights reserved." = "Copyright © %d Negative Time Limited. \nAll rights reserved.";
 
 /* Home View */
+"Swipe right for precise time adjustment" = "Swipe right for precise time adjustment";
 "Add cities to track time." = "Add cities to track time.";
 "No cities in this collection." = "No cities in this collection.";
 "Add Cities" = "Add Cities";
@@ -127,13 +131,16 @@
 "Share" = "Share";
 "Slide to Adjust" = "Slide to Adjust";
 "%dh %dm" = "%dh %dm";
+"%dh %02dm" = "%dh %02dm";
+"%dd" = "%dd";
 "%dh" = "%dh";
 "%dm" = "%dm";
+"%02dm" = "%02dm";
 "0m" = "0m";
+"00m" = "00m";
 "Create Collection" = "Create Collection";
 "Organize your time in collection" = "Organize your time in collection";
 "Collections" = "Collections";
-"Press and hold a city to add it to the collection." = "Press and hold a city to add it to the collection.";
 "All Cities" = "All Cities";
 "Enter a name for your new collection" = "Enter a name for your new collection";
 "Enter a new name for your collection" = "Enter a new name for your collection";
@@ -145,6 +152,7 @@
 "Time in other cities:" = "Time in other cities:";
 "Solar Time" = "Solar Time";
 "Daylight" = "Daylight";
+"Golden Hour" = "Golden Hour";
 "Moon Time" = "Moon Time";
 "Moon Phase" = "Moon Phase";
 "No Weather Data" = "No Weather Data";
@@ -177,6 +185,10 @@
 "Flight Time" = "Flight Time";
 "Departure" = "Departure";
 "Arrive" = "Arrive";
+"No Cities" = "No Cities";
+"Sort by" = "Sort by";
+"West to East" = "West to East";
+"East to West" = "East to West";
 
 /* Weekdays */
 "Mon" = "M";
@@ -322,3 +334,31 @@
 /* Date suffix */
 "starts" = "starts";
 "ends" = "ends";
+
+/* Sun Elevation */
+"Sun Elevation" = "Sun Elevation";
+"Sun Azimuth" = "Sun Azimuth";
+
+/* Complications */
+"Complications" = "Complications";
+"Add complications in the middle of the city list." = "Add complications in the middle of the city list.";
+"Weather Condition" = "Weather Condition";
+"Use your current location" = "Use your current location";
+
+/* What's New */
+"What's New" = "What's New";
+"Add a city complication for quick insights." = "Add a city complication for quick insights.";
+"Add complications for quick, at-a-glance insights." = "Add complications for quick, at-a-glance insights.";
+"Tap to Select" = "Tap to Select";
+"Skip" = "Skip";
+"Done" = "Done";
+
+/* Focus Time Tip */
+"Focus Time" = "Focus Time";
+"Double-tap to focus on the selected time." = "Double-tap to focus on the selected time.";
+
+/* Continuous Scroll Mode */
+"Continuous Scroll" = "Continuous Scroll";
+"Reset" = "Reset";
+"System time shows at the top of the list with ambient background." = "System time shows at the top of the list with ambient background.";
+"Enable continuous scroll for slide to adjust." = "Enable continuous scroll for slide to adjust.";

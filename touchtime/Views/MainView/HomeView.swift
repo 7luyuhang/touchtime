@@ -12,6 +12,13 @@ import EventKit
 import EventKitUI
 import WeatherKit
 
+// Data struct for city time adjustment sheet
+struct CityTimeAdjustmentData: Identifiable {
+    let id = UUID()
+    let cityName: String
+    let timeZoneIdentifier: String
+}
+
 struct HomeView: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
@@ -33,6 +40,8 @@ struct HomeView: View {
     @State private var selectedCityName: String = ""
     @State private var showArrangeListSheet = false
     @State private var showEarthView = false
+    @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
+    @State private var showCalendarPermissionAlert = false
     
     // Collection management
     @State private var collections: [CityCollection] = []
@@ -70,8 +79,18 @@ struct HomeView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("showSunPosition") private var showSunPosition = false
+    @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
+    @AppStorage("showWhatsNewComplication") private var showWhatsNewComplication = true
+    
+    @State private var showWhatsNewSheet = false
     
     @StateObject private var weatherManager = WeatherManager()
+    
+    // Namespace for zoom transition
+    @Namespace private var earthViewNamespace
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -223,9 +242,10 @@ struct HomeView: View {
                 }
             } else {
                 print("Calendar access denied or error: \(String(describing: error))")
-                // Provide haptic feedback on permission denied if enabled
-                if self.hapticEnabled {
-                    DispatchQueue.main.async {
+                DispatchQueue.main.async {
+                    self.showCalendarPermissionAlert = true
+                    // Provide haptic feedback on permission denied if enabled
+                    if self.hapticEnabled {
                         let impactFeedback = UINotificationFeedbackGenerator()
                         impactFeedback.prepare()
                         impactFeedback.notificationOccurred(.warning)
@@ -314,6 +334,47 @@ struct HomeView: View {
                 } else {
                     // Main List Content
                     List {
+                        
+                        // What's New Section
+                        if showWhatsNewSwipeAdjust {
+                            Section {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "hand.draw.fill")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .frame(width: 24, height: 24)
+                                    
+                                    Text("Swipe right for precise time adjustment")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "xmark")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .frame(width: 24, height: 24)
+                                }
+                                .listRowBackground(
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                        .fill(Color.black.opacity(0.10))
+                                        .glassEffect(.clear.interactive(),
+                                                     in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    withAnimation(.spring()) {
+                                        showWhatsNewSwipeAdjust = false
+                                    }
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                }
+                            }
+                        }
+                        
                         // Local Time Section
                         if showLocalTime {
                             Section {
@@ -345,6 +406,7 @@ struct HomeView: View {
                                             .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
                                             .contentTransition(.numericText())
+                                            .clipped()
                                         }
                                         
                                         // Bottom row: Location and Time (baseline aligned)
@@ -354,7 +416,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: showAnalogClock ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             
@@ -377,6 +439,7 @@ struct HomeView: View {
                                             .fontDesign(.rounded)
                                             .monospacedDigit()
                                             .contentTransition(.numericText())
+                                            .clipped()
                                         }
                                         .padding(.bottom, -4)
                                         
@@ -394,6 +457,7 @@ struct HomeView: View {
                                             )
                                         }
                                     }
+                                    .frame(minHeight: 64) // For Complication Overlays
                                     
                                     // Analog Clock Overlay - Centered
                                     if showAnalogClock {
@@ -401,6 +465,39 @@ struct HomeView: View {
                                             date: currentDate.addingTimeInterval(timeOffset),
                                             size: 64,
                                             timeZone: TimeZone.current
+                                        )
+                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Sun Position Overlay - Centered
+                                    if showSunPosition {
+                                        SunPositionIndicator(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZone: TimeZone.current,
+                                            size: 64
+                                        )
+                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Weather Condition Overlay - Centered
+                                    if showWeatherCondition {
+                                        WeatherConditionView(
+                                            timeZone: TimeZone.current,
+                                            size: 64
+                                        )
+                                        .environmentObject(weatherManager)
+                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Sun Azimuth Overlay - Centered
+                                    if showSunAzimuth {
+                                        SunAzimuthIndicator(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZone: TimeZone.current,
+                                            size: 64
                                         )
                                         .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
                                         .transition(.blurReplace)
@@ -422,6 +519,12 @@ struct HomeView: View {
                                         await weatherManager.getWeather(for: TimeZone.current.identifier)
                                     }
                                 }
+                                // Fetch weather for weather condition complication
+                                .task(id: showWeatherCondition) {
+                                    if showWeatherCondition {
+                                        await weatherManager.getWeather(for: TimeZone.current.identifier)
+                                    }
+                                }
                                 
                                 
                                 // Tap gesture for local time
@@ -435,6 +538,24 @@ struct HomeView: View {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
                                         impactFeedback.impactOccurred()
                                     }
+                                }
+                                
+                                // Swipe to adjust time (leading edge - swipe right) for local time
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button {
+                                        cityTimeAdjustmentData = CityTimeAdjustmentData(
+                                            cityName: String(localized: "Local"),
+                                            timeZoneIdentifier: TimeZone.current.identifier
+                                        )
+                                        
+                                        if hapticEnabled {
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                            impactFeedback.impactOccurred()
+                                        }
+                                    } label: {
+                                        Label("", systemImage: "clock.fill")
+                                    }
+                                    .tint(.blue)
                                 }
                                 
                                 // Menu Local Time
@@ -526,6 +647,7 @@ struct HomeView: View {
                                                     .foregroundStyle(.secondary)
                                                     .blendMode(.plusLighter)
                                                     .contentTransition(.numericText())
+                                                    .clipped()
                                             }
                                         } else {
                                             HStack {
@@ -550,6 +672,7 @@ struct HomeView: View {
                                                     .font(.subheadline)
                                                     .foregroundStyle(.secondary)
                                                     .contentTransition(.numericText())
+                                                    .clipped()
                                             }
                                         }
                                         
@@ -559,7 +682,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: showAnalogClock ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             Spacer()
@@ -581,9 +704,11 @@ struct HomeView: View {
                                             .fontDesign(.rounded)
                                             .monospacedDigit()
                                             .contentTransition(.numericText())
+                                            .clipped()
                                         }
                                         .padding(.bottom, -4)
                                     }
+                                    .frame(minHeight: 64) // For Complication Overlays
                                     
                                     // Analog Clock Overlay - Centered
                                     if showAnalogClock {
@@ -591,6 +716,36 @@ struct HomeView: View {
                                             date: currentDate.addingTimeInterval(timeOffset),
                                             size: 64,
                                             timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current
+                                        )
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Sun Position Overlay - Centered
+                                    if showSunPosition {
+                                        SunPositionIndicator(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
+                                            size: 64
+                                        )
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Weather Condition Overlay - Centered
+                                    if showWeatherCondition {
+                                        WeatherConditionView(
+                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
+                                            size: 64
+                                        )
+                                        .environmentObject(weatherManager)
+                                        .transition(.blurReplace)
+                                    }
+                                    
+                                    // Sun Azimuth Overlay - Centered
+                                    if showSunAzimuth {
+                                        SunAzimuthIndicator(
+                                            date: currentDate.addingTimeInterval(timeOffset),
+                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
+                                            size: 64
                                         )
                                         .transition(.blurReplace)
                                     }
@@ -611,6 +766,12 @@ struct HomeView: View {
                                         await weatherManager.getWeather(for: clock.timeZoneIdentifier)
                                     }
                                 }
+                                // Fetch weather for weather condition complication
+                                .task(id: showWeatherCondition) {
+                                    if showWeatherCondition {
+                                        await weatherManager.getWeather(for: clock.timeZoneIdentifier)
+                                    }
+                                }
                                 
                                 // Tap gesture for world clock
                                 .onTapGesture {
@@ -624,6 +785,24 @@ struct HomeView: View {
                                         impactFeedback.prepare()
                                         impactFeedback.impactOccurred()
                                     }
+                                }
+                                
+                                // Swipe to adjust time (leading edge - swipe right)
+                                .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                                    Button {
+                                        cityTimeAdjustmentData = CityTimeAdjustmentData(
+                                            cityName: getLocalizedCityName(for: clock),
+                                            timeZoneIdentifier: clock.timeZoneIdentifier
+                                        )
+                                        
+                                        if hapticEnabled {
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                            impactFeedback.impactOccurred()
+                                        }
+                                    } label: {
+                                        Label("", systemImage: "clock.fill")
+                                    }
+                                    .tint(.blue)
                                 }
                                 
                                 //Swipe to delete time (only for default view)
@@ -690,6 +869,13 @@ struct HomeView: View {
                                         }
                                     }
                                     
+                                    // Arrange Cities
+                                    Button {
+                                        showArrangeListSheet = true
+                                    } label: {
+                                        Label(String(localized: "Arrange"), systemImage: "list.bullet")
+                                    }
+                                    
                                     // Only show delete for default view
                                     if selectedCollectionId == nil {
                                         Divider()
@@ -749,6 +935,7 @@ struct HomeView: View {
                     }
                 }
             )
+            
             // Animations
             .animation(.spring(), value: showingRenameAlert)
             .animation(.spring(), value: customLocalName)
@@ -757,13 +944,28 @@ struct HomeView: View {
             .animation(.spring(), value: showLocalTime)
             .animation(.spring(), value: availableTimeEnabled)
             .animation(.spring(), value: showAnalogClock)
+            .animation(.spring(), value: showSunPosition)
+            .animation(.spring(), value: showWeatherCondition)
+            .animation(.spring(), value: showSunAzimuth)
+            .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
             // Navigation Title
-            .navigationTitle(selectedCollectionId != nil ? currentCollectionName : "")
+            .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
+                // Collection Name (styled like AnalogClockFullView)
+                if selectedCollectionId != nil {
+                    ToolbarItem(placement: .principal) {
+                        Text(currentCollectionName)
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
+                            .frame(height: 44)
+                            .glassEffect(.regular, in: Capsule(style: .continuous))
+                            .lineLimit(1)
+                    }
+                }
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         // Collections
@@ -808,7 +1010,7 @@ struct HomeView: View {
                                 Label("Share", systemImage: "square.and.arrow.up")
                             }
                         }
-                    
+                        
                         // Arrange Section - only show if there are world clocks or collections
                         if !worldClocks.isEmpty || !collections.isEmpty {
                             Button(action: {
@@ -853,6 +1055,7 @@ struct HomeView: View {
                     }) {
                         Image(systemName: "globe.americas.fill")
                     }
+                    .matchedTransitionSource(id: "earthView", in: earthViewNamespace)
                 }
             }
             
@@ -862,6 +1065,13 @@ struct HomeView: View {
             
             .onAppear {
                 loadCollections()
+                
+                // Show What's New sheet for complication feature
+                if showWhatsNewComplication {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        showWhatsNewSheet = true
+                    }
+                }
             }
             
             // Listen for reset notification to reset scroll time
@@ -902,6 +1112,18 @@ struct HomeView: View {
                 }
             } message: {
                 Text("Customize the name of this city")
+            }
+            
+            // Calendar Permission Alert
+            .alert("", isPresented: $showCalendarPermissionAlert) {
+                Button(String(localized: "Cancel"), role: .cancel) { }
+                Button(String(localized: "Go to Settings")) {
+                    if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(settingsURL)
+                    }
+                }
+            } message: {
+                Text("Please allow calendar access in Settings to add events.")
             }
             
             // Share Cities Sheet
@@ -951,6 +1173,7 @@ struct HomeView: View {
                     initialDate: currentDate,
                     timeOffset: timeOffset
                 )
+                .environmentObject(weatherManager)
             }
             
             // Arrange List Sheet
@@ -969,8 +1192,45 @@ struct HomeView: View {
             }
             
             // Earth View
-            .fullScreenCover(isPresented: $showEarthView) {
+            .sheet(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
+                    .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
+            }
+            
+            // City Time Adjustment Sheet
+            .sheet(item: $cityTimeAdjustmentData) { data in
+                CityTimeAdjustmentSheet(
+                    cityName: data.cityName,
+                    timeZoneIdentifier: data.timeZoneIdentifier,
+                    timeOffset: $timeOffset,
+                    showSheet: Binding(
+                        get: { cityTimeAdjustmentData != nil },
+                        set: { if !$0 { cityTimeAdjustmentData = nil } }
+                    ),
+                    showScrollTimeButtons: $showScrollTimeButtons
+                )
+            }
+            
+            // What's New Complication Sheet
+            .sheet(isPresented: $showWhatsNewSheet) {
+                WhatsNewSheet(
+                    showAnalogClock: $showAnalogClock,
+                    showSunPosition: $showSunPosition,
+                    showSunAzimuth: $showSunAzimuth,
+                    showWeatherCondition: $showWeatherCondition,
+                    showWeather: showWeather,
+                    weatherManager: weatherManager,
+                    isPresented: $showWhatsNewSheet
+                )
+//                .presentationDetents([.medium])
+                .presentationDetents([.height(400)])
+                .interactiveDismissDisabled()
+            }
+            .onChange(of: showWhatsNewSheet) { oldValue, newValue in
+                if !newValue && oldValue {
+                    // Mark as seen when sheet is dismissed
+                    showWhatsNewComplication = false
+                }
             }
         }
         

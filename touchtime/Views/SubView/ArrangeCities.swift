@@ -182,6 +182,36 @@ struct ArrangeListView: View {
         collectionToRename = nil
     }
     
+    // Sort cities from West to East (by longitude, smallest to largest)
+    func sortCitiesWestToEast() {
+        worldClocks.sort { clock1, clock2 in
+            let coords1 = TimeZoneCoordinates.getCoordinate(for: clock1.timeZoneIdentifier)
+            let coords2 = TimeZoneCoordinates.getCoordinate(for: clock2.timeZoneIdentifier)
+            return (coords1?.longitude ?? 0) < (coords2?.longitude ?? 0)
+        }
+        saveWorldClocks()
+        
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+    
+    // Sort cities from East to West (by longitude, largest to smallest)
+    func sortCitiesEastToWest() {
+        worldClocks.sort { clock1, clock2 in
+            let coords1 = TimeZoneCoordinates.getCoordinate(for: clock1.timeZoneIdentifier)
+            let coords2 = TimeZoneCoordinates.getCoordinate(for: clock2.timeZoneIdentifier)
+            return (coords1?.longitude ?? 0) > (coords2?.longitude ?? 0)
+        }
+        saveWorldClocks()
+        
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             List {
@@ -224,8 +254,14 @@ struct ArrangeListView: View {
                         ForEach(collections) { collection in
                             DisclosureGroup(
                                 isExpanded: Binding(
-                                    get: { expandedCollections.contains(collection.id) },
+                                    get: { 
+                                        // Disable expansion if collection has no cities
+                                        guard !collection.cities.isEmpty else { return false }
+                                        return expandedCollections.contains(collection.id) 
+                                    },
                                     set: { isExpanding in
+                                        // Prevent expansion if collection has no cities
+                                        guard !collection.cities.isEmpty else { return }
                                         if isExpanding {
                                             expandedCollections.insert(collection.id)
                                         } else {
@@ -297,10 +333,6 @@ struct ArrangeListView: View {
                     if !collections.isEmpty {
                         Text("Collections")
                     }
-                } footer: {
-                    if !collections.isEmpty {
-                        Text("Press and hold a city to add it to the collection.")
-                    }
                 }
                 
                 // City Time Section
@@ -333,8 +365,43 @@ struct ArrangeListView: View {
                     }
                     
                     // World Clocks Section (All Cities)
-                    ForEach(worldClocks) { clock in
+                    if !showLocalTimeInHome && worldClocks.isEmpty {
                         HStack {
+                            Spacer()
+                            Text(String(localized: "No Cities"))
+                                .foregroundStyle(.secondary)
+                            Spacer()}
+                    }
+                    
+                    ForEach(worldClocks) { clock in
+                        HStack(spacing: 12) {
+                            // Plus icon for collection selection
+                            if !collections.isEmpty {
+                                Menu {
+                                    Section(String(localized: "Add to Collection")) {
+                                        ForEach(collections) { collection in
+                                            Button {
+                                                if isCityInCollection(city: clock, collectionId: collection.id) {
+                                                    removeCityFromCollection(city: clock, collectionId: collection.id)
+                                                } else {
+                                                    copyCityToCollection(city: clock, collectionId: collection.id)
+                                                }
+                                            } label: {
+                                                if isCityInCollection(city: clock, collectionId: collection.id) {
+                                                    Label(collection.name, systemImage: "checkmark.circle")
+                                                } else {
+                                                    Text(collection.name)
+                                                }
+                                            }
+                                        }
+                                    }
+                                } label: {
+                                    Image(systemName: "plus.circle")
+                                        .font(.title3)
+                                }
+                                .tint(.secondary)
+                            }
+                            
                             // City name
                             Text(clock.localizedCityName)
                                 .lineLimit(1)
@@ -349,27 +416,6 @@ struct ArrangeListView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        .contextMenu {
-                            if !collections.isEmpty {
-                                Section(String(localized: "Add to Collection")) {
-                                    ForEach(collections) { collection in
-                                        Button {
-                                            if isCityInCollection(city: clock, collectionId: collection.id) {
-                                                removeCityFromCollection(city: clock, collectionId: collection.id)
-                                            } else {
-                                                copyCityToCollection(city: clock, collectionId: collection.id)
-                                            }
-                                        } label: {
-                                            if isCityInCollection(city: clock, collectionId: collection.id) {
-                                                Label(collection.name, systemImage: "checkmark.circle")
-                                            } else {
-                                                Text(collection.name)
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
                     }
                     .onMove { source, destination in
                         worldClocks.move(fromOffsets: source, toOffset: destination)
@@ -381,7 +427,31 @@ struct ArrangeListView: View {
                         }
                     }
                 } header: {
-                    Text("All Cities")
+                    HStack {
+                        Text("All Cities")
+                        Spacer()
+                        if worldClocks.count >= 2 {
+                            Menu {
+                                Section(String(localized: "Sort by")) {
+                                    Button {
+                                        sortCitiesEastToWest()
+                                    } label: {
+                                        Label(String(localized: "East to West"), systemImage: "arrow.left")
+                                    }
+
+                                    Button {
+                                        sortCitiesWestToEast()
+                                    } label: {
+                                        Label(String(localized: "West to East"), systemImage: "arrow.right")
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "arrow.up.arrow.down")
+                                    .font(.subheadline.weight(.medium))
+                                    .tint(.primary)
+                            }
+                        }
+                    }
                 }
             }
             .scrollIndicators(.hidden)

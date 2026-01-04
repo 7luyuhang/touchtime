@@ -12,11 +12,12 @@ import StoreKit
 
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
-    @AppStorage("use24HourFormat") private var use24HourFormat = true
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
@@ -24,11 +25,14 @@ struct SettingsView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("showSunPosition") private var showSunPosition = false
+    @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
+    @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @State private var currentDate = Date()
-    @State private var showResetConfirmation = false
     @State private var showSupportLove = false
-    @State private var showOnboarding = false
+    @State private var showComplicationsSheet = false
     @Environment(\.dismiss) private var dismiss
     @StateObject private var weatherManager = WeatherManager()
     
@@ -87,19 +91,18 @@ struct SettingsView: View {
         }
     }
     
-    // Get current language display name
-    var currentLanguageName: String {
-        let preferredLanguage = Bundle.main.preferredLocalizations.first ?? "en"
-        switch preferredLanguage {
-        case "zh-Hans":
-            return "简体中文"
-        case "zh-Hant":
-            return "繁體中文"
-        case "en":
-            return "English"
-        default:
-            return "English"
+    // Get current complication name
+    var currentComplicationName: String? {
+        if showAnalogClock {
+            return String(localized: "Analog Clock")
+        } else if showSunPosition {
+            return String(localized: "Sun Elevation")
+        } else if showSunAzimuth {
+            return String(localized: "Sun Azimuth")
+        } else if showWeatherCondition {
+            return String(localized: "Weather Condition")
         }
+        return nil
     }
     
     var body: some View {
@@ -138,29 +141,41 @@ struct SettingsView: View {
                     //                                endPoint: .bottomTrailing
                     //                            ).opacity(0.25)
                     //                        )
-                        .fill(Color.black.opacity(0.20))
+                        .fill(Color.black.opacity(0.25))
                         .glassEffect(.clear.interactive(),
                                      in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                 )
                 
                 
                 // General Section
-                Section(header: Text("General"), footer: Text("Enable showing system time at the top of the list with ambient background.")) {
+                Section(header: Text("General"), footer: Text("System time shows at the top of the list with ambient background.")) {
                     
                     Button(action: {
-                        if let url = URL(string: UIApplication.openSettingsURLString) {
-                            UIApplication.shared.open(url)
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                        }
+                        // Check if handstime app is installed
+                        if let handsTimeURL = URL(string: "handstime://"),
+                           UIApplication.shared.canOpenURL(handsTimeURL) {
+                            // Open handstime app
+                            UIApplication.shared.open(handsTimeURL)
+                        } else {
+                            // Open App Store page for handstime
+                            if let appStoreURL = URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720") {
+                                UIApplication.shared.open(appStoreURL)
+                            }
                         }
                     }) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "character", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
-                                Text("Language")
+                                SystemIconImage(systemName: "widget.small", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                                Text("Widget")
                             }
                             .layoutPriority(1)
                             Spacer(minLength: 8)
-                            Text(currentLanguageName)
-                                .foregroundStyle(.secondary)
+                            Image(systemName: "arrow.up.forward")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.tertiary)
                         }
                     }
                     .foregroundStyle(.primary)
@@ -173,6 +188,7 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
+                    
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
@@ -180,6 +196,22 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
+                }
+                
+                // Continuous Scroll
+                Section {
+                    Toggle(isOn: $continuousScrollMode) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "lines.measurement.horizontal.aligned.bottom", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                            Text("Continuous Scroll")
+                        }
+                    }
+                    .tint(.blue)
+                    .onChange(of: continuousScrollMode) { _, _ in
+                        NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
+                    }
+                } footer: {
+                    Text("Enable continuous scroll for slide to adjust.")
                 }
                 
                 // Available Time Section - only show when System Time is enabled
@@ -192,8 +224,42 @@ struct SettingsView: View {
                     }
                 }
                 
+                
+                // Temperature/Weather Section
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { showWeather },
+                        set: { newValue in
+                            showWeather = newValue
+                            if !newValue {
+                                showWeatherCondition = false
+                            }
+                        }
+                    )) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "sun.max.fill", topColor: .red, bottomColor: .orange)
+                            Text("Weather")
+                        }
+                    }
+                    .tint(.blue)
+                    
+                    // Temperature Unit Picker - only show when weather is enabled
+                    if showWeather {
+                        Picker(selection: $useCelsius) {
+                            Text("Celsius").tag(true)
+                            Text("Fahrenheit").tag(false)
+                        } label: {
+                            Text("Temperature Units")
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.secondary)
+                    }} footer: {
+                        Text("Data provided by  Weather.")
+                    }
+                
+                
                 // Digital Time Section
-                Section(String(localized: "Digital Time")) {
+                Section(header: Text("Display")) {
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
                         
@@ -280,7 +346,55 @@ struct SettingsView: View {
                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                         .blendMode(.plusLighter)
                                 )
-                                .transition(.blurReplace)
+                                .transition(.blurReplace.combined(with: .scale))
+                            }
+                            
+                            // Sun Position Overlay - Centered
+                            if showSunPosition {
+                                SunPositionIndicator(
+                                    date: currentDate,
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.blurReplace.combined(with: .scale))
+                            }
+                            
+                            // Weather Condition Overlay - Centered
+                            if showWeatherCondition {
+                                WeatherConditionView(
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .environmentObject(weatherManager)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.blurReplace.combined(with: .scale))
+                            }
+                            
+                            // Sun Azimuth Overlay - Centered
+                            if showSunAzimuth {
+                                SunAzimuthIndicator(
+                                    date: currentDate,
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.blurReplace.combined(with: .scale))
                             }
                         }
                         .background(
@@ -301,6 +415,9 @@ struct SettingsView: View {
                         )
                         .animation(.spring(), value: showSkyDot)
                         .animation(.spring(), value: showAnalogClock)
+                        .animation(.spring(), value: showSunPosition)
+                        .animation(.spring(), value: showWeatherCondition)
+                        .animation(.spring(), value: showSunAzimuth)
                         .id("\(showSkyDot)-\(dateStyle)")
                         .onTapGesture {
                             if hapticEnabled {
@@ -336,7 +453,6 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
-                    
                     // 24 Hours Format
                     Toggle(isOn: $use24HourFormat) {
                         HStack(spacing: 12) {
@@ -346,15 +462,6 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
-                    
-                    // Analog Clock
-                    Toggle(isOn: $showAnalogClock) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
-                            Text(String(localized: "Analog Clock"))
-                        }
-                    }
-                    .tint(.blue)
                     
                     // Additional Time
                     Picker(selection: $additionalTimeDisplay) {
@@ -380,7 +487,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock {
+                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showSunAzimuth {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -392,16 +499,60 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock)
+                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
                     }
+                    .onChange(of: showSunPosition) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showWeatherCondition) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showSunAzimuth) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    
+                    // Complications
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        showComplicationsSheet = true
+                    }) {
+                        HStack {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                                Text("Complications")
+                            }
+                            .layoutPriority(1)
+                            Spacer(minLength: 8)
+                            Text(currentComplicationName ?? String(localized: "None"))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    
                 }
                 
                 // Analog Time Section
                 Section {
+                    Toggle(isOn: $showSunriseSunsetLines) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            Text(String(localized: "Sunrise & Sunset Lines"))
+                        }
+                    }
+                    .tint(.blue)
+                    
                     Toggle(isOn: $showArcIndicator) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "circle", topColor: .black, bottomColor: .black)
@@ -409,91 +560,23 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
-                } header: {
-                    Text(String(localized: "Analog Time"))
                 } footer: {
                     Text("Enable showing arc indicator for time offset.")
                 }
                 
-                // Temperature/Weather Section
+                // Others
                 Section {
-                    Toggle(isOn: $showWeather) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "sun.max.fill", topColor: .red, bottomColor: .orange)
-                            Text("Weather")
-                        }
-                    }
-                    .tint(.blue)
-                    
-                    // Temperature Unit Picker - only show when weather is enabled
-                    if showWeather {
-                        Picker(selection: $useCelsius) {
-                            Text("Celsius").tag(true)
-                            Text("Fahrenheit").tag(false)
-                        } label: {
-                            Text("Temperature Units")
-                        }
-                        .pickerStyle(.menu)
-                        .tint(.secondary)
-                    }} footer: {
-                        Text("Data provided by  Weather.")
-                    }
-                
-                
-                // Calendar
-                Section{
+                    // Calendar Section
                     NavigationLink(destination: CalendarView(worldClocks: worldClocks)) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "calendar", topColor: .red, bottomColor: .red)
                             Text("Calendar")
                         }
                     }
                 }
                 
                 
-                // Onboarding Section
-                Section {
-                    Button(action: {
-                        showOnboarding = true
-                    }) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "sparkle.magnifyingglass", topColor: .blue, bottomColor: .pink)
-                            Text("Show Onboarding")
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                }
-                
-                
-                // Reset Section
-                Section{
-                    Button(action: {
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-                        }
-                        showResetConfirmation = true
-                    }) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .indigo, bottomColor: .orange)
-                            Text("Reset Cities")
-                        }
-                        
-                    }
-                    .foregroundStyle(.primary)
-                    .alert("Reset Cities", isPresented: $showResetConfirmation) {
-                        Button("Cancel", role: .cancel) {}
-                        Button("Reset", role: .destructive) {
-                            resetToDefault()
-                        }
-                    } message: {
-                        Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
-                    }
-                } footer: {
-                    Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
-                }
-                
-                
-                // Others Section
+                // Contact Sections
                 Section{
                     
                     Button(action: {
@@ -522,23 +605,6 @@ struct SettingsView: View {
                     ) {
                         HStack {
                             Text("Share with Friends")
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                }
-                
-                
-                Section {
-                    Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
-                        HStack {
-                            Text("Terms of Use")
-                        }
-                    }
-                    .foregroundStyle(.primary)
-                    
-                    Link(destination: URL(string: "https://www.handstime.app/privacy")!) {
-                        HStack {
-                            Text("Privacy Policy")
                         }
                     }
                     .foregroundStyle(.primary)
@@ -584,24 +650,9 @@ struct SettingsView: View {
                 }
                     .foregroundStyle(.primary)
                 ) {
-                    
-                    
-                    // Credits
-                    NavigationLink(destination: CreditsView()) {
-                        Text("Acknowledgements")
+                    NavigationLink(destination: AboutView(worldClocks: $worldClocks)) {
+                        Text("About")
                     }
-                    // Version
-                    HStack {
-                        Text("Version")
-                        Spacer()
-                        Text(getVersionString())
-                            .foregroundColor(.secondary)
-                    }
-                    // App Info Section
-                    Text(String(format: String(localized: "Copyright © %d Negative Time Limited. \nAll rights reserved."), Calendar.current.component(.year, from: Date())))
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                        .foregroundStyle(.secondary)
                 }
                 
                 
@@ -610,6 +661,15 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    ShareLink(
+                        item: URL(string: "https://apps.apple.com/us/app/touch-time-world-clock/id6753721487")!,
+                        message: Text("Download Touch Time.")
+                    ) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                }
+                
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
                         if hapticEnabled {
@@ -618,7 +678,6 @@ struct SettingsView: View {
                         dismiss()
                     }) {
                         Image(systemName: "xmark")
-                            .fontWeight(.semibold)
                     }
                 }
             }
@@ -652,63 +711,33 @@ struct SettingsView: View {
                         }
                 }
             }
-            // Onboarding
-            .fullScreenCover(isPresented: $showOnboarding) {
-                OnboardingView(hasCompletedOnboarding: Binding(
-                    get: { !showOnboarding },
-                    set: { newValue in
-                        if newValue {
-                            showOnboarding = false
+            // Complications Sheet
+            .sheet(isPresented: $showComplicationsSheet) {
+                NavigationStack {
+                    ComplicationsSettingsView(
+                        showAnalogClock: $showAnalogClock,
+                        showSunPosition: $showSunPosition,
+                        showSunAzimuth: $showSunAzimuth,
+                        showWeatherCondition: $showWeatherCondition,
+                        showWeather: showWeather,
+                        weatherManager: weatherManager
+                    )
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(action: {
+                                if hapticEnabled {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                }
+                                showComplicationsSheet = false
+                            }) {
+                                Image(systemName: "xmark")
+                                    .fontWeight(.semibold)
+                            }
                         }
                     }
-                ))
-                .overlay(alignment: .topTrailing) {
-                    Button(action: {
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
-                        showOnboarding = false
-                    }) {
-                        Image(systemName: "xmark")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                            .frame(width: 36, height: 36)
-                            .glassEffect(.clear.interactive())
-                    }
-                    .padding(.horizontal)
                 }
+                .presentationDetents([.height(280)])
             }
-        }
-    }
-    
-    // UserDefaults key for storing world clocks
-    private let worldClocksKey = "savedWorldClocks"
-    private let collectionsKey = "savedCityCollections"
-    
-    // Reset to default clocks
-    func resetToDefault() {
-        // Set to default clocks
-        worldClocks = WorldClockData.defaultClocks
-        
-        // Save to UserDefaults
-        if let encoded = try? JSONEncoder().encode(worldClocks) {
-            UserDefaults.standard.set(encoded, forKey: worldClocksKey)
-        }
-        
-        // Clear all collections
-        UserDefaults.standard.removeObject(forKey: collectionsKey)
-        
-        // Clear selected collection
-        UserDefaults.standard.removeObject(forKey: "selectedCollectionId")
-        
-        // Post notification to reset scroll time
-        NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
-        
-        // Provide haptic feedback if enabled
-        if hapticEnabled {
-            let impactFeedback = UINotificationFeedbackGenerator()
-            impactFeedback.prepare()
-            impactFeedback.notificationOccurred(.success)
         }
     }
     
@@ -731,10 +760,4 @@ struct SettingsView: View {
         }
     }
     
-    // Get version and build number string
-    func getVersionString() -> String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
-        let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
-        return "\(version) (\(build))"
-    }
 }

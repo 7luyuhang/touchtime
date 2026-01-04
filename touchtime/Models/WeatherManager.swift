@@ -60,8 +60,8 @@ class WeatherManager: ObservableObject {
                 self.dailyWeatherData[timeZoneIdentifier] = todayWeather
             }
             
-            // Get weekly forecast (7 days)
-            let weeklyForecast = Array(weather.dailyForecast.prefix(7))
+            // Get weekly forecast (up to 10 days)
+            let weeklyForecast = Array(weather.dailyForecast.prefix(10))
             self.weeklyWeatherData[timeZoneIdentifier] = weeklyForecast
             
             // Also set currentWeather if it's the system timezone

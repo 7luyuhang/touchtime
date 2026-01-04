@@ -46,6 +46,7 @@ struct EarthView: View {
     @AppStorage("showMapLabels") private var showMapLabels = true // 默认显示地图标签
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     
+    @StateObject private var weatherManager = WeatherManager()
     @Environment(\.dismiss) private var dismiss
     
     // Namespace for Glass Effect morphing
@@ -587,8 +588,8 @@ struct EarthView: View {
                     HStack(spacing: 8) {
                         // Group of main buttons
                         HStack(spacing: 0) {
-                            // Back to Local Time Button - Hide when no clocks and local time not shown, or when flight time is active
-                            if !(worldClocks.isEmpty && !showLocalTime) && !(selectedFlightCities.from != nil && selectedFlightCities.to != nil) {
+                            // Back to Local Time Button - Only show when local time is enabled and flight time is not active
+                            if showLocalTime && !(selectedFlightCities.from != nil && selectedFlightCities.to != nil) {
                                 Button(action: {
                                     if hapticEnabled {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
@@ -796,6 +797,7 @@ struct EarthView: View {
                     initialDate: currentDate,
                     timeOffset: 0
                 )
+                .environmentObject(weatherManager)
                 .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
             }

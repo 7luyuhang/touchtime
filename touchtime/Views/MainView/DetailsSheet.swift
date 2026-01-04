@@ -27,13 +27,23 @@ struct SunriseSunsetSheet: View {
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
-    @StateObject private var weatherManager = WeatherManager()
-    @State private var currentWeather: CurrentWeather?
-    @State private var dailyWeather: DayWeather?
-    @State private var weeklyWeather: [DayWeather] = []
+    @EnvironmentObject private var weatherManager: WeatherManager
     @State private var weatherLoadAttempted = false // No Weather Data
     @State private var isWeatherExpanded = false // Track weather section expansion
     @State private var currentDetent: PresentationDetent = .medium // Track current sheet size
+    
+    // Computed properties to get weather data directly from weatherManager
+    private var currentWeather: CurrentWeather? {
+        weatherManager.weatherData[timeZoneIdentifier]
+    }
+    
+    private var dailyWeather: DayWeather? {
+        weatherManager.dailyWeatherData[timeZoneIdentifier]
+    }
+    
+    private var weeklyWeather: [DayWeather] {
+        weatherManager.weeklyWeatherData[timeZoneIdentifier] ?? []
+    }
     
     // Timer to update the current date
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -223,6 +233,9 @@ struct SunriseSunsetSheet: View {
         let hours = Int(duration) / 3600
         let minutes = Int(duration) % 3600 / 60
         
+        if minutes == 0 {
+            return String(format: String(localized: "%d hours"), hours)
+        }
         return String(format: String(localized: "%d hours %d minutes"), hours, minutes)
     }
     
@@ -798,23 +811,13 @@ struct SunriseSunsetSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 currentDate = initialDate
-                
+            }
+            .task(id: timeZoneIdentifier) {
                 // Fetch weather data only if weather is enabled
-                if showWeather {
-                    Task {
-                        await weatherManager.getWeather(for: timeZoneIdentifier)
-                        weatherLoadAttempted = true
-                        if let weather = weatherManager.weatherData[timeZoneIdentifier] {
-                            currentWeather = weather
-                        }
-                        if let daily = weatherManager.dailyWeatherData[timeZoneIdentifier] {
-                            dailyWeather = daily
-                        }
-                        if let weekly = weatherManager.weeklyWeatherData[timeZoneIdentifier] {
-                            weeklyWeather = weekly
-                        }
-                    }
-                }
+                // Using .task(id:) ensures this runs when timeZoneIdentifier changes
+                guard showWeather else { return }
+                await weatherManager.getWeather(for: timeZoneIdentifier)
+                weatherLoadAttempted = true
             }
             .onReceive(timer) { _ in
                 currentDate = Date()
