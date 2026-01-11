@@ -166,17 +166,19 @@ struct SunAzimuthIndicator: View {
                     )
             }
             
-            // Vertical line
-            Capsule()
-                .fill(.white.opacity(0.25))
-                .frame(width: 1.5, height: size * 0.35)
-                .blendMode(.plusLighter)
-            
-            // Horizontal line
-            Capsule()
-                .fill(.white.opacity(0.25))
-                .frame(width: size * 0.35 , height: 1.5)
-                .blendMode(.plusLighter)
+            // Cross lines (combined)
+            Path { path in
+                let center = size / 2
+                let halfLength = size * 0.175
+                // Vertical line
+                path.move(to: CGPoint(x: center, y: center - halfLength))
+                path.addLine(to: CGPoint(x: center, y: center + halfLength))
+                // Horizontal line
+                path.move(to: CGPoint(x: center - halfLength, y: center))
+                path.addLine(to: CGPoint(x: center + halfLength, y: center))
+            }
+            .stroke(Color.white.opacity(0.25), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+            .blendMode(.plusLighter)
             
 //            // North Indicator
 //            Circle()

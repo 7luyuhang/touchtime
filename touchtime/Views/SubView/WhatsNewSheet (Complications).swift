@@ -12,6 +12,7 @@ struct WhatsNewSheet: View {
     @Binding var showAnalogClock: Bool
     @Binding var showSunPosition: Bool
     @Binding var showSunAzimuth: Bool
+    @Binding var showSunriseSunset: Bool
     @Binding var showWeatherCondition: Bool
     var showWeather: Bool
     @ObservedObject var weatherManager: WeatherManager
@@ -24,7 +25,7 @@ struct WhatsNewSheet: View {
     
     // Check if any complication is selected
     private var hasSelectedComplication: Bool {
-        showAnalogClock || showSunPosition || showSunAzimuth || showWeatherCondition
+        showAnalogClock || showSunPosition || showSunAzimuth || showSunriseSunset || showWeatherCondition
     }
     
     // Complication type enum
@@ -32,6 +33,7 @@ struct WhatsNewSheet: View {
         case analogClock
         case sunElevation
         case sunAzimuth
+        case sunriseSunset
         case weatherCondition
         
         var localizedName: String {
@@ -39,6 +41,7 @@ struct WhatsNewSheet: View {
             case .analogClock: return String(localized: "Analog Clock")
             case .sunElevation: return String(localized: "Sun Elevation")
             case .sunAzimuth: return String(localized: "Sun Azimuth")
+            case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
             }
         }
@@ -49,6 +52,7 @@ struct WhatsNewSheet: View {
             showAnalogClock = type == .analogClock
             showSunPosition = type == .sunElevation
             showSunAzimuth = type == .sunAzimuth
+            showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
         }
     }
@@ -157,6 +161,19 @@ struct WhatsNewSheet: View {
                 isSelected: showSunAzimuth
             ) {
                 SunAzimuthIndicator(
+                    date: currentDate,
+                    timeZone: TimeZone.current,
+                    size: 64,
+                    useMaterialBackground: false
+                )
+            }
+            
+            // Sunrise & Sunset
+            complicationOption(
+                type: .sunriseSunset,
+                isSelected: showSunriseSunset
+            ) {
+                SunriseSunsetIndicator(
                     date: currentDate,
                     timeZone: TimeZone.current,
                     size: 64,

@@ -19,6 +19,73 @@ struct CityTimeAdjustmentData: Identifiable {
     let timeZoneIdentifier: String
 }
 
+// MARK: - Complication Overlay View
+struct ComplicationOverlayView: View {
+    let date: Date
+    let timeZone: TimeZone
+    let showAnalogClock: Bool
+    let showSunPosition: Bool
+    let showWeatherCondition: Bool
+    let showSunAzimuth: Bool
+    let showSunriseSunset: Bool
+    let bottomPadding: CGFloat
+    @EnvironmentObject var weatherManager: WeatherManager
+    
+    var body: some View {
+        Group {
+            if showAnalogClock {
+                AnalogClockView(
+                    date: date,
+                    size: 64,
+                    timeZone: timeZone
+                )
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+            
+            if showSunPosition {
+                SunPositionIndicator(
+                    date: date,
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+            
+            if showWeatherCondition {
+                WeatherConditionView(
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .environmentObject(weatherManager)
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+            
+            if showSunAzimuth {
+                SunAzimuthIndicator(
+                    date: date,
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+            
+            if showSunriseSunset {
+                SunriseSunsetIndicator(
+                    date: date,
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+        }
+    }
+}
+
 struct HomeView: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
@@ -82,10 +149,8 @@ struct HomeView: View {
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
-    @AppStorage("showWhatsNewComplication") private var showWhatsNewComplication = true
-    
-    @State private var showWhatsNewSheet = false
     
     @StateObject private var weatherManager = WeatherManager()
     
@@ -416,7 +481,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             
@@ -459,49 +524,18 @@ struct HomeView: View {
                                     }
                                     .frame(minHeight: 64) // For Complication Overlays
                                     
-                                    // Analog Clock Overlay - Centered
-                                    if showAnalogClock {
-                                        AnalogClockView(
-                                            date: currentDate.addingTimeInterval(timeOffset),
-                                            size: 64,
-                                            timeZone: TimeZone.current
-                                        )
-                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    // Sun Position Overlay - Centered
-                                    if showSunPosition {
-                                        SunPositionIndicator(
-                                            date: currentDate.addingTimeInterval(timeOffset),
-                                            timeZone: TimeZone.current,
-                                            size: 64
-                                        )
-                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    // Weather Condition Overlay - Centered
-                                    if showWeatherCondition {
-                                        WeatherConditionView(
-                                            timeZone: TimeZone.current,
-                                            size: 64
-                                        )
-                                        .environmentObject(weatherManager)
-                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    // Sun Azimuth Overlay - Centered
-                                    if showSunAzimuth {
-                                        SunAzimuthIndicator(
-                                            date: currentDate.addingTimeInterval(timeOffset),
-                                            timeZone: TimeZone.current,
-                                            size: 64
-                                        )
-                                        .padding(.bottom, (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0)
-                                        .transition(.blurReplace)
-                                    }
+                                    // Complication Overlays
+                                    ComplicationOverlayView(
+                                        date: currentDate.addingTimeInterval(timeOffset),
+                                        timeZone: TimeZone.current,
+                                        showAnalogClock: showAnalogClock,
+                                        showSunPosition: showSunPosition,
+                                        showWeatherCondition: showWeatherCondition,
+                                        showSunAzimuth: showSunAzimuth,
+                                        showSunriseSunset: showSunriseSunset,
+                                        bottomPadding: (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0
+                                    )
+                                    .environmentObject(weatherManager)
                                 }
                                 // Make entire row tappable
                                 .contentShape(Rectangle())
@@ -682,7 +716,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             Spacer()
@@ -710,45 +744,18 @@ struct HomeView: View {
                                     }
                                     .frame(minHeight: 64) // For Complication Overlays
                                     
-                                    // Analog Clock Overlay - Centered
-                                    if showAnalogClock {
-                                        AnalogClockView(
-                                            date: currentDate.addingTimeInterval(timeOffset),
-                                            size: 64,
-                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current
-                                        )
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    // Sun Position Overlay - Centered
-                                    if showSunPosition {
-                                        SunPositionIndicator(
-                                            date: currentDate.addingTimeInterval(timeOffset),
-                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
-                                            size: 64
-                                        )
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    // Weather Condition Overlay - Centered
-                                    if showWeatherCondition {
-                                        WeatherConditionView(
-                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
-                                            size: 64
-                                        )
-                                        .environmentObject(weatherManager)
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    // Sun Azimuth Overlay - Centered
-                                    if showSunAzimuth {
-                                        SunAzimuthIndicator(
-                                            date: currentDate.addingTimeInterval(timeOffset),
-                                            timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
-                                            size: 64
-                                        )
-                                        .transition(.blurReplace)
-                                    }
+                                    // Complication Overlays
+                                    ComplicationOverlayView(
+                                        date: currentDate.addingTimeInterval(timeOffset),
+                                        timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
+                                        showAnalogClock: showAnalogClock,
+                                        showSunPosition: showSunPosition,
+                                        showWeatherCondition: showWeatherCondition,
+                                        showSunAzimuth: showSunAzimuth,
+                                        showSunriseSunset: showSunriseSunset,
+                                        bottomPadding: 0
+                                    )
+                                    .environmentObject(weatherManager)
                                 }
                                 // Make entire row tappable
                                 .contentShape(Rectangle())
@@ -947,6 +954,7 @@ struct HomeView: View {
             .animation(.spring(), value: showSunPosition)
             .animation(.spring(), value: showWeatherCondition)
             .animation(.spring(), value: showSunAzimuth)
+            .animation(.spring(), value: showSunriseSunset)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
@@ -1065,13 +1073,6 @@ struct HomeView: View {
             
             .onAppear {
                 loadCollections()
-                
-                // Show What's New sheet for complication feature
-                if showWhatsNewComplication {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        showWhatsNewSheet = true
-                    }
-                }
             }
             
             // Listen for reset notification to reset scroll time
@@ -1209,28 +1210,6 @@ struct HomeView: View {
                     ),
                     showScrollTimeButtons: $showScrollTimeButtons
                 )
-            }
-            
-            // What's New Complication Sheet
-            .sheet(isPresented: $showWhatsNewSheet) {
-                WhatsNewSheet(
-                    showAnalogClock: $showAnalogClock,
-                    showSunPosition: $showSunPosition,
-                    showSunAzimuth: $showSunAzimuth,
-                    showWeatherCondition: $showWeatherCondition,
-                    showWeather: showWeather,
-                    weatherManager: weatherManager,
-                    isPresented: $showWhatsNewSheet
-                )
-//                .presentationDetents([.medium])
-                .presentationDetents([.height(400)])
-                .interactiveDismissDisabled()
-            }
-            .onChange(of: showWhatsNewSheet) { oldValue, newValue in
-                if !newValue && oldValue {
-                    // Mark as seen when sheet is dismissed
-                    showWhatsNewComplication = false
-                }
             }
         }
         

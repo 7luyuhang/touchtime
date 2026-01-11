@@ -12,6 +12,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showAnalogClock: Bool
     @Binding var showSunPosition: Bool
     @Binding var showSunAzimuth: Bool
+    @Binding var showSunriseSunset: Bool
     @Binding var showWeatherCondition: Bool
     var showWeather: Bool
     @ObservedObject var weatherManager: WeatherManager
@@ -26,6 +27,7 @@ struct ComplicationsSettingsView: View {
         case analogClock
         case sunElevation
         case sunAzimuth
+        case sunriseSunset
         case weatherCondition
         
         var localizedName: String {
@@ -33,6 +35,7 @@ struct ComplicationsSettingsView: View {
             case .analogClock: return String(localized: "Analog Clock")
             case .sunElevation: return String(localized: "Sun Elevation")
             case .sunAzimuth: return String(localized: "Sun Azimuth")
+            case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
             }
         }
@@ -44,6 +47,7 @@ struct ComplicationsSettingsView: View {
             showAnalogClock = type == .analogClock
             showSunPosition = type == .sunElevation
             showSunAzimuth = type == .sunAzimuth
+            showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
         }
     }
@@ -54,7 +58,6 @@ struct ComplicationsSettingsView: View {
             VStack(spacing: 48){
                 // Complications
                 complicationSelector
-                    .padding(.horizontal, 24)
                 //Text
                 HStack {
                     Image(systemName: "location.fill")
@@ -78,60 +81,77 @@ struct ComplicationsSettingsView: View {
     
     // MARK: - Complication Selector
     private var complicationSelector: some View {
-        HStack(alignment: .top, spacing: 16) {
-            // Analog Clock
-            complicationOption(
-                type: .analogClock,
-                isSelected: showAnalogClock
-            ) {
-                AnalogClockView(
-                    date: currentDate,
-                    size: 64,
-                    timeZone: TimeZone.current,
-                    useMaterialBackground: false
-                )
-            }
-            
-            // Sun Elevation
-            complicationOption(
-                type: .sunElevation,
-                isSelected: showSunPosition
-            ) {
-                SunPositionIndicator(
-                    date: currentDate,
-                    timeZone: TimeZone.current,
-                    size: 64,
-                    useMaterialBackground: false
-                )
-            }
-            
-            // Sun Azimuth
-            complicationOption(
-                type: .sunAzimuth,
-                isSelected: showSunAzimuth
-            ) {
-                SunAzimuthIndicator(
-                    date: currentDate,
-                    timeZone: TimeZone.current,
-                    size: 64,
-                    useMaterialBackground: false
-                )
-            }
-            
-            // Weather Condition (only show if weather is enabled)
-            if showWeather {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(alignment: .top, spacing: 16) {
+                // Analog Clock
                 complicationOption(
-                    type: .weatherCondition,
-                    isSelected: showWeatherCondition
+                    type: .analogClock,
+                    isSelected: showAnalogClock
                 ) {
-                    WeatherConditionView(
+                    AnalogClockView(
+                        date: currentDate,
+                        size: 64,
+                        timeZone: TimeZone.current,
+                        useMaterialBackground: false
+                    )
+                }
+                
+                // Sun Elevation
+                complicationOption(
+                    type: .sunElevation,
+                    isSelected: showSunPosition
+                ) {
+                    SunPositionIndicator(
+                        date: currentDate,
                         timeZone: TimeZone.current,
                         size: 64,
                         useMaterialBackground: false
                     )
-                    .environmentObject(weatherManager)
+                }
+                
+                // Sun Azimuth
+                complicationOption(
+                    type: .sunAzimuth,
+                    isSelected: showSunAzimuth
+                ) {
+                    SunAzimuthIndicator(
+                        date: currentDate,
+                        timeZone: TimeZone.current,
+                        size: 64,
+                        useMaterialBackground: false
+                    )
+                }
+                
+                // Sunrise & Sunset
+                complicationOption(
+                    type: .sunriseSunset,
+                    isSelected: showSunriseSunset
+                ) {
+                    SunriseSunsetIndicator(
+                        date: currentDate,
+                        timeZone: TimeZone.current,
+                        size: 64,
+                        useMaterialBackground: false
+                    )
+                }
+                
+                // Weather Condition (only show if weather is enabled)
+                if showWeather {
+                    complicationOption(
+                        type: .weatherCondition,
+                        isSelected: showWeatherCondition
+                    ) {
+                        WeatherConditionView(
+                            timeZone: TimeZone.current,
+                            size: 64,
+                            useMaterialBackground: false
+                        )
+                        .environmentObject(weatherManager)
+                    }
                 }
             }
+            .padding(.horizontal, 24)
+            .padding(.top, 8)
         }
     }
     
@@ -172,8 +192,9 @@ struct ComplicationsSettingsView: View {
                     .multilineTextAlignment(.center)
                     .foregroundStyle(isSelected ? .primary : .secondary)
                     .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(maxWidth: .infinity)
+            .frame(width: 72)
         }
         .buttonStyle(.plain)
         .animation(.spring(), value: isSelected)

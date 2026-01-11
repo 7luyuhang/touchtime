@@ -28,6 +28,7 @@ struct SettingsView: View {
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @State private var currentDate = Date()
@@ -99,6 +100,8 @@ struct SettingsView: View {
             return String(localized: "Sun Elevation")
         } else if showSunAzimuth {
             return String(localized: "Sun Azimuth")
+        } else if showSunriseSunset {
+            return String(localized: "Sunrise & Sunset")
         } else if showWeatherCondition {
             return String(localized: "Weather Condition")
         }
@@ -381,23 +384,39 @@ struct SettingsView: View {
                                 .transition(.blurReplace.combined(with: .scale))
                             }
                             
-                            // Sun Azimuth Overlay - Centered
-                            if showSunAzimuth {
-                                SunAzimuthIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.blurReplace.combined(with: .scale))
-                            }
-                        }
-                        .background(
+                                            // Sun Azimuth Overlay - Centered
+                                            if showSunAzimuth {
+                                                SunAzimuthIndicator(
+                                                    date: currentDate,
+                                                    timeZone: TimeZone.current,
+                                                    size: 64,
+                                                    useMaterialBackground: true
+                                                )
+                                                .overlay(
+                                                    Circle()
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                        .blendMode(.plusLighter)
+                                                )
+                                                .transition(.blurReplace.combined(with: .scale))
+                                            }
+                                            
+                                            // Sunrise & Sunset Overlay - Centered
+                                            if showSunriseSunset {
+                                                SunriseSunsetIndicator(
+                                                    date: currentDate,
+                                                    timeZone: TimeZone.current,
+                                                    size: 64,
+                                                    useMaterialBackground: true
+                                                )
+                                                .overlay(
+                                                    Circle()
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                        .blendMode(.plusLighter)
+                                                )
+                                                .transition(.blurReplace.combined(with: .scale))
+                                            }
+                                        }
+                                        .background(
                             showSkyDot ?
                             ZStack {
                                 Color.black
@@ -418,6 +437,7 @@ struct SettingsView: View {
                         .animation(.spring(), value: showSunPosition)
                         .animation(.spring(), value: showWeatherCondition)
                         .animation(.spring(), value: showSunAzimuth)
+                        .animation(.spring(), value: showSunriseSunset)
                         .id("\(showSkyDot)-\(dateStyle)")
                         .onTapGesture {
                             if hapticEnabled {
@@ -487,7 +507,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showSunAzimuth {
+                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showSunAzimuth && !showSunriseSunset {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -499,7 +519,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth)
+                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
@@ -516,6 +536,11 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: showSunAzimuth) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showSunriseSunset) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
@@ -718,6 +743,7 @@ struct SettingsView: View {
                         showAnalogClock: $showAnalogClock,
                         showSunPosition: $showSunPosition,
                         showSunAzimuth: $showSunAzimuth,
+                        showSunriseSunset: $showSunriseSunset,
                         showWeatherCondition: $showWeatherCondition,
                         showWeather: showWeather,
                         weatherManager: weatherManager
