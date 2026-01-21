@@ -25,6 +25,7 @@ struct SunriseSunsetSheet: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
     @EnvironmentObject private var weatherManager: WeatherManager
@@ -424,7 +425,8 @@ struct SunriseSunsetSheet: View {
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         size: 64,
                                         timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: true,
+                                        showScale: analogClockShowScale
                                     )
                                     .overlay(
                                         Circle()

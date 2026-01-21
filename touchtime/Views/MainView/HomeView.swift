@@ -24,6 +24,7 @@ struct ComplicationOverlayView: View {
     let date: Date
     let timeZone: TimeZone
     let showAnalogClock: Bool
+    let analogClockShowScale: Bool
     let showSunPosition: Bool
     let showWeatherCondition: Bool
     let showSunAzimuth: Bool
@@ -37,7 +38,8 @@ struct ComplicationOverlayView: View {
                 AnalogClockView(
                     date: date,
                     size: 64,
-                    timeZone: timeZone
+                    timeZone: timeZone,
+                    showScale: analogClockShowScale
                 )
                 .padding(.bottom, bottomPadding)
                 .transition(.blurReplace)
@@ -146,6 +148,7 @@ struct HomeView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
@@ -529,6 +532,7 @@ struct HomeView: View {
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZone: TimeZone.current,
                                         showAnalogClock: showAnalogClock,
+                                        analogClockShowScale: analogClockShowScale,
                                         showSunPosition: showSunPosition,
                                         showWeatherCondition: showWeatherCondition,
                                         showSunAzimuth: showSunAzimuth,
@@ -749,6 +753,7 @@ struct HomeView: View {
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
                                         showAnalogClock: showAnalogClock,
+                                        analogClockShowScale: analogClockShowScale,
                                         showSunPosition: showSunPosition,
                                         showWeatherCondition: showWeatherCondition,
                                         showSunAzimuth: showSunAzimuth,

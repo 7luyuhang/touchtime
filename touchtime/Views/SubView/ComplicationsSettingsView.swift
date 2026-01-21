@@ -19,6 +19,7 @@ struct ComplicationsSettingsView: View {
     
     @State private var currentDate = Date()
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -58,6 +59,7 @@ struct ComplicationsSettingsView: View {
             VStack(spacing: 48){
                 // Complications
                 complicationSelector
+                
                 //Text
                 HStack {
                     Image(systemName: "location.fill")
@@ -74,6 +76,30 @@ struct ComplicationsSettingsView: View {
         .scrollIndicators(.hidden)
         .navigationTitle("Complications")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                if showAnalogClock {
+                    Menu {
+                        Section(String(localized: "Customize")) {
+                            Button {
+                                analogClockShowScale.toggle()
+                                if hapticEnabled {
+                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                }
+                            } label: {
+                                if analogClockShowScale {
+                                    Label("Dial Marker", systemImage: "checkmark.circle")
+                                } else {
+                                    Text("Dial Marker")
+                                }
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                }
+            }
+        }
         .onReceive(timer) { _ in
             currentDate = Date()
         }
@@ -92,7 +118,8 @@ struct ComplicationsSettingsView: View {
                         date: currentDate,
                         size: 64,
                         timeZone: TimeZone.current,
-                        useMaterialBackground: false
+                        useMaterialBackground: false,
+                        showScale: analogClockShowScale
                     )
                 }
                 

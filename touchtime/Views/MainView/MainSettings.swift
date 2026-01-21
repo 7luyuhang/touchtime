@@ -25,6 +25,7 @@ struct SettingsView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
@@ -342,7 +343,8 @@ struct SettingsView: View {
                                     date: currentDate,
                                     size: 64,
                                     timeZone: TimeZone.current,
-                                    useMaterialBackground: true
+                                    useMaterialBackground: true,
+                                    showScale: analogClockShowScale
                                 )
                                 .overlay(
                                     Circle()

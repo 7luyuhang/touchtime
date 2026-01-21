@@ -13,12 +13,14 @@ struct AnalogClockView: View {
     let size: CGFloat
     let timeZone: TimeZone
     let useMaterialBackground: Bool
+    let showScale: Bool
     
-    init(date: Date = Date(), size: CGFloat = 100, timeZone: TimeZone = .current, useMaterialBackground: Bool = false) {
+    init(date: Date = Date(), size: CGFloat = 100, timeZone: TimeZone = .current, useMaterialBackground: Bool = false, showScale: Bool = false) {
         self.date = date
         self.size = size
         self.timeZone = timeZone
         self.useMaterialBackground = useMaterialBackground
+        self.showScale = showScale
     }
     
     @Environment(\.colorScheme) private var colorScheme
@@ -46,15 +48,17 @@ struct AnalogClockView: View {
                             .glassEffect(.clear)
                     )
             }
-            //             时刻标记
-            //            ForEach(0..<12) { hour in
-            //                Capsule()
-            //                    .fill(hour % 3 == 0 ? .white : .white.opacity(0.5))
-            //                    .frame(width: hour % 3 == 0 ? 2 : 1, height: hour % 3 == 0 ? 6 : 6)
-            //                    .offset(y: -size * 0.4)
-            //                    .rotationEffect(.degrees(Double(hour) * 30))
-            //                    .blendMode(.plusLighter)
-            //            }
+            // 刻度标记（4个刻度：12、3、6、9点）
+            if showScale {
+                ForEach([0, 3, 6, 9], id: \.self) { hour in
+                    Capsule()
+                        .fill(.white.opacity(0.25))
+                        .frame(width: 1.5, height: 8)
+                        .offset(y: -size * 0.36)
+                        .rotationEffect(.degrees(Double(hour) * 30))
+                        .blendMode(.plusLighter)
+                }
+            }
             
             // 时针
             Capsule()
