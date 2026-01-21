@@ -15,6 +15,10 @@ struct DaylightIndicator: View {
     let size: CGFloat
     let useMaterialBackground: Bool
     
+    // Cache the Path to avoid recreating it on every body update
+    @State private var cachedPath: Path?
+    @State private var cachedDayKey: String = ""
+    
     // Cache daily sun times per timezone to avoid repeated SunKit calculations
     private struct SunTimes {
         let sunrise: Date?
@@ -58,6 +62,38 @@ struct DaylightIndicator: View {
         self.timeZone = timeZone
         self.size = size
         self.useMaterialBackground = useMaterialBackground
+    }
+    
+    // Generate day key for caching (only changes when date changes, not time)
+    private func dayKey(for date: Date) -> String {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        return "\(timeZone.identifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
+    }
+    
+    // Create Path from curve data
+    private func createPath(from curveData: CurveData) -> Path {
+        var path = Path()
+        guard !curveData.curvePoints.isEmpty else { return path }
+        
+        path.move(to: curveData.curvePoints[0])
+        
+        // Use simpler quadratic curves instead of Catmull-Rom for better performance
+        for i in 1..<curveData.curvePoints.count {
+            let previousPoint = curveData.curvePoints[i - 1]
+            let currentPoint = curveData.curvePoints[i]
+            
+            // Control point for smooth quadratic curve
+            let controlPoint = CGPoint(
+                x: (previousPoint.x + currentPoint.x) / 2,
+                y: (previousPoint.y + currentPoint.y) / 2
+            )
+            
+            path.addQuadCurve(to: currentPoint, control: controlPoint)
+        }
+        
+        return path
     }
     
     // Get cached sun times for this day/timezone
@@ -177,8 +213,8 @@ struct DaylightIndicator: View {
     }
     
     var body: some View {
-        // Cache curve data (only recalculated when day changes)
-        let curveData = cachedCurveData(for: date)
+        // Use cached path if available, otherwise create empty path (will be set in onAppear/onChange)
+        let curvePath = cachedPath ?? Path()
         
         ZStack {
             // Background circle
@@ -196,32 +232,8 @@ struct DaylightIndicator: View {
                     )
             }
             
-            // Cosine curve path - use simpler quadratic curves for better performance
-            let curvePath = Path { path in
-                guard !curveData.curvePoints.isEmpty else { return }
-                
-                path.move(to: curveData.curvePoints[0])
-                
-                // Use simpler quadratic curves instead of Catmull-Rom for better performance
-                for i in 1..<curveData.curvePoints.count {
-                    let previousPoint = curveData.curvePoints[i - 1]
-                    let currentPoint = curveData.curvePoints[i]
-                    
-                    // Control point for smooth quadratic curve
-                    let controlPoint = CGPoint(
-                        x: (previousPoint.x + currentPoint.x) / 2,
-                        y: (previousPoint.y + currentPoint.y) / 2
-                    )
-                    
-                    path.addQuadCurve(to: currentPoint, control: controlPoint)
-                }
-            }
-            
             // Curve above horizon (opacity 1.0)
             curvePath
-//                .fill(
-//                    Color.white.opacity(0.15)
-//                )
                 .stroke(Color.white.opacity(1.0), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
                 .blendMode(.plusLighter)
                 .mask {
@@ -250,6 +262,25 @@ struct DaylightIndicator: View {
         }
         .frame(width: size, height: size)
         .clipShape(Circle()) // Ensure all content is clipped to circle boundary
+        .onChange(of: date) { oldDate, newDate in
+            // Only update path when day actually changes (not just time)
+            let oldDayKey = dayKey(for: oldDate)
+            let newDayKey = dayKey(for: newDate)
+            if oldDayKey != newDayKey {
+                let curveData = cachedCurveData(for: newDate)
+                cachedPath = createPath(from: curveData)
+                cachedDayKey = newDayKey
+            }
+        }
+        .onAppear {
+            // Initialize cached path on first appearance
+            let currentDayKey = dayKey(for: date)
+            if cachedPath == nil || cachedDayKey != currentDayKey {
+                let curveData = cachedCurveData(for: date)
+                cachedPath = createPath(from: curveData)
+                cachedDayKey = currentDayKey
+            }
+        }
     }
 }
 
