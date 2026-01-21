@@ -25,9 +25,12 @@ struct SettingsView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showSunriseSunset") private var showSunriseSunset = false
+    @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @State private var currentDate = Date()
@@ -99,8 +102,12 @@ struct SettingsView: View {
             return String(localized: "Sun Elevation")
         } else if showSunAzimuth {
             return String(localized: "Sun Azimuth")
+        } else if showSunriseSunset {
+            return String(localized: "Sunrise & Sunset")
         } else if showWeatherCondition {
             return String(localized: "Weather Condition")
+        } else if showDaylight {
+            return String(localized: "Daylight Curve")
         }
         return nil
     }
@@ -339,14 +346,15 @@ struct SettingsView: View {
                                     date: currentDate,
                                     size: 64,
                                     timeZone: TimeZone.current,
-                                    useMaterialBackground: true
+                                    useMaterialBackground: true,
+                                    showScale: analogClockShowScale
                                 )
                                 .overlay(
                                     Circle()
                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                         .blendMode(.plusLighter)
                                 )
-                                .transition(.blurReplace.combined(with: .scale))
+                                .transition(.identity)
                             }
                             
                             // Sun Position Overlay - Centered
@@ -362,7 +370,7 @@ struct SettingsView: View {
                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                         .blendMode(.plusLighter)
                                 )
-                                .transition(.blurReplace.combined(with: .scale))
+                                .transition(.identity)
                             }
                             
                             // Weather Condition Overlay - Centered
@@ -378,26 +386,58 @@ struct SettingsView: View {
                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                         .blendMode(.plusLighter)
                                 )
-                                .transition(.blurReplace.combined(with: .scale))
+                                .transition(.identity)
                             }
                             
-                            // Sun Azimuth Overlay - Centered
-                            if showSunAzimuth {
-                                SunAzimuthIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.blurReplace.combined(with: .scale))
-                            }
-                        }
-                        .background(
+                                            // Sun Azimuth Overlay - Centered
+                                            if showSunAzimuth {
+                                                SunAzimuthIndicator(
+                                                    date: currentDate,
+                                                    timeZone: TimeZone.current,
+                                                    size: 64,
+                                                    useMaterialBackground: true
+                                                )
+                                                .overlay(
+                                                    Circle()
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                        .blendMode(.plusLighter)
+                                                )
+                                                .transition(.identity)
+                                            }
+                                            
+                                            // Sunrise & Sunset Overlay - Centered
+                                            if showSunriseSunset {
+                                                SunriseSunsetIndicator(
+                                                    date: currentDate,
+                                                    timeZone: TimeZone.current,
+                                                    size: 64,
+                                                    useMaterialBackground: true
+                                                )
+                                                .overlay(
+                                                    Circle()
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                        .blendMode(.plusLighter)
+                                                )
+                                                .transition(.identity)
+                                            }
+                                            
+                                            // Daylight Overlay - Centered
+                                            if showDaylight {
+                                                DaylightIndicator(
+                                                    date: currentDate,
+                                                    timeZone: TimeZone.current,
+                                                    size: 64,
+                                                    useMaterialBackground: true
+                                                )
+                                                .overlay(
+                                                    Circle()
+                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                        .blendMode(.plusLighter)
+                                                )
+                                                .transition(.identity)
+                                            }
+                                        }
+                                        .background(
                             showSkyDot ?
                             ZStack {
                                 Color.black
@@ -418,6 +458,8 @@ struct SettingsView: View {
                         .animation(.spring(), value: showSunPosition)
                         .animation(.spring(), value: showWeatherCondition)
                         .animation(.spring(), value: showSunAzimuth)
+                        .animation(.spring(), value: showSunriseSunset)
+                        .animation(.spring(), value: showDaylight)
                         .id("\(showSkyDot)-\(dateStyle)")
                         .onTapGesture {
                             if hapticEnabled {
@@ -487,7 +529,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showSunAzimuth {
+                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showSunAzimuth && !showSunriseSunset && !showDaylight {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -499,7 +541,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth)
+                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
@@ -516,6 +558,16 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: showSunAzimuth) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showSunriseSunset) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showDaylight) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
@@ -718,7 +770,9 @@ struct SettingsView: View {
                         showAnalogClock: $showAnalogClock,
                         showSunPosition: $showSunPosition,
                         showSunAzimuth: $showSunAzimuth,
+                        showSunriseSunset: $showSunriseSunset,
                         showWeatherCondition: $showWeatherCondition,
+                        showDaylight: $showDaylight,
                         showWeather: showWeather,
                         weatherManager: weatherManager
                     )

@@ -24,7 +24,6 @@ struct SunriseSunsetSheet: View {
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
-    @AppStorage("showAnalogClock") private var showAnalogClock = false
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
     @EnvironmentObject private var weatherManager: WeatherManager
@@ -391,7 +390,7 @@ struct SunriseSunsetSheet: View {
                                             .font(.headline)
                                             .lineLimit(1)
                                             .truncationMode(.tail)
-                                            .frame(maxWidth: showAnalogClock ? 120 : .infinity, alignment: .leading)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
                                             .contentTransition(.numericText())
                                         
                                         Spacer()
@@ -417,21 +416,6 @@ struct SunriseSunsetSheet: View {
                                 }
                                 .padding()
                                 .padding(.bottom, -4)
-                                
-                                // Analog Clock Overlay - Centered
-                                if showAnalogClock {
-                                    AnalogClockView(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        size: 64,
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        useMaterialBackground: true
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                }
                             }
                             .background(
                                 showSkyDot ?
@@ -450,7 +434,6 @@ struct SunriseSunsetSheet: View {
                                             RoundedRectangle(cornerRadius: 26, style: .continuous)
                             )
                             .animation(.spring(), value: showSkyDot)
-                            .animation(.spring(), value: showAnalogClock)
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 16)

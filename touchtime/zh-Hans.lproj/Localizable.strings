@@ -59,6 +59,7 @@
 "System Time" = "本地时间";
 "Language" = "语言";
 "Widget" = "小组件";
+"Display" = "显示";
 "Digital Time" = "数字时间";
 "Analog Time" = "模拟时间";
 "Arc Indicator" = "弧形指示器";
@@ -153,6 +154,7 @@
 "Time in other cities:" = "其他城市时间：";
 "Solar Time" = "太阳时";
 "Daylight" = "日光";
+"Daylight Curve" = "日光曲线";
 "Golden Hour" = "黄金时刻";
 "Moon Time" = "月亮时";
 "Moon Phase" = "月相";
@@ -784,12 +786,16 @@
 /* Sun Elevation */
 "Sun Elevation" = "太阳高度";
 "Sun Azimuth" = "太阳方位角";
+"Daylight" = "日照";
 
 /* Complications */
 "Complications" = "复杂功能";
 "Add complications in the middle of the city list." = "在城市列表中间添加复杂功能。";
 "Weather Condition" = "天气状况";
 "Use your current location" = "使用您当前的位置";
+"Customisation" = "自定义";
+"Dial Marker" = "表盘刻度";
+"Sunrise & Sunset" = "日出日落";
 
 /* What's New */
 "What's New" = "新功能";

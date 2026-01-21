@@ -152,6 +152,7 @@
 "Time in other cities:" = "Time in other cities:";
 "Solar Time" = "Solar Time";
 "Daylight" = "Daylight";
+"Daylight Curve" = "Daylight Curve";
 "Golden Hour" = "Golden Hour";
 "Moon Time" = "Moon Time";
 "Moon Phase" = "Moon Phase";
@@ -338,12 +339,17 @@
 /* Sun Elevation */
 "Sun Elevation" = "Sun Elevation";
 "Sun Azimuth" = "Sun Azimuth";
+"Daylight" = "Daylight";
+"Daylight Curve" = "Daylight Curve";
 
 /* Complications */
 "Complications" = "Complications";
 "Add complications in the middle of the city list." = "Add complications in the middle of the city list.";
 "Weather Condition" = "Weather Condition";
 "Use your current location" = "Use your current location";
+"Customisation" = "Customisation";
+"Dial Marker" = "Dial Marker";
+"Sunrise & Sunset" = "Sunrise & Sunset";
 
 /* What's New */
 "What's New" = "What's New";

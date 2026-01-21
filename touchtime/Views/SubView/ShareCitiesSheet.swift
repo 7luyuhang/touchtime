@@ -232,13 +232,18 @@ struct ShareCitiesSheet: View {
                 Button(action: toggleSelectAll) {
                     Text(allCitiesSelected ? String(localized: "Deselect All") : String(localized: "Select All"))
                         .font(.headline)
-                        .padding(.vertical, 12)
-                        .padding(.horizontal, 16)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 24)
                         .contentTransition(.numericText())
                 }
-                .buttonStyle(.glass)
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                        .blendMode(.plusLighter)
+                )
+                .glassEffect(.regular.interactive())
+                .buttonStyle(.plain)
                 }
-                
             }
             .navigationTitle(String(localized: "Share Cities"))
             .navigationBarTitleDisplayMode(.inline)
