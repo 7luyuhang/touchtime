@@ -175,7 +175,7 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "widget.small", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                                SystemIconImage(systemName: "widget.small", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
                                 Text("Widget")
                             }
                             .layoutPriority(1)
@@ -505,6 +505,26 @@ struct SettingsView: View {
                     .tint(.blue)
                     
                     
+                    // Complications
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        showComplicationsSheet = true
+                    }) {
+                        HStack {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                                Text("Complications")
+                            }
+                            .layoutPriority(1)
+                            Spacer(minLength: 8)
+                            Text(currentComplicationName ?? String(localized: "None"))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    
                     // Additional Time
                     Picker(selection: $additionalTimeDisplay) {
                         Text("Time Shift")
@@ -573,25 +593,6 @@ struct SettingsView: View {
                         }
                     }
                     
-                    // Complications
-                    Button(action: {
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
-                        showComplicationsSheet = true
-                    }) {
-                        HStack {
-                            HStack(spacing: 12) {
-                                SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
-                                Text("Complications")
-                            }
-                            .layoutPriority(1)
-                            Spacer(minLength: 8)
-                            Text(currentComplicationName ?? String(localized: "None"))
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .foregroundStyle(.primary)
                     
                 }
                 
