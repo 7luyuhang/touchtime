@@ -80,7 +80,7 @@ struct ComplicationsSettingsView: View {
             ToolbarItem(placement: .topBarLeading) {
                 if showAnalogClock {
                     Menu {
-                        Section(String(localized: "Customize")) {
+                        Section(String(localized: "Customisation")) {
                             Button {
                                 analogClockShowScale.toggle()
                                 if hapticEnabled {
@@ -88,9 +88,9 @@ struct ComplicationsSettingsView: View {
                                 }
                             } label: {
                                 if analogClockShowScale {
-                                    Label("Dial Marker", systemImage: "checkmark.circle")
+                                    Label(String(localized: "Dial Marker"), systemImage: "checkmark.circle")
                                 } else {
-                                    Text("Dial Marker")
+                                    Text(String(localized: "Dial Marker"))
                                 }
                             }
                         }
