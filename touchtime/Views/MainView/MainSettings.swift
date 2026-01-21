@@ -351,7 +351,7 @@ struct SettingsView: View {
                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                         .blendMode(.plusLighter)
                                 )
-                                .transition(.blurReplace.combined(with: .scale))
+                                .transition(.identity)
                             }
                             
                             // Sun Position Overlay - Centered
@@ -367,7 +367,7 @@ struct SettingsView: View {
                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                         .blendMode(.plusLighter)
                                 )
-                                .transition(.blurReplace.combined(with: .scale))
+                                .transition(.identity)
                             }
                             
                             // Weather Condition Overlay - Centered
@@ -383,7 +383,7 @@ struct SettingsView: View {
                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                         .blendMode(.plusLighter)
                                 )
-                                .transition(.blurReplace.combined(with: .scale))
+                                .transition(.identity)
                             }
                             
                                             // Sun Azimuth Overlay - Centered
@@ -399,7 +399,7 @@ struct SettingsView: View {
                                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                                         .blendMode(.plusLighter)
                                                 )
-                                                .transition(.blurReplace.combined(with: .scale))
+                                                .transition(.identity)
                                             }
                                             
                                             // Sunrise & Sunset Overlay - Centered
@@ -415,7 +415,7 @@ struct SettingsView: View {
                                                         .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
                                                         .blendMode(.plusLighter)
                                                 )
-                                                .transition(.blurReplace.combined(with: .scale))
+                                                .transition(.identity)
                                             }
                                         }
                                         .background(

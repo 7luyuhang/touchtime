@@ -59,6 +59,7 @@
 "System Time" = "本地时间";
 "Language" = "语言";
 "Widget" = "小组件";
+"Display" = "显示";
 "Digital Time" = "数字时间";
 "Analog Time" = "模拟时间";
 "Arc Indicator" = "弧形指示器";
@@ -791,7 +792,7 @@
 "Weather Condition" = "天气状况";
 "Use your current location" = "使用您当前的位置";
 "Customisation" = "自定义";
-"Dial Marker" = "表盘标记";
+"Dial Marker" = "表盘刻度";
 "Sunrise & Sunset" = "日出日落";
 
 /* What's New */
