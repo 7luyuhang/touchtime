@@ -783,6 +783,8 @@
 /* Sun Elevation */
 "Sun Elevation" = "太陽高度";
 "Sun Azimuth" = "太陽方位角";
+"Daylight" = "日照";
+"Daylight Curve" = "日光曲線";
 
 /* Complications */
 "Complications" = "複雜功能";

@@ -14,6 +14,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showSunAzimuth: Bool
     @Binding var showSunriseSunset: Bool
     @Binding var showWeatherCondition: Bool
+    @Binding var showDaylight: Bool
     var showWeather: Bool
     @ObservedObject var weatherManager: WeatherManager
     
@@ -30,6 +31,7 @@ struct ComplicationsSettingsView: View {
         case sunAzimuth
         case sunriseSunset
         case weatherCondition
+        case daylight
         
         var localizedName: String {
             switch self {
@@ -38,6 +40,7 @@ struct ComplicationsSettingsView: View {
             case .sunAzimuth: return String(localized: "Sun Azimuth")
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
+            case .daylight: return String(localized: "Daylight Curve")
             }
         }
         
@@ -50,6 +53,7 @@ struct ComplicationsSettingsView: View {
             showSunAzimuth = type == .sunAzimuth
             showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
+            showDaylight = type == .daylight
         }
     }
     
@@ -155,6 +159,19 @@ struct ComplicationsSettingsView: View {
                     isSelected: showSunriseSunset
                 ) {
                     SunriseSunsetIndicator(
+                        date: currentDate,
+                        timeZone: TimeZone.current,
+                        size: 64,
+                        useMaterialBackground: false
+                    )
+                }
+                
+                // Daylight
+                complicationOption(
+                    type: .daylight,
+                    isSelected: showDaylight
+                ) {
+                    DaylightIndicator(
                         date: currentDate,
                         timeZone: TimeZone.current,
                         size: 64,

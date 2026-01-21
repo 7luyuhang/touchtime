@@ -29,6 +29,7 @@ struct ComplicationOverlayView: View {
     let showWeatherCondition: Bool
     let showSunAzimuth: Bool
     let showSunriseSunset: Bool
+    let showDaylight: Bool
     let bottomPadding: CGFloat
     @EnvironmentObject var weatherManager: WeatherManager
     
@@ -77,6 +78,16 @@ struct ComplicationOverlayView: View {
             
             if showSunriseSunset {
                 SunriseSunsetIndicator(
+                    date: date,
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+            
+            if showDaylight {
+                DaylightIndicator(
                     date: date,
                     timeZone: timeZone,
                     size: 64
@@ -153,6 +164,7 @@ struct HomeView: View {
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
+    @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     
     @StateObject private var weatherManager = WeatherManager()
@@ -484,7 +496,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             
@@ -537,6 +549,7 @@ struct HomeView: View {
                                         showWeatherCondition: showWeatherCondition,
                                         showSunAzimuth: showSunAzimuth,
                                         showSunriseSunset: showSunriseSunset,
+                                        showDaylight: showDaylight,
                                         bottomPadding: (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0
                                     )
                                     .environmentObject(weatherManager)
@@ -720,7 +733,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             Spacer()
@@ -758,6 +771,7 @@ struct HomeView: View {
                                         showWeatherCondition: showWeatherCondition,
                                         showSunAzimuth: showSunAzimuth,
                                         showSunriseSunset: showSunriseSunset,
+                                        showDaylight: showDaylight,
                                         bottomPadding: 0
                                     )
                                     .environmentObject(weatherManager)

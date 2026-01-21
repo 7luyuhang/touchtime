@@ -154,6 +154,7 @@
 "Time in other cities:" = "其他城市时间：";
 "Solar Time" = "太阳时";
 "Daylight" = "日光";
+"Daylight Curve" = "日光曲线";
 "Golden Hour" = "黄金时刻";
 "Moon Time" = "月亮时";
 "Moon Phase" = "月相";
@@ -785,6 +786,7 @@
 /* Sun Elevation */
 "Sun Elevation" = "太阳高度";
 "Sun Azimuth" = "太阳方位角";
+"Daylight" = "日照";
 
 /* Complications */
 "Complications" = "复杂功能";
