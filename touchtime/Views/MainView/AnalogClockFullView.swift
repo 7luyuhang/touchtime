@@ -24,6 +24,7 @@ struct AnalogClockFullView: View {
     @State private var showShareSheet = false
     @State private var showSettingsSheet = false
     @State private var showEarthView = false
+    @State private var showTimeInsteadOfCityName = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = true
     @AppStorage("showLocalTime") private var showLocalTime = true
@@ -123,7 +124,8 @@ struct AnalogClockFullView: View {
                             hapticEnabled: hapticEnabled,
                             showDetailsSheet: $showDetailsSheet,
                             weather: weatherManager.weatherData[selectedTimeZone.identifier],
-                            showWeather: showWeather
+                            showWeather: showWeather,
+                            showTimeInsteadOfCityName: showTimeInsteadOfCityName
                         )
                         
                         // Digital time and scroll controls overlay
@@ -169,15 +171,21 @@ struct AnalogClockFullView: View {
                                         Image(systemName: "location.fill")
                                             .font(.footnote.weight(.medium))
                                         Text({
-                                            let formatter = DateFormatter()
-                                            formatter.locale = Locale(identifier: "en_US_POSIX")
-                                            formatter.timeZone = TimeZone.current
-                                            if use24HourFormat {
-                                                formatter.dateFormat = "HH:mm"
+                                            if showTimeInsteadOfCityName {
+                                                // Show "Local" when hands show time
+                                                return String(localized: "Local")
                                             } else {
-                                                formatter.dateFormat = "h:mm"
+                                                // Show local time when hands show city names
+                                                let formatter = DateFormatter()
+                                                formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                formatter.timeZone = TimeZone.current
+                                                if use24HourFormat {
+                                                    formatter.dateFormat = "HH:mm"
+                                                } else {
+                                                    formatter.dateFormat = "h:mm"
+                                                }
+                                                return formatter.string(from: displayDate)
                                             }
-                                            return formatter.string(from: displayDate)
                                         }())
                                         .font(.subheadline.weight(.medium))
                                     }
@@ -210,8 +218,15 @@ struct AnalogClockFullView: View {
                             .font(.subheadline.weight(.semibold))
                             .padding(.horizontal, 16)
                             .frame(height: 44)
-                            .glassEffect(.regular, in: Capsule(style: .continuous))
+                            .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
                             .lineLimit(1)
+                            .onTapGesture {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.impactOccurred()
+                                }
+                                showTimeInsteadOfCityName.toggle()
+                            }
                     }
                 }
                 
@@ -410,6 +425,7 @@ struct AnalogClockFaceView: View {
     @Binding var showDetailsSheet: Bool
     let weather: CurrentWeather?
     let showWeather: Bool
+    let showTimeInsteadOfCityName: Bool
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true
@@ -757,7 +773,9 @@ struct AnalogClockFaceView: View {
                         isLocal: false,
                         selectedCityId: $selectedCityId,
                         hapticEnabled: hapticEnabled,
-                        showDetailsSheet: $showDetailsSheet
+                        showDetailsSheet: $showDetailsSheet,
+                        showTimeInsteadOfCityName: showTimeInsteadOfCityName,
+                        use24HourFormat: use24HourFormat
                     )
                 }
             }
@@ -775,7 +793,9 @@ struct AnalogClockFaceView: View {
                     isLocal: true,
                     selectedCityId: $selectedCityId,
                     hapticEnabled: hapticEnabled,
-                    showDetailsSheet: $showDetailsSheet
+                    showDetailsSheet: $showDetailsSheet,
+                    showTimeInsteadOfCityName: showTimeInsteadOfCityName,
+                    use24HourFormat: use24HourFormat
                 )
             }
             
@@ -795,7 +815,9 @@ struct AnalogClockFaceView: View {
                         isLocal: false,
                         selectedCityId: $selectedCityId,
                         hapticEnabled: hapticEnabled,
-                        showDetailsSheet: $showDetailsSheet
+                        showDetailsSheet: $showDetailsSheet,
+                        showTimeInsteadOfCityName: showTimeInsteadOfCityName,
+                        use24HourFormat: use24HourFormat
                     )
                 }
             } else if showLocalTime && selectedCityId == nil {
@@ -811,7 +833,9 @@ struct AnalogClockFaceView: View {
                     isLocal: true,
                     selectedCityId: $selectedCityId,
                     hapticEnabled: hapticEnabled,
-                    showDetailsSheet: $showDetailsSheet
+                    showDetailsSheet: $showDetailsSheet,
+                    showTimeInsteadOfCityName: showTimeInsteadOfCityName,
+                    use24HourFormat: use24HourFormat
                 )
             }
             
@@ -837,6 +861,23 @@ struct ClockHandWithLabel: View {
     @Binding var selectedCityId: UUID?
     let hapticEnabled: Bool
     @Binding var showDetailsSheet: Bool
+    let showTimeInsteadOfCityName: Bool
+    let use24HourFormat: Bool
+    
+    // Format time string based on hour and minute
+    private var timeString: String {
+        if use24HourFormat {
+            return String(format: "%02d:%02d", hour, minute)
+        } else {
+            let displayHour = hour % 12 == 0 ? 12 : hour % 12
+            return String(format: "%d:%02d", displayHour, minute)
+        }
+    }
+    
+    // Display text - either city name or time
+    private var displayText: String {
+        showTimeInsteadOfCityName ? timeString : cityName
+    }
     
     private var angle: Double {
         // 24-hour clock: full rotation = 24 hours
@@ -881,7 +922,7 @@ struct ClockHandWithLabel: View {
                             Image(systemName: "location.fill")
                                 .font(.caption2.weight(.semibold))
                                 .foregroundStyle(.black)
-                            Text(cityName)
+                            Text(displayText)
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.black)
                         }
@@ -892,7 +933,7 @@ struct ClockHandWithLabel: View {
                         .frame(maxWidth: 95)
                         .background(Color.white, in: Capsule(style: .continuous))
                     } else {
-                        Text(cityName)
+                        Text(displayText)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.black)
                             .lineLimit(1)
@@ -907,7 +948,7 @@ struct ClockHandWithLabel: View {
                     HStack(spacing: 4) {
                         Image(systemName: "location.fill")
                             .font(.caption2.weight(.semibold))
-                        Text(cityName)
+                        Text(displayText)
                             .font(.caption.weight(.semibold))
                     }
                     .foregroundStyle(.white)
@@ -919,7 +960,7 @@ struct ClockHandWithLabel: View {
                     .background(Color.blue, in: Capsule(style: .continuous))
                 } else {
                     // Non-local not selected
-                    Text(cityName)
+                    Text(displayText)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white)
                         .lineLimit(1)

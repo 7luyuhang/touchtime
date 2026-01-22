@@ -175,7 +175,7 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "widget.small", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
+                                SystemIconImage(systemName: "widget.small",  topColor: .gray, bottomColor: Color(UIColor.systemGray3))
                                 Text("Widget")
                             }
                             .layoutPriority(1)
@@ -187,6 +187,7 @@ struct SettingsView: View {
                     }
                     .foregroundStyle(.primary)
                     
+                    // Haptic
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
@@ -195,7 +196,7 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
-                    
+                    // Local Time
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
@@ -209,7 +210,7 @@ struct SettingsView: View {
                 Section {
                     Toggle(isOn: $continuousScrollMode) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "lines.measurement.horizontal.aligned.bottom", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                            SystemIconImage(systemName: "lines.measurement.horizontal.aligned.bottom", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
                             Text("Continuous Scroll")
                         }
                     }
@@ -221,17 +222,8 @@ struct SettingsView: View {
                     Text("Enable continuous scroll for slide to adjust.")
                 }
                 
-                // Available Time Section - only show when System Time is enabled
-                if showLocalTime {
-                    NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
-                            Text("Available Time")
-                        }
-                    }
-                }
                 
-                
+            
                 // Temperature/Weather Section
                 Section {
                     Toggle(isOn: Binding(
@@ -619,6 +611,17 @@ struct SettingsView: View {
                 
                 // Others
                 Section {
+                    
+                    // Available Time Section - only show when System Time is enabled
+                    if showLocalTime {
+                        NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
+                                Text("Available Time")
+                            }
+                        }
+                    }
+                    
                     // Calendar Section
                     NavigationLink(destination: CalendarView(worldClocks: worldClocks)) {
                         HStack(spacing: 12) {
