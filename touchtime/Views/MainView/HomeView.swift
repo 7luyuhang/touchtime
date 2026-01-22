@@ -222,7 +222,30 @@ struct HomeView: View {
            let collection = collections.first(where: { $0.id == collectionId }) {
             return collection.name
         }
-        return "Default"
+        return String(localized: "All Cities")
+    }
+    
+    // Quick Switch Collections
+    // Cycle to the next collection (Collection 1 -> Collection 2 -> ... -> Collection 1)
+    func cycleToNextCollection() {
+        guard !collections.isEmpty else { return }
+        
+        if let currentId = selectedCollectionId,
+           let currentIndex = collections.firstIndex(where: { $0.id == currentId }) {
+            // Currently on a collection, go to the next one or wrap to first
+            let nextIndex = (currentIndex + 1) % collections.count
+            selectedCollectionId = collections[nextIndex].id
+        } else {
+            // Currently on All Cities, go to the first collection
+            selectedCollectionId = collections.first?.id
+        }
+        
+        saveSelectedCollection()
+        
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
     }
     
     // Load collections from UserDefaults
@@ -409,7 +432,7 @@ struct HomeView: View {
                     }
                     .background(Color.clear)
                     .id("empty-\(selectedCollectionId?.uuidString ?? "")")
-                    .transition(.opacity.combined(with: .slide)) // Collection Animation
+                    .transition(.identity) // Collection Animation
                     
                 } else {
                     // Main List Content
@@ -925,7 +948,7 @@ struct HomeView: View {
                     .scrollContentBackground(.hidden)
                     .safeAreaPadding(.bottom, 52)
                     .id(selectedCollectionId?.uuidString ?? "default")
-                    .transition(.opacity.combined(with: .slide)) // Collection Animation
+                    .transition(.identity) // Collection Animation
                 }
                 
                 
@@ -982,8 +1005,25 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             
             .toolbar {
-                // Collection Name (styled like AnalogClockFullView)
-                if selectedCollectionId != nil {
+                // Collection Name - Tappable to cycle through collections
+                if selectedCollectionId != nil && collections.count > 1 {
+                    ToolbarItem(placement: .principal) {
+                        Button {
+                            cycleToNextCollection()
+                        } label: {
+                            Text(currentCollectionName)
+                                .font(.subheadline.weight(.semibold))
+                                .contentTransition(.numericText())
+                                .padding(.horizontal, 16)
+                                .frame(height: 44)
+                                .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                                .lineLimit(1)
+                                .animation(.snappy, value: currentCollectionName)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                } else if selectedCollectionId != nil {
+                    // Show non-tappable collection name when only one collection exists
                     ToolbarItem(placement: .principal) {
                         Text(currentCollectionName)
                             .font(.subheadline.weight(.semibold))
