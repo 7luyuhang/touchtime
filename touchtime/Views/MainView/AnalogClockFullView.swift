@@ -925,6 +925,7 @@ struct ClockHandWithLabel: View {
                             Text(displayText)
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.black)
+                                .contentTransition(.numericText())
                         }
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -936,6 +937,7 @@ struct ClockHandWithLabel: View {
                         Text(displayText)
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(.black)
+                            .contentTransition(.numericText())
                             .lineLimit(1)
                             .truncationMode(.tail)
                             .padding(.vertical, 4)
@@ -950,6 +952,7 @@ struct ClockHandWithLabel: View {
                             .font(.caption2.weight(.semibold))
                         Text(displayText)
                             .font(.caption.weight(.semibold))
+                            .contentTransition(.numericText())
                     }
                     .foregroundStyle(.white)
                     .lineLimit(1)
@@ -963,6 +966,7 @@ struct ClockHandWithLabel: View {
                     Text(displayText)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.white)
+                        .contentTransition(.numericText())
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .padding(.vertical, 4)
@@ -972,6 +976,7 @@ struct ClockHandWithLabel: View {
                         .background(.thinMaterial, in: Capsule(style: .continuous))
                 }
             }
+            .animation(.smooth, value: showTimeInsteadOfCityName)
             .contentShape(Capsule())
             .onTapGesture { // Tap hand
                 if hapticEnabled {
