@@ -717,10 +717,10 @@ struct SunriseSunsetSheet: View {
                                     Spacer()
                                     
                                     // Time range
-                                    HStack(spacing: 6) {
+                                    HStack(spacing: 8) {
                                         Text(formatTime(goldenHour.start))
                                             .monospacedDigit()
-                                        Image(systemName: "chevron.forward")
+                                        Image(systemName: "arrow.right")
                                             .font(.footnote.weight(.semibold))
                                             .foregroundStyle(.tertiary)
                                         Text(formatTime(goldenHour.end))

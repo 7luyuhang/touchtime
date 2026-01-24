@@ -695,6 +695,10 @@ struct SettingsView: View {
                             
                             Link(destination: URL(string: "https://x.com/yuhanglu")!) {
                                 Text("X")
+                            }
+                            
+                            Link(destination: URL(string: "mailto:7luyuhang@gmail.com")!) {
+                                Text("Email")
                             }}
                         
                         Section("More apps from team") {
