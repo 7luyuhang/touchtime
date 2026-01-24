@@ -194,21 +194,20 @@ struct SkyColorGradient {
                 }
             } else {
                 // Pre-dawn: before sunrise
-                if currentHour >= astronomicalDawnHour {
-                    // Astronomical twilight morning (4-5 equivalent)
-                    let progress = (currentHour - astronomicalDawnHour) / max(0.1, nauticalDawnHour - astronomicalDawnHour)
-                    return 4.0 + min(progress, 1.0)
+                // Check from latest event to earliest: civilDawn -> nauticalDawn -> astronomicalDawn
+                // Order of events: astronomicalDawnHour < nauticalDawnHour < civilDawnHour < sunriseHour
+                if currentHour >= civilDawnHour {
+                    // Civil twilight morning (6-7 equivalent) - closest to sunrise
+                    let progress = (currentHour - civilDawnHour) / max(0.1, sunriseHour - civilDawnHour)
+                    return 6.0 + min(progress, 1.0)
                 } else if currentHour >= nauticalDawnHour {
                     // Nautical twilight morning (5-6 equivalent)
                     let progress = (currentHour - nauticalDawnHour) / max(0.1, civilDawnHour - nauticalDawnHour)
                     return 5.0 + min(progress, 1.0)
-                } else if currentHour >= civilDawnHour {
-                    // Civil twilight morning (6-7 equivalent)
-                    let progress = (currentHour - civilDawnHour) / max(0.1, sunriseHour - civilDawnHour)
-                    return 6.0 + min(progress, 1.0)
-                } else if currentHour >= sunriseHour - 1.0 {
-                    // Just before sunrise (7 equivalent)
-                    return 7.0
+                } else if currentHour >= astronomicalDawnHour {
+                    // Astronomical twilight morning (4-5 equivalent) - earliest dawn
+                    let progress = (currentHour - astronomicalDawnHour) / max(0.1, nauticalDawnHour - astronomicalDawnHour)
+                    return 4.0 + min(progress, 1.0)
                 } else {
                     // Deep night before dawn (0-4 equivalent)
                     let nightStart = astronomicalDuskHour
