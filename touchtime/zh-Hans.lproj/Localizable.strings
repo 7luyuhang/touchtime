@@ -64,6 +64,7 @@
 "Analog Time" = "模拟时间";
 "Arc Indicator" = "弧形指示器";
 "Sunrise & Sunset Lines" = "日出日落线";
+"Golden Hour Lines" = "黄金时刻线";
 "Enable showing arc indicator for time offset." = "启用显示时间偏移的弧形指示器。";
 "Preview" = "预览";
 "Sky Colour" = "天空色彩";

@@ -699,8 +699,8 @@ struct SunriseSunsetSheet: View {
                             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                             .padding(.horizontal, 16)
                             
-                            // Evening Golden Hour Section - only show when weather is clear
-                            if showWeather && isWeatherClear, let goldenHour = eveningGoldenHour, goldenHour.start != nil && goldenHour.end != nil {
+                            // Evening Golden Hour Section
+                            if let goldenHour = eveningGoldenHour, goldenHour.start != nil && goldenHour.end != nil {
                                 HStack(spacing: 16) {
                                     // Icon
                                     Image(systemName: "sun.max.fill")

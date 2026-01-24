@@ -33,6 +33,7 @@ struct SettingsView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
+    @AppStorage("showGoldenHour") private var showGoldenHour = false
     @State private var currentDate = Date()
     @State private var showSupportLove = false
     @State private var showComplicationsSheet = false
@@ -223,7 +224,7 @@ struct SettingsView: View {
                 }
                 
                 
-            
+                
                 // Temperature/Weather Section
                 Section {
                     Toggle(isOn: Binding(
@@ -381,55 +382,55 @@ struct SettingsView: View {
                                 .transition(.identity)
                             }
                             
-                                            // Sun Azimuth Overlay - Centered
-                                            if showSunAzimuth {
-                                                SunAzimuthIndicator(
-                                                    date: currentDate,
-                                                    timeZone: TimeZone.current,
-                                                    size: 64,
-                                                    useMaterialBackground: true
-                                                )
-                                                .overlay(
-                                                    Circle()
-                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                        .blendMode(.plusLighter)
-                                                )
-                                                .transition(.identity)
-                                            }
-                                            
-                                            // Sunrise & Sunset Overlay - Centered
-                                            if showSunriseSunset {
-                                                SunriseSunsetIndicator(
-                                                    date: currentDate,
-                                                    timeZone: TimeZone.current,
-                                                    size: 64,
-                                                    useMaterialBackground: true
-                                                )
-                                                .overlay(
-                                                    Circle()
-                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                        .blendMode(.plusLighter)
-                                                )
-                                                .transition(.identity)
-                                            }
-                                            
-                                            // Daylight Overlay - Centered
-                                            if showDaylight {
-                                                DaylightIndicator(
-                                                    date: currentDate,
-                                                    timeZone: TimeZone.current,
-                                                    size: 64,
-                                                    useMaterialBackground: true
-                                                )
-                                                .overlay(
-                                                    Circle()
-                                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                        .blendMode(.plusLighter)
-                                                )
-                                                .transition(.identity)
-                                            }
-                                        }
-                                        .background(
+                            // Sun Azimuth Overlay - Centered
+                            if showSunAzimuth {
+                                SunAzimuthIndicator(
+                                    date: currentDate,
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.identity)
+                            }
+                            
+                            // Sunrise & Sunset Overlay - Centered
+                            if showSunriseSunset {
+                                SunriseSunsetIndicator(
+                                    date: currentDate,
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.identity)
+                            }
+                            
+                            // Daylight Overlay - Centered
+                            if showDaylight {
+                                DaylightIndicator(
+                                    date: currentDate,
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.identity)
+                            }
+                        }
+                        .background(
                             showSkyDot ?
                             ZStack {
                                 Color.black
@@ -591,6 +592,14 @@ struct SettingsView: View {
                 
                 // Analog Time Section
                 Section {
+                    Toggle(isOn: $showGoldenHour) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "angle", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            Text(String(localized: "Golden Hour Lines"))
+                        }
+                    }
+                    .tint(.blue)
+                    
                     Toggle(isOn: $showSunriseSunsetLines) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: Color(UIColor.systemGray3))

@@ -433,6 +433,7 @@ struct AnalogClockFaceView: View {
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
+    @AppStorage("showGoldenHour") private var showGoldenHour = false
     
     @State private var hideOtherHands = false
     
@@ -442,6 +443,8 @@ struct AnalogClockFaceView: View {
     private struct SunTimesData {
         let sunrise: Date?
         let sunset: Date?
+        let goldenHourStart: Date?
+        let goldenHourEnd: Date?
     }
     
     private class SunTimesDataWrapper {
@@ -490,7 +493,12 @@ struct AnalogClockFaceView: View {
         )
         sun.setDate(date)
         
-        let data = SunTimesData(sunrise: sun.sunrise, sunset: sun.sunset)
+        let data = SunTimesData(
+            sunrise: sun.sunrise,
+            sunset: sun.sunset,
+            goldenHourStart: sun.eveningGoldenHourStart,
+            goldenHourEnd: sun.eveningGoldenHourEnd
+        )
         Self.sunTimesCache.setObject(SunTimesDataWrapper(data), forKey: cacheKey)
         return data
     }
@@ -686,6 +694,30 @@ struct AnalogClockFaceView: View {
             
             // Hour numbers
             HourNumbersView(size: size)
+            
+            // Golden hour indicator (yellow)
+            if showGoldenHour, let times = sunTimes,
+               let goldenHourStartAngle = angleForDate(times.goldenHourStart),
+               let goldenHourEndAngle = angleForDate(times.goldenHourEnd) {
+                // Golden hour arc fill
+                GoldenHourArcView(
+                    startAngle: goldenHourStartAngle,
+                    endAngle: goldenHourEndAngle,
+                    size: size
+                )
+                
+                // Golden hour start line
+                GoldenHourLineView(
+                    angle: goldenHourStartAngle,
+                    size: size
+                )
+                
+                // Golden hour end line
+                GoldenHourLineView(
+                    angle: goldenHourEndAngle,
+                    size: size
+                )
+            }
             
             // Sunrise and Sunset indicator lines with daylight arc
             if showSunriseSunsetLines, let times = sunTimes {
@@ -1041,6 +1073,47 @@ struct DaylightArcView: View {
     }
 }
 
+// MARK: - Golden Hour Arc View
+struct GoldenHourArcView: View {
+    let startAngle: Double
+    let endAngle: Double
+    let size: CGFloat
+    
+    var body: some View {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let radius = (size - 24) / 2
+        
+        // Convert to radians (subtract 90 to align with clock where 0 is at top)
+        let startRadians = (startAngle - 90) * .pi / 180
+        let endRadians = (endAngle - 90) * .pi / 180
+        
+        Path { path in
+            path.move(to: center)
+            path.addArc(
+                center: center,
+                radius: radius,
+                startAngle: Angle(radians: startRadians),
+                endAngle: Angle(radians: endRadians),
+                clockwise: false
+            )
+            path.closeSubpath()
+        }
+        .fill(
+            RadialGradient(
+                colors: [
+                    Color.yellow.opacity(0.20),
+                    Color.clear
+                ],
+                center: .center,
+                startRadius: 0,
+                endRadius: radius
+            )
+        )
+        .blendMode(.plusLighter)
+        .allowsHitTesting(false)
+    }
+}
+
 // MARK: - Sunrise/Sunset Line View
 struct SunriseSunsetLineView: View {
     let angle: Double
@@ -1063,6 +1136,43 @@ struct SunriseSunsetLineView: View {
         .stroke(
             LinearGradient(
                 colors: [Color.white.opacity(0.25), Color.white.opacity(0)],
+                startPoint: UnitPoint(x: 0.5, y: 0.5),
+                endPoint: UnitPoint(
+                    x: 0.5 + (radius / size) * CGFloat(cos(angleRadians)),
+                    y: 0.5 + (radius / size) * CGFloat(sin(angleRadians))
+                )
+            ),
+            style: StrokeStyle(
+                lineWidth: 1.25,
+                lineCap: .round
+            )
+        )
+        .blendMode(.plusLighter)
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Golden Hour Line View
+struct GoldenHourLineView: View {
+    let angle: Double
+    let size: CGFloat
+    
+    var body: some View {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let radius = (size - 24) / 2 - 50
+        let angleRadians = (angle - 90) * .pi / 180
+        let endPoint = CGPoint(
+            x: center.x + radius * CGFloat(cos(angleRadians)),
+            y: center.y + radius * CGFloat(sin(angleRadians))
+        )
+        
+        Path { path in
+            path.move(to: center)
+            path.addLine(to: endPoint)
+        }
+        .stroke(
+            LinearGradient(
+                colors: [Color.yellow.opacity(0.25), Color.clear],
                 startPoint: UnitPoint(x: 0.5, y: 0.5),
                 endPoint: UnitPoint(
                     x: 0.5 + (radius / size) * CGFloat(cos(angleRadians)),

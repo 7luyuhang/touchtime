@@ -62,6 +62,7 @@
 "Display" = "顯示";
 "Arc Indicator" = "弧形指示器";
 "Sunrise & Sunset Lines" = "日出日落線";
+"Golden Hour Lines" = "黃金時刻線";
 "Enable showing arc indicator for time offset." = "啟用顯示時間偏移的弧形指示器。";
 "Preview" = "預覽";
 "Sky Colour" = "天空色彩";
