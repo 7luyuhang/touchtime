@@ -874,6 +874,7 @@ struct AnalogClockFaceView: View {
                 )
             }
             
+            // Center Circle
             Circle()
 //                .fill(.white)
                 .frame(width: 8, height: 8)
