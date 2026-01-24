@@ -15,121 +15,116 @@ struct AvailableTimeIndicator: View {
     let use24HourFormat: Bool
     let availableWeekdays: String // Comma-separated list of weekday numbers
     
-    // Calculate progress for available time indicator
-    private func calculateAvailableTimeProgress() -> Double {
-        // Return 0 if not a selected weekday
-        guard isSelectedWeekday() else { return 0 }
-        
+    // Static DateFormatter to avoid creating new instances on every calculation
+    private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateFormat = "HH:mm"
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone.current
-        
-        // Get current time adjusted by offset
+        return formatter
+    }()
+    
+    private static let displayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "h:mm a"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        return formatter
+    }()
+    
+    // Cached calculation result struct
+    private struct AvailableTimeState {
+        let progress: Double
+        let isWithinTime: Bool
+    }
+    
+    // Single unified calculation that returns both progress and isWithinTime
+    private var availableTimeState: AvailableTimeState {
         let adjustedCurrentTime = currentDate.addingTimeInterval(timeOffset)
         let calendar = Calendar.current
+        
+        // Check if it's a selected weekday
+        let weekday = calendar.component(.weekday, from: adjustedCurrentTime)
+        let selectedDays = availableWeekdays.split(separator: ",").compactMap { Int($0) }
+        guard selectedDays.contains(weekday) else {
+            return AvailableTimeState(progress: 0, isWithinTime: false)
+        }
+        
+        // Get current time in minutes
         let currentComponents = calendar.dateComponents([.hour, .minute], from: adjustedCurrentTime)
         let currentMinutes = Double((currentComponents.hour ?? 0) * 60 + (currentComponents.minute ?? 0))
         
         // Parse start time
-        guard let startDate = formatter.date(from: availableStartTime) else { return 0 }
+        guard let startDate = Self.timeFormatter.date(from: availableStartTime) else {
+            return AvailableTimeState(progress: 0, isWithinTime: false)
+        }
         let startComponents = calendar.dateComponents([.hour, .minute], from: startDate)
         let startMinutes = Double((startComponents.hour ?? 0) * 60 + (startComponents.minute ?? 0))
         
         // Parse end time
-        guard let endDate = formatter.date(from: availableEndTime) else { return 0 }
+        guard let endDate = Self.timeFormatter.date(from: availableEndTime) else {
+            return AvailableTimeState(progress: 0, isWithinTime: false)
+        }
         let endComponents = calendar.dateComponents([.hour, .minute], from: endDate)
         var endMinutes = Double((endComponents.hour ?? 0) * 60 + (endComponents.minute ?? 0))
         
-        // Handle case where end time is next day (e.g., working overnight)
-        if endMinutes <= startMinutes {
+        // Handle overnight shifts
+        let isOvernightShift = endMinutes <= startMinutes
+        if isOvernightShift {
             endMinutes += 24 * 60
         }
         
-        // Adjust current time if it's after midnight for overnight shifts
+        // Adjust current time for overnight shifts
         var adjustedCurrentMinutes = currentMinutes
-        if endMinutes > 24 * 60 && currentMinutes < startMinutes {
+        if isOvernightShift && currentMinutes < startMinutes {
             adjustedCurrentMinutes += 24 * 60
         }
         
         // Calculate progress
         let totalDuration = endMinutes - startMinutes
         let elapsed = adjustedCurrentMinutes - startMinutes
+        let progress = min(max(elapsed / totalDuration, 0), 1)
         
-        let progress = elapsed / totalDuration
-        return min(max(progress, 0), 1) // Clamp between 0 and 1
-    }
-    
-    // Check if current day is a selected weekday
-    private func isSelectedWeekday() -> Bool {
-        let adjustedCurrentTime = currentDate.addingTimeInterval(timeOffset)
-        let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: adjustedCurrentTime)
-        
-        let selectedDays = availableWeekdays.split(separator: ",").compactMap { Int($0) }
-        return selectedDays.contains(weekday)
-    }
-    
-    // Check if current time is within available hours
-    private func isWithinAvailableTime() -> Bool {
-        // First check if it's a selected weekday
-        guard isSelectedWeekday() else { return false }
-        
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        
-        // Get current time adjusted by offset
-        let adjustedCurrentTime = currentDate.addingTimeInterval(timeOffset)
-        let calendar = Calendar.current
-        let currentComponents = calendar.dateComponents([.hour, .minute], from: adjustedCurrentTime)
-        let currentMinutes = (currentComponents.hour ?? 0) * 60 + (currentComponents.minute ?? 0)
-        
-        // Parse start time
-        guard let startDate = formatter.date(from: availableStartTime) else { return false }
-        let startComponents = calendar.dateComponents([.hour, .minute], from: startDate)
-        let startMinutes = (startComponents.hour ?? 0) * 60 + (startComponents.minute ?? 0)
-        
-        // Parse end time
-        guard let endDate = formatter.date(from: availableEndTime) else { return false }
-        let endComponents = calendar.dateComponents([.hour, .minute], from: endDate)
-        let endMinutes = (endComponents.hour ?? 0) * 60 + (endComponents.minute ?? 0)
-        
-        // Handle overnight shifts
-        if endMinutes <= startMinutes {
-            // Overnight shift (e.g., 22:00 to 06:00)
-            return currentMinutes >= startMinutes || currentMinutes <= endMinutes
+        // Check if within available time
+        let isWithinTime: Bool
+        if isOvernightShift {
+            isWithinTime = currentMinutes >= startMinutes || currentMinutes <= (endMinutes - 24 * 60)
         } else {
-            // Normal shift (e.g., 09:00 to 17:00)
-            return currentMinutes >= startMinutes && currentMinutes <= endMinutes
+            isWithinTime = currentMinutes >= startMinutes && currentMinutes <= endMinutes
         }
+        
+        return AvailableTimeState(progress: progress, isWithinTime: isWithinTime)
     }
     
-    // Format available time for display
-    private func formatAvailableTime(_ timeString: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        
-        guard let date = formatter.date(from: timeString) else {
-            return timeString
-        }
-        
+    // Cached formatted time strings
+    private var formattedStartTime: String {
         if use24HourFormat {
-            return timeString
-        } else {
-            formatter.dateFormat = "h:mm a"
-            return formatter.string(from: date).lowercased()
+            return availableStartTime
         }
+        guard let date = Self.timeFormatter.date(from: availableStartTime) else {
+            return availableStartTime
+        }
+        return Self.displayFormatter.string(from: date).lowercased()
+    }
+    
+    private var formattedEndTime: String {
+        if use24HourFormat {
+            return availableEndTime
+        }
+        guard let date = Self.timeFormatter.date(from: availableEndTime) else {
+            return availableEndTime
+        }
+        return Self.displayFormatter.string(from: date).lowercased()
     }
     
     var body: some View {
+        // Calculate state once and reuse
+        let state = availableTimeState
+        
         HStack(alignment: .center, spacing: 12) {
             
             // Start Time
-            Text(formatAvailableTime(availableStartTime))
+            Text(formattedStartTime)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(.secondary)
@@ -139,17 +134,17 @@ struct AvailableTimeIndicator: View {
             
             // Progress Bar
             GeometryReader { geometry in
-                    Circle()
-                        .fill(isWithinAvailableTime() ? Color.white : Color.white.opacity(0.25))
-                        .glassEffect(.clear)
-                        .frame(width: 10, height: 10)
-                        .offset(x: max(0, min(geometry.size.width - 10, geometry.size.width * calculateAvailableTimeProgress() - 5)))
-                        .animation(.spring(), value: calculateAvailableTimeProgress())
+                Circle()
+                    .fill(state.isWithinTime ? Color.white : Color.white.opacity(0.25))
+                    .glassEffect(.clear)
+                    .frame(width: 10, height: 10)
+                    .offset(x: max(0, min(geometry.size.width - 10, geometry.size.width * state.progress - 5)))
+                    .animation(.spring(), value: state.progress)
             }
             .frame(height: 10)
             
             // End Time
-            Text(formatAvailableTime(availableEndTime))
+            Text(formattedEndTime)
                 .font(.caption)
                 .fontWeight(.medium)
                 .foregroundStyle(.secondary)
