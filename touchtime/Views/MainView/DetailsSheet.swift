@@ -721,7 +721,7 @@ struct SunriseSunsetSheet: View {
                                         Text(formatTime(goldenHour.start))
                                             .monospacedDigit()
                                         Image(systemName: "arrow.right")
-                                            .font(.footnote.weight(.semibold))
+                                            .font(.footnote.weight(.bold))
                                             .foregroundStyle(.tertiary)
                                         Text(formatTime(goldenHour.end))
                                             .monospacedDigit()

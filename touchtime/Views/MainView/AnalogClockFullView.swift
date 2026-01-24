@@ -875,9 +875,9 @@ struct AnalogClockFaceView: View {
             }
             
             Circle()
-                .fill(.white)
+//                .fill(.white)
                 .frame(width: 8, height: 8)
-//                .glassEffect(.clear.tint(.white.opacity(0.25)))
+                .glassEffect(.clear.tint(.white.opacity(0.25)))
         }
         .frame(width: size, height: size)
     }
