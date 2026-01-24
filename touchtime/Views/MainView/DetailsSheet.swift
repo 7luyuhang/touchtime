@@ -69,6 +69,35 @@ struct SunriseSunsetSheet: View {
         return (sunrise, sunset)
     }
     
+    // Calculate evening golden hour times
+    private var eveningGoldenHour: (start: Date?, end: Date?)? {
+        // Get coordinates for the timezone
+        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
+            return nil
+        }
+        
+        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+        
+        // Create Sun object with coordinates and timezone
+        var sun = Sun(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current)
+        
+        // Set the date for calculations
+        sun.setDate(adjustedDate)
+        
+        return (sun.eveningGoldenHourStart, sun.eveningGoldenHourEnd)
+    }
+    
+    // Check if weather is clear (sunny)
+    private var isWeatherClear: Bool {
+        guard let weather = currentWeather else { return false }
+        switch weather.condition {
+        case .clear, .mostlyClear:
+            return true
+        default:
+            return false
+        }
+    }
+    
     // Calculate moon information
     private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)? {
         // Get coordinates for the timezone
@@ -669,6 +698,35 @@ struct SunriseSunsetSheet: View {
                             .blendMode(.plusLighter)
                             .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                             .padding(.horizontal, 16)
+                            
+                            // Evening Golden Hour Section - only show when weather is clear
+                            if showWeather && isWeatherClear, let goldenHour = eveningGoldenHour, goldenHour.start != nil && goldenHour.end != nil {
+                                HStack(spacing: 16) {
+                                    // Icon
+                                    Image(systemName: "sun.max.fill")
+                                        .font(.title3.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 24)
+                                    
+                                    // Golden Hour text
+                                    Text("Golden Hour")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                    
+                                    Spacer()
+                                    
+                                    // Time range
+                                    Text("\(formatTime(goldenHour.start)) - \(formatTime(goldenHour.end))")
+                                        .monospacedDigit()
+                                }
+                                .padding(16)
+                                .background(.white.opacity(0.05))
+                                .blendMode(.plusLighter)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .padding(.horizontal, 16)
+                                .transition(.blurReplace().combined(with: .opacity))
+                            }
                         }
                         
                         // Moon Time section
