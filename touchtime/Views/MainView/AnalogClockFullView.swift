@@ -220,12 +220,15 @@ struct AnalogClockFullView: View {
                             .frame(height: 44)
                             .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
                             .lineLimit(1)
+                            .contentShape(Capsule())
                             .onTapGesture {
                                 if hapticEnabled {
                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                                     impactFeedback.impactOccurred()
                                 }
-                                showTimeInsteadOfCityName.toggle()
+                                withAnimation(.smooth) {
+                                    showTimeInsteadOfCityName.toggle()
+                                }
                             }
                     }
                 }
