@@ -32,7 +32,7 @@ struct AnalogClockFullView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showSkyDot") private var showSkyDot = true
-    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     
     @StateObject private var weatherManager = WeatherManager()
     

@@ -17,7 +17,7 @@ struct SettingsView: View {
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
-    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"

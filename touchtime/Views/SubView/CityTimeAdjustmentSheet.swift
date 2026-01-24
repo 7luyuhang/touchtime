@@ -18,7 +18,7 @@ struct CityTimeAdjustmentSheet: View {
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
-    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     
     init(cityName: String, timeZoneIdentifier: String, timeOffset: Binding<TimeInterval>, showSheet: Binding<Bool>, showScrollTimeButtons: Binding<Bool>) {
         self.cityName = cityName

@@ -35,7 +35,7 @@ struct ScrollTimeView: View {
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @AppStorage("hasRequestedReviewAfterFirstReset") private var hasRequestedReviewAfterFirstReset = false
     @AppStorage("resetCount") private var resetCount: Int = 0
-    @AppStorage("continuousScrollMode") private var continuousScrollMode = false
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @Environment(\.requestReview) private var requestReview
     @Namespace private var glassNamespace
     @State private var showCalendarPermissionAlert = false
