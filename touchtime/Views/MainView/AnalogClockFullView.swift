@@ -1010,6 +1010,10 @@ struct ClockHandWithLabel: View {
                         .frame(maxWidth: 95)
                         .blendMode(.plusLighter)
                         .background(.thinMaterial, in: Capsule(style: .continuous))
+                        .overlay {
+                            Capsule(style: .continuous)
+                                .stroke(.white.opacity(0.1), lineWidth: 0.5)
+                        }
                 }
             }
             .animation(.smooth, value: showTimeInsteadOfCityName)

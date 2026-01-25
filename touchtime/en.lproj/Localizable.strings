@@ -36,7 +36,7 @@
 "+%d hours" = "+%dh";
 "%d hours" = "%dh";
 "Please select at least one day." = "Please select at least one day.";
-"Every day" = "Every day";
+"Every day" = "Everyday";
 "Weekdays" = "Weekdays";
 "Weekend" = "Weekend";
 "Selected: %@" = "Selected: %@";
