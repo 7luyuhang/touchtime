@@ -144,9 +144,9 @@ struct MoonPhaseView: View {
         let baseDate = currentDate.addingTimeInterval(timeOffset)
         let currentMonth = cal.date(from: cal.dateComponents([.year, .month], from: baseDate))!
         
-        // Generate months array (1 past + current + 12 future = 14 months)
+        // Generate months array (1 past + current + 1 future = 3 months)
         var months: [Date] = []
-        for i in -1...12 {
+        for i in -1...1 {
             if let month = cal.date(byAdding: .month, value: i, to: currentMonth) {
                 months.append(month)
             }
@@ -233,7 +233,8 @@ struct MoonPhaseView: View {
                         .tag(index)
                     }
                 }
-                .tabViewStyle(.page(indexDisplayMode: .never))
+                .tabViewStyle(.page(indexDisplayMode: .always))
+//                .indexViewStyle(.page(backgroundDisplayMode: .always))
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
