@@ -30,6 +30,7 @@ struct SunriseSunsetSheet: View {
     @State private var weatherLoadAttempted = false // No Weather Data
     @State private var isWeatherExpanded = false // Track weather section expansion
     @State private var currentDetent: PresentationDetent = .medium // Track current sheet size
+    @State private var showMoonPhaseView = false // Track moon phase view navigation
     
     // Computed properties to get weather data directly from weatherManager
     private var currentWeather: CurrentWeather? {
@@ -794,30 +795,43 @@ struct SunriseSunsetSheet: View {
                                 .padding(.horizontal, 16)
                                 
                                 // Moon Phase Section
-                                HStack {
-                                    HStack(spacing: 16){
-                                        Image(systemName: moon.phaseIcon)
-                                            .font(.title3.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                            .frame(width: 24)
-                                            .contentTransition(.symbolEffect(.replace))
-                                            .animation(.spring(), value: moon.phaseIcon)
+                                Button {
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    }
+                                    showMoonPhaseView = true
+                                } label: {
+                                    HStack {
+                                        HStack(spacing: 16){
+                                            Image(systemName: moon.phaseIcon)
+                                                .font(.title3.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                                .frame(width: 24)
+                                                .contentTransition(.symbolEffect(.replace))
+                                                .animation(.spring(), value: moon.phaseIcon)
+                                            
+                                            Text("Moon Phase")
+                                                .font(.headline)
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                        }
+                                        Spacer()
                                         
-                                        Text("Moon Phase")
-                                            .font(.headline)
-                                            .foregroundStyle(.secondary)
+                                        Text(moon.phase)
+                                            .foregroundStyle(.primary)
+                                        
+                                        Image(systemName: "chevron.right")
+                                            .font(.footnote.weight(.semibold))
+                                            .foregroundStyle(.tertiary)
                                             .blendMode(.plusLighter)
                                     }
-                                    Spacer()
-                                    
-                                    Text(moon.phase)
-                                        .foregroundStyle(.primary)
+                                    .padding(16)
+                                    .background(.white.opacity(0.05))
+                                    .blendMode(.plusLighter)
+                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                                 }
-                                .padding(16)
-                                .background(.white.opacity(0.05))
-                                .blendMode(.plusLighter)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .buttonStyle(.plain)
                                 .padding(.horizontal, 16)
                                 
                                 // Next Full Moon Section
@@ -934,6 +948,13 @@ struct SunriseSunsetSheet: View {
             }
             .presentationDetents([.medium, .large], selection: $currentDetent)
             .presentationDragIndicator(.hidden)
+            .sheet(isPresented: $showMoonPhaseView) {
+                MoonPhaseView(
+                    cityName: cityName,
+                    timeZoneIdentifier: timeZoneIdentifier,
+                    timeOffset: timeOffset
+                )
+            }
         }
     }
 }
