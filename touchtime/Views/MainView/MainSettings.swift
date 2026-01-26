@@ -140,22 +140,26 @@ struct SettingsView: View {
                 .foregroundStyle(.primary)
                 .listRowBackground(
                     ZStack {
-                        // Particle effect background
+                        // Particle effect
                         ParticleView(color: .white)
                             .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                         
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
-//                          .fill(Color.black.opacity(0.25))
-                            .fill(
-                                LinearGradient(
-                                    colors: [
-                                        .pink,
-                                        .red
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                ).opacity(0.15)
-                            )
+                        //                          .fill(Color.black.opacity(0.25))
+                                                   .fill(LinearGradient(
+                                                        colors: [
+                                                            .pink,
+                                                            .red
+                                                        ],
+                                                        startPoint: .top,
+                                                        endPoint: .bottom
+                                                    ).opacity(0.15))
+//                            .fill(
+//                                SkyColorGradient(
+//                                    date: currentDate,
+//                                    timeZoneIdentifier: TimeZone.current.identifier
+//                                ).linearGradient(opacity: 0.50)
+//                            )
                             .glassEffect(.clear.interactive(),
                                          in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                     }
