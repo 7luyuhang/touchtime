@@ -139,19 +139,26 @@ struct SettingsView: View {
                 }
                 .foregroundStyle(.primary)
                 .listRowBackground(
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    //                        .fill(
-                    //                            LinearGradient(
-                    //                                colors: [
-                    //                                    .pink,.red
-                    //                                ],
-                    //                                startPoint: .topLeading,
-                    //                                endPoint: .bottomTrailing
-                    //                            ).opacity(0.25)
-                    //                        )
-                        .fill(Color.black.opacity(0.25))
-                        .glassEffect(.clear.interactive(),
-                                     in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    ZStack {
+                        // Particle effect background
+                        ParticleView(color: .white)
+                            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        
+                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+//                          .fill(Color.black.opacity(0.25))
+                            .fill(
+                                LinearGradient(
+                                    colors: [
+                                        .pink,
+                                        .red
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ).opacity(0.15)
+                            )
+                            .glassEffect(.clear.interactive(),
+                                         in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    }
                 )
                 
                 

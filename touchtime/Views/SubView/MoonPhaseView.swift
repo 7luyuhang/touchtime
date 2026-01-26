@@ -234,7 +234,6 @@ struct MoonPhaseView: View {
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: .always))
-//                .indexViewStyle(.page(backgroundDisplayMode: .always))
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

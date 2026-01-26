@@ -20,6 +20,7 @@ struct VertexOut {
     float4 position [[position]];
     float pointSize [[point_size]];
     float opacity;
+    float3 particleColor;
 };
 
 // 简单的随机数生成函数
@@ -29,7 +30,8 @@ float random(float2 co) {
 
 vertex VertexOut particleVertex(uint vertexID [[vertex_id]],
                                  constant Particle *particles [[buffer(0)]],
-                                 constant float2 &viewSize [[buffer(1)]]) {
+                                 constant float2 &viewSize [[buffer(1)]],
+                                 constant float3 &particleColor [[buffer(2)]]) {
     VertexOut out;
     
     Particle particle = particles[vertexID];
@@ -42,6 +44,7 @@ vertex VertexOut particleVertex(uint vertexID [[vertex_id]],
     out.position = float4(normalizedPosition, 0.0, 1.0);
     out.pointSize = particle.size;
     out.opacity = particle.opacity * particle.life;
+    out.particleColor = particleColor;
     
     return out;
 }
@@ -63,8 +66,8 @@ fragment float4 particleFragment(VertexOut in [[stage_in]],
     // 柔和的边缘
     float alpha = glow * in.opacity;
     
-    // 明亮的白色粒子，带有轻微的蓝色调
-    float3 color = float3(1.0, 1.0, 1.0);
+    // 使用传入的颜色
+    float3 color = in.particleColor;
     
     return float4(color, alpha);
 }

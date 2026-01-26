@@ -29,10 +29,19 @@ class ParticleSystemRenderer: NSObject, MTKViewDelegate {
     var lastUpdateTime: TimeInterval = 0
     var isReady = false // 标记粒子系统是否准备就绪
     
+    // 粒子颜色 (默认白色)
+    var particleColor: SIMD3<Float> = SIMD3<Float>(1.0, 1.0, 1.0)
+    
     override init() {
         super.init()
         setupMetal()
         // 不在这里初始化粒子，等待获得正确的视图尺寸
+    }
+    
+    init(color: SIMD3<Float>) {
+        self.particleColor = color
+        super.init()
+        setupMetal()
     }
     
     func setupMetal() {
@@ -186,6 +195,7 @@ class ParticleSystemRenderer: NSObject, MTKViewDelegate {
         renderEncoder.setRenderPipelineState(pipelineState)
         renderEncoder.setVertexBuffer(particleBuffer, offset: 0, index: 0)
         renderEncoder.setVertexBytes(&viewSize, length: MemoryLayout<SIMD2<Float>>.stride, index: 1)
+        renderEncoder.setVertexBytes(&particleColor, length: MemoryLayout<SIMD3<Float>>.stride, index: 2)
         renderEncoder.drawPrimitives(type: .point, vertexStart: 0, vertexCount: particles.count)
         renderEncoder.endEncoding()
         
@@ -195,6 +205,8 @@ class ParticleSystemRenderer: NSObject, MTKViewDelegate {
 }
 
 struct ParticleView: UIViewRepresentable {
+    var color: Color = .white
+    
     func makeUIView(context: Context) -> MTKView {
         let mtkView = MTKView()
         mtkView.device = MTLCreateSystemDefaultDevice()
@@ -213,7 +225,16 @@ struct ParticleView: UIViewRepresentable {
     func updateUIView(_ uiView: MTKView, context: Context) {}
     
     func makeCoordinator() -> ParticleSystemRenderer {
-        ParticleSystemRenderer()
+        // 将 SwiftUI Color 转换为 SIMD3<Float>
+        let uiColor = UIColor(color)
+        var red: CGFloat = 1.0
+        var green: CGFloat = 1.0
+        var blue: CGFloat = 1.0
+        var alpha: CGFloat = 1.0
+        uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
+        
+        let colorSIMD = SIMD3<Float>(Float(red), Float(green), Float(blue))
+        return ParticleSystemRenderer(color: colorSIMD)
     }
 }
 
