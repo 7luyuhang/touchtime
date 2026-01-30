@@ -303,7 +303,7 @@ private struct MonthGridView: View {
     var body: some View {
         VStack(spacing: 0) {
             // Calendar grid
-            LazyVGrid(columns: Self.gridColumns, spacing: 12) {
+            LazyVGrid(columns: Self.gridColumns, spacing: 4) {
                 ForEach(Array(days.enumerated()), id: \.offset) { _, date in
                     if let date = date {
                         DayCellView(
@@ -349,7 +349,7 @@ private struct DayCellView: View {
                 .symbolRenderingMode(.hierarchical)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 4)
+        .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(isToday ? Color.white.opacity(0.10) : .clear)
