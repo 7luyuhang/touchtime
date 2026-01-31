@@ -222,7 +222,7 @@ struct SettingsView: View {
                 Section {
                     Toggle(isOn: $continuousScrollMode) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "lines.measurement.horizontal.aligned.bottom", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
+                            SystemIconImage(systemName: "lines.measurement.horizontal.aligned.bottom", topColor: .white, bottomColor: .white, foregroundColor: .black)
                             Text("Continuous Scroll")
                         }
                     }
@@ -605,7 +605,7 @@ struct SettingsView: View {
                 Section {
                     Toggle(isOn: $showGoldenHour) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "angle", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "angle", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
                             Text(String(localized: "Golden Hour Lines"))
                         }
                     }
