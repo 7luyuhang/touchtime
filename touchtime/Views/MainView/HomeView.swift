@@ -690,13 +690,6 @@ struct HomeView: View {
                                         // Top row: Additional time display and Date
                                         if additionalTimeDisplay != "None" {
                                             HStack {
-                                                if showSkyDot {
-                                                    SkyDotView(
-                                                        date: currentDate.addingTimeInterval(timeOffset),
-                                                        timeZoneIdentifier: clock.timeZoneIdentifier
-                                                    )
-                                                }
-                                                
                                                 // Display based on selected option
                                                 let additionalText = additionalTimeDisplay == "Time Difference" ? clock.timeDifference : clock.utcOffset
                                                 if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {

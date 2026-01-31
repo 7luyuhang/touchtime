@@ -278,7 +278,7 @@ struct SettingsView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 // Top row: Time difference and Date with Weather
                                 HStack {
-                                    if showSkyDot {
+                                    if showSkyDot && additionalTimeDisplay == "None" {
                                         SkyDotView(
                                             date: currentDate,
                                             timeZoneIdentifier: TimeZone.current.identifier
