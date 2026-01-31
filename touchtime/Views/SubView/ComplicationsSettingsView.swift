@@ -226,8 +226,8 @@ struct ComplicationsSettingsView: View {
                     .overlay(
                         Circle()
                             .stroke(
-                                isSelected ? Color.white : Color.clear,
-                                lineWidth: isSelected ? 2 : 0
+                                isSelected ? Color.white : Color.white.opacity(0.1),
+                                lineWidth: isSelected ? 2 : 0.5
                             )
                     )
                 

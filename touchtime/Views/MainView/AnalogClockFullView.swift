@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import UIKit
+import CoreHaptics
 import WeatherKit
 import MoonKit
 import SunKit
@@ -115,7 +116,7 @@ struct AnalogClockFullView: View {
                         // Analog Clock - always centered
                         AnalogClockFaceView(
                             date: currentDate.addingTimeInterval(timeOffset),
-                            timeOffset: timeOffset,
+                            timeOffset: $timeOffset,
                             selectedTimeZone: selectedTimeZone,
                             size: size,
                             worldClocks: worldClocks,
@@ -418,7 +419,7 @@ struct DoubleTapClockFaceTip: Tip {
 // MARK: - Analog Clock Face View
 struct AnalogClockFaceView: View {
     let date: Date
-    let timeOffset: TimeInterval
+    @Binding var timeOffset: TimeInterval
     let selectedTimeZone: TimeZone
     let size: CGFloat
     let worldClocks: [WorldClock]
@@ -437,10 +438,149 @@ struct AnalogClockFaceView: View {
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     
     @State private var hideOtherHands = false
+    @State private var lastRotationAngle: Double? = nil
+    private let rotationSecondsPerDegree: Double = 180
+    @State private var hapticEngine: CHHapticEngine?
+    @State private var hapticPlayer: CHHapticPatternPlayer?
+    @State private var lastRotationHapticOffset: TimeInterval = 0
     
     private let doubleTapTip = DoubleTapClockFaceTip()
+
+    private func angleDegrees(at location: CGPoint, in size: CGFloat) -> Double {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let dx = Double(location.x - center.x)
+        let dy = Double(location.y - center.y)
+        return atan2(dy, dx) * 180 / .pi
+    }
+    
+    private func normalizedAngleDelta(_ delta: Double) -> Double {
+        var value = delta
+        if value > 180 {
+            value -= 360
+        } else if value < -180 {
+            value += 360
+        }
+        return value
+    }
+    
+    
+    private func prepareHaptics() {
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        
+        do {
+            if hapticEngine == nil {
+                hapticEngine = try CHHapticEngine()
+                let engine = hapticEngine
+                
+                hapticEngine?.stoppedHandler = { _ in
+                    DispatchQueue.main.async {
+                        do {
+                            try engine?.start()
+                        } catch {
+                            print("Failed to restart haptic engine: \(error.localizedDescription)")
+                        }
+                    }
+                }
+                
+                hapticEngine?.resetHandler = {
+                    DispatchQueue.main.async {
+                        do {
+                            try engine?.start()
+                        } catch {
+                            print("Failed to restart haptic engine: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            }
+            
+            try hapticEngine?.start()
+            prepareHapticPlayer()
+        } catch {
+            print("Error creating/starting haptic engine: \(error.localizedDescription)")
+        }
+    }
+    
+    private func restartHapticEngine() {
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        
+        do {
+            try hapticEngine?.start()
+            prepareHapticPlayer()
+        } catch {
+            print("Failed to restart haptic engine: \(error.localizedDescription)")
+        }
+    }
+    
+    private func prepareHapticPlayer() {
+        guard let engine = hapticEngine else { return }
+        
+        do {
+            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
+            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5)
+            let tickEvent = CHHapticEvent(
+                eventType: .hapticTransient,
+                parameters: [sharpness, intensity],
+                relativeTime: 0
+            )
+            let pattern = try CHHapticPattern(events: [tickEvent], parameters: [])
+            hapticPlayer = try engine.makePlayer(with: pattern)
+        } catch {
+            print("Failed to create haptic player: \(error.localizedDescription)")
+        }
+    }
+    
+    private func ensureHapticEngineRunning() {
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        
+        if hapticEngine == nil {
+            prepareHaptics()
+        } else {
+            do {
+                try hapticEngine?.start()
+            } catch {
+                restartHapticEngine()
+            }
+        }
+    }
+    
+    private func playTickHaptic(intensity: Float = 0.50) {
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        ensureHapticEngineRunning()
+        
+        do {
+            if let player = hapticPlayer {
+                try player.start(atTime: CHHapticTimeImmediate)
+            } else if let engine = hapticEngine {
+                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.20)
+                let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity)
+                let tickEvent = CHHapticEvent(
+                    eventType: .hapticTransient,
+                    parameters: [sharpness, intensityParam],
+                    relativeTime: 0
+                )
+                let pattern = try CHHapticPattern(events: [tickEvent], parameters: [])
+                let newPlayer = try engine.makePlayer(with: pattern)
+                try newPlayer.start(atTime: CHHapticTimeImmediate)
+            }
+        } catch {
+            print("Failed to play tick haptic: \(error.localizedDescription)")
+            restartHapticEngine()
+        }
+    }
+    
+    private func checkAndPlayRotationHapticTick() {
+        let tickInterval: TimeInterval = 1800
+        let currentTicks = Int(timeOffset / tickInterval)
+        let lastTicks = Int(lastRotationHapticOffset / tickInterval)
+        if currentTicks != lastTicks {
+            playTickHaptic(intensity: 0.5)
+            lastRotationHapticOffset = timeOffset
+        }
+    }
+    
     
     // MARK: - Sun Times Cache
     private struct SunTimesData {
@@ -675,6 +815,7 @@ struct AnalogClockFaceView: View {
                 .fill(Color.black.opacity(0.25))
                 .glassEffect(.clear.interactive())
                 .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+                .contentShape(Circle())
                 .onTapGesture(count: 2) {
                     if hapticEnabled {
                         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
@@ -683,6 +824,32 @@ struct AnalogClockFaceView: View {
                     doubleTapTip.invalidate(reason: .actionPerformed)
                 }
                 .popoverTip(doubleTapTip)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                        .onChanged { value in
+                            guard continuousScrollMode else { return }
+                            let angle = angleDegrees(at: value.location, in: size)
+                            if let lastAngle = lastRotationAngle {
+                                let delta = normalizedAngleDelta(angle - lastAngle)
+                                if delta != 0 {
+                                    timeOffset += delta * rotationSecondsPerDegree
+                                    checkAndPlayRotationHapticTick()
+                                }
+                            } else {
+                                NotificationCenter.default.post(
+                                    name: NSNotification.Name("StopScrollTimeInertia"),
+                                    object: nil
+                                )
+                                lastRotationHapticOffset = timeOffset
+                            }
+                            lastRotationAngle = angle
+                        }
+                        .onEnded { value in
+                            guard continuousScrollMode else { return }
+                            lastRotationHapticOffset = timeOffset
+                            lastRotationAngle = nil
+                        }
+                )
             
             // Time offset arc (显示滚动时间的起点到终点)
             if showArcIndicator && timeOffset != 0 {
@@ -881,6 +1048,26 @@ struct AnalogClockFaceView: View {
 //                .glassEffect(.clear.tint(.white.opacity(0.25)))
         }
         .frame(width: size, height: size)
+        .onChange(of: continuousScrollMode) { _, newValue in
+            if !newValue {
+                lastRotationAngle = nil
+                lastRotationHapticOffset = timeOffset
+            }
+        }
+        .onAppear {
+            prepareHaptics()
+        }
+        .onDisappear {
+            hapticEngine?.stop()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            if hapticEnabled {
+                restartHapticEngine()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            hapticEngine?.stop()
+        }
     }
 }
 

@@ -714,6 +714,9 @@ struct ScrollTimeView: View {
                 accumulatedOffset = 0 // Reset accumulated offset for continuous mode
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StopScrollTimeInertia"))) { _ in
+            stopInertia()
+        }
         .onChange(of: timeOffset) { oldValue, newValue in
             // Sync accumulatedOffset when timeOffset is changed externally (e.g., from CityTimeAdjustmentSheet)
             // Only sync when not currently dragging (dragOffset == 0) and in continuous scroll mode
