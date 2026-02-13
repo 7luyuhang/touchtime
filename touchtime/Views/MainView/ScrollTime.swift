@@ -568,59 +568,85 @@ struct ScrollTimeView: View {
         // Overall composer
         .padding(.horizontal, 5)
         .overlay(alignment: .top) {
-            // Reset button for continuous scroll mode
+            // Reset button and Calendar button for continuous scroll mode
             if continuousScrollMode && timeOffset != 0 && !showButtons {
-                Button(action: {
-                    DispatchQueue.main.async {
-                        resetTimeOffset()
+                HStack(spacing: 0) {
+                    // Add to Calendar button (left side)
+                    Button(action: {
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
+                            impactFeedback.prepare()
+                            impactFeedback.impactOccurred()
+                        }
+                        addToCalendar()
+                    }) {
+                        Image(systemName: "plus")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 16)
+                            .contentShape(Capsule())
+                            .background(
+                                Capsule(style: .continuous)
+                                    .fill(.blue)
+                            )
+                            .padding(.leading, 5)
                     }
-                }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.footnote.weight(.semibold))
-                        
-                        Text({
-                            let totalHours = timeOffset / 3600
-                            let isPositive = totalHours >= 0
-                            let absoluteHours = abs(totalHours)
-                            let days = Int(absoluteHours / 24)
-                            let hours = Int(absoluteHours) % 24
-                            let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
+                    .buttonStyle(.plain)
+                    
+                    // Reset button with time offset (right side)
+                    Button(action: {
+                        DispatchQueue.main.async {
+                            resetTimeOffset()
+                        }
+                    }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.footnote.weight(.semibold))
                             
-                            let sign = isPositive ? "+" : "-"
-                            var result = ""
-                            if days > 0 {
-                                result = String(format: String(localized: "%dd"), days)
-                                if hours > 0 {
-                                    result += " " + String(format: String(localized: "%dh"), hours)
+                            Text({
+                                let totalHours = timeOffset / 3600
+                                let isPositive = totalHours >= 0
+                                let absoluteHours = abs(totalHours)
+                                let days = Int(absoluteHours / 24)
+                                let hours = Int(absoluteHours) % 24
+                                let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
+                                
+                                let sign = isPositive ? "+" : "-"
+                                var result = ""
+                                if days > 0 {
+                                    result = String(format: String(localized: "%dd"), days)
+                                    if hours > 0 {
+                                        result += " " + String(format: String(localized: "%dh"), hours)
+                                    }
+                                    if minutes > 0 {
+                                        result += " " + String(format: String(localized: "%02dm"), minutes)
+                                    }
+                                } else if hours > 0 && minutes > 0 {
+                                    result = String(format: String(localized: "%dh %02dm"), hours, minutes)
+                                } else if hours > 0 {
+                                    result = String(format: String(localized: "%dh"), hours)
+                                } else if minutes > 0 {
+                                    result = String(format: String(localized: "%02dm"), minutes)
+                                } else {
+                                    result = String(localized: "00m")
                                 }
-                                if minutes > 0 {
-                                    result += " " + String(format: String(localized: "%02dm"), minutes)
-                                }
-                            } else if hours > 0 && minutes > 0 {
-                                result = String(format: String(localized: "%dh %02dm"), hours, minutes)
-                            } else if hours > 0 {
-                                result = String(format: String(localized: "%dh"), hours)
-                            } else if minutes > 0 {
-                                result = String(format: String(localized: "%02dm"), minutes)
-                            } else {
-                                result = String(localized: "00m")
-                            }
-                            return sign + result
-                        }())
-                        .font(.footnote.weight(.semibold))
-                        .monospacedDigit()
+                                return sign + result
+                            }())
+                            .font(.footnote.weight(.semibold))
+                            .monospacedDigit()
+                        }
+                        .padding(.leading, 12)
+                        .padding(.trailing, 16)
+                        .padding(.vertical, 12)
+                        .contentShape(Capsule())
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .contentShape(Capsule())
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
-                .clipShape(Capsule())
-                .contentShape(Capsule())
+                .clipShape(Capsule(style: .continuous))
+                .contentShape(Capsule(style: .continuous))
                 .glassEffect(.regular.interactive())
                 .highPriorityGesture(DragGesture())
-                .transition(.blurReplace.combined(with: .scale).combined(with: .move(edge: .bottom)).combined(with: .opacity))
+                .transition(.blurReplace.combined(with: .scale).combined(with: .move(edge: .bottom)).combined(with: .opacity)) // Animation
                 .offset(y: -52)
             }
         }
