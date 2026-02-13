@@ -143,7 +143,6 @@ struct AnalogClockFullView: View {
                                     showWeather: showWeather,
                                     useCelsius: useCelsius
                                 )
-                                .id(currentDate) // Force update when currentDate changes
                                 .animation(.spring(), value: selectedTimeZone.identifier)
                                 .task(id: showWeather) {
                                     if showWeather {

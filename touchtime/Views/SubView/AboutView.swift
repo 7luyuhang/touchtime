@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import SafariServices
 
 struct AboutView: View {
     @Binding var worldClocks: [WorldClock]
@@ -14,6 +15,7 @@ struct AboutView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var rippleCounter: Int = 0
     @State private var rippleOrigin: CGPoint = .init(x: 50, y: 50)
+    @State private var safariURL: URL?
     
     // UserDefaults keys
     private let worldClocksKey = "savedWorldClocks"
@@ -130,14 +132,18 @@ struct AboutView: View {
             Section {
                 
                 // Terms & Privacy
-                Link(destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!) {
+                Button {
+                    safariURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
+                } label: {
                     HStack {
                         Text("Terms of Use")
                     }
                 }
                 .foregroundStyle(.primary)
                 
-                Link(destination: URL(string: "https://www.handstime.app/privacy")!) {
+                Button {
+                    safariURL = URL(string: "https://www.handstime.app/privacy")
+                } label: {
                     HStack {
                         Text("Privacy Policy")
                     }
@@ -170,6 +176,10 @@ struct AboutView: View {
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
         // Onboarding
+        .sheet(item: $safariURL) { url in
+            SafariView(url: url)
+                .ignoresSafeArea()
+        }
         .fullScreenCover(isPresented: $showOnboarding) {
             OnboardingView(hasCompletedOnboarding: Binding(
                 get: { !showOnboarding },
@@ -227,6 +237,24 @@ struct AboutView: View {
             impactFeedback.notificationOccurred(.success)
         }
     }
+}
+
+// MARK: - Safari View
+struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+    
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        let config = SFSafariViewController.Configuration()
+        config.entersReaderIfAvailable = false
+        let safariVC = SFSafariViewController(url: url, configuration: config)
+        return safariVC
+    }
+    
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
+}
+
+extension URL: @retroactive Identifiable {
+    public var id: String { absoluteString }
 }
 
 #Preview {
