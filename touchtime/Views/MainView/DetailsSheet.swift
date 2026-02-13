@@ -376,19 +376,6 @@ struct SunriseSunsetSheet: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     // Top row: Weather and Date
                                     HStack {
-                                        if showSkyDot {
-                                            SkyDotView(
-                                                date: currentDate.addingTimeInterval(timeOffset),
-                                                timeZoneIdentifier: timeZoneIdentifier
-                                            )
-                                            .overlay(
-                                                Capsule(style: .continuous)
-                                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                    .blendMode(.plusLighter)
-                                            )
-                                            .transition(.blurReplace)
-                                        }
-                                        
                                         Spacer()
                                         
                                         // Weather display
@@ -410,7 +397,6 @@ struct SunriseSunsetSheet: View {
                                         .blendMode(.plusLighter)
                                         .contentTransition(.numericText())
                                     }
-                                    .animation(.spring(), value: showSkyDot)
                                     .animation(.spring(), value: showWeather)
                                     .animation(.spring(), value: currentWeather)
                                     
