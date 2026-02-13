@@ -24,6 +24,7 @@ struct SunriseSunsetSheet: View {
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
     @EnvironmentObject private var weatherManager: WeatherManager
@@ -376,6 +377,20 @@ struct SunriseSunsetSheet: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     // Top row: Weather and Date
                                     HStack {
+                                        // SkyDot when additional time is off
+                                        if showSkyDot && additionalTimeDisplay == "None" {
+                                            SkyDotView(
+                                                date: currentDate.addingTimeInterval(timeOffset),
+                                                timeZoneIdentifier: timeZoneIdentifier
+                                            )
+                                            .overlay(
+                                                Capsule(style: .continuous)
+                                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                                    .blendMode(.plusLighter)
+                                            )
+                                            .transition(.blurReplace)
+                                        }
+                                        
                                         Spacer()
                                         
                                         // Weather display
@@ -705,11 +720,20 @@ struct SunriseSunsetSheet: View {
                                     
                                     // Time range
                                     HStack(spacing: 8) {
+                                        let adjustedNow = currentDate.addingTimeInterval(timeOffset)
+                                        let isInGoldenHour: Bool = {
+                                            if let start = goldenHour.start, let end = goldenHour.end {
+                                                return adjustedNow >= start && adjustedNow <= end
+                                            }
+                                            return false
+                                        }()
+                                        
                                         Text(formatTime(goldenHour.start))
                                             .monospacedDigit()
                                         Image(systemName: "arrow.right")
                                             .font(.footnote.weight(.bold))
-                                            .foregroundStyle(.tertiary)
+                                            .foregroundStyle(isInGoldenHour ? .yellow : .secondary)
+                                            .animation(.spring(), value: isInGoldenHour)
                                         Text(formatTime(goldenHour.end))
                                             .monospacedDigit()
                                     }
