@@ -12,6 +12,8 @@ struct AboutView: View {
     @State private var showOnboarding = false
     @State private var showResetConfirmation = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @State private var rippleCounter: Int = 0
+    @State private var rippleOrigin: CGPoint = .init(x: 50, y: 50)
     
     // UserDefaults keys
     private let worldClocksKey = "savedWorldClocks"
@@ -42,6 +44,19 @@ struct AboutView: View {
                                     RoundedRectangle(cornerRadius: 26, style: .continuous)
                     )
                     .frame(width: 100, height: 100)
+                    .modifier(RippleEffect(at: rippleOrigin, trigger: rippleCounter))
+                    .modifier(PushEffect(trigger: rippleCounter))
+                    .onPressingChanged { point in
+                        if let point {
+                            rippleOrigin = point
+                            rippleCounter += 1
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                        }
+                    }
                 
                 VStack(spacing: 4) {
                     Text("Touch Time")

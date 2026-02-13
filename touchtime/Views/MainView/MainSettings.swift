@@ -135,6 +135,14 @@ struct SettingsView: View {
                                 .foregroundStyle(.secondary)
                                 .blendMode(.plusLighter)
                         }
+                        
+                        Spacer()
+                        
+                        Image(systemName: "arrow.right")
+                            .font(.subheadline.weight(.bold))
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .glassEffect(.clear.tint(.pink), in: .capsule(style: .continuous))
                     }
                 }
                 .foregroundStyle(.primary)
