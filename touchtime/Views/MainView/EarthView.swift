@@ -687,6 +687,21 @@ struct EarthView: View {
                 .padding(.bottom, 8)
                 .transition(.blurReplace())
             }
+                
+                // Empty state - on top of map
+                if worldClocks.isEmpty && !showLocalTime {
+                    HStack {
+                        Image(systemName: "sparkle.magnifyingglass")
+                            .font(.subheadline.weight(.medium))
+                        Text(String(localized: "Nothing here"))
+                            .font(.subheadline.weight(.semibold))
+                    }
+                    .padding(.vertical, 12)
+                    .padding(.horizontal, 16)
+                    .glassEffect(.regular.interactive())
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
+                }
         }
 //            // Title
 //            .navigationTitle("Touch Time")

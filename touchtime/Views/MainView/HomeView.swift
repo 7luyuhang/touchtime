@@ -498,6 +498,7 @@ struct HomeView: View {
                                                     weather: weatherManager.weatherData[TimeZone.current.identifier],
                                                     useCelsius: useCelsius
                                                 )
+                                                .contentTransition(.numericText())
                                             }
                                             
                                             Text(currentDate.formattedDate(
@@ -707,6 +708,7 @@ struct HomeView: View {
                                                         weather: weatherManager.weatherData[clock.timeZoneIdentifier],
                                                         useCelsius: useCelsius
                                                     )
+                                                    .contentTransition(.numericText())
                                                 }
                                                 
                                                 Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
@@ -733,6 +735,7 @@ struct HomeView: View {
                                                         weather: weatherManager.weatherData[clock.timeZoneIdentifier],
                                                         useCelsius: useCelsius
                                                     )
+                                                    .contentTransition(.numericText())
                                                 }
                                                 
                                                 Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
