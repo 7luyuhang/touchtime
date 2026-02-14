@@ -8,10 +8,15 @@
 import SwiftUI
 import SunKit
 import CoreLocation
+import WeatherKit
 
 struct SkyColorGradient {
     let date: Date
     let timeZoneIdentifier: String
+    let weatherCondition: WeatherCondition?
+    
+    // Whether current weather is a rainy condition
+    private let isRainy: Bool
     
     // Cached normalized time value (calculated once during initialization)
     private let normalizedTime: Double
@@ -43,10 +48,26 @@ struct SkyColorGradient {
     }()
     
     // Initialize and calculate normalized time once
-    init(date: Date, timeZoneIdentifier: String) {
+    init(date: Date, timeZoneIdentifier: String, weatherCondition: WeatherCondition? = nil) {
         self.date = date
         self.timeZoneIdentifier = timeZoneIdentifier
+        self.weatherCondition = weatherCondition
+        self.isRainy = SkyColorGradient.isRainyCondition(weatherCondition)
         self.normalizedTime = SkyColorGradient.calculateNormalizedTimeWithCache(date: date, timeZoneIdentifier: timeZoneIdentifier)
+    }
+    
+    // Check if the weather condition is a rainy/stormy condition
+    private static func isRainyCondition(_ condition: WeatherCondition?) -> Bool {
+        guard let condition = condition else { return false }
+        switch condition {
+        case .drizzle, .rain, .heavyRain, .sunShowers,
+             .isolatedThunderstorms, .scatteredThunderstorms,
+             .strongStorms, .thunderstorms,
+             .freezingDrizzle, .freezingRain:
+            return true
+        default:
+            return false
+        }
     }
     
     // Get normalized time with caching (cached sun times per day, then fast calculation)
@@ -265,7 +286,11 @@ struct SkyColorGradient {
     }
     
     // Calculate star visibility based on time of day
+    // During rain: clouds completely block stars - opacity is always 0
     var starOpacity: Double {
+        // Rain clouds block all starlight via Mie scattering
+        if isRainy { return 0.0 }
+        
         let normalizedTime = timeValue.truncatingRemainder(dividingBy: 24)
         
         switch normalizedTime {
@@ -305,8 +330,11 @@ struct SkyColorGradient {
         }
     }
     
-    // Get the colors array based on time
+    // Get the colors array based on time and weather condition
     var colors: [Color] {
+        // When raining, use atmospheric-science-based rainy gradient
+        if isRainy { return rainyColors }
+        
         let normalizedTime = timeValue.truncatingRemainder(dividingBy: 24)
         
         switch normalizedTime {
@@ -453,6 +481,163 @@ struct SkyColorGradient {
         }
     }
     
+    // MARK: - Rainy Sky Gradient
+    // Atmospheric science of rain:
+    // - Mie scattering from large water droplets (>>wavelength) scatters all wavelengths equally → grey
+    // - Nimbostratus cloud layer has high optical depth, blocking 60-90% of direct solar irradiance
+    // - Rayleigh scattering is suppressed; residual forward scattering gives slight steel-blue bias
+    // - Sunrise/sunset colors are almost entirely absorbed by the cloud layer
+    // - At night, clouds reflect urban/ambient light, making rainy nights slightly brighter than clear nights
+    // - Dynamic range is highly compressed: noon is ~60% darker, night is ~20% lighter vs clear sky
+    private var rainyColors: [Color] {
+        let normalizedTime = timeValue.truncatingRemainder(dividingBy: 24)
+        
+        switch normalizedTime {
+        case 0..<4:
+            // Night rain — Very dark grey with cool undertone
+            // Clouds reflect ambient light, making sky slightly lighter than clear night
+            let progress = normalizedTime / 4
+            return [
+                Color(red: 0.04, green: 0.04, blue: 0.06),
+                Color(red: 0.06, green: 0.06, blue: 0.08),
+                Color(red: 0.08, green: 0.08, blue: 0.10),
+                Color(red: 0.10 + 0.02 * (1 - progress), green: 0.09 + 0.01 * (1 - progress), blue: 0.11)
+            ]
+            
+        case 4..<5:
+            // Astronomical twilight rain — barely perceptible brightening
+            // Clouds block all zodiacal light; only scattered photons reach surface
+            let progress = (normalizedTime - 4)
+            return [
+                Color(red: 0.05, green: 0.05, blue: 0.07),
+                Color(red: 0.07 + 0.02 * progress, green: 0.07 + 0.02 * progress, blue: 0.10 + 0.02 * progress),
+                Color(red: 0.09 + 0.03 * progress, green: 0.09 + 0.03 * progress, blue: 0.12 + 0.03 * progress),
+                Color(red: 0.11 + 0.04 * progress, green: 0.11 + 0.03 * progress, blue: 0.14 + 0.03 * progress)
+            ]
+            
+        case 5..<6:
+            // Nautical twilight rain — dark steel grey
+            // No "blue hour" since thick clouds suppress ozone Chappuis band absorption
+            let progress = (normalizedTime - 5)
+            return [
+                Color(red: 0.08, green: 0.09, blue: 0.12),
+                Color(red: 0.12 + 0.04 * progress, green: 0.13 + 0.04 * progress, blue: 0.17 + 0.04 * progress),
+                Color(red: 0.16 + 0.05 * progress, green: 0.17 + 0.05 * progress, blue: 0.21 + 0.04 * progress),
+                Color(red: 0.20 + 0.06 * progress, green: 0.20 + 0.05 * progress, blue: 0.24 + 0.04 * progress)
+            ]
+            
+        case 6..<7:
+            // Civil twilight rain — grey with muted cool undertone
+            // Diffuse multiple scattering creates uniform illumination
+            let progress = (normalizedTime - 6)
+            return [
+                Color(red: 0.15, green: 0.16, blue: 0.20),
+                Color(red: 0.22 + 0.04 * progress, green: 0.23 + 0.04 * progress, blue: 0.27 + 0.03 * progress),
+                Color(red: 0.28 + 0.05 * progress, green: 0.28 + 0.05 * progress, blue: 0.32 + 0.03 * progress),
+                Color(red: 0.33 + 0.06 * progress, green: 0.32 + 0.06 * progress, blue: 0.36 + 0.03 * progress)
+            ]
+            
+        case 7..<8:
+            // Sunrise under rain — no visible sunrise
+            // Diffuse light slowly brightens cloud base; slight warm undertone from forward scattering
+            let progress = (normalizedTime - 7)
+            return [
+                Color(red: 0.22 + 0.05 * progress, green: 0.23 + 0.05 * progress, blue: 0.28 + 0.04 * progress),
+                Color(red: 0.30 + 0.06 * progress, green: 0.31 + 0.06 * progress, blue: 0.35 + 0.04 * progress),
+                Color(red: 0.38 + 0.06 * progress, green: 0.38 + 0.06 * progress, blue: 0.41 + 0.04 * progress),
+                Color(red: 0.44 + 0.06 * progress, green: 0.42 + 0.06 * progress, blue: 0.44 + 0.04 * progress)
+            ]
+            
+        case 8..<11:
+            // Morning rain — uniform grey overcast
+            // Nimbostratus creates flat, featureless sky
+            // Residual Rayleigh scattering gives slight steel blue-grey bias
+            let progress = (normalizedTime - 8) / 3
+            return [
+                Color(red: 0.32 + 0.06 * progress, green: 0.34 + 0.06 * progress, blue: 0.40 + 0.05 * progress),
+                Color(red: 0.40 + 0.06 * progress, green: 0.42 + 0.06 * progress, blue: 0.47 + 0.04 * progress),
+                Color(red: 0.48 + 0.05 * progress, green: 0.49 + 0.05 * progress, blue: 0.52 + 0.03 * progress),
+                Color(red: 0.54 + 0.05 * progress, green: 0.54 + 0.04 * progress, blue: 0.56 + 0.02 * progress)
+            ]
+            
+        case 11..<14:
+            // Noon rain — brightest point, still ~60% darker than clear noon
+            // Maximum uniform diffuse illumination through cloud layer
+            // High optical depth produces flat grey with faint steel-blue character
+            return [
+                Color(red: 0.42, green: 0.44, blue: 0.50),
+                Color(red: 0.50, green: 0.52, blue: 0.56),
+                Color(red: 0.56, green: 0.57, blue: 0.60),
+                Color(red: 0.62, green: 0.62, blue: 0.64)
+            ]
+            
+        case 14..<17:
+            // Afternoon rain — gradually darkening
+            // Cloud base may lower as rain system matures
+            let progress = (normalizedTime - 14) / 3
+            return [
+                Color(red: 0.42 - 0.06 * progress, green: 0.44 - 0.06 * progress, blue: 0.50 - 0.05 * progress),
+                Color(red: 0.50 - 0.06 * progress, green: 0.52 - 0.06 * progress, blue: 0.56 - 0.05 * progress),
+                Color(red: 0.56 - 0.06 * progress, green: 0.57 - 0.06 * progress, blue: 0.60 - 0.05 * progress),
+                Color(red: 0.62 - 0.06 * progress, green: 0.62 - 0.06 * progress, blue: 0.64 - 0.05 * progress)
+            ]
+            
+        case 17..<18:
+            // "Golden hour" under rain — no golden light
+            // Increased optical path has minimal effect; warm photons absorbed by cloud layer
+            let progress = (normalizedTime - 17)
+            return [
+                Color(red: 0.30, green: 0.31, blue: 0.37),
+                Color(red: 0.38 - 0.02 * progress, green: 0.39 - 0.03 * progress, blue: 0.43 - 0.04 * progress),
+                Color(red: 0.44 - 0.03 * progress, green: 0.44 - 0.04 * progress, blue: 0.47 - 0.05 * progress),
+                Color(red: 0.50 - 0.04 * progress, green: 0.49 - 0.04 * progress, blue: 0.51 - 0.05 * progress)
+            ]
+            
+        case 18..<19:
+            // Sunset under rain — barely perceptible
+            // Thin cloud edges may show faint muted mauve; mostly just darkening grey
+            let progress = (normalizedTime - 18)
+            return [
+                Color(red: 0.22 - 0.04 * progress, green: 0.22 - 0.04 * progress, blue: 0.28 - 0.04 * progress),
+                Color(red: 0.30 - 0.05 * progress, green: 0.29 - 0.05 * progress, blue: 0.34 - 0.05 * progress),
+                Color(red: 0.36 - 0.06 * progress, green: 0.35 - 0.06 * progress, blue: 0.39 - 0.06 * progress),
+                Color(red: 0.42 - 0.07 * progress, green: 0.40 - 0.06 * progress, blue: 0.43 - 0.06 * progress)
+            ]
+            
+        case 19..<20:
+            // Civil dusk rain — rapid darkening
+            // Cloud layer traps progressively less scattered light
+            let progress = (normalizedTime - 19)
+            return [
+                Color(red: 0.14 - 0.04 * progress, green: 0.14 - 0.04 * progress, blue: 0.18 - 0.04 * progress),
+                Color(red: 0.18 - 0.04 * progress, green: 0.18 - 0.04 * progress, blue: 0.22 - 0.04 * progress),
+                Color(red: 0.22 - 0.05 * progress, green: 0.22 - 0.05 * progress, blue: 0.26 - 0.05 * progress),
+                Color(red: 0.28 - 0.07 * progress, green: 0.27 - 0.06 * progress, blue: 0.30 - 0.06 * progress)
+            ]
+            
+        case 20..<21:
+            // Nautical dusk rain — very dark, residual diffuse light fading
+            let progress = (normalizedTime - 20)
+            return [
+                Color(red: 0.06 - 0.01 * progress, green: 0.06 - 0.01 * progress, blue: 0.09 - 0.02 * progress),
+                Color(red: 0.09 - 0.02 * progress, green: 0.09 - 0.02 * progress, blue: 0.12 - 0.02 * progress),
+                Color(red: 0.12 - 0.02 * progress, green: 0.12 - 0.02 * progress, blue: 0.15 - 0.03 * progress),
+                Color(red: 0.16 - 0.04 * progress, green: 0.15 - 0.03 * progress, blue: 0.18 - 0.04 * progress)
+            ]
+            
+        default:
+            // Night rain (21:00-24:00) — returning to dark overcast
+            // Clouds reflect ambient/urban light making it slightly lighter than clear night
+            let progress = min((normalizedTime - 21) / 3, 1)
+            return [
+                Color(red: 0.04, green: 0.04, blue: 0.06),
+                Color(red: 0.06, green: 0.06, blue: 0.08),
+                Color(red: 0.08 - 0.01 * progress, green: 0.08 - 0.01 * progress, blue: 0.10 - 0.01 * progress),
+                Color(red: 0.10 - 0.02 * progress, green: 0.10 - 0.01 * progress, blue: 0.12 - 0.02 * progress)
+            ]
+        }
+    }
+    
     // Get linear gradient with specified opacity (default 1.0 for full opacity)
     func linearGradient(opacity: Double = 1.0) -> LinearGradient {
         let gradientColors = opacity < 1.0 ? colors.map { $0.opacity(opacity) } : colors
@@ -464,7 +649,8 @@ struct SkyColorGradient {
     }
     
     // Get the animation value for smooth transitions (hourly granularity to reduce animation overhead)
+    // Encodes both time (hour) and rain state so weather changes also trigger animation
     var animationValue: Int {
-        return Int(timeValue)
+        return Int(timeValue) * 2 + (isRainy ? 1 : 0)
     }
 }

@@ -584,7 +584,8 @@ struct HomeView: View {
                                 .listRowBackground(
                                     showSkyDot ? SkyBackgroundView(
                                         date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZoneIdentifier: TimeZone.current.identifier
+                                        timeZoneIdentifier: TimeZone.current.identifier,
+                                        weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
                                     ) : nil
                                 )
                                 .id("local-\(showSkyDot)")
@@ -597,6 +598,12 @@ struct HomeView: View {
                                 // Fetch weather for weather condition complication
                                 .task(id: showWeatherCondition) {
                                     if showWeatherCondition {
+                                        await weatherManager.getWeather(for: TimeZone.current.identifier)
+                                    }
+                                }
+                                // Fetch weather for sky gradient (rain-aware)
+                                .task(id: showSkyDot) {
+                                    if showSkyDot {
                                         await weatherManager.getWeather(for: TimeZone.current.identifier)
                                     }
                                 }
@@ -723,7 +730,8 @@ struct HomeView: View {
                                                 if showSkyDot {
                                                     SkyDotView(
                                                         date: currentDate.addingTimeInterval(timeOffset),
-                                                        timeZoneIdentifier: clock.timeZoneIdentifier
+                                                        timeZoneIdentifier: clock.timeZoneIdentifier,
+                                                        weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
                                                     )
                                                 }
                                                 
@@ -801,7 +809,8 @@ struct HomeView: View {
                                 .listRowBackground(
                                     showSkyDot ? SkyBackgroundView(
                                         date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZoneIdentifier: clock.timeZoneIdentifier
+                                        timeZoneIdentifier: clock.timeZoneIdentifier,
+                                        weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
                                     ) : nil
                                 )
                                 .id("\(clock.id)-\(showSkyDot)")
@@ -814,6 +823,12 @@ struct HomeView: View {
                                 // Fetch weather for weather condition complication
                                 .task(id: showWeatherCondition) {
                                     if showWeatherCondition {
+                                        await weatherManager.getWeather(for: clock.timeZoneIdentifier)
+                                    }
+                                }
+                                // Fetch weather for sky gradient (rain-aware)
+                                .task(id: showSkyDot) {
+                                    if showSkyDot {
                                         await weatherManager.getWeather(for: clock.timeZoneIdentifier)
                                     }
                                 }
@@ -967,7 +982,8 @@ struct HomeView: View {
                         VStack {
                             SkyBackgroundView(
                                 date: currentDate.addingTimeInterval(timeOffset),
-                                timeZoneIdentifier: TimeZone.current.identifier
+                                timeZoneIdentifier: TimeZone.current.identifier,
+                                weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
                             )
                             .frame(width: 500, height: 500)
                             .blur(radius: 50)

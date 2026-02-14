@@ -9,6 +9,7 @@ import SwiftUI
 import Combine
 import EventKit
 import StoreKit
+import WeatherKit
 
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
@@ -289,8 +290,8 @@ struct SettingsView: View {
                                     if showSkyDot && additionalTimeDisplay == "None" {
                                         SkyDotView(
                                             date: currentDate,
-                                            timeZoneIdentifier: TimeZone.current.identifier
-                                            
+                                            timeZoneIdentifier: TimeZone.current.identifier,
+                                            weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
                                         )
                                         .overlay(
                                             Capsule(style: .continuous)
@@ -455,7 +456,8 @@ struct SettingsView: View {
                                 Color.black
                                 SkyBackgroundView(
                                     date: currentDate,
-                                    timeZoneIdentifier: TimeZone.current.identifier
+                                    timeZoneIdentifier: TimeZone.current.identifier,
+                                    weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
                                 )
                             } : nil
                         )

@@ -73,7 +73,8 @@ struct AnalogClockFullView: View {
                 let displayDate = currentDate.addingTimeInterval(timeOffset)
                 let skyGradient = SkyColorGradient(
                     date: displayDate,
-                    timeZoneIdentifier: selectedTimeZone.identifier
+                    timeZoneIdentifier: selectedTimeZone.identifier,
+                    weatherCondition: weatherManager.weatherData[selectedTimeZone.identifier]?.condition
                 )
                 
                 ZStack {
@@ -325,6 +326,17 @@ struct AnalogClockFullView: View {
             .sheet(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
                     .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
+            }
+            // Fetch weather for sky gradient (rain-aware)
+            .task(id: showSkyDot) {
+                if showSkyDot {
+                    await weatherManager.getWeather(for: selectedTimeZone.identifier)
+                }
+            }
+            .task(id: "\(showSkyDot)-\(selectedTimeZone.identifier)") {
+                if showSkyDot {
+                    await weatherManager.getWeather(for: selectedTimeZone.identifier)
+                }
             }
             .onAppear {
                 // If showLocalTime is disabled, default to first city instead of Local

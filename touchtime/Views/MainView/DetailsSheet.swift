@@ -388,7 +388,8 @@ struct SunriseSunsetSheet: View {
                                         if showSkyDot && additionalTimeDisplay == "None" {
                                             SkyDotView(
                                                 date: currentDate.addingTimeInterval(timeOffset),
-                                                timeZoneIdentifier: timeZoneIdentifier
+                                                timeZoneIdentifier: timeZoneIdentifier,
+                                                weatherCondition: currentWeather?.condition
                                             )
                                             .overlay(
                                                 Capsule(style: .continuous)
@@ -559,7 +560,8 @@ struct SunriseSunsetSheet: View {
                                     Color.black
                                     SkyBackgroundView(
                                         date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZoneIdentifier: timeZoneIdentifier
+                                        timeZoneIdentifier: timeZoneIdentifier,
+                                        weatherCondition: currentWeather?.condition
                                     )
                                 } : nil
                             )

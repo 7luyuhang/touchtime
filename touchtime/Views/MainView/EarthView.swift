@@ -12,6 +12,7 @@ import UIKit
 import EventKit
 import EventKitUI
 import CoreLocation
+import WeatherKit
 
 struct EarthView: View {
     @Binding var worldClocks: [WorldClock]
@@ -392,7 +393,8 @@ struct EarthView: View {
                                     if showSkyDot {
                                         SkyDotView(
                                             date: currentDate,
-                                            timeZoneIdentifier: TimeZone.current.identifier
+                                            timeZoneIdentifier: TimeZone.current.identifier,
+                                            weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
                                         )
                                         .overlay(
                                             Capsule(style: .continuous)
@@ -484,7 +486,8 @@ struct EarthView: View {
                                     if showSkyDot {
                                         SkyDotView(
                                             date: currentDate,
-                                            timeZoneIdentifier: clock.timeZoneIdentifier
+                                            timeZoneIdentifier: clock.timeZoneIdentifier,
+                                            weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
                                         )
                                         .overlay(
                                             Capsule(style: .continuous)
@@ -717,6 +720,15 @@ struct EarthView: View {
         .task {
             currentDate = Date()
             startTimer()
+        }
+        // Fetch weather for sky gradient (rain-aware)
+        .task(id: showSkyDot) {
+            if showSkyDot {
+                await weatherManager.getWeather(for: TimeZone.current.identifier)
+                for clock in worldClocks {
+                    await weatherManager.getWeather(for: clock.timeZoneIdentifier)
+                }
+            }
         }
         .onDisappear {
             stopTimer()

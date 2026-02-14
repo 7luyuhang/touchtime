@@ -6,14 +6,16 @@
 //
 
 import SwiftUI
+import WeatherKit
 
 struct SkyDotView: View {
     let date: Date
     let timeZoneIdentifier: String
+    var weatherCondition: WeatherCondition? = nil
     
     // Create sky color gradient instance
     private var skyColorGradient: SkyColorGradient {
-        SkyColorGradient(date: date, timeZoneIdentifier: timeZoneIdentifier)
+        SkyColorGradient(date: date, timeZoneIdentifier: timeZoneIdentifier, weatherCondition: weatherCondition)
     }
     
     var body: some View {
