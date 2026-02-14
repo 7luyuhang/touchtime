@@ -551,30 +551,30 @@ struct SkyColorGradient {
             // Mie scattering makes sky white/grey, not blue
             let progress = (normalizedTime - 8) / 3
             return [
-                Color(red: 0.50 + 0.15 * progress, green: 0.52 + 0.15 * progress, blue: 0.60 + 0.10 * progress),
-                Color(red: 0.65 + 0.10 * progress, green: 0.67 + 0.10 * progress, blue: 0.72 + 0.08 * progress),
-                Color(red: 0.73 + 0.07 * progress, green: 0.75 + 0.07 * progress, blue: 0.78 + 0.06 * progress),
-                Color(red: 0.78 + 0.05 * progress, green: 0.80 + 0.05 * progress, blue: 0.82 + 0.04 * progress)
+                Color(red: 0.50 + 0.08 * progress, green: 0.52 + 0.08 * progress, blue: 0.60 + 0.05 * progress),
+                Color(red: 0.65 + 0.03 * progress, green: 0.67 + 0.03 * progress, blue: 0.72 + 0.03 * progress),
+                Color(red: 0.73 + 0.02 * progress, green: 0.75 + 0.02 * progress, blue: 0.78 + 0.02 * progress),
+                Color(red: 0.75 + 0.04 * progress, green: 0.77 + 0.04 * progress, blue: 0.80 + 0.03 * progress)
             ]
             
         case 11..<14:
             // Noon — Bright Overcast (Silver/White)
             // Maximum light penetration, very calm and neutral
             return [
-                Color(red: 0.65, green: 0.67, blue: 0.70), // Zenith (Soft Grey)
+                Color(red: 0.58, green: 0.60, blue: 0.65), // Zenith (Soft Grey)
+                Color(red: 0.68, green: 0.70, blue: 0.75),
                 Color(red: 0.75, green: 0.77, blue: 0.80),
-                Color(red: 0.80, green: 0.82, blue: 0.84),
-                Color(red: 0.83, green: 0.85, blue: 0.86)  // Horizon (Brightest)
+                Color(red: 0.79, green: 0.81, blue: 0.83)  // Horizon (Brightest)
             ]
             
         case 14..<17:
             // Afternoon — Gentle darkening
             let progress = (normalizedTime - 14) / 3
             return [
-                Color(red: 0.65 - 0.10 * progress, green: 0.67 - 0.10 * progress, blue: 0.70 - 0.08 * progress),
-                Color(red: 0.75 - 0.10 * progress, green: 0.77 - 0.10 * progress, blue: 0.80 - 0.08 * progress),
-                Color(red: 0.80 - 0.10 * progress, green: 0.82 - 0.10 * progress, blue: 0.84 - 0.09 * progress),
-                Color(red: 0.83 - 0.10 * progress, green: 0.85 - 0.10 * progress, blue: 0.86 - 0.10 * progress)
+                Color(red: 0.58 - 0.10 * progress, green: 0.60 - 0.10 * progress, blue: 0.65 - 0.08 * progress),
+                Color(red: 0.68 - 0.10 * progress, green: 0.70 - 0.10 * progress, blue: 0.75 - 0.08 * progress),
+                Color(red: 0.75 - 0.10 * progress, green: 0.77 - 0.10 * progress, blue: 0.80 - 0.09 * progress),
+                Color(red: 0.79 - 0.10 * progress, green: 0.81 - 0.10 * progress, blue: 0.83 - 0.10 * progress)
             ]
             
         case 17..<18:
@@ -582,10 +582,10 @@ struct SkyColorGradient {
             // Losing the brightness, turning to muted grey-blue
             let progress = (normalizedTime - 17)
             return [
-                Color(red: 0.55 - 0.15 * progress, green: 0.57 - 0.15 * progress, blue: 0.62 - 0.10 * progress),
-                Color(red: 0.65 - 0.15 * progress, green: 0.67 - 0.15 * progress, blue: 0.72 - 0.12 * progress),
-                Color(red: 0.70 - 0.15 * progress, green: 0.72 - 0.15 * progress, blue: 0.75 - 0.15 * progress),
-                Color(red: 0.73 - 0.15 * progress, green: 0.75 - 0.15 * progress, blue: 0.76 - 0.16 * progress)
+                Color(red: 0.48 - 0.08 * progress, green: 0.50 - 0.08 * progress, blue: 0.57 - 0.05 * progress),
+                Color(red: 0.58 - 0.08 * progress, green: 0.60 - 0.08 * progress, blue: 0.67 - 0.07 * progress),
+                Color(red: 0.65 - 0.10 * progress, green: 0.67 - 0.10 * progress, blue: 0.71 - 0.11 * progress),
+                Color(red: 0.69 - 0.11 * progress, green: 0.71 - 0.11 * progress, blue: 0.73 - 0.13 * progress)
             ]
             
         case 18..<19:
