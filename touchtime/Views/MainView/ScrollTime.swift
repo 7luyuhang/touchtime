@@ -529,11 +529,19 @@ struct ScrollTimeView: View {
         
         Spacer()
         
-        Text("Slide to Adjust")
-            .fontWeight(.medium)
-            .foregroundColor(.secondary)
-            .transition(.blurReplace().combined(with: .move(edge: .top)))
-            .blendMode(.plusLighter)
+        if continuousScrollMode {
+            Text("Slide to Adjust")
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+                .transition(.blurReplace().combined(with: .move(edge: .top)))
+                .blendMode(.plusLighter)
+        } else {
+            Text("Slide to Adjust")
+                .fontWeight(.medium)
+                .foregroundColor(.secondary)
+                .transition(.blurReplace())
+                .blendMode(.plusLighter)
+        }
         
         Spacer()
         
