@@ -45,6 +45,37 @@ struct ScrollTimeView: View {
         return Double(offset) / 15.0 // 15 points = 1 hour
     }
     
+    // Format time offset into a human-readable string (e.g., "+1h 30m", "-2d 3h")
+    func formattedTimeOffset(_ offset: TimeInterval) -> String {
+        let totalHours = offset / 3600
+        let isPositive = totalHours >= 0
+        let absoluteHours = abs(totalHours)
+        let days = Int(absoluteHours / 24)
+        let hours = Int(absoluteHours) % 24
+        let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
+        
+        let sign = isPositive ? "+" : "-"
+        var result = ""
+        if days > 0 {
+            result = String(format: String(localized: "%dd"), days)
+            if hours > 0 {
+                result += " " + String(format: String(localized: "%dh"), hours)
+            }
+            if minutes > 0 {
+                result += " " + String(format: String(localized: "%02dm"), minutes)
+            }
+        } else if hours > 0 && minutes > 0 {
+            result = String(format: String(localized: "%dh %02dm"), hours, minutes)
+        } else if hours > 0 {
+            result = String(format: String(localized: "%dh"), hours)
+        } else if minutes > 0 {
+            result = String(format: String(localized: "%02dm"), minutes)
+        } else {
+            result = String(localized: "00m")
+        }
+        return sign + result
+    }
+    
     // Prepare haptic engine with proper lifecycle management
     func prepareHaptics() {
         guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
@@ -401,351 +432,294 @@ struct ScrollTimeView: View {
         }
     }
     
+    // MARK: - Sub Views
+    
+    /// Add to Calendar button (left side)
+    @ViewBuilder
+    private var calendarButton: some View {
+        Button(action: addToCalendar) {
+            Image(systemName: "plus")
+                .font(.system(size: 20))
+                .fontWeight(.medium)
+                .foregroundColor(.white)
+                .frame(width: 52, height: 52)
+        }
+        .buttonStyle(.plain)
+        .clipShape(Circle())
+        .contentShape(Circle())
+        .glassEffect(.regular.interactive().tint(.blue.opacity(0.85)))
+        .glassEffectID("calendarButton", in: glassNamespace)
+        .glassEffectTransition(.matchedGeometry)
+    }
+    
+    /// Reset button (right side)
+    @ViewBuilder
+    private var resetButton: some View {
+        Button(action: {
+            DispatchQueue.main.async {
+                resetTimeOffset()
+            }
+        }) {
+            Image(systemName: "arrow.counterclockwise")
+                .font(.system(size: 20))
+                .fontWeight(.medium)
+                .foregroundStyle(.primary)
+                .frame(width: 52, height: 52)
+        }
+        .buttonStyle(.plain)
+        .clipShape(Circle())
+        .contentShape(Circle())
+        .glassEffect(.regular.interactive())
+        .glassEffectID("resetButton", in: glassNamespace)
+        .glassEffectTransition(.matchedGeometry)
+    }
+    
+    /// Dragging indicator with dots and chevrons
+    @ViewBuilder
+    private var draggingIndicator: some View {
+        ZStack {
+            ScrollTimeDotsIndicator()
+            HStack {
+                Image(systemName: "chevron.left")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .id("chevron.left.dragging")
+                    .transition(.blurReplace)
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.primary)
+                    .id("chevron.right.dragging")
+                    .transition(.blurReplace)
+            }
+        }
+    }
+    
+    /// Time offset text button (non-continuous mode)
+    @ViewBuilder
+    private var timeOffsetTextButton: some View {
+        Button(action: {
+            showTimePicker = true
+        }) {
+            Text(formattedTimeOffset(timeOffset))
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+                .monospacedDigit()
+                .frame(maxWidth: .infinity, alignment: .center)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .transition(.blurReplace())
+    }
+    
+    /// Default "Slide to Adjust" indicator
+    @ViewBuilder
+    private var defaultSlideIndicator: some View {
+        Image(systemName: "chevron.left")
+            .fontWeight(.semibold)
+            .foregroundStyle(.tertiary)
+            .id("chevron.left.idle")
+            .transition(.blurReplace())
+            .blendMode(.plusLighter)
+        
+        Spacer()
+        
+        Text("Slide to Adjust")
+            .fontWeight(.medium)
+            .foregroundColor(.secondary)
+            .transition(.blurReplace().combined(with: .move(edge: .top)))
+            .blendMode(.plusLighter)
+        
+        Spacer()
+        
+        Image(systemName: "chevron.right")
+            .fontWeight(.semibold)
+            .foregroundStyle(.tertiary)
+            .id("chevron.right.idle")
+            .transition(.blurReplace())
+            .blendMode(.plusLighter)
+    }
+    
+    /// Main scrollable content area with time adjustment states
+    @ViewBuilder
+    private var mainContent: some View {
+        HStack {
+            if dragOffset != 0 || (continuousScrollMode && timeOffset != 0) {
+                draggingIndicator
+            } else if timeOffset != 0 && !continuousScrollMode {
+                timeOffsetTextButton
+            } else {
+                defaultSlideIndicator
+            }
+        }
+        .padding(.horizontal, (timeOffset == 0 || dragOffset != 0 || continuousScrollMode) ? 16 : 0)
+        .font(.subheadline)
+        .animation(.spring(duration: 0.25), value: dragOffset)
+        .animation(.spring(duration: 0.25), value: timeOffset)
+        .frame(maxWidth: showButtons ? nil : .infinity)
+        .frame(height: 52)
+        .padding(.horizontal, showButtons ? 24 : 0)
+        .contentShape(Rectangle())
+        .glassEffect(.regular.interactive())
+        .glassEffectID("mainContent", in: glassNamespace)
+    }
+    
+    /// Overlay buttons for continuous scroll mode (calendar + reset with time label)
+    @ViewBuilder
+    private var continuousScrollOverlayButtons: some View {
+        HStack(spacing: 0) {
+            // Add to Calendar button
+            Button(action: {
+                if hapticEnabled {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
+                    impactFeedback.prepare()
+                    impactFeedback.impactOccurred()
+                }
+                addToCalendar()
+            }) {
+                Image(systemName: "plus")
+                    .font(.subheadline.weight(.semibold))
+                    .padding(.vertical, 8)
+                    .padding(.horizontal, 16)
+                    .contentShape(Capsule())
+                    .background(
+                        Capsule(style: .continuous)
+                            .fill(.blue)
+                    )
+                    .padding(.leading, 5)
+            }
+            .buttonStyle(.plain)
+            
+            // Reset button with time offset
+            Button(action: {
+                DispatchQueue.main.async {
+                    resetTimeOffset()
+                }
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.footnote.weight(.semibold))
+                    
+                    Text(formattedTimeOffset(timeOffset))
+                        .font(.footnote.weight(.semibold))
+                        .monospacedDigit()
+                }
+                .padding(.leading, 12)
+                .padding(.trailing, 16)
+                .padding(.vertical, 12)
+                .contentShape(Capsule())
+            }
+            .buttonStyle(.plain)
+        }
+        .clipShape(Capsule(style: .continuous))
+        .contentShape(Capsule(style: .continuous))
+        .glassEffect(.regular.interactive())
+        .highPriorityGesture(DragGesture())
+        .transition(.blurReplace.combined(with: .scale).combined(with: .move(edge: .bottom)).combined(with: .opacity))
+        .offset(y: -52)
+    }
+    
+    /// Drag gesture for time adjustment scrolling
+    private var scrollDragGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                if continuousScrollMode {
+                    stopInertia()
+                }
+                
+                dragOffset = value.translation.width
+                let hours = hoursFromOffset(dragOffset)
+                
+                if continuousScrollMode {
+                    timeOffset = accumulatedOffset + hours * 3600
+                } else {
+                    timeOffset = hours * 3600
+                }
+                
+                checkAndPlayHapticTick()
+            }
+            .onEnded { value in
+                lastHapticOffset = 0
+                
+                if hapticEnabled {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
+                    impactFeedback.prepare()
+                    impactFeedback.impactOccurred()
+                }
+                
+                if continuousScrollMode {
+                    let hours = hoursFromOffset(dragOffset)
+                    accumulatedOffset += hours * 3600
+                    let velocity = value.velocity.width
+                    
+                    withAnimation(.spring()) {
+                        dragOffset = 0
+                    }
+                    
+                    startInertiaScroll(velocity: velocity)
+                } else {
+                    withAnimation(.spring()) {
+                        showButtons = true
+                        dragOffset = 0
+                    }
+                }
+            }
+    }
+    
+    // MARK: - Body
+    
     var body: some View {
         GlassEffectContainer(spacing: 8) {
             HStack(spacing: 8) {
-                
-                // Add to Calendar button (left side)
-                if showButtons {
-                    Button(action: addToCalendar) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 20))
-                            .fontWeight(.medium)
-                            .foregroundColor(.white)
-                            .frame(width: 52, height: 52)
-                    }
-                    .buttonStyle(.plain)
-                    .clipShape(Circle())
-                    .contentShape(Circle()) // Ensure the entire circle is tappable
-                    .glassEffect(.regular.interactive().tint(.blue.opacity(0.85)))
-                    .glassEffectID("calendarButton", in: glassNamespace)
-                    .glassEffectTransition(.matchedGeometry)
-                }
-                    
-                    // Main content
-                    HStack {
-                        // Time adjustment indicator
-                        if dragOffset != 0 || (continuousScrollMode && timeOffset != 0) {
-                            // During dragging or in continuous mode with offset - ZStack with dots and chevrons
-                            ZStack {
-                                // Static dots indicator - doesn't re-render
-                                ScrollTimeDotsIndicator()
-                                
-                                // Chevrons in the foreground
-                                HStack {
-                                    Image(systemName: "chevron.left")
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
-                                        .id("chevron.left.dragging")
-                                        .transition(.blurReplace)
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "chevron.right")
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
-                                        .id("chevron.right.dragging")
-                                        .transition(.blurReplace)
-                                }
-                            }
-                            
-                        } else if timeOffset != 0 && !continuousScrollMode {
-                            // Only show time text in normal mode, not in continuous scroll mode
-                            let totalHours = timeOffset / 3600
-                            let isPositive = totalHours >= 0
-                            let absoluteHours = abs(totalHours)
-                            let days = Int(absoluteHours / 24)
-                            let hours = Int(absoluteHours) % 24
-                            let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
-                            
-                            
-                            // Final time text (tappable) - with sign
-                            Button(action: {
-                                showTimePicker = true
-                            }) {
-                                Text({
-                                    let sign = isPositive ? "+" : "-"
-                                    var result = ""
-                                    if days > 0 {
-                                        result = String(format: String(localized: "%dd"), days)
-                                        if hours > 0 {
-                                            result += " " + String(format: String(localized: "%dh"), hours)
-                                        }
-                                        if minutes > 0 {
-                                            result += " " + String(format: String(localized: "%02dm"), minutes)
-                                        }
-                                    } else if hours > 0 && minutes > 0 {
-                                        result = String(format: String(localized: "%dh %02dm"), hours, minutes)
-                                    } else if hours > 0 {
-                                        result = String(format: String(localized: "%dh"), hours)
-                                    } else if minutes > 0 {
-                                        result = String(format: String(localized: "%02dm"), minutes)
-                                    } else {
-                                        result = String(localized: "00m")
-                                    }
-                                    return sign + result
-                                }())
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(.primary)
-                                .monospacedDigit()
-                                .frame(maxWidth: .infinity, alignment: .center)
-                                .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .frame(maxWidth: .infinity)
-                            .contentShape(Rectangle())
-                            .transition(.blurReplace())
-                            
-                        } else {
-                            
-                            // Default State
-                            // Slide to Adjust Time
-                            Image(systemName: "chevron.left")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.tertiary)
-                                .id("chevron.left.idle")
-                                .transition(.blurReplace())
-                                .blendMode(.plusLighter)
-                            
-                            Spacer()
-                            
-                            Text("Slide to Adjust")
-                                .fontWeight(.medium)
-                                .foregroundColor(.secondary)
-                                .transition(.blurReplace())
-                                .blendMode(.plusLighter)
-                            
-                            Spacer()
-                            
-                            Image(systemName: "chevron.right")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.tertiary)
-                                .id("chevron.right.idle")
-                                .transition(.blurReplace())
-                                .blendMode(.plusLighter)
-                        }
-                    }
-                    .padding(.horizontal, (timeOffset == 0 || dragOffset != 0 || continuousScrollMode) ? 16 : 0)
-                    .font(.subheadline)
-                    .animation(.spring(duration: 0.25), value: dragOffset)
-                    .animation(.spring(duration: 0.25), value: timeOffset)
-                
-                
-                    .frame(maxWidth: showButtons ? nil : .infinity)
-                    .frame(height: 52)
-                    .padding(.horizontal, showButtons ? 24 : 0)
-                    .contentShape(Rectangle())
-                    .glassEffect(.regular.interactive())
-                    .glassEffectID("mainContent", in: glassNamespace)
-                
-                
-                // Reset button (right side)
-                if showButtons {
-                    Button(action: {
-                        // Ensure the action is called on the main thread
-                        DispatchQueue.main.async {
-                            resetTimeOffset()
-                        }
-                    }) {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.system(size: 20))
-                            .fontWeight(.medium)
-                            .foregroundStyle(.primary)
-                            .frame(width: 52, height: 52)
-                    }
-                    .buttonStyle(.plain)
-                    .clipShape(Circle())
-                    .contentShape(Circle()) // Ensure the entire circle is tappable
-                    .glassEffect(.regular.interactive())
-                    .glassEffectID("resetButton", in: glassNamespace)
-                    .glassEffectTransition(.matchedGeometry)
-                }
+                if showButtons { calendarButton }
+                mainContent
+                if showButtons { resetButton }
             }
             .animation(.spring(), value: showButtons)
         }
-        
-        // Overall composer
         .padding(.horizontal, 5)
         .overlay(alignment: .top) {
-            // Reset button and Calendar button for continuous scroll mode
             if continuousScrollMode && timeOffset != 0 && !showButtons {
-                HStack(spacing: 0) {
-                    // Add to Calendar button (left side)
-                    Button(action: {
-                        if hapticEnabled {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
-                            impactFeedback.prepare()
-                            impactFeedback.impactOccurred()
-                        }
-                        addToCalendar()
-                    }) {
-                        Image(systemName: "plus")
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 16)
-                            .contentShape(Capsule())
-                            .background(
-                                Capsule(style: .continuous)
-                                    .fill(.blue)
-                            )
-                            .padding(.leading, 5)
-                    }
-                    .buttonStyle(.plain)
-                    
-                    // Reset button with time offset (right side)
-                    Button(action: {
-                        DispatchQueue.main.async {
-                            resetTimeOffset()
-                        }
-                    }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "arrow.counterclockwise")
-                                .font(.footnote.weight(.semibold))
-                            
-                            Text({
-                                let totalHours = timeOffset / 3600
-                                let isPositive = totalHours >= 0
-                                let absoluteHours = abs(totalHours)
-                                let days = Int(absoluteHours / 24)
-                                let hours = Int(absoluteHours) % 24
-                                let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
-                                
-                                let sign = isPositive ? "+" : "-"
-                                var result = ""
-                                if days > 0 {
-                                    result = String(format: String(localized: "%dd"), days)
-                                    if hours > 0 {
-                                        result += " " + String(format: String(localized: "%dh"), hours)
-                                    }
-                                    if minutes > 0 {
-                                        result += " " + String(format: String(localized: "%02dm"), minutes)
-                                    }
-                                } else if hours > 0 && minutes > 0 {
-                                    result = String(format: String(localized: "%dh %02dm"), hours, minutes)
-                                } else if hours > 0 {
-                                    result = String(format: String(localized: "%dh"), hours)
-                                } else if minutes > 0 {
-                                    result = String(format: String(localized: "%02dm"), minutes)
-                                } else {
-                                    result = String(localized: "00m")
-                                }
-                                return sign + result
-                            }())
-                            .font(.footnote.weight(.semibold))
-                            .monospacedDigit()
-                        }
-                        .padding(.leading, 12)
-                        .padding(.trailing, 16)
-                        .padding(.vertical, 12)
-                        .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                }
-                .clipShape(Capsule(style: .continuous))
-                .contentShape(Capsule(style: .continuous))
-                .glassEffect(.regular.interactive())
-                .highPriorityGesture(DragGesture())
-                .transition(.blurReplace.combined(with: .scale).combined(with: .move(edge: .bottom)).combined(with: .opacity)) // Animation
-                .offset(y: -52)
+                continuousScrollOverlayButtons
             }
         }
         .animation(.spring(), value: continuousScrollMode)
         .animation(.spring(), value: timeOffset != 0)
-        .gesture(
-            showButtons ? nil : DragGesture()
-                .onChanged { value in
-                    // Stop any ongoing inertia when user starts dragging again
-                    if continuousScrollMode {
-                        stopInertia()
-                    }
-                    
-                    dragOffset = value.translation.width
-                    let hours = hoursFromOffset(dragOffset)
-                    
-                    if continuousScrollMode {
-                        // In continuous mode, add to accumulated offset
-                        timeOffset = accumulatedOffset + hours * 3600
-                    } else {
-                        timeOffset = hours * 3600 // Convert hours to seconds
-                    }
-                    
-                    // Check and play haptic tick when crossing time marks
-                    checkAndPlayHapticTick()
-                }
-                .onEnded { value in
-                    // Reset last haptic offset
-                    lastHapticOffset = 0
-                    
-                    // Add final impact feedback when releasing if enabled
-                    if hapticEnabled {
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .medium)
-                        impactFeedback.prepare()
-                        impactFeedback.impactOccurred()
-                    }
-                    
-                    if continuousScrollMode {
-                        // In continuous mode, accumulate the offset and reset drag
-                        let hours = hoursFromOffset(dragOffset)
-                        accumulatedOffset += hours * 3600
-                        
-                        // Calculate velocity for inertia (points per second)
-                        let velocity = value.velocity.width
-                        
-                        withAnimation(.spring()) {
-                            dragOffset = 0
-                        }
-                        
-                        // Start inertia animation with the release velocity
-                        startInertiaScroll(velocity: velocity)
-                    } else {
-                        // Show buttons after drag ends with morph animation
-                        withAnimation(.spring()) {
-                            showButtons = true
-                            dragOffset = 0
-                        }
-                    }
-                }
-        )
+        .gesture(showButtons ? nil : scrollDragGesture)
         .onAppear {
-            // Prepare haptic engine when view appears
             prepareHaptics()
         }
         .onDisappear {
-            // Stop any ongoing inertia animation
             stopInertia()
-            // Stop the haptic engine to save resources
             hapticEngine?.stop()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
-            // Restart haptic engine when app comes to foreground
             if hapticEnabled {
                 restartHapticEngine()
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
-            // Stop inertia animation when app goes to background
             stopInertia()
-            // Stop haptic engine when app goes to background
             hapticEngine?.stop()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResetScrollTime"))) { _ in
-            // Stop any ongoing inertia animation
             stopInertia()
-            // Reset drag offset when cities are reset
             withAnimation(.spring()) {
                 dragOffset = 0
                 lastHapticOffset = 0
                 lastInertiaHapticOffset = 0
-                accumulatedOffset = 0 // Reset accumulated offset for continuous mode
+                accumulatedOffset = 0
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StopScrollTimeInertia"))) { _ in
             stopInertia()
         }
         .onChange(of: timeOffset) { oldValue, newValue in
-            // Sync accumulatedOffset when timeOffset is changed externally (e.g., from CityTimeAdjustmentSheet)
-            // Only sync when not currently dragging (dragOffset == 0) and in continuous scroll mode
             if continuousScrollMode && dragOffset == 0 {
                 accumulatedOffset = newValue
             }
