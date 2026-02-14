@@ -87,7 +87,7 @@ struct DaylightIndicator: View {
     
     var body: some View {
         let progress = daylightProgress
-        let lineWidth: CGFloat = size * 0.05
+        let lineWidth: CGFloat = size * 0.04
         
         ZStack {
             if useMaterialBackground {
@@ -113,7 +113,7 @@ struct DaylightIndicator: View {
                 fullArc
                     .trimmedPath(from: 0, to: 1)
                     .stroke(
-                        Color.white.opacity(0.10),
+                        Color.white.opacity(0.20),
                         style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
                     )
                     .blendMode(.plusLighter)
@@ -129,8 +129,9 @@ struct DaylightIndicator: View {
                         .blendMode(.plusLighter)
                 }
             }
-            .offset(y: -(size * 0.025))
+            .offset(y: -(size * 0.02))
             .frame(width: size, height: size)
+            .drawingGroup()
         }
         .frame(width: size, height: size)
     }
