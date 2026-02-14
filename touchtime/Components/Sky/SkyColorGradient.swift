@@ -61,9 +61,9 @@ struct SkyColorGradient {
         guard let condition = condition else { return false }
         switch condition {
         case .drizzle, .rain, .heavyRain, .sunShowers,
-             .isolatedThunderstorms, .scatteredThunderstorms,
-             .strongStorms, .thunderstorms,
-             .freezingDrizzle, .freezingRain:
+                .isolatedThunderstorms, .scatteredThunderstorms,
+                .strongStorms, .thunderstorms,
+                .freezingDrizzle, .freezingRain:
             return true
         default:
             return false
