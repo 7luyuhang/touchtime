@@ -4,6 +4,9 @@
 //
 //  Created on 14/01/2026.
 //
+//  Daylight progress: arc shows how many hours of daylight have passed (sunrise → now).
+//  White = elapsed daylight, dark gray = remaining daylight.
+//
 
 import SwiftUI
 import SunKit
@@ -15,45 +18,19 @@ struct DaylightIndicator: View {
     let size: CGFloat
     let useMaterialBackground: Bool
     
-    // Cache the Path to avoid recreating it on every body update
-    @State private var cachedPath: Path?
-    @State private var cachedDayKey: String = ""
-    
-    // Cache daily sun times per timezone to avoid repeated SunKit calculations
     private struct SunTimes {
         let sunrise: Date?
         let sunset: Date?
-        let solarNoon: Date?
     }
     
-    // Cache curve points for a day (curve doesn't change during the day)
-    private struct CurveData {
-        let curvePoints: [CGPoint]
-        let daylightRatio: Double
-    }
-    
-    // Wrapper classes for NSCache (NSCache requires reference types)
     private class SunTimesWrapper {
         let times: SunTimes
         init(_ times: SunTimes) { self.times = times }
     }
     
-    private class CurveDataWrapper {
-        let data: CurveData
-        init(_ data: CurveData) { self.data = data }
-    }
-    
-    // Thread-safe, lock-free cache using NSCache
     private static let sunTimesCache: NSCache<NSString, SunTimesWrapper> = {
         let cache = NSCache<NSString, SunTimesWrapper>()
-        cache.countLimit = 60 // Keep last 60 entries
-        return cache
-    }()
-    
-    // Cache for curve points (per day)
-    private static let curveDataCache: NSCache<NSString, CurveDataWrapper> = {
-        let cache = NSCache<NSString, CurveDataWrapper>()
-        cache.countLimit = 60 // Keep last 60 entries
+        cache.countLimit = 60
         return cache
     }()
     
@@ -64,46 +41,12 @@ struct DaylightIndicator: View {
         self.useMaterialBackground = useMaterialBackground
     }
     
-    // Generate day key for caching (only changes when date changes, not time)
-    private func dayKey(for date: Date) -> String {
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        let components = calendar.dateComponents([.year, .month, .day], from: date)
-        return "\(timeZone.identifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
-    }
-    
-    // Create Path from curve data
-    private func createPath(from curveData: CurveData) -> Path {
-        var path = Path()
-        guard !curveData.curvePoints.isEmpty else { return path }
-        
-        path.move(to: curveData.curvePoints[0])
-        
-        // Use simpler quadratic curves instead of Catmull-Rom for better performance
-        for i in 1..<curveData.curvePoints.count {
-            let previousPoint = curveData.curvePoints[i - 1]
-            let currentPoint = curveData.curvePoints[i]
-            
-            // Control point for smooth quadratic curve
-            let controlPoint = CGPoint(
-                x: (previousPoint.x + currentPoint.x) / 2,
-                y: (previousPoint.y + currentPoint.y) / 2
-            )
-            
-            path.addQuadCurve(to: currentPoint, control: controlPoint)
-        }
-        
-        return path
-    }
-    
-    // Get cached sun times for this day/timezone
     private func cachedSunTimes(for date: Date) -> SunTimes {
         var calendar = Calendar.current
         calendar.timeZone = timeZone
         let components = calendar.dateComponents([.year, .month, .day], from: date)
         let cacheKey = "\(timeZone.identifier)_daylight_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
         
-        // Lock-free read from NSCache (thread-safe without blocking)
         if let cached = DaylightIndicator.sunTimesCache.object(forKey: cacheKey) {
             return cached.times
         }
@@ -113,111 +56,40 @@ struct DaylightIndicator: View {
             let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
             var sun = Sun(location: location, timeZone: timeZone)
             sun.setDate(date)
-            times = SunTimes(sunrise: sun.sunrise, sunset: sun.sunset, solarNoon: sun.solarNoon)
+            times = SunTimes(sunrise: sun.sunrise, sunset: sun.sunset)
         } else {
-            // Fallback approximation when coordinates are unavailable
             let startOfDay = calendar.startOfDay(for: date)
             times = SunTimes(
                 sunrise: calendar.date(byAdding: .hour, value: 6, to: startOfDay),
-                sunset: calendar.date(byAdding: .hour, value: 18, to: startOfDay),
-                solarNoon: calendar.date(byAdding: .hour, value: 12, to: startOfDay)
+                sunset: calendar.date(byAdding: .hour, value: 18, to: startOfDay)
             )
         }
         
-        // Store in cache
         DaylightIndicator.sunTimesCache.setObject(SunTimesWrapper(times), forKey: cacheKey)
-        
         return times
     }
     
-    // Get cached curve data for the day (curve doesn't change during the day)
-    private func cachedCurveData(for date: Date) -> CurveData {
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        let components = calendar.dateComponents([.year, .month, .day], from: date)
-        let cacheKey = "\(timeZone.identifier)_curve_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
-        
-        // Lock-free read from NSCache
-        if let cached = DaylightIndicator.curveDataCache.object(forKey: cacheKey) {
-            return cached.data
-        }
-        
+    /// Progress through daylight: 0 = sunrise, 1 = sunset.
+    /// Before sunrise: 0; after sunset: 1.
+    private var daylightProgress: Double {
         let sunTimes = cachedSunTimes(for: date)
-        let startOfDay = calendar.startOfDay(for: date)
-        let dayInSeconds: Double = 24 * 60 * 60
-        
-        // Calculate daylight duration
-        let daylightDuration: TimeInterval
-        if let sunrise = sunTimes.sunrise, let sunset = sunTimes.sunset, sunset > sunrise {
-            daylightDuration = sunset.timeIntervalSince(sunrise)
-        } else {
-            daylightDuration = 12 * 3600 // Fallback to 12 hours
+        guard let sunrise = sunTimes.sunrise, let sunset = sunTimes.sunset, sunset > sunrise else {
+            return 0.5
         }
         
-        let daylightRatio = daylightDuration / dayInSeconds
+        if date <= sunrise { return 0 }
+        if date >= sunset { return 1 }
         
-        // Generate curve points - use 24 points (one per hour) for smooth curve
-        var curvePoints: [CGPoint] = []
-        let width = size
-        let height = size
-        let horizonY = height / 2 // Horizon line at center
-        let amplitude = height * 0.35 // Maximum height of the curve above/below horizon
-        
-        // Calculate points every hour (24 points total: 0, 1, 2, ..., 24) - cached per day
-        guard let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) else {
-            // Fallback: use simple cosine approximation
-            for hour in 0...24 {
-                let hours = Double(hour)
-                let secondsFromNoon = (hours - 12) * 3600
-                let progress = secondsFromNoon / dayInSeconds
-                let sunAltitude = 90 * cos(2 * .pi * progress)
-                let normalizedAltitude = max(-90, min(90, sunAltitude))
-                let yPosition = horizonY - (normalizedAltitude / 90.0) * amplitude
-                // Ensure positions stay within bounds
-                let xPosition = max(0, min(width, (hours / 24.0) * width))
-                let clampedYPosition = max(0, min(height, yPosition))
-                curvePoints.append(CGPoint(x: xPosition, y: clampedYPosition))
-            }
-            
-            let data = CurveData(curvePoints: curvePoints, daylightRatio: daylightRatio)
-            DaylightIndicator.curveDataCache.setObject(CurveDataWrapper(data), forKey: cacheKey)
-            return data
-        }
-        
-        // Use SunKit for accurate calculations - but cache the results
-        let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
-        var sun = Sun(location: location, timeZone: timeZone)
-        
-        // Calculate points every hour (24 points total)
-        for hour in 0...24 {
-            let hours = Double(hour)
-            let hourDate = startOfDay.addingTimeInterval(hours * 3600)
-            sun.setDate(hourDate)
-            let sunAltitude = sun.altitude.degrees
-            
-            // Normalize altitude to -90 to 90 degrees, then map to y position
-            let normalizedAltitude = max(-90, min(90, sunAltitude))
-            let yPosition = horizonY - (normalizedAltitude / 90.0) * amplitude
-            
-            // Ensure x position stays within bounds (0 to width)
-            let xPosition = max(0, min(width, (hours / 24.0) * width))
-            // Ensure y position stays within bounds (0 to height)
-            let clampedYPosition = max(0, min(height, yPosition))
-            curvePoints.append(CGPoint(x: xPosition, y: clampedYPosition))
-        }
-        
-        let data = CurveData(curvePoints: curvePoints, daylightRatio: daylightRatio)
-        DaylightIndicator.curveDataCache.setObject(CurveDataWrapper(data), forKey: cacheKey)
-        
-        return data
+        let daylightDuration = sunset.timeIntervalSince(sunrise)
+        let elapsed = date.timeIntervalSince(sunrise)
+        return max(0, min(1, elapsed / daylightDuration))
     }
     
     var body: some View {
-        // Use cached path if available, otherwise create empty path (will be set in onAppear/onChange)
-        let curvePath = cachedPath ?? Path()
+        let progress = daylightProgress
+        let lineWidth: CGFloat = size * 0.05
         
         ZStack {
-            // Background circle
             if useMaterialBackground {
                 Circle()
                     .fill(.black.opacity(0.05))
@@ -232,54 +104,51 @@ struct DaylightIndicator: View {
                     )
             }
             
-            // Curve above horizon (opacity 1.0)
-            curvePath
-                .stroke(Color.white.opacity(1.0), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-                .blendMode(.plusLighter)
-                .mask {
-                    Rectangle()
-                        .frame(width: size * 2, height: size / 2)
-                        .offset(y: -size / 4)
-                }
             
-            // Curve below horizon (opacity 0.3)
-            curvePath
-                .stroke(Color.white.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-                .blendMode(.plusLighter)
-                .mask {
-                    Rectangle()
-                        .frame(width: size * 2, height: size / 2)
-                        .offset(y: size / 4)
+            // Inner arc: centered, inverted U (curves upward in the middle)
+            GeometryReader { geo in
+                let fullArc = topArcPath(in: geo.size)
+                
+                // Full arc background (dark gray - remaining)
+                fullArc
+                    .trimmedPath(from: 0, to: 1)
+                    .stroke(
+                        Color.white.opacity(0.10),
+                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+                    )
+                    .blendMode(.plusLighter)
+                
+                // Progress arc (white - elapsed daylight)
+                if progress > 0 {
+                    fullArc
+                        .trimmedPath(from: 0, to: progress)
+                        .stroke(
+                            Color.white,
+                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+                        )
+                        .blendMode(.plusLighter)
                 }
-                .drawingGroup() // Optimize rendering with Metal
-            
-            // Horizon line (horizontal line at center)
-            Capsule()
-                .fill(.white.opacity(0.25))
-                .frame(width: size, height: 1)
-                .offset(y: 0)
-                .blendMode(.plusLighter)
+            }
+            .offset(y: -(size * 0.025))
+            .frame(width: size, height: size)
         }
         .frame(width: size, height: size)
-        .clipShape(Circle()) // Ensure all content is clipped to circle boundary
-        .onChange(of: date) { oldDate, newDate in
-            // Only update path when day actually changes (not just time)
-            let oldDayKey = dayKey(for: oldDate)
-            let newDayKey = dayKey(for: newDate)
-            if oldDayKey != newDayKey {
-                let curveData = cachedCurveData(for: newDate)
-                cachedPath = createPath(from: curveData)
-                cachedDayKey = newDayKey
-            }
-        }
-        .onAppear {
-            // Initialize cached path on first appearance
-            let currentDayKey = dayKey(for: date)
-            if cachedPath == nil || cachedDayKey != currentDayKey {
-                let curveData = cachedCurveData(for: date)
-                cachedPath = createPath(from: curveData)
-                cachedDayKey = currentDayKey
-            }
+    }
+    
+    private func topArcPath(in size: CGSize) -> Path {
+        let w = size.width
+        let h = size.height
+        let centerY = h * 0.56
+        let horizontalInset = w * 0.24
+        let arcLift = h * 0.18
+
+        let start = CGPoint(x: horizontalInset, y: centerY)
+        let end = CGPoint(x: w - horizontalInset, y: centerY)
+        let control = CGPoint(x: w / 2, y: centerY - arcLift)
+
+        return Path { path in
+            path.move(to: start)
+            path.addQuadCurve(to: end, control: control)
         }
     }
 }
@@ -289,10 +158,19 @@ struct DaylightIndicator: View {
         Color.black
             .ignoresSafeArea()
         
-        DaylightIndicator(
-            date: Date(),
-            timeZone: .current,
-            size: 100
-        )
+        HStack(spacing: 24) {
+            DaylightIndicator(
+                date: Date(),
+                timeZone: .current,
+                size: 100
+            )
+            
+            // Simulate midday (full progress)
+            DaylightIndicator(
+                date: Calendar.current.date(bySettingHour: 14, minute: 0, second: 0, of: Date()) ?? Date(),
+                timeZone: .current,
+                size: 100
+            )
+        }
     }
 }
