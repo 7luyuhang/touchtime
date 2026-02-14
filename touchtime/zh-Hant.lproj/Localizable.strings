@@ -786,6 +786,7 @@
 "Sun Azimuth" = "太陽方位角";
 "Daylight" = "日照";
 "Daylight Curve" = "日光曲線";
+"Solar Curve" = "太陽曲線";
 
 /* Complications */
 "Complications" = "複雜功能";

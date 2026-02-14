@@ -30,6 +30,7 @@ struct ComplicationOverlayView: View {
     let showSunAzimuth: Bool
     let showSunriseSunset: Bool
     let showDaylight: Bool
+    let showSolarCurve: Bool
     let bottomPadding: CGFloat
     @EnvironmentObject var weatherManager: WeatherManager
     
@@ -88,6 +89,16 @@ struct ComplicationOverlayView: View {
             
             if showDaylight {
                 DaylightIndicator(
+                    date: date,
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+            
+            if showSolarCurve {
+                SolarCurve(
                     date: date,
                     timeZone: timeZone,
                     size: 64
@@ -165,6 +176,7 @@ struct HomeView: View {
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     
     @StateObject private var weatherManager = WeatherManager()
@@ -520,7 +532,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             
@@ -574,6 +586,7 @@ struct HomeView: View {
                                         showSunAzimuth: showSunAzimuth,
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: showDaylight,
+                                        showSolarCurve: showSolarCurve,
                                         bottomPadding: (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0
                                     )
                                     .environmentObject(weatherManager)
@@ -760,7 +773,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             Spacer()
@@ -799,6 +812,7 @@ struct HomeView: View {
                                         showSunAzimuth: showSunAzimuth,
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: showDaylight,
+                                        showSolarCurve: showSolarCurve,
                                         bottomPadding: 0
                                     )
                                     .environmentObject(weatherManager)
@@ -1009,6 +1023,7 @@ struct HomeView: View {
             .animation(.spring(), value: showWeatherCondition)
             .animation(.spring(), value: showSunAzimuth)
             .animation(.spring(), value: showSunriseSunset)
+            .animation(.spring(), value: showSolarCurve)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             

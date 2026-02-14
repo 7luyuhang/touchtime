@@ -153,6 +153,7 @@
 "Solar Time" = "Solar Time";
 "Daylight" = "Daylight";
 "Daylight Curve" = "Daylight Curve";
+"Solar Curve" = "Solar Curve";
 "Golden Hour" = "Golden Hour";
 "Moon Time" = "Moon Time";
 "Moon Phase" = "Moon Phase";
@@ -341,6 +342,7 @@
 "Sun Azimuth" = "Sun Azimuth";
 "Daylight" = "Daylight";
 "Daylight Curve" = "Daylight Curve";
+"Solar Curve" = "Solar Curve";
 
 /* Complications */
 "Complications" = "Complications";

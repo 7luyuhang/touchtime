@@ -32,6 +32,7 @@ struct SettingsView: View {
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
@@ -110,6 +111,8 @@ struct SettingsView: View {
             return String(localized: "Weather Condition")
         } else if showDaylight {
             return String(localized: "Daylight Curve")
+        } else if showSolarCurve {
+            return String(localized: "Solar Curve")
         }
         return nil
     }
@@ -449,6 +452,22 @@ struct SettingsView: View {
                                 )
                                 .transition(.identity)
                             }
+                            
+                            // Solar Curve Overlay - Centered
+                            if showSolarCurve {
+                                SolarCurve(
+                                    date: currentDate,
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.identity)
+                            }
                         }
                         .background(
                             showSkyDot ?
@@ -474,6 +493,7 @@ struct SettingsView: View {
                         .animation(.spring(), value: showSunAzimuth)
                         .animation(.spring(), value: showSunriseSunset)
                         .animation(.spring(), value: showDaylight)
+                        .animation(.spring(), value: showSolarCurve)
                         .id("\(showSkyDot)-\(dateStyle)")
                         .onTapGesture {
                             if hapticEnabled {
@@ -543,7 +563,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showSunAzimuth && !showSunriseSunset && !showDaylight {
+                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showSunAzimuth && !showSunriseSunset && !showDaylight && !showSolarCurve {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -555,7 +575,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight)
+                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
@@ -582,6 +602,11 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: showDaylight) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showSolarCurve) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
@@ -815,6 +840,7 @@ struct SettingsView: View {
                         showSunriseSunset: $showSunriseSunset,
                         showWeatherCondition: $showWeatherCondition,
                         showDaylight: $showDaylight,
+                        showSolarCurve: $showSolarCurve,
                         showWeather: showWeather,
                         weatherManager: weatherManager
                     )
