@@ -594,11 +594,12 @@ struct ScrollTimeView: View {
                     .font(.subheadline.weight(.semibold))
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
-                    .contentShape(Capsule())
-                    .background(
-                        Capsule(style: .continuous)
-                            .fill(.blue)
-                    )
+                    .contentShape(Capsule(style: .continuous))
+                    .glassEffect(.regular.tint(.blue))
+//                    .background(
+//                        Capsule(style: .continuous)
+//                            .fill(.blue)
+//                    )
                     .padding(.leading, 5)
             }
             .buttonStyle(.plain)
