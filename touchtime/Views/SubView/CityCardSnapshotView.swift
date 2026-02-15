@@ -55,13 +55,14 @@ struct CityCardSnapshotView: View {
     
     var body: some View {
         ZStack {
-            
-            // Sky Background
-            Color.black // Black Background
-            Rectangle()
-                .fill(skyColorGradient.linearGradient(opacity: 0.65))
-            Color.black.opacity(0.015)
-                .blendMode(.plusDarker)
+            // Sky Background - only show when Sky Colour is enabled
+            Color.black
+            if showSkyDot {
+                Rectangle()
+                    .fill(skyColorGradient.linearGradient(opacity: 0.65))
+                Color.black.opacity(0.015)
+                    .blendMode(.plusDarker)
+            }
             
             // Card replica from HomeView, centered vertically
             ZStack {
@@ -133,13 +134,18 @@ struct CityCardSnapshotView: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(
-                SkyBackgroundView(
-                    date: date,
-                    timeZoneIdentifier: timeZoneIdentifier,
-                    weatherCondition: weatherCondition
-                )
-            )
+            .background {
+                if showSkyDot {
+                    SkyBackgroundView(
+                        date: date,
+                        timeZoneIdentifier: timeZoneIdentifier,
+                        weatherCondition: weatherCondition
+                    )
+                } else {
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(Color(UIColor.secondarySystemBackground))
+                }
+            }
             .padding(.horizontal, 8)
         }
         .frame(width: 360, height: 360) // Ovarall Image Size
