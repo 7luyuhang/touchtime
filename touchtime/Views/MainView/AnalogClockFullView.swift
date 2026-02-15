@@ -26,6 +26,7 @@ struct AnalogClockFullView: View {
     @State private var showSettingsSheet = false
     @State private var showEarthView = false
     @State private var showTimeInsteadOfCityName = false
+    @State private var showTimeAdjustmentSheet = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = true
     @AppStorage("showLocalTime") private var showLocalTime = true
@@ -144,6 +145,14 @@ struct AnalogClockFullView: View {
                                     showWeather: showWeather,
                                     useCelsius: useCelsius
                                 )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                    showTimeAdjustmentSheet = true
+                                }
                                 .animation(.spring(), value: selectedTimeZone.identifier)
                                 .task(id: showWeather) {
                                     if showWeather {
@@ -326,6 +335,15 @@ struct AnalogClockFullView: View {
             .sheet(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
                     .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
+            }
+            .sheet(isPresented: $showTimeAdjustmentSheet) {
+                CityTimeAdjustmentSheet(
+                    cityName: selectedCityName,
+                    timeZoneIdentifier: selectedTimeZone.identifier,
+                    timeOffset: $timeOffset,
+                    showSheet: $showTimeAdjustmentSheet,
+                    showScrollTimeButtons: $showScrollTimeButtons
+                )
             }
             // Fetch weather for sky gradient (rain-aware)
             .task(id: showSkyDot) {
