@@ -184,6 +184,7 @@ struct SunriseSunsetIndicator: View {
             }
         }
         .frame(width: size, height: size)
+        .clipShape(Circle())
     }
 }
 
