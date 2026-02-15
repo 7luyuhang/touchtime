@@ -449,23 +449,26 @@ struct HomeView: View {
         
         Divider()
         
-        Button(action: {
-            let cityName = String(localized: "Local")
-            copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
-        }) {
-            Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
-        }
-        
         let localCardImage = renderCardImage(
             cityName: String(localized: "Local"),
             timeZoneIdentifier: TimeZone.current.identifier,
             weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
         )
-        ShareLink(
-            item: localCardImage,
-            preview: SharePreview(String(localized: "Local"), image: Image(uiImage: localCardImage.uiImage))
-        ) {
-            Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
+        Menu {
+            Button(action: {
+                let cityName = String(localized: "Local")
+                copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
+            }) {
+                Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
+            }
+            ShareLink(
+                item: localCardImage,
+                preview: SharePreview(String(localized: "Local"), image: Image(uiImage: localCardImage.uiImage))
+            ) {
+                Label(String(localized: "Copy as Image"), systemImage: "camera.macro")
+            }
+        } label: {
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // Local Share
         }
     }
     
@@ -480,24 +483,25 @@ struct HomeView: View {
         
         Divider()
         
-        // Copy as Text
-        Button(action: {
-            copyTimeAsText(cityName: getLocalizedCityName(for: clock), timeZoneIdentifier: clock.timeZoneIdentifier)
-        }) {
-            Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
-        }
-        
-        // Share card image
         let cityCardImage = renderCardImage(
             cityName: getLocalizedCityName(for: clock),
             timeZoneIdentifier: clock.timeZoneIdentifier,
             weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
         )
-        ShareLink(
-            item: cityCardImage,
-            preview: SharePreview(getLocalizedCityName(for: clock), image: Image(uiImage: cityCardImage.uiImage))
-        ) {
-            Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
+        Menu {
+            Button(action: {
+                copyTimeAsText(cityName: getLocalizedCityName(for: clock), timeZoneIdentifier: clock.timeZoneIdentifier)
+            }) {
+                Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
+            }
+            ShareLink(
+                item: cityCardImage,
+                preview: SharePreview(getLocalizedCityName(for: clock), image: Image(uiImage: cityCardImage.uiImage))
+            ) {
+                Label(String(localized: "Copy as Image"), systemImage: "camera.macro")
+            }
+        } label: {
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // City Share
         }
         
         // Rename
