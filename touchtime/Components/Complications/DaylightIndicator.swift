@@ -4,8 +4,8 @@
 //
 //  Created on 14/01/2026.
 //
-//  Daylight progress: arc shows how many hours of daylight have passed (sunrise → now).
-//  White = elapsed daylight, dark gray = remaining daylight.
+//  Daylight length: arc represents 24 hours. White = daylight (sunrise → sunset),
+//  dark gray = night. Arc length of the white segment = hours of sunlight in the day.
 //
 
 import SwiftUI
@@ -17,6 +17,9 @@ struct DaylightIndicator: View {
     let timeZone: TimeZone
     let size: CGFloat
     let useMaterialBackground: Bool
+    
+    @State private var cachedSegment: (start: Double, end: Double) = (0.25, 0.75)
+    @State private var cachedDayKey: String = ""
     
     private struct SunTimes {
         let sunrise: Date?
@@ -41,15 +44,22 @@ struct DaylightIndicator: View {
         self.useMaterialBackground = useMaterialBackground
     }
     
-    private func cachedSunTimes(for date: Date) -> SunTimes {
+    private func dayKey(for date: Date) -> String {
         var calendar = Calendar.current
         calendar.timeZone = timeZone
         let components = calendar.dateComponents([.year, .month, .day], from: date)
-        let cacheKey = "\(timeZone.identifier)_daylight_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
+        return "\(timeZone.identifier)_daylight_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
+    }
+    
+    private func cachedSunTimes(for date: Date) -> SunTimes {
+        let cacheKey = dayKey(for: date) as NSString
         
         if let cached = DaylightIndicator.sunTimesCache.object(forKey: cacheKey) {
             return cached.times
         }
+        
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
         
         let times: SunTimes
         if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
@@ -69,25 +79,42 @@ struct DaylightIndicator: View {
         return times
     }
     
-    /// Progress through daylight: 0 = sunrise, 1 = sunset.
-    /// Before sunrise: 0; after sunset: 1.
-    private var daylightProgress: Double {
+    private func computeSegment(for date: Date) -> (start: Double, end: Double) {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let startOfDay = calendar.startOfDay(for: date)
+        let dayInSeconds: Double = 24 * 60 * 60
+        
         let sunTimes = cachedSunTimes(for: date)
         guard let sunrise = sunTimes.sunrise, let sunset = sunTimes.sunset, sunset > sunrise else {
-            return 0.5
+            return (0.25, 0.75)
         }
         
-        if date <= sunrise { return 0 }
-        if date >= sunset { return 1 }
+        let sunriseProgress = max(0, min(1, sunrise.timeIntervalSince(startOfDay) / dayInSeconds))
+        let sunsetProgress = max(0, min(1, sunset.timeIntervalSince(startOfDay) / dayInSeconds))
+        return (sunriseProgress, sunsetProgress)
+    }
+    
+    private func topArcPath() -> Path {
+        let w = size
+        let h = size
+        let centerY = h * 0.56
+        let horizontalInset = w * 0.24
+        let arcLift = h * 0.18
         
-        let daylightDuration = sunset.timeIntervalSince(sunrise)
-        let elapsed = date.timeIntervalSince(sunrise)
-        return max(0, min(1, elapsed / daylightDuration))
+        let start = CGPoint(x: horizontalInset, y: centerY)
+        let end = CGPoint(x: w - horizontalInset, y: centerY)
+        let control = CGPoint(x: w / 2, y: centerY - arcLift)
+        
+        return Path { path in
+            path.move(to: start)
+            path.addQuadCurve(to: end, control: control)
+        }
     }
     
     var body: some View {
-        let progress = daylightProgress
         let lineWidth: CGFloat = size * 0.04
+        let fullArc = topArcPath()
         
         ZStack {
             if useMaterialBackground {
@@ -104,12 +131,9 @@ struct DaylightIndicator: View {
                     )
             }
             
-            
-            // Inner arc: centered, inverted U (curves upward in the middle)
-            GeometryReader { geo in
-                let fullArc = topArcPath(in: geo.size)
-                
-                // Full arc background (dark gray - remaining)
+            // Arc represents 24 hours. White = daylight, gray = night.
+            ZStack {
+                // Full arc background (gray - night)
                 fullArc
                     .trimmedPath(from: 0, to: 1)
                     .stroke(
@@ -118,10 +142,10 @@ struct DaylightIndicator: View {
                     )
                     .blendMode(.plusLighter)
                 
-                // Progress arc (white - elapsed daylight)
-                if progress > 0 {
+                // Daylight segment (white - sunrise to sunset)
+                if cachedSegment.end - cachedSegment.start > 0 {
                     fullArc
-                        .trimmedPath(from: 0, to: progress)
+                        .trimmedPath(from: cachedSegment.start, to: cachedSegment.end)
                         .stroke(
                             Color.white,
                             style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
@@ -134,22 +158,20 @@ struct DaylightIndicator: View {
             .drawingGroup()
         }
         .frame(width: size, height: size)
-    }
-    
-    private func topArcPath(in size: CGSize) -> Path {
-        let w = size.width
-        let h = size.height
-        let centerY = h * 0.56
-        let horizontalInset = w * 0.24
-        let arcLift = h * 0.18
-
-        let start = CGPoint(x: horizontalInset, y: centerY)
-        let end = CGPoint(x: w - horizontalInset, y: centerY)
-        let control = CGPoint(x: w / 2, y: centerY - arcLift)
-
-        return Path { path in
-            path.move(to: start)
-            path.addQuadCurve(to: end, control: control)
+        .onChange(of: date) { oldDate, newDate in
+            let oldKey = dayKey(for: oldDate)
+            let newKey = dayKey(for: newDate)
+            if oldKey != newKey {
+                cachedSegment = computeSegment(for: newDate)
+                cachedDayKey = newKey
+            }
+        }
+        .onAppear {
+            let currentKey = dayKey(for: date)
+            if cachedDayKey != currentKey {
+                cachedSegment = computeSegment(for: date)
+                cachedDayKey = currentKey
+            }
         }
     }
 }
@@ -166,7 +188,7 @@ struct DaylightIndicator: View {
                 size: 100
             )
             
-            // Simulate midday (full progress)
+            // Same day - daylight length is identical (arc segment size doesn't change with time)
             DaylightIndicator(
                 date: Calendar.current.date(bySettingHour: 14, minute: 0, second: 0, of: Date()) ?? Date(),
                 timeZone: .current,
