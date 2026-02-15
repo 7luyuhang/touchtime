@@ -49,10 +49,19 @@ struct CityCardSnapshotView: View {
         showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve
     }
     
+    private var skyColorGradient: SkyColorGradient {
+        SkyColorGradient(date: date, timeZoneIdentifier: timeZoneIdentifier, weatherCondition: weatherCondition)
+    }
+    
     var body: some View {
         ZStack {
-            // Dark background
-            Color(.black)
+            
+            // Sky Background
+            Color.black // Black Background
+            Rectangle()
+                .fill(skyColorGradient.linearGradient(opacity: 0.65))
+            Color.black.opacity(0.015)
+                .blendMode(.plusDarker)
             
             // Card replica from HomeView, centered vertically
             ZStack {
