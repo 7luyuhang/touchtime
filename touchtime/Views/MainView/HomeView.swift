@@ -799,25 +799,6 @@ struct HomeView: View {
                                     ) : nil
                                 )
                                 .id("local-\(showSkyDot)")
-                                // Fetch weather when weather toggle changes or view appears
-                                .task(id: showWeather) {
-                                    if showWeather {
-                                        await weatherManager.getWeather(for: TimeZone.current.identifier)
-                                    }
-                                }
-                                // Fetch weather for weather condition complication
-                                .task(id: showWeatherCondition) {
-                                    if showWeatherCondition {
-                                        await weatherManager.getWeather(for: TimeZone.current.identifier)
-                                    }
-                                }
-                                // Fetch weather for sky gradient (rain-aware)
-                                .task(id: showSkyDot) {
-                                    if showSkyDot {
-                                        await weatherManager.getWeather(for: TimeZone.current.identifier)
-                                    }
-                                }
-                                
                                 
                                 // Tap gesture for local time
                                 .onTapGesture {
@@ -1000,24 +981,6 @@ struct HomeView: View {
                                     ) : nil
                                 )
                                 .id("\(clock.id)-\(showSkyDot)")
-                                // Fetch weather for this city when weather toggle changes
-                                .task(id: showWeather) {
-                                    if showWeather {
-                                        await weatherManager.getWeather(for: clock.timeZoneIdentifier)
-                                    }
-                                }
-                                // Fetch weather for weather condition complication
-                                .task(id: showWeatherCondition) {
-                                    if showWeatherCondition {
-                                        await weatherManager.getWeather(for: clock.timeZoneIdentifier)
-                                    }
-                                }
-                                // Fetch weather for sky gradient (rain-aware)
-                                .task(id: showSkyDot) {
-                                    if showSkyDot {
-                                        await weatherManager.getWeather(for: clock.timeZoneIdentifier)
-                                    }
-                                }
                                 
                                 // Tap gesture for world clock
                                 .onTapGesture {
@@ -1076,6 +1039,16 @@ struct HomeView: View {
                     .safeAreaPadding(.bottom, 52)
                     .id(selectedCollectionId?.uuidString ?? "default")
                     .transition(.identity) // Collection Animation
+                    // Centralized batch weather prefetch for all displayed cities
+                    .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(showWeatherCondition)_\(showSkyDot)") {
+                        if showWeather || showWeatherCondition || showSkyDot {
+                            var identifiers = displayedClocks.map(\.timeZoneIdentifier)
+                            if showLocalTime {
+                                identifiers.insert(TimeZone.current.identifier, at: 0)
+                            }
+                            await weatherManager.getWeatherForCities(identifiers)
+                        }
+                    }
                 }
                 
                 
