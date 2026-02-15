@@ -190,6 +190,31 @@ struct HomeView: View {
     private let worldClocksKey = "savedWorldClocks"
     private let collectionsKey = "savedCityCollections"
     
+    // MARK: - Cached Time Formatting
+    private static let timeFormatterCache: NSCache<NSString, DateFormatter> = {
+        let cache = NSCache<NSString, DateFormatter>()
+        cache.countLimit = 50
+        return cache
+    }()
+    
+    private static func timeFormatter(for timeZone: TimeZone, use24Hour: Bool) -> DateFormatter {
+        let key = "\(timeZone.identifier)_\(use24Hour)" as NSString
+        if let cached = timeFormatterCache.object(forKey: key) {
+            return cached
+        }
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = use24Hour ? "HH:mm" : "h:mm"
+        timeFormatterCache.setObject(formatter, forKey: key)
+        return formatter
+    }
+    
+    private func formattedTime(for timeZone: TimeZone) -> String {
+        let formatter = Self.timeFormatter(for: timeZone, use24Hour: use24HourFormat)
+        return formatter.string(from: currentDate.addingTimeInterval(timeOffset))
+    }
+    
     // Get local city name from timezone
     var localCityName: String {
         let identifier = TimeZone.current.identifier
@@ -412,6 +437,179 @@ struct HomeView: View {
         }
     }
     
+    // MARK: - Context Menus
+    @ViewBuilder
+    private func localTimeContextMenu() -> some View {
+        Button(action: {
+            let cityName = String(localized: "Local")
+            addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
+        }) {
+            Label("Schedule Event", systemImage: "calendar.badge.plus")
+        }
+        
+        Divider()
+        
+        Button(action: {
+            let cityName = String(localized: "Local")
+            copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
+        }) {
+            Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
+        }
+        
+        let localCardImage = renderCardImage(
+            cityName: String(localized: "Local"),
+            timeZoneIdentifier: TimeZone.current.identifier,
+            weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+        )
+        ShareLink(
+            item: localCardImage,
+            preview: SharePreview(String(localized: "Local"), image: Image(uiImage: localCardImage.uiImage))
+        ) {
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
+        }
+    }
+    
+    @ViewBuilder
+    private func cityContextMenu(for clock: WorldClock) -> some View {
+        // Schedule event
+        Button(action: {
+            addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: getLocalizedCityName(for: clock))
+        }) {
+            Label("Schedule Event", systemImage: "plus.circle")
+        }
+        
+        Divider()
+        
+        // Copy as Text
+        Button(action: {
+            copyTimeAsText(cityName: getLocalizedCityName(for: clock), timeZoneIdentifier: clock.timeZoneIdentifier)
+        }) {
+            Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
+        }
+        
+        // Share card image
+        let cityCardImage = renderCardImage(
+            cityName: getLocalizedCityName(for: clock),
+            timeZoneIdentifier: clock.timeZoneIdentifier,
+            weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
+        )
+        ShareLink(
+            item: cityCardImage,
+            preview: SharePreview(getLocalizedCityName(for: clock), image: Image(uiImage: cityCardImage.uiImage))
+        ) {
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up")
+        }
+        
+        // Rename
+        Button(action: {
+            renamingClockId = clock.id
+            // Get original name from timezone identifier
+            let identifier = clock.timeZoneIdentifier
+            let components = identifier.split(separator: "/")
+            let rawName = components.count >= 2
+            ? String(components.last!).replacingOccurrences(of: "_", with: " ")
+            : String(identifier)
+            originalClockName = String(localized: String.LocalizationValue(rawName))
+            newClockName = clock.localizedCityName
+            showingRenameAlert = true
+        }) {
+            Label("Rename", systemImage: "pencil.tip.crop.circle")
+        }
+        
+        Divider()
+        
+        // Move to Top (only for default view)
+        if selectedCollectionId == nil {
+            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
+                Button(action: {
+                    // Move to top
+                    withAnimation {
+                        let clockToMove = worldClocks.remove(at: index)
+                        worldClocks.insert(clockToMove, at: 0)
+                        saveWorldClocks()
+                    }
+                }) {
+                    Label(String(localized: "Move to Top"), systemImage: "arrow.up.to.line")
+                }
+            }
+        }
+        
+        // Arrange Cities
+        Button {
+            showArrangeListSheet = true
+        } label: {
+            Label(String(localized: "Arrange"), systemImage: "list.bullet")
+        }
+        
+        // Only show delete for default view
+        if selectedCollectionId == nil {
+            Divider()
+            
+            Button(role: .destructive, action: {
+                // Delete
+                withAnimation {
+                    deleteCity(withId: clock.id)
+                }
+            }) {
+                Label("Delete", systemImage: "xmark.circle")
+            }
+        }
+    }
+    
+    // Render city card as image for sharing
+    func renderCardImage(cityName: String, timeZoneIdentifier: String, weatherCondition: WeatherCondition? = nil) -> CardImage {
+        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+        
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        if use24HourFormat {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "h:mm"
+        }
+        let timeString = formatter.string(from: adjustedDate)
+        
+        let dateString = getCityDate(
+            timeZoneIdentifier: timeZoneIdentifier,
+            baseDate: currentDate,
+            offset: timeOffset
+        )
+        
+        let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+        
+        let snapshotView = CityCardSnapshotView(
+            cityName: cityName,
+            timeString: timeString,
+            dateString: dateString,
+            date: adjustedDate,
+            timeZone: targetTimeZone,
+            timeZoneIdentifier: timeZoneIdentifier,
+            weatherCondition: weatherCondition,
+            showAnalogClock: showAnalogClock,
+            analogClockShowScale: analogClockShowScale,
+            showSunPosition: showSunPosition,
+            showWeatherCondition: showWeatherCondition,
+            showSunAzimuth: showSunAzimuth,
+            showSunriseSunset: showSunriseSunset,
+            showDaylight: showDaylight,
+            showSolarCurve: showSolarCurve
+        )
+        .environmentObject(weatherManager)
+        .environment(\.colorScheme, .dark)
+        
+        let renderer = ImageRenderer(content: snapshotView)
+        renderer.scale = 3
+        
+        if let uiImage = renderer.uiImage {
+            return CardImage(uiImage: uiImage)
+        }
+        
+        // Fallback: create a simple placeholder image
+        let placeholderImage = UIImage(systemName: "photo") ?? UIImage()
+        return CardImage(uiImage: placeholderImage)
+    }
+    
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
@@ -538,18 +736,7 @@ struct HomeView: View {
                                             
                                             Spacer()
                                             
-                                            Text({
-                                                let formatter = DateFormatter()
-                                                formatter.timeZone = TimeZone.current
-                                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                if use24HourFormat {
-                                                    formatter.dateFormat = "HH:mm"
-                                                } else {
-                                                    formatter.dateFormat = "h:mm"
-                                                }
-                                                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                                return formatter.string(from: adjustedDate)
-                                            }())
+                                            Text(formattedTime(for: .current))
                                             .font(.system(size: 36))
                                             .fontWeight(.light)
                                             .fontDesign(.rounded)
@@ -655,21 +842,7 @@ struct HomeView: View {
                                 
                                 // Menu Local Time
                                 .contextMenu {
-                                    Button(action: {
-                                        let cityName = String(localized: "Local")
-                                        addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
-                                    }) {
-                                        Label("Schedule Event", systemImage: "calendar.badge.plus")
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    Button(action: {
-                                        let cityName = String(localized: "Local")
-                                        copyTimeAsText(cityName: cityName, timeZoneIdentifier: TimeZone.current.identifier)
-                                    }) {
-                                        Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
-                                    }
+                                    localTimeContextMenu()
                                 }
                             }
                         }
@@ -778,18 +951,7 @@ struct HomeView: View {
                                             
                                             Spacer()
                                             
-                                            Text({
-                                                let formatter = DateFormatter()
-                                                formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
-                                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                if use24HourFormat {
-                                                    formatter.dateFormat = "HH:mm"
-                                                } else {
-                                                    formatter.dateFormat = "h:mm"
-                                                }
-                                                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                                return formatter.string(from: adjustedDate)
-                                            }())
+                                            Text(formattedTime(for: TimeZone(identifier: clock.timeZoneIdentifier) ?? .current))
                                             .font(.system(size: 36))
                                             .fontWeight(.light)
                                             .fontDesign(.rounded)
@@ -892,77 +1054,7 @@ struct HomeView: View {
                                 
                                 // Context Menu
                                 .contextMenu {
-                                    
-                                    // Schedule event
-                                    Button(action: {
-                                        addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: getLocalizedCityName(for: clock))
-                                    }) {
-                                        Label("Schedule Event", systemImage: "plus.circle")
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    // Copy as Text
-                                    Button(action: {
-                                        copyTimeAsText(cityName: getLocalizedCityName(for: clock), timeZoneIdentifier: clock.timeZoneIdentifier)
-                                    }) {
-                                        Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
-                                    }
-                                    
-                                    // Rename
-                                    Button(action: {
-                                        renamingClockId = clock.id
-                                        // Get original name from timezone identifier
-                                        let identifier = clock.timeZoneIdentifier
-                                        let components = identifier.split(separator: "/")
-                                        let rawName = components.count >= 2
-                                        ? String(components.last!).replacingOccurrences(of: "_", with: " ")
-                                        : String(identifier)
-                                        originalClockName = String(localized: String.LocalizationValue(rawName))
-                                        newClockName = clock.localizedCityName
-                                        showingRenameAlert = true
-                                    }) {
-                                        Label("Rename", systemImage: "pencil.tip.crop.circle")
-                                    }
-                                    
-                                    Divider()
-                                    
-                                    // Move to Top (only for default view)
-                                    if selectedCollectionId == nil {
-                                        if let index = worldClocks.firstIndex(where: { $0.id == clock.id }), index != 0 {
-                                            Button(action: {
-                                                // Move to top
-                                                withAnimation {
-                                                    let clockToMove = worldClocks.remove(at: index)
-                                                    worldClocks.insert(clockToMove, at: 0)
-                                                    saveWorldClocks()
-                                                }
-                                            }) {
-                                                Label(String(localized: "Move to Top"), systemImage: "arrow.up.to.line")
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Arrange Cities
-                                    Button {
-                                        showArrangeListSheet = true
-                                    } label: {
-                                        Label(String(localized: "Arrange"), systemImage: "list.bullet")
-                                    }
-                                    
-                                    // Only show delete for default view
-                                    if selectedCollectionId == nil {
-                                        Divider()
-                                        
-                                        Button(role: .destructive, action: {
-                                            // Delete
-                                            withAnimation {
-                                                deleteCity(withId: clock.id)
-                                            }
-                                        }) {
-                                            Label("Delete", systemImage: "xmark.circle")
-                                        }
-                                    }
+                                    cityContextMenu(for: clock)
                                 }
                             }
                         }
