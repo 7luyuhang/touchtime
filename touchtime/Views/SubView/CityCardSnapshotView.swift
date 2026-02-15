@@ -41,6 +41,9 @@ struct CityCardSnapshotView: View {
     let showSunriseSunset: Bool
     let showDaylight: Bool
     let showSolarCurve: Bool
+    let additionalTimeDisplay: String
+    let showSkyDot: Bool
+    let additionalTimeText: String
     
     private var hasComplication: Bool {
         showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve
@@ -54,9 +57,30 @@ struct CityCardSnapshotView: View {
             // Card replica from HomeView, centered vertically
             ZStack {
                 VStack(alignment: .leading, spacing: 4) {
-                    // Top row: Date
+                    // Top row: Time difference / SkyDot and Date
                     HStack {
+                        if additionalTimeDisplay != "None" {
+                            if !additionalTimeText.isEmpty || additionalTimeDisplay == "UTC" {
+                                Text(additionalTimeText)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
+                            }
+                        } else if showSkyDot {
+                            SkyDotView(
+                                date: date,
+                                timeZoneIdentifier: timeZoneIdentifier,
+                                weatherCondition: weatherCondition
+                            )
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                    .blendMode(.plusLighter)
+                            )
+                        }
+                        
                         Spacer()
+                        
                         Text(dateString)
                             .font(.subheadline)
                             .foregroundStyle(.secondary)

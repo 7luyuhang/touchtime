@@ -582,6 +582,9 @@ struct HomeView: View {
         
         let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
         
+        let clock = WorldClock(cityName: cityName, timeZoneIdentifier: timeZoneIdentifier)
+        let additionalText = additionalTimeDisplay == "Time Difference" ? clock.timeDifference : clock.utcOffset
+        
         let snapshotView = CityCardSnapshotView(
             cityName: cityName,
             timeString: timeString,
@@ -597,7 +600,10 @@ struct HomeView: View {
             showSunAzimuth: showSunAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: showDaylight,
-            showSolarCurve: showSolarCurve
+            showSolarCurve: showSolarCurve,
+            additionalTimeDisplay: additionalTimeDisplay,
+            showSkyDot: showSkyDot,
+            additionalTimeText: additionalText
         )
         .environmentObject(weatherManager)
         .environment(\.colorScheme, .dark)
