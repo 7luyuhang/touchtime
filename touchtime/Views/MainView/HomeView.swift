@@ -11,12 +11,28 @@ import UIKit
 import EventKit
 import EventKitUI
 import WeatherKit
+import UniformTypeIdentifiers
 
 // Data struct for city time adjustment sheet
 struct CityTimeAdjustmentData: Identifiable {
     let id = UUID()
     let cityName: String
     let timeZoneIdentifier: String
+}
+
+// MARK: - Lazy Card Image (deferred rendering for ShareLink)
+struct LazyCardImage: Transferable {
+    let render: () -> UIImage
+    
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .png) { lazy in
+            let image = lazy.render()
+            guard let data = image.pngData() else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            return data
+        }
+    }
 }
 
 // MARK: - Complication Overlay View
@@ -449,11 +465,13 @@ struct HomeView: View {
         
         Divider()
         
-        let localCardImage = renderCardImage(
-            cityName: String(localized: "Local"),
-            timeZoneIdentifier: TimeZone.current.identifier,
-            weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
-        )
+        let localLazy = LazyCardImage { [self] in
+            renderCardImage(
+                cityName: String(localized: "Local"),
+                timeZoneIdentifier: TimeZone.current.identifier,
+                weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+            ).uiImage
+        }
         Menu {
             Button(action: {
                 let cityName = String(localized: "Local")
@@ -461,10 +479,7 @@ struct HomeView: View {
             }) {
                 Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
             }
-            ShareLink(
-                item: localCardImage,
-                preview: SharePreview(String(localized: "Local"), image: Image(uiImage: localCardImage.uiImage))
-            ) {
+            ShareLink(item: localLazy, preview: SharePreview(String(localized: "Local"))) {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
         } label: {
@@ -483,21 +498,20 @@ struct HomeView: View {
         
         Divider()
         
-        let cityCardImage = renderCardImage(
-            cityName: getLocalizedCityName(for: clock),
-            timeZoneIdentifier: clock.timeZoneIdentifier,
-            weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
-        )
+        let cityLazy = LazyCardImage { [self] in
+            renderCardImage(
+                cityName: getLocalizedCityName(for: clock),
+                timeZoneIdentifier: clock.timeZoneIdentifier,
+                weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
+            ).uiImage
+        }
         Menu {
             Button(action: {
                 copyTimeAsText(cityName: getLocalizedCityName(for: clock), timeZoneIdentifier: clock.timeZoneIdentifier)
             }) {
                 Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
             }
-            ShareLink(
-                item: cityCardImage,
-                preview: SharePreview(getLocalizedCityName(for: clock), image: Image(uiImage: cityCardImage.uiImage))
-            ) {
+            ShareLink(item: cityLazy, preview: SharePreview(getLocalizedCityName(for: clock))) {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
         } label: {
@@ -1228,8 +1242,16 @@ struct HomeView: View {
                 }
             }
             
-            .onReceive(timer) { _ in
-                currentDate = Date()
+            .onReceive(timer) { now in
+                // Only update when the minute changes.
+                // The List displays "HH:mm" (no seconds) and all visual components
+                // (sky gradients, analog clock, etc.) are minute-level.
+                // This reduces full-body re-renders from 60×/min to 1×/min,
+                // eliminating frame drops during scrolling with many cities.
+                let cal = Calendar.current
+                if cal.component(.minute, from: now) != cal.component(.minute, from: currentDate) {
+                    currentDate = now
+                }
             }
             
             .onAppear {
