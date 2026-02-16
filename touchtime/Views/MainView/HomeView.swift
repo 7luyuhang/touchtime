@@ -1318,6 +1318,7 @@ struct HomeView: View {
                     currentDate: currentDate,
                     timeOffset: timeOffset
                 )
+                .environmentObject(weatherManager)
             }
             
             // Settings Sheet

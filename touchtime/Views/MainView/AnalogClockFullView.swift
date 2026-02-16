@@ -328,6 +328,7 @@ struct AnalogClockFullView: View {
                     currentDate: currentDate,
                     timeOffset: timeOffset
                 )
+                .environmentObject(weatherManager)
             }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(worldClocks: $worldClocks)

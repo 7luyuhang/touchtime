@@ -770,6 +770,7 @@ struct EarthView: View {
                     currentDate: currentDate,
                     timeOffset: 0
                 )
+                .environmentObject(weatherManager)
             }
             .sheet(isPresented: $showFlightTimeSheet) {
                 FlightTimeSheet(

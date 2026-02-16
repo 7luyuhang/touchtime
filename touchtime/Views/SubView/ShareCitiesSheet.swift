@@ -7,6 +7,23 @@
 
 import SwiftUI
 import UIKit
+import UniformTypeIdentifiers
+import WeatherKit
+
+// Lazy card image for deferred rendering (Share as Image)
+private struct ShareLazyCardImage: Transferable {
+    let render: () -> UIImage
+    
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .png) { lazy in
+            let image = lazy.render()
+            guard let data = image.pngData() else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            return data
+        }
+    }
+}
 
 struct ShareCitiesSheet: View {
     @Binding var worldClocks: [WorldClock]
@@ -17,6 +34,19 @@ struct ShareCitiesSheet: View {
     @AppStorage("showLocalTime") private var showLocalTimeInHome = true
     @AppStorage("customLocalName") private var customLocalName = ""
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("showSkyDot") private var showSkyDot = true
+    @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("analogClockShowScale") private var analogClockShowScale = false
+    @AppStorage("showSunPosition") private var showSunPosition = false
+    @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showSunriseSunset") private var showSunriseSunset = false
+    @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
+    
+    @EnvironmentObject private var weatherManager: WeatherManager
     
     let currentDate: Date
     let timeOffset: TimeInterval
@@ -82,6 +112,95 @@ struct ShareCitiesSheet: View {
         let allWorldClocksSelected = worldClocks.allSatisfy { selectedCities.contains($0.id) }
         let localTimeSelected = !showLocalTimeInHome || showLocalTime
         return allWorldClocksSelected && localTimeSelected
+    }
+    
+    // Single selection: exactly one city OR only Local
+    var isSingleSelection: Bool {
+        let hasLocal = showLocalTimeInHome && showLocalTime
+        let cityCount = selectedCities.count
+        return (hasLocal && cityCount == 0) || (!hasLocal && cityCount == 1)
+    }
+    
+    // Info for single selection (cityName, timeZoneIdentifier)
+    var singleSelectionInfo: (cityName: String, timeZoneIdentifier: String)? {
+        if showLocalTimeInHome && showLocalTime && selectedCities.isEmpty {
+            return (String(localized: "Local"), TimeZone.current.identifier)
+        }
+        if selectedCities.count == 1,
+           let clockId = selectedCities.first,
+           let clock = worldClocks.first(where: { $0.id == clockId }) {
+            return (clock.localizedCityName, clock.timeZoneIdentifier)
+        }
+        return nil
+    }
+    
+    // Get formatted date for city card
+    func getCityDate(timeZoneIdentifier: String) -> String {
+        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else { return "" }
+        let adjustedTime = currentDate.addingTimeInterval(timeOffset)
+        return adjustedTime.formattedDate(style: dateStyle, timeZone: targetTimeZone, relativeTo: currentDate)
+    }
+    
+    // Copy time as text
+    func copyTimeAsText() {
+        UIPasteboard.general.string = generateShareText()
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+    
+    // Render city card as image for sharing
+    func renderCardImage(cityName: String, timeZoneIdentifier: String) -> CardImage {
+        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+        
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        if use24HourFormat {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "h:mm"
+        }
+        let timeString = formatter.string(from: adjustedDate)
+        let dateString = getCityDate(timeZoneIdentifier: timeZoneIdentifier)
+        let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+        
+        let clock = WorldClock(cityName: cityName, timeZoneIdentifier: timeZoneIdentifier)
+        let additionalText = additionalTimeDisplay == "Time Difference" ? clock.timeDifference : clock.utcOffset
+        
+        let snapshotView = CityCardSnapshotView(
+            cityName: cityName,
+            timeString: timeString,
+            dateString: dateString,
+            date: adjustedDate,
+            timeZone: targetTimeZone,
+            timeZoneIdentifier: timeZoneIdentifier,
+            weatherCondition: weatherManager.weatherData[timeZoneIdentifier]?.condition,
+            showAnalogClock: showAnalogClock,
+            analogClockShowScale: analogClockShowScale,
+            showSunPosition: showSunPosition,
+            showWeatherCondition: showWeatherCondition,
+            showSunAzimuth: showSunAzimuth,
+            showSunriseSunset: showSunriseSunset,
+            showDaylight: showDaylight,
+            showSolarCurve: showSolarCurve,
+            additionalTimeDisplay: additionalTimeDisplay,
+            showSkyDot: showSkyDot,
+            additionalTimeText: additionalText
+        )
+        .environmentObject(weatherManager)
+        .environment(\.colorScheme, .dark)
+        
+        let renderer = ImageRenderer(content: snapshotView)
+        renderer.scale = 3
+        
+        if let uiImage = renderer.uiImage {
+            return CardImage(uiImage: uiImage)
+        }
+        let placeholderImage = UIImage(systemName: "photo") ?? UIImage()
+        return CardImage(uiImage: placeholderImage)
     }
     
     // Toggle all selections
@@ -253,10 +372,28 @@ struct ShareCitiesSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     // Only show share button if at least one city is selected
                     if !selectedCities.isEmpty || (showLocalTimeInHome && showLocalTime) {
-                        
-                        ShareLink(item: generateShareText()) {
-                            Text(String(localized: "Share"))
-                                .font(.headline)
+                        if isSingleSelection, let info = singleSelectionInfo {
+                            // Single selection: Menu with "Copy as Text" and "Share as Image"
+                            let lazyCard = ShareLazyCardImage { [self] in
+                                renderCardImage(cityName: info.cityName, timeZoneIdentifier: info.timeZoneIdentifier).uiImage
+                            }
+                            Menu {
+                                Button(action: copyTimeAsText) {
+                                    Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
+                                }
+                                ShareLink(item: lazyCard, preview: SharePreview(info.cityName)) {
+                                    Label(String(localized: "Share as Image"), systemImage: "camera.macro")
+                                }
+                            } label: {
+                                Text(String(localized: "Share"))
+                                    .font(.headline)
+                            }
+                        } else {
+                            // Multiple selections: direct ShareLink
+                            ShareLink(item: generateShareText()) {
+                                Text(String(localized: "Share"))
+                                    .font(.headline)
+                            }
                         }
                     }
                 }

@@ -336,6 +336,14 @@ struct SunriseSunsetSheet: View {
         return formatter.string(from: date)
     }
     
+    private func openCityInMap() {
+        guard let coords = getCoordinatesForTimeZone(timeZoneIdentifier) else { return }
+        let encodedCity = cityName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cityName
+        let urlString = "https://maps.apple.com/?ll=\(coords.latitude),\(coords.longitude)&q=\(encodedCity)"
+        guard let url = URL(string: urlString) else { return }
+        UIApplication.shared.open(url)
+    }
+    
     private func formatNextFullMoonDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
@@ -983,6 +991,7 @@ struct SunriseSunsetSheet: View {
                             }
                         }
                     }
+                    
                 }
                 .animation(.bouncy(), value: currentDetent)
             }
@@ -1066,6 +1075,24 @@ struct SunriseSunsetSheet: View {
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
+                    }
+                }
+                
+                if dstInfo != nil && getCoordinatesForTimeZone(timeZoneIdentifier) != nil {
+                    ToolbarSpacer(.fixed, placement: .bottomBar)
+                }
+                
+                // Open in Map
+                if getCoordinatesForTimeZone(timeZoneIdentifier) != nil {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            openCityInMap()
+                        } label: {
+                            Image(systemName: "map.fill")
+                        }
                     }
                 }
             }
