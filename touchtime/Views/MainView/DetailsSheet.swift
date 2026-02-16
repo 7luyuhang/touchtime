@@ -1091,7 +1091,7 @@ struct SunriseSunsetSheet: View {
                             }
                             openCityInMap()
                         } label: {
-                            Image(systemName: "map.fill")
+                            Image(systemName: "location.fill")
                         }
                     }
                 }

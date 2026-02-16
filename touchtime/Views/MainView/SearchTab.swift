@@ -399,7 +399,8 @@ struct TimeZonePickerViewWrapper: View {
             // Check if the same timezone already exists
             if let index = worldClocks.firstIndex(where: { $0.timeZoneIdentifier == identifier }) {
                 // If exists, remove it
-                worldClocks.remove(at: index)
+                let removedClock = worldClocks.remove(at: index)
+                CollectionsStore.removeCity(withId: removedClock.id)
                 saveWorldClocks()
             } else {
                 // If doesn't exist, add it
@@ -492,4 +493,3 @@ struct TimeZoneCellView: View {
         return formatter.string(from: currentDate)
     }
 }
-

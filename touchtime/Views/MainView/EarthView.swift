@@ -567,6 +567,7 @@ struct EarthView: View {
                                                     worldClocks.remove(at: index)
                                                     saveWorldClocks()
                                                 }
+                                                CollectionsStore.removeCity(withId: clock.id)
                                             }
                                         }) {
                                             Label("Delete", systemImage: "xmark.circle")
@@ -798,6 +799,7 @@ struct EarthView: View {
                         // Renaming a world clock
                         worldClocks[index].cityName = nameToSave
                         saveWorldClocks()
+                        CollectionsStore.renameCity(withId: clockId, to: nameToSave)
                     }
                     newClockName = ""
                     originalClockName = ""
