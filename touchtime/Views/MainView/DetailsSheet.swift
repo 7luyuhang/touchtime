@@ -260,7 +260,13 @@ struct SunriseSunsetSheet: View {
             formatter.pmSymbol = "pm"
         }
         
-        return formatter.string(from: date)
+        let formatted = formatter.string(from: date)
+        if use24HourFormat {
+            return formatted
+        }
+        
+        // Keep am/pm attached to the time so it won't wrap onto a second line.
+        return formatted.replacingOccurrences(of: " ", with: "\u{202F}")
     }
     
     private func formatDuration(from startDate: Date?, to endDate: Date?) -> String {
@@ -845,13 +851,19 @@ struct SunriseSunsetSheet: View {
                                         
                                         Text(formatTime(goldenHour.start))
                                             .monospacedDigit()
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.85)
                                         Image(systemName: "arrow.right")
                                             .font(.footnote.weight(.bold))
                                             .foregroundStyle(isInGoldenHour ? .yellow : .secondary)
                                             .animation(.spring(), value: isInGoldenHour)
                                         Text(formatTime(goldenHour.end))
                                             .monospacedDigit()
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.85)
                                     }
+                                    .lineLimit(1)
+                                    .layoutPriority(1)
                                 }
                                 .padding(16)
                                 .background(.white.opacity(0.05))
