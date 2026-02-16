@@ -1,0 +1,2 @@
+/* Photo Library Additions - shown when user saves city card to Photos */
+"NSPhotoLibraryAddUsageDescription" = "将城市卡片图片保存到您的相簿。";

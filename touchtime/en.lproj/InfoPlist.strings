@@ -1,0 +1,2 @@
+/* Photo Library Additions - shown when user saves city card to Photos */
+"NSPhotoLibraryAddUsageDescription" = "Save city card images to your Photo Library.";

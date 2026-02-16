@@ -23,6 +23,7 @@
 		5AA12FEF2EC34B01006D2534 /* Exceptions for "touchtime" folder in "touchtime" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				"/Localized: InfoPlist.strings",
 				"/Localized: Localizable.strings",
 				Info.plist,
 			);
