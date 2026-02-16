@@ -18,11 +18,6 @@ struct WorldClock: Identifiable, Codable, Equatable {
         self.timeZoneIdentifier = timeZoneIdentifier
     }
     
-    // 实现 Equatable 协议用于比较
-    static func == (lhs: WorldClock, rhs: WorldClock) -> Bool {
-        return lhs.id == rhs.id
-    }
-    
     // Get original city name from timezone identifier
     var originalCityName: String {
         let components = timeZoneIdentifier.split(separator: "/")

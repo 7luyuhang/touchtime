@@ -17,9 +17,4 @@ struct CityCollection: Identifiable, Codable, Equatable {
         self.name = name
         self.cities = cities
     }
-    
-    static func == (lhs: CityCollection, rhs: CityCollection) -> Bool {
-        return lhs.id == rhs.id
-    }
 }
-
