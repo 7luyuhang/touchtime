@@ -465,7 +465,7 @@ struct HomeView: View {
                 item: localCardImage,
                 preview: SharePreview(String(localized: "Local"), image: Image(uiImage: localCardImage.uiImage))
             ) {
-                Label(String(localized: "Copy as Image"), systemImage: "camera.macro")
+                Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
         } label: {
             Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // Local Share
@@ -498,7 +498,7 @@ struct HomeView: View {
                 item: cityCardImage,
                 preview: SharePreview(getLocalizedCityName(for: clock), image: Image(uiImage: cityCardImage.uiImage))
             ) {
-                Label(String(localized: "Copy as Image"), systemImage: "camera.macro")
+                Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
         } label: {
             Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // City Share
