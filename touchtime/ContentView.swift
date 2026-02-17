@@ -40,6 +40,8 @@ struct ContentView: View {
                             impactFeedback.impactOccurred()
                         }
                     }
+            } label: {
+                Label(String(localized: "Search"), systemImage: "plus")
             }
             }
             .tabViewStyle(.automatic)
