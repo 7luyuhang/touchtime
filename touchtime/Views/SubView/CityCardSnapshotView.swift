@@ -148,6 +148,6 @@ struct CityCardSnapshotView: View {
             }
             .padding(.horizontal, 8)
         }
-        .frame(width: 360, height: 360) // Ovarall Image Size
+        .frame(width: 360, height: 640) // 9:16 share frame ratio
     }
 }
