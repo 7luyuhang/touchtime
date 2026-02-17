@@ -356,8 +356,17 @@ struct OnboardingView: View {
                                 .font(.headline)
                                 .foregroundStyle(.primary)
                             
+                            
                             Spacer()
                             
+                            Text("Choose a complication to display more")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.secondary)
+                                .multilineTextAlignment(.center)
+                                .blendMode(.plusLighter)
+                                .padding(.horizontal, 32)
+                            
+                            // City Card + Complications
                             ZStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
@@ -412,6 +421,7 @@ struct OnboardingView: View {
                                 .padding()
                                 .padding(.bottom, -4)
                                 
+                                // Complications
                                 if showAnalogClock {
                                     AnalogClockView(
                                         date: currentDate,
@@ -600,6 +610,7 @@ struct OnboardingView: View {
                             
                             Spacer()
                             
+                            // Use your current location
                             HStack {
                                 Image(systemName: "location.fill")
                                     .font(.footnote.weight(.semibold))
@@ -608,7 +619,7 @@ struct OnboardingView: View {
                             }
                             .foregroundStyle(.secondary)
                             .blendMode(.plusLighter)
-                            .padding(.bottom, 24)
+                            .padding(.bottom, 16)
                             
                         }
                         .transition(.blurReplace())

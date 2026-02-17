@@ -268,6 +268,17 @@ struct SunriseSunsetSheet: View {
         // Keep am/pm attached to the time so it won't wrap onto a second line.
         return formatted.replacingOccurrences(of: " ", with: "\u{202F}")
     }
+
+    private func formatGoldenHourStartTime(_ date: Date?) -> String {
+        guard let date = date else { return "-" }
+
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = use24HourFormat ? "HH:mm" : "h:mm"
+
+        return formatter.string(from: date)
+    }
     
     private func formatDuration(from startDate: Date?, to endDate: Date?) -> String {
         guard let start = startDate, let end = endDate else { return "-" }
@@ -849,10 +860,9 @@ struct SunriseSunsetSheet: View {
                                             return false
                                         }()
                                         
-                                        Text(formatTime(goldenHour.start))
+                                        Text(formatGoldenHourStartTime(goldenHour.start))
                                             .monospacedDigit()
                                             .lineLimit(1)
-                                            .minimumScaleFactor(0.85)
                                         Image(systemName: "arrow.right")
                                             .font(.footnote.weight(.bold))
                                             .foregroundStyle(isInGoldenHour ? .yellow : .secondary)
@@ -860,7 +870,6 @@ struct SunriseSunsetSheet: View {
                                         Text(formatTime(goldenHour.end))
                                             .monospacedDigit()
                                             .lineLimit(1)
-                                            .minimumScaleFactor(0.85)
                                     }
                                     .lineLimit(1)
                                     .layoutPriority(1)
