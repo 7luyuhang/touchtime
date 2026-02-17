@@ -140,7 +140,7 @@ struct OnboardingView: View {
             var events = [CHHapticEvent]()
             
             // Create multiple short, light taps in succession for a continuous feel
-            for i in 0..<8 {
+            for i in 0..<4 {
                 let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5)
                 let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
                 
