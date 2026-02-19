@@ -10,7 +10,7 @@ import SafariServices
 
 struct AboutView: View {
     @Binding var worldClocks: [WorldClock]
-    @StateObject private var weatherManager = WeatherManager()
+    @ObservedObject var weatherManager: WeatherManager
     @State private var showOnboarding = false
     @State private var showResetConfirmation = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -259,5 +259,8 @@ extension URL: @retroactive Identifiable {
 }
 
 #Preview {
-    AboutView(worldClocks: .constant([]))
+    AboutView(
+        worldClocks: .constant([]),
+        weatherManager: WeatherManager()
+    )
 }

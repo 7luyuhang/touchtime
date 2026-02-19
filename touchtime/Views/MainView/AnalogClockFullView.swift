@@ -336,7 +336,10 @@ struct AnalogClockFullView: View {
                 )
             }
             .sheet(isPresented: $showEarthView) {
-                EarthView(worldClocks: $worldClocks)
+                EarthView(
+                    worldClocks: $worldClocks,
+                    weatherManager: weatherManager
+                )
                     .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
             }
             .sheet(isPresented: $showTimeAdjustmentSheet) {

@@ -766,7 +766,7 @@ struct SettingsView: View {
                 }
                     .foregroundStyle(.primary)
                 ) {
-                    NavigationLink(destination: AboutView(worldClocks: $worldClocks)) {
+                    NavigationLink(destination: AboutView(worldClocks: $worldClocks, weatherManager: weatherManager)) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "info.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
                             Text("About")

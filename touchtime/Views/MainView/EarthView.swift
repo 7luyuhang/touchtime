@@ -16,6 +16,7 @@ import WeatherKit
 
 struct EarthView: View {
     @Binding var worldClocks: [WorldClock]
+    @ObservedObject var weatherManager: WeatherManager
     @State private var position = MapCameraPosition.region(MKCoordinateRegion(
         center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
         span: MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
@@ -47,7 +48,6 @@ struct EarthView: View {
     @AppStorage("showMapLabels") private var showMapLabels = true // 默认显示地图标签
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     
-    @StateObject private var weatherManager = WeatherManager()
     @Environment(\.dismiss) private var dismiss
     
     // Namespace for Glass Effect morphing
