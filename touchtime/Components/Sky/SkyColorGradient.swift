@@ -482,153 +482,141 @@ struct SkyColorGradient {
     }
     
     // MARK: - Rainy Sky Gradient
-    // Atmospheric science of rain (Thinner Nimbostratus / Stratus):
-    // - Optical Depth is lower: Sunlight penetrates diffusely (translucent).
-    // - Mie scattering dominates but allows underlying solar spectrum to tint the clouds.
-    // - Forward scattering creates a "silver lining" or bright area near the sun position.
-    // - Golden Hour/Sunset: Long optical path lengths turn the transmitted light warm (orange/red),
-    //   which mixes with the cloud's grey/white scattering to create muted purples, mauves, and warm greys.
-    // - "Blue Hour" is visible as a deep, moody blue rather than flat black-grey.
+    // Atmospheric model for calm overcast rain:
+    // - Mie scattering dominates, making the sky low-saturation and soft.
+    // - Horizon is slightly brighter from forward scattering near low sun angles.
+    // - Warm sunrise/sunset hues are intentionally suppressed to keep a cool, quiet mood.
     private var rainyColors: [Color] {
         let normalizedTime = timeValue.truncatingRemainder(dividingBy: 24)
         
         switch normalizedTime {
         case 0..<4:
-            // Night rain — Calm Dark Blue-Grey (Urban light reflection + Moon diffusion)
-            // Lighter than clear night due to cloud reflection (Mie scattering)
+            // Night rain: dark slate with subtle cloud-brightened horizon.
             let progress = normalizedTime / 4
             return [
-                Color(red: 0.10, green: 0.12, blue: 0.16), // Zenith
-                Color(red: 0.12, green: 0.14, blue: 0.19),
-                Color(red: 0.14, green: 0.16, blue: 0.22),
-                Color(red: 0.15 + 0.02 * (1 - progress), green: 0.17 + 0.02 * (1 - progress), blue: 0.24) // Horizon
+                Color(red: 0.09 + 0.02 * progress, green: 0.11 + 0.02 * progress, blue: 0.16 + 0.03 * progress),
+                Color(red: 0.12 + 0.02 * progress, green: 0.14 + 0.02 * progress, blue: 0.20 + 0.03 * progress),
+                Color(red: 0.15 + 0.03 * progress, green: 0.17 + 0.03 * progress, blue: 0.24 + 0.04 * progress),
+                Color(red: 0.18 + 0.03 * progress, green: 0.20 + 0.03 * progress, blue: 0.27 + 0.04 * progress)
             ]
             
         case 4..<5:
-            // Astronomical twilight — Softening Darkness
+            // Astronomical twilight: darkness lifts into cold steel-blue.
             let progress = (normalizedTime - 4)
             return [
-                Color(red: 0.12, green: 0.14, blue: 0.18),
-                Color(red: 0.15 + 0.03 * progress, green: 0.17 + 0.03 * progress, blue: 0.22 + 0.04 * progress),
-                Color(red: 0.18 + 0.04 * progress, green: 0.20 + 0.04 * progress, blue: 0.26 + 0.05 * progress),
-                Color(red: 0.20 + 0.05 * progress, green: 0.22 + 0.05 * progress, blue: 0.30 + 0.06 * progress)
+                Color(red: 0.11 + 0.02 * progress, green: 0.13 + 0.02 * progress, blue: 0.19 + 0.04 * progress),
+                Color(red: 0.15 + 0.03 * progress, green: 0.17 + 0.03 * progress, blue: 0.24 + 0.04 * progress),
+                Color(red: 0.19 + 0.03 * progress, green: 0.21 + 0.03 * progress, blue: 0.29 + 0.04 * progress),
+                Color(red: 0.23 + 0.04 * progress, green: 0.25 + 0.04 * progress, blue: 0.34 + 0.04 * progress)
             ]
             
         case 5..<6:
-            // Nautical twilight — Muted Blue-Grey (Not too saturated)
+            // Nautical twilight: diffuse light increases, still neutral-cool.
             let progress = (normalizedTime - 5)
             return [
-                Color(red: 0.18, green: 0.20, blue: 0.28),
-                Color(red: 0.25 + 0.05 * progress, green: 0.27 + 0.05 * progress, blue: 0.35 + 0.06 * progress),
-                Color(red: 0.30 + 0.06 * progress, green: 0.32 + 0.06 * progress, blue: 0.40 + 0.07 * progress),
-                Color(red: 0.35 + 0.08 * progress, green: 0.37 + 0.08 * progress, blue: 0.45 + 0.08 * progress)
+                Color(red: 0.13 + 0.04 * progress, green: 0.15 + 0.04 * progress, blue: 0.23 + 0.06 * progress),
+                Color(red: 0.18 + 0.06 * progress, green: 0.20 + 0.06 * progress, blue: 0.28 + 0.06 * progress),
+                Color(red: 0.22 + 0.07 * progress, green: 0.24 + 0.07 * progress, blue: 0.33 + 0.06 * progress),
+                Color(red: 0.27 + 0.08 * progress, green: 0.29 + 0.08 * progress, blue: 0.38 + 0.06 * progress)
             ]
             
         case 6..<7:
-            // Civil twilight — Cool Silver-Lavender
-            // Brighter, less moody, preparing for sunrise
+            // Civil twilight: brighter overcast, no orange sunrise push.
             let progress = (normalizedTime - 6)
             return [
-                Color(red: 0.25, green: 0.28, blue: 0.35),
-                Color(red: 0.35 + 0.05 * progress, green: 0.38 + 0.05 * progress, blue: 0.45 + 0.04 * progress),
-                Color(red: 0.45 + 0.06 * progress, green: 0.47 + 0.06 * progress, blue: 0.52 + 0.05 * progress),
-                Color(red: 0.50 + 0.08 * progress, green: 0.52 + 0.08 * progress, blue: 0.58 + 0.06 * progress)
+                Color(red: 0.17 + 0.06 * progress, green: 0.19 + 0.06 * progress, blue: 0.29 + 0.06 * progress),
+                Color(red: 0.24 + 0.07 * progress, green: 0.26 + 0.07 * progress, blue: 0.34 + 0.07 * progress),
+                Color(red: 0.29 + 0.08 * progress, green: 0.31 + 0.08 * progress, blue: 0.39 + 0.07 * progress),
+                Color(red: 0.35 + 0.09 * progress, green: 0.37 + 0.09 * progress, blue: 0.44 + 0.07 * progress)
             ]
             
         case 7..<8:
-            // Sunrise — Warm Grey / Muted Mauve
-            // Sun trying to break through thin clouds
+            // Sunrise window: brighter horizon from geometry, still cool-grey.
             let progress = (normalizedTime - 7)
             return [
-                Color(red: 0.40 + 0.10 * progress, green: 0.42 + 0.10 * progress, blue: 0.50 + 0.10 * progress), // Zenith
-                Color(red: 0.55 + 0.10 * progress, green: 0.55 + 0.10 * progress, blue: 0.60 + 0.10 * progress),
-                Color(red: 0.65 + 0.08 * progress, green: 0.63 + 0.08 * progress, blue: 0.65 + 0.08 * progress),
-                Color(red: 0.70 + 0.05 * progress, green: 0.68 + 0.05 * progress, blue: 0.68 + 0.05 * progress) // Horizon (Warmest)
+                Color(red: 0.23 + 0.07 * progress, green: 0.25 + 0.07 * progress, blue: 0.35 + 0.07 * progress),
+                Color(red: 0.31 + 0.08 * progress, green: 0.33 + 0.08 * progress, blue: 0.41 + 0.07 * progress),
+                Color(red: 0.37 + 0.08 * progress, green: 0.39 + 0.08 * progress, blue: 0.46 + 0.07 * progress),
+                Color(red: 0.44 + 0.08 * progress, green: 0.46 + 0.08 * progress, blue: 0.51 + 0.07 * progress)
             ]
             
         case 8..<11:
-            // Morning — Brightening to Silver-White
-            // Mie scattering makes sky white/grey, not blue
+            // Morning overcast: high diffuse skylight, silver-blue cast.
             let progress = (normalizedTime - 8) / 3
             return [
-                Color(red: 0.50 + 0.08 * progress, green: 0.52 + 0.08 * progress, blue: 0.60 + 0.05 * progress),
-                Color(red: 0.65 + 0.03 * progress, green: 0.67 + 0.03 * progress, blue: 0.72 + 0.03 * progress),
-                Color(red: 0.73 + 0.02 * progress, green: 0.75 + 0.02 * progress, blue: 0.78 + 0.02 * progress),
-                Color(red: 0.75 + 0.04 * progress, green: 0.77 + 0.04 * progress, blue: 0.80 + 0.03 * progress)
+                Color(red: 0.30 + 0.12 * progress, green: 0.32 + 0.12 * progress, blue: 0.42 + 0.09 * progress),
+                Color(red: 0.39 + 0.11 * progress, green: 0.41 + 0.11 * progress, blue: 0.48 + 0.08 * progress),
+                Color(red: 0.45 + 0.10 * progress, green: 0.47 + 0.10 * progress, blue: 0.53 + 0.08 * progress),
+                Color(red: 0.52 + 0.09 * progress, green: 0.54 + 0.09 * progress, blue: 0.58 + 0.08 * progress)
             ]
             
         case 11..<14:
-            // Noon — Bright Overcast (Silver/White)
-            // Maximum light penetration, very calm and neutral
+            // Noon: brightest but still cool and desaturated.
             return [
-                Color(red: 0.58, green: 0.60, blue: 0.65), // Zenith (Soft Grey)
-                Color(red: 0.68, green: 0.70, blue: 0.75),
-                Color(red: 0.75, green: 0.77, blue: 0.80),
-                Color(red: 0.79, green: 0.81, blue: 0.83)  // Horizon (Brightest)
+                Color(red: 0.42, green: 0.44, blue: 0.51),
+                Color(red: 0.50, green: 0.52, blue: 0.56),
+                Color(red: 0.56, green: 0.58, blue: 0.62),
+                Color(red: 0.61, green: 0.63, blue: 0.67)
             ]
             
         case 14..<17:
-            // Afternoon — Gentle darkening
+            // Afternoon: gradual dimming while preserving soft contrast.
             let progress = (normalizedTime - 14) / 3
             return [
-                Color(red: 0.58 - 0.10 * progress, green: 0.60 - 0.10 * progress, blue: 0.65 - 0.08 * progress),
-                Color(red: 0.68 - 0.10 * progress, green: 0.70 - 0.10 * progress, blue: 0.75 - 0.08 * progress),
-                Color(red: 0.75 - 0.10 * progress, green: 0.77 - 0.10 * progress, blue: 0.80 - 0.09 * progress),
-                Color(red: 0.79 - 0.10 * progress, green: 0.81 - 0.10 * progress, blue: 0.83 - 0.10 * progress)
+                Color(red: 0.42 - 0.09 * progress, green: 0.44 - 0.09 * progress, blue: 0.51 - 0.07 * progress),
+                Color(red: 0.50 - 0.09 * progress, green: 0.52 - 0.09 * progress, blue: 0.56 - 0.07 * progress),
+                Color(red: 0.56 - 0.08 * progress, green: 0.58 - 0.08 * progress, blue: 0.62 - 0.07 * progress),
+                Color(red: 0.61 - 0.08 * progress, green: 0.63 - 0.08 * progress, blue: 0.67 - 0.07 * progress)
             ]
             
         case 17..<18:
-            // Late Afternoon — Cooling down
-            // Losing the brightness, turning to muted grey-blue
+            // Late afternoon: low-angle light, horizon remains only slightly brighter.
             let progress = (normalizedTime - 17)
             return [
-                Color(red: 0.48 - 0.08 * progress, green: 0.50 - 0.08 * progress, blue: 0.57 - 0.05 * progress),
-                Color(red: 0.58 - 0.08 * progress, green: 0.60 - 0.08 * progress, blue: 0.67 - 0.07 * progress),
-                Color(red: 0.65 - 0.10 * progress, green: 0.67 - 0.10 * progress, blue: 0.71 - 0.11 * progress),
-                Color(red: 0.69 - 0.11 * progress, green: 0.71 - 0.11 * progress, blue: 0.73 - 0.13 * progress)
+                Color(red: 0.33 - 0.04 * progress, green: 0.35 - 0.04 * progress, blue: 0.44 - 0.05 * progress),
+                Color(red: 0.41 - 0.05 * progress, green: 0.43 - 0.05 * progress, blue: 0.49 - 0.06 * progress),
+                Color(red: 0.48 - 0.06 * progress, green: 0.50 - 0.06 * progress, blue: 0.55 - 0.07 * progress),
+                Color(red: 0.53 - 0.07 * progress, green: 0.55 - 0.07 * progress, blue: 0.60 - 0.08 * progress)
             ]
             
         case 18..<19:
-            // Sunset Rain — Muted Purple/Warm Grey
-            // Not indigo yet. The sun is setting behind clouds.
+            // Sunset period under cloud: avoid orange, stay steel-blue.
             let progress = (normalizedTime - 18)
             return [
-                Color(red: 0.40 - 0.10 * progress, green: 0.42 - 0.12 * progress, blue: 0.52 - 0.10 * progress),
-                Color(red: 0.50 - 0.10 * progress, green: 0.52 - 0.12 * progress, blue: 0.60 - 0.10 * progress),
-                Color(red: 0.55 - 0.10 * progress, green: 0.57 - 0.15 * progress, blue: 0.60 - 0.12 * progress),
-                Color(red: 0.58 - 0.12 * progress, green: 0.60 - 0.18 * progress, blue: 0.60 - 0.15 * progress) // Horizon (Fading warmth)
+                Color(red: 0.29 - 0.04 * progress, green: 0.31 - 0.04 * progress, blue: 0.39 - 0.04 * progress),
+                Color(red: 0.36 - 0.05 * progress, green: 0.38 - 0.05 * progress, blue: 0.43 - 0.05 * progress),
+                Color(red: 0.42 - 0.06 * progress, green: 0.44 - 0.06 * progress, blue: 0.48 - 0.06 * progress),
+                Color(red: 0.46 - 0.07 * progress, green: 0.48 - 0.07 * progress, blue: 0.52 - 0.07 * progress)
             ]
             
         case 19..<20:
-            // Civil Dusk Rain — Transition to Night
-            // Grey-blue taking over
+            // Civil dusk: stronger cooling and desaturation.
             let progress = (normalizedTime - 19)
             return [
-                Color(red: 0.30 - 0.10 * progress, green: 0.30 - 0.10 * progress, blue: 0.42 - 0.12 * progress),
-                Color(red: 0.40 - 0.12 * progress, green: 0.40 - 0.12 * progress, blue: 0.50 - 0.15 * progress),
-                Color(red: 0.45 - 0.15 * progress, green: 0.42 - 0.15 * progress, blue: 0.48 - 0.16 * progress),
-                Color(red: 0.46 - 0.16 * progress, green: 0.42 - 0.16 * progress, blue: 0.45 - 0.15 * progress)
+                Color(red: 0.25 - 0.05 * progress, green: 0.27 - 0.05 * progress, blue: 0.35 - 0.05 * progress),
+                Color(red: 0.31 - 0.07 * progress, green: 0.33 - 0.07 * progress, blue: 0.38 - 0.06 * progress),
+                Color(red: 0.36 - 0.08 * progress, green: 0.38 - 0.08 * progress, blue: 0.42 - 0.07 * progress),
+                Color(red: 0.39 - 0.09 * progress, green: 0.41 - 0.09 * progress, blue: 0.45 - 0.08 * progress)
             ]
             
         case 20..<21:
-            // Nautical Dusk — Deepening Grey-Blue
+            // Nautical dusk: transition into rain-soaked night tones.
             let progress = (normalizedTime - 20)
             return [
-                Color(red: 0.20 - 0.05 * progress, green: 0.20 - 0.05 * progress, blue: 0.30 - 0.08 * progress),
-                Color(red: 0.28 - 0.08 * progress, green: 0.28 - 0.08 * progress, blue: 0.35 - 0.10 * progress),
-                Color(red: 0.30 - 0.10 * progress, green: 0.27 - 0.10 * progress, blue: 0.32 - 0.10 * progress),
-                Color(red: 0.30 - 0.10 * progress, green: 0.26 - 0.10 * progress, blue: 0.30 - 0.10 * progress)
+                Color(red: 0.20 - 0.04 * progress, green: 0.22 - 0.04 * progress, blue: 0.30 - 0.05 * progress),
+                Color(red: 0.24 - 0.05 * progress, green: 0.26 - 0.05 * progress, blue: 0.32 - 0.06 * progress),
+                Color(red: 0.28 - 0.06 * progress, green: 0.30 - 0.06 * progress, blue: 0.35 - 0.06 * progress),
+                Color(red: 0.30 - 0.06 * progress, green: 0.32 - 0.07 * progress, blue: 0.37 - 0.07 * progress)
             ]
             
         default:
-            // Night rain (21:00-24:00) — Calm Dark Blue-Grey
-            // Matching the 0-4 start
+            // Late night rain: smooth return to pre-dawn palette.
             let progress = min((normalizedTime - 21) / 3, 1)
             return [
-                Color(red: 0.15 - 0.05 * progress, green: 0.15 - 0.03 * progress, blue: 0.22 - 0.06 * progress),
-                Color(red: 0.20 - 0.08 * progress, green: 0.20 - 0.06 * progress, blue: 0.25 - 0.06 * progress),
-                Color(red: 0.20 - 0.06 * progress, green: 0.17 - 0.01 * progress, blue: 0.22 - 0.00 * progress),
-                Color(red: 0.20 - 0.05 * progress, green: 0.16 + 0.01 * progress, blue: 0.20 + 0.04 * progress)
+                Color(red: 0.16 - 0.05 * progress, green: 0.18 - 0.05 * progress, blue: 0.25 - 0.07 * progress),
+                Color(red: 0.19 - 0.06 * progress, green: 0.21 - 0.06 * progress, blue: 0.26 - 0.07 * progress),
+                Color(red: 0.22 - 0.07 * progress, green: 0.24 - 0.06 * progress, blue: 0.29 - 0.07 * progress),
+                Color(red: 0.24 - 0.06 * progress, green: 0.25 - 0.05 * progress, blue: 0.30 - 0.06 * progress)
             ]
         }
     }
