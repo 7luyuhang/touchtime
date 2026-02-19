@@ -40,7 +40,7 @@ struct SettingsView: View {
     @State private var showSupportLove = false
     @State private var showComplicationsSheet = false
     @Environment(\.dismiss) private var dismiss
-    @StateObject private var weatherManager = WeatherManager()
+    @ObservedObject var weatherManager: WeatherManager
     
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()

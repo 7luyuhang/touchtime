@@ -1323,7 +1323,10 @@ struct HomeView: View {
             
             // Settings Sheet
             .sheet(isPresented: $showSettingsSheet) {
-                SettingsView(worldClocks: $worldClocks)
+                SettingsView(
+                    worldClocks: $worldClocks,
+                    weatherManager: weatherManager
+                )
             }
             .onChange(of: showSettingsSheet) { oldValue, newValue in
                 if !newValue && oldValue { // Sheet was dismissed

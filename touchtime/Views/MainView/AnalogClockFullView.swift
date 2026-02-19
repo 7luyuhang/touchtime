@@ -331,7 +331,10 @@ struct AnalogClockFullView: View {
                 .environmentObject(weatherManager)
             }
             .sheet(isPresented: $showSettingsSheet) {
-                SettingsView(worldClocks: $worldClocks)
+                SettingsView(
+                    worldClocks: $worldClocks,
+                    weatherManager: weatherManager
+                )
             }
             .sheet(isPresented: $showEarthView) {
                 EarthView(worldClocks: $worldClocks)
