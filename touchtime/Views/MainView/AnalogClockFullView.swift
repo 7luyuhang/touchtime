@@ -19,6 +19,7 @@ struct AnalogClockFullView: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
     @Binding var showScrollTimeButtons: Bool
+    @ObservedObject var weatherManager: WeatherManager
     @State private var currentDate = Date()
     @State private var selectedCityId: UUID? = nil // nil means Local is selected
     @State private var showDetailsSheet = false
@@ -35,8 +36,6 @@ struct AnalogClockFullView: View {
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
-    
-    @StateObject private var weatherManager = WeatherManager()
     
     // Namespace for zoom transition
     @Namespace private var earthViewNamespace

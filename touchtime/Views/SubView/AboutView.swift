@@ -10,6 +10,7 @@ import SafariServices
 
 struct AboutView: View {
     @Binding var worldClocks: [WorldClock]
+    @StateObject private var weatherManager = WeatherManager()
     @State private var showOnboarding = false
     @State private var showResetConfirmation = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -188,7 +189,7 @@ struct AboutView: View {
                         showOnboarding = false
                     }
                 }
-            ))
+            ), weatherManager: weatherManager)
             .overlay(alignment: .topTrailing) {
                 Button(action: {
                     showOnboarding = false

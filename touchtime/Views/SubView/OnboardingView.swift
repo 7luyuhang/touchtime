@@ -62,6 +62,7 @@ struct DotMatrixOverlay: View {
 
 struct OnboardingView: View {
     @Binding var hasCompletedOnboarding: Bool
+    @ObservedObject var weatherManager: WeatherManager
     var isReviewing: Bool = false  // True when showing from Settings
     @State private var animateIcon = false
     @State private var animateText = false
@@ -70,7 +71,6 @@ struct OnboardingView: View {
     @State private var animateFeatures = false
     @State private var currentDate = Date()
     @State private var hapticEngine: CHHapticEngine?
-    @StateObject private var weatherManager = WeatherManager()
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
@@ -806,6 +806,9 @@ struct FeatureRow: View {
 }
 
 #Preview {
-    OnboardingView(hasCompletedOnboarding: .constant(false))
+    OnboardingView(
+        hasCompletedOnboarding: .constant(false),
+        weatherManager: WeatherManager()
+    )
         .preferredColorScheme(.dark)
 }

@@ -10,6 +10,7 @@ import SwiftUI
 struct ContentView: View {
     @State private var worldClocks: [WorldClock] = []
     @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
+    @StateObject private var weatherManager = WeatherManager()
     
     // Shared time offset state for HomeView and AnalogClockFullView
     @State private var timeOffset: TimeInterval = 0
@@ -24,11 +25,21 @@ struct ContentView: View {
         if hasCompletedOnboarding {
             TabView {
             Tab(String(localized: "List"), systemImage: "list.bullet") {
-                HomeView(worldClocks: $worldClocks, timeOffset: $timeOffset, showScrollTimeButtons: $showScrollTimeButtons)
+                HomeView(
+                    worldClocks: $worldClocks,
+                    timeOffset: $timeOffset,
+                    showScrollTimeButtons: $showScrollTimeButtons,
+                    weatherManager: weatherManager
+                )
             }
             
             Tab(String(localized: "Clock"), systemImage: "clock") {
-                AnalogClockFullView(worldClocks: $worldClocks, timeOffset: $timeOffset, showScrollTimeButtons: $showScrollTimeButtons)
+                AnalogClockFullView(
+                    worldClocks: $worldClocks,
+                    timeOffset: $timeOffset,
+                    showScrollTimeButtons: $showScrollTimeButtons,
+                    weatherManager: weatherManager
+                )
             }
             
             Tab(role: .search) {
@@ -49,7 +60,10 @@ struct ContentView: View {
                 loadWorldClocks()
             }
         } else {
-            OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
+            OnboardingView(
+                hasCompletedOnboarding: $hasCompletedOnboarding,
+                weatherManager: weatherManager
+            )
         }
     }
     

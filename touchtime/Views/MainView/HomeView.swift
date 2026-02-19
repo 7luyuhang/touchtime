@@ -130,6 +130,7 @@ struct HomeView: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
     @Binding var showScrollTimeButtons: Bool
+    @ObservedObject var weatherManager: WeatherManager
     @State private var currentDate = Date()
     @State private var showingRenameAlert = false
     @State private var renamingClockId: UUID? = nil
@@ -194,8 +195,6 @@ struct HomeView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
-    
-    @StateObject private var weatherManager = WeatherManager()
     
     // Namespace for zoom transition
     @Namespace private var earthViewNamespace
