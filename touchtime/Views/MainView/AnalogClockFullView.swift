@@ -466,6 +466,7 @@ struct AnalogClockFaceView: View {
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
@@ -717,6 +718,14 @@ struct AnalogClockFaceView: View {
         return (components.hour ?? 0, components.minute ?? 0)
     }
     
+    // Get UTC time components
+    private var utcTime: (hour: Int, minute: Int) {
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        return (components.hour ?? 0, components.minute ?? 0)
+    }
+    
     // Get time for a specific timezone
     private func getTime(for timeZoneIdentifier: String) -> (hour: Int, minute: Int) {
         guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
@@ -895,6 +904,7 @@ struct AnalogClockFaceView: View {
             // Hour numbers
             HourNumbersView(size: size)
             
+            
             // Golden hour indicator (yellow)
             if showGoldenHour, let times = sunTimes,
                let goldenHourStartAngle = angleForDate(times.goldenHourStart),
@@ -987,6 +997,17 @@ struct AnalogClockFaceView: View {
                 .position(x: size / 2, y: size / 2 - (size / 2 - 62))
                 .contentTransition(.symbolEffect(.replace))
                 .animation(.spring(), value: moonPhaseIcon)
+            
+            
+            // UTC Hand
+            if additionalTimeDisplay == "UTC" {
+                UTCClockHandView(
+                    hour: utcTime.hour,
+                    minute: utcTime.minute,
+                    size: size
+                )
+                .allowsHitTesting(false)
+            }
             
             // World clock hands with city labels (non-selected first)
             // Grouped by time to avoid overlapping labels - only one city shown per unique time
@@ -1251,6 +1272,39 @@ struct ClockHandWithLabel: View {
             .rotationEffect(.degrees(-90 + textCounterRotation))
             // Position closer to center
             .offset(y: -(size / 2 - 95))
+        }
+        .animation(.none, value: angle)
+        .rotationEffect(.degrees(angle))
+    }
+}
+
+// MARK: - UTC Clock Hand
+struct UTCClockHandView: View {
+    let hour: Int
+    let minute: Int
+    let size: CGFloat
+    
+    private var angle: Double {
+        let hourAngle = Double(hour) * 15.0
+        let minuteAngle = Double(minute) * 0.25
+        return hourAngle + minuteAngle
+    }
+    
+    private var handLength: CGFloat {
+        max(size / 2 - 20, 0)
+    }
+    
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.red)
+                .frame(width: 2, height: handLength)
+                .offset(y: -handLength / 2)
+            
+            Circle()
+                .fill(.red)
+                .frame(width: 8, height: 8)
+                .offset(y: -handLength)
         }
         .animation(.none, value: angle)
         .rotationEffect(.degrees(angle))

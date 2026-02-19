@@ -218,8 +218,9 @@ struct OnboardingView: View {
                 .ignoresSafeArea()
             
             SkyColorGradient(
-                date: Date(),
-                timeZoneIdentifier: TimeZone.current.identifier
+                date: currentDate,
+                timeZoneIdentifier: TimeZone.current.identifier,
+                weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
             )
             .linearGradient()
             .blendMode(.plusLighter)
