@@ -856,6 +856,29 @@ struct AnalogClockFaceView: View {
         Self.moonPhaseCache.setObject(MoonPhaseWrapper(icon), forKey: cacheKey)
         return icon
     }
+
+    private var moonPhaseName: String {
+        switch moonPhaseIcon {
+        case "moonphase.new.moon":
+            return String(localized: "New Moon")
+        case "moonphase.waxing.crescent":
+            return String(localized: "Waxing Crescent")
+        case "moonphase.first.quarter":
+            return String(localized: "First Quarter")
+        case "moonphase.waxing.gibbous":
+            return String(localized: "Waxing Gibbous")
+        case "moonphase.full.moon":
+            return String(localized: "Full Moon")
+        case "moonphase.waning.gibbous":
+            return String(localized: "Waning Gibbous")
+        case "moonphase.last.quarter":
+            return String(localized: "Last Quarter")
+        case "moonphase.waning.crescent":
+            return String(localized: "Waning Crescent")
+        default:
+            return String(localized: "Moon")
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -997,6 +1020,14 @@ struct AnalogClockFaceView: View {
                 .position(x: size / 2,  y: size / 2 + (size / 2 - 64))
                 .contentTransition(.symbolEffect(.replace))
                 .animation(.spring(), value: weather?.condition)
+
+            if hideOtherHands, showWeather, let weather {
+                Text(weather.condition.displayName)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .position(x: size / 2, y: size / 2 + (size / 2 - 64) / 2)
+            }
             
             // Moon phase icon
             Image(systemName: moonPhaseIcon)
@@ -1007,6 +1038,16 @@ struct AnalogClockFaceView: View {
                 .position(x: size / 2, y: size / 2 - (size / 2 - 62))
                 .contentTransition(.symbolEffect(.replace))
                 .animation(.spring(), value: moonPhaseIcon)
+
+            if hideOtherHands {
+                Text(moonPhaseName)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .position(x: size / 2, y: size / 2 - (size / 2 - 62) / 2)
+                    .contentTransition(.numericText())
+                    .animation(.spring(), value: moonPhaseName)
+            }
             
             
             // UTC Hand
