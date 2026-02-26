@@ -229,6 +229,11 @@ struct HomeView: View {
         let formatter = Self.timeFormatter(for: timeZone, use24Hour: use24HourFormat)
         return formatter.string(from: currentDate.addingTimeInterval(timeOffset))
     }
+
+    private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
+        guard showWeather else { return nil }
+        return weatherManager.weatherData[timeZoneIdentifier]?.condition
+    }
     
     // Get local city name from timezone
     var localCityName: String {
@@ -468,7 +473,7 @@ struct HomeView: View {
             renderCardImage(
                 cityName: String(localized: "Local"),
                 timeZoneIdentifier: TimeZone.current.identifier,
-                weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+                weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
             ).uiImage
         }
         Menu {
@@ -501,7 +506,7 @@ struct HomeView: View {
             renderCardImage(
                 cityName: getLocalizedCityName(for: clock),
                 timeZoneIdentifier: clock.timeZoneIdentifier,
-                weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
+                weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
             ).uiImage
         }
         Menu {
@@ -576,6 +581,7 @@ struct HomeView: View {
     // Render city card as image for sharing
     func renderCardImage(cityName: String, timeZoneIdentifier: String, weatherCondition: WeatherCondition? = nil) -> CardImage {
         let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+        let effectiveWeatherCondition = showWeather ? weatherCondition : nil
         
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
@@ -605,7 +611,7 @@ struct HomeView: View {
             date: adjustedDate,
             timeZone: targetTimeZone,
             timeZoneIdentifier: timeZoneIdentifier,
-            weatherCondition: weatherCondition,
+            weatherCondition: effectiveWeatherCondition,
             showAnalogClock: showAnalogClock,
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,
@@ -808,7 +814,7 @@ struct HomeView: View {
                                     showSkyDot ? SkyBackgroundView(
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZoneIdentifier: TimeZone.current.identifier,
-                                        weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+                                        weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
                                     ) : nil
                                 )
                                 .id("local-\(showSkyDot)")
@@ -921,7 +927,7 @@ struct HomeView: View {
                                                     SkyDotView(
                                                         date: currentDate.addingTimeInterval(timeOffset),
                                                         timeZoneIdentifier: clock.timeZoneIdentifier,
-                                                        weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
+                                                        weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
                                                     )
                                                 }
                                                 
@@ -990,7 +996,7 @@ struct HomeView: View {
                                     showSkyDot ? SkyBackgroundView(
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZoneIdentifier: clock.timeZoneIdentifier,
-                                        weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
+                                        weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
                                     ) : nil
                                 )
                                 .id("\(clock.id)-\(showSkyDot)")
@@ -1054,7 +1060,7 @@ struct HomeView: View {
                     .transition(.identity) // Collection Animation
                     // Centralized batch weather prefetch for all displayed cities
                     .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(showWeatherCondition)_\(showSkyDot)") {
-                        if showWeather || showWeatherCondition || showSkyDot {
+                        if showWeather || showWeatherCondition {
                             var identifiers = displayedClocks.map(\.timeZoneIdentifier)
                             if showLocalTime {
                                 identifiers.insert(TimeZone.current.identifier, at: 0)
@@ -1085,7 +1091,7 @@ struct HomeView: View {
                             SkyBackgroundView(
                                 date: currentDate.addingTimeInterval(timeOffset),
                                 timeZoneIdentifier: TimeZone.current.identifier,
-                                weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+                                weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
                             )
                             .frame(width: 500, height: 500)
                             .blur(radius: 50)

@@ -191,6 +191,8 @@
 "Sort by" = "排序方式";
 "West to East" = "從西向東";
 "East to West" = "從東向西";
+"%d city added" = "已新增 %d 個城市";
+"%d cities added" = "已新增 %d 個城市";
 
 /* Weekdays */
 "Mon" = "一";

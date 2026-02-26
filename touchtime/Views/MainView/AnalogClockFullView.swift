@@ -65,6 +65,11 @@ struct AnalogClockFullView: View {
         }
         return TimeZone.current
     }
+
+    private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
+        guard showWeather else { return nil }
+        return weatherManager.weatherData[timeZoneIdentifier]?.condition
+    }
     
     var body: some View {
         NavigationStack {
@@ -74,7 +79,7 @@ struct AnalogClockFullView: View {
                 let skyGradient = SkyColorGradient(
                     date: displayDate,
                     timeZoneIdentifier: selectedTimeZone.identifier,
-                    weatherCondition: weatherManager.weatherData[selectedTimeZone.identifier]?.condition
+                    weatherCondition: weatherConditionForSky(at: selectedTimeZone.identifier)
                 )
                 
                 ZStack {
@@ -352,13 +357,13 @@ struct AnalogClockFullView: View {
                 )
             }
             // Fetch weather for sky gradient (rain-aware)
-            .task(id: showSkyDot) {
-                if showSkyDot {
+            .task(id: "\(showSkyDot)-\(showWeather)") {
+                if showSkyDot && showWeather {
                     await weatherManager.getWeather(for: selectedTimeZone.identifier)
                 }
             }
-            .task(id: "\(showSkyDot)-\(selectedTimeZone.identifier)") {
-                if showSkyDot {
+            .task(id: "\(showSkyDot)-\(showWeather)-\(selectedTimeZone.identifier)") {
+                if showSkyDot && showWeather {
                     await weatherManager.getWeather(for: selectedTimeZone.identifier)
                 }
             }

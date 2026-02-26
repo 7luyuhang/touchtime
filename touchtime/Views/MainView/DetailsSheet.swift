@@ -52,6 +52,11 @@ struct SunriseSunsetSheet: View {
     private var weeklyWeather: [DayWeather] {
         weatherManager.weeklyWeatherData[timeZoneIdentifier] ?? []
     }
+
+    private var weatherConditionForSky: WeatherCondition? {
+        guard showWeather else { return nil }
+        return currentWeather?.condition
+    }
     
     // Timer to update the current date
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -414,7 +419,7 @@ struct SunriseSunsetSheet: View {
                                             SkyDotView(
                                                 date: currentDate.addingTimeInterval(timeOffset),
                                                 timeZoneIdentifier: timeZoneIdentifier,
-                                                weatherCondition: currentWeather?.condition
+                                                weatherCondition: weatherConditionForSky
                                             )
                                             .overlay(
                                                 Capsule(style: .continuous)
@@ -516,7 +521,7 @@ struct SunriseSunsetSheet: View {
                                 }
                                 
                                 // Weather Condition Overlay - Centered
-                                if showWeatherCondition {
+                                if showWeather && showWeatherCondition {
                                     WeatherConditionView(
                                         timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
                                         size: 64,
@@ -586,7 +591,7 @@ struct SunriseSunsetSheet: View {
                                     SkyBackgroundView(
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZoneIdentifier: timeZoneIdentifier,
-                                        weatherCondition: currentWeather?.condition
+                                        weatherCondition: weatherConditionForSky
                                     )
                                 } : nil
                             )
@@ -1030,7 +1035,7 @@ struct SunriseSunsetSheet: View {
             }
             // Fetch weather for weather condition complication
             .task(id: showWeatherCondition) {
-                if showWeatherCondition {
+                if showWeather && showWeatherCondition {
                     await weatherManager.getWeather(for: timeZoneIdentifier)
                 }
             }

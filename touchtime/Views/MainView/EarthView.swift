@@ -47,6 +47,7 @@ struct EarthView: View {
     @AppStorage("customLocalName") private var customLocalName = ""
     @AppStorage("showMapLabels") private var showMapLabels = true // 默认显示地图标签
     @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("showWeather") private var showWeather = false
     
     @Environment(\.dismiss) private var dismiss
     
@@ -88,6 +89,11 @@ struct EarthView: View {
         }
         
         return currentDate.formattedDate(style: dateStyle, timeZone: targetTimeZone)
+    }
+
+    private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
+        guard showWeather else { return nil }
+        return weatherManager.weatherData[timeZoneIdentifier]?.condition
     }
     
     // Add to Calendar
@@ -394,7 +400,7 @@ struct EarthView: View {
                                         SkyDotView(
                                             date: currentDate,
                                             timeZoneIdentifier: TimeZone.current.identifier,
-                                            weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+                                            weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
                                         )
                                         .overlay(
                                             Capsule(style: .continuous)
@@ -487,7 +493,7 @@ struct EarthView: View {
                                         SkyDotView(
                                             date: currentDate,
                                             timeZoneIdentifier: clock.timeZoneIdentifier,
-                                            weatherCondition: weatherManager.weatherData[clock.timeZoneIdentifier]?.condition
+                                            weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
                                         )
                                         .overlay(
                                             Capsule(style: .continuous)
@@ -723,8 +729,8 @@ struct EarthView: View {
             startTimer()
         }
         // Fetch weather for sky gradient (rain-aware)
-        .task(id: showSkyDot) {
-            if showSkyDot {
+        .task(id: "\(showSkyDot)-\(showWeather)") {
+            if showSkyDot && showWeather {
                 await weatherManager.getWeather(for: TimeZone.current.identifier)
                 for clock in worldClocks {
                     await weatherManager.getWeather(for: clock.timeZoneIdentifier)

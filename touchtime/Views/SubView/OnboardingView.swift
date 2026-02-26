@@ -117,6 +117,11 @@ struct OnboardingView: View {
         }
         return city.replacingOccurrences(of: "_", with: " ")
     }
+
+    private var weatherConditionForSky: WeatherCondition? {
+        guard showWeather else { return nil }
+        return weatherManager.weatherData[TimeZone.current.identifier]?.condition
+    }
     
     // Prepare haptic engine
     func prepareHaptics() {
@@ -220,7 +225,7 @@ struct OnboardingView: View {
             SkyColorGradient(
                 date: currentDate,
                 timeZoneIdentifier: TimeZone.current.identifier,
-                weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+                weatherCondition: weatherConditionForSky
             )
             .linearGradient()
             .blendMode(.plusLighter)
@@ -375,7 +380,7 @@ struct OnboardingView: View {
                                             SkyDotView(
                                                 date: currentDate,
                                                 timeZoneIdentifier: TimeZone.current.identifier,
-                                                weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+                                                weatherCondition: weatherConditionForSky
                                             )
                                             .overlay(
                                                 Capsule(style: .continuous)
@@ -529,7 +534,7 @@ struct OnboardingView: View {
                                     SkyBackgroundView(
                                         date: currentDate,
                                         timeZoneIdentifier: TimeZone.current.identifier,
-                                        weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+                                        weatherCondition: weatherConditionForSky
                                     )
                                 } : nil
                             )
@@ -709,6 +714,7 @@ struct OnboardingView: View {
             animateButton = true
             
             Task {
+                guard showWeather else { return }
                 await weatherManager.getWeather(for: TimeZone.current.identifier)
             }
         }

@@ -107,7 +107,7 @@ struct SettingsView: View {
             return String(localized: "Sun Azimuth")
         } else if showSunriseSunset {
             return String(localized: "Sunrise & Sunset")
-        } else if showWeatherCondition {
+        } else if showWeather && showWeatherCondition {
             return String(localized: "Weather Condition")
         } else if showDaylight {
             return String(localized: "Daylight Curve")
@@ -115,6 +115,11 @@ struct SettingsView: View {
             return String(localized: "Solar Curve")
         }
         return nil
+    }
+
+    private var weatherConditionForSky: WeatherCondition? {
+        guard showWeather else { return nil }
+        return weatherManager.weatherData[TimeZone.current.identifier]?.condition
     }
     
     var body: some View {
@@ -294,7 +299,7 @@ struct SettingsView: View {
                                         SkyDotView(
                                             date: currentDate,
                                             timeZoneIdentifier: TimeZone.current.identifier,
-                                            weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+                                            weatherCondition: weatherConditionForSky
                                         )
                                         .overlay(
                                             Capsule(style: .continuous)
@@ -390,7 +395,7 @@ struct SettingsView: View {
                             }
                             
                             // Weather Condition Overlay - Centered
-                            if showWeatherCondition {
+                            if showWeather && showWeatherCondition {
                                 WeatherConditionView(
                                     timeZone: TimeZone.current,
                                     size: 64,
@@ -476,7 +481,7 @@ struct SettingsView: View {
                                 SkyBackgroundView(
                                     date: currentDate,
                                     timeZoneIdentifier: TimeZone.current.identifier,
-                                    weatherCondition: weatherManager.weatherData[TimeZone.current.identifier]?.condition
+                                    weatherCondition: weatherConditionForSky
                                 )
                             } : nil
                         )
@@ -806,6 +811,7 @@ struct SettingsView: View {
             .onAppear {
                 // Fetch weather for local timezone
                 Task {
+                    guard showWeather else { return }
                     await weatherManager.getWeather(for: TimeZone.current.identifier)
                 }
             }
