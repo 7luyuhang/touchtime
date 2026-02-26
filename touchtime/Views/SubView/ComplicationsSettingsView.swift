@@ -14,6 +14,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showSunAzimuth: Bool
     @Binding var showSunriseSunset: Bool
     @Binding var showWeatherCondition: Bool
+    @Binding var showUVIndex: Bool
     @Binding var showDaylight: Bool
     @Binding var showSolarCurve: Bool
     var showWeather: Bool
@@ -32,6 +33,7 @@ struct ComplicationsSettingsView: View {
         case sunAzimuth
         case sunriseSunset
         case weatherCondition
+        case uvIndex
         case daylight
         case solarCurve
         
@@ -42,6 +44,7 @@ struct ComplicationsSettingsView: View {
             case .sunAzimuth: return String(localized: "Sun Azimuth")
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
+            case .uvIndex: return String(localized: "UV Index")
             case .daylight: return String(localized: "Daylight Curve")
             case .solarCurve: return String(localized: "Solar Curve")
             }
@@ -56,6 +59,7 @@ struct ComplicationsSettingsView: View {
             showSunAzimuth = type == .sunAzimuth
             showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
+            showUVIndex = type == .uvIndex
             showDaylight = type == .daylight
             showSolarCurve = type == .solarCurve
         }
@@ -203,6 +207,18 @@ struct ComplicationsSettingsView: View {
                         isSelected: showWeatherCondition
                     ) {
                         WeatherConditionView(
+                            timeZone: TimeZone.current,
+                            size: 64,
+                            useMaterialBackground: false
+                        )
+                        .environmentObject(weatherManager)
+                    }
+
+                    complicationOption(
+                        type: .uvIndex,
+                        isSelected: showUVIndex
+                    ) {
+                        UVIndexIndicator(
                             timeZone: TimeZone.current,
                             size: 64,
                             useMaterialBackground: false

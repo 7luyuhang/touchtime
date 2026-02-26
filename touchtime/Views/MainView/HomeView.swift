@@ -43,6 +43,7 @@ struct ComplicationOverlayView: View {
     let analogClockShowScale: Bool
     let showSunPosition: Bool
     let showWeatherCondition: Bool
+    let showUVIndex: Bool
     let showSunAzimuth: Bool
     let showSunriseSunset: Bool
     let showDaylight: Bool
@@ -75,6 +76,16 @@ struct ComplicationOverlayView: View {
             
             if showWeatherCondition {
                 WeatherConditionView(
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .environmentObject(weatherManager)
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+
+            if showUVIndex {
+                UVIndexIndicator(
                     timeZone: timeZone,
                     size: 64
                 )
@@ -190,6 +201,7 @@ struct HomeView: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
@@ -616,6 +628,7 @@ struct HomeView: View {
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,
             showWeatherCondition: showWeatherCondition,
+            showUVIndex: showUVIndex,
             showSunAzimuth: showSunAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: showDaylight,
@@ -759,7 +772,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             
@@ -799,6 +812,7 @@ struct HomeView: View {
                                         analogClockShowScale: analogClockShowScale,
                                         showSunPosition: showSunPosition,
                                         showWeatherCondition: showWeatherCondition,
+                                        showUVIndex: showUVIndex,
                                         showSunAzimuth: showSunAzimuth,
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: showDaylight,
@@ -956,7 +970,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             Spacer()
@@ -981,6 +995,7 @@ struct HomeView: View {
                                         analogClockShowScale: analogClockShowScale,
                                         showSunPosition: showSunPosition,
                                         showWeatherCondition: showWeatherCondition,
+                                        showUVIndex: showUVIndex,
                                         showSunAzimuth: showSunAzimuth,
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: showDaylight,
@@ -1059,8 +1074,8 @@ struct HomeView: View {
                     .id(selectedCollectionId?.uuidString ?? "default")
                     .transition(.identity) // Collection Animation
                     // Centralized batch weather prefetch for all displayed cities
-                    .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(showWeatherCondition)_\(showSkyDot)") {
-                        if showWeather || showWeatherCondition {
+                    .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(showWeatherCondition)_\(showUVIndex)_\(showSkyDot)") {
+                        if showWeather || showWeatherCondition || showUVIndex {
                             var identifiers = displayedClocks.map(\.timeZoneIdentifier)
                             if showLocalTime {
                                 identifiers.insert(TimeZone.current.identifier, at: 0)
@@ -1115,6 +1130,7 @@ struct HomeView: View {
             .animation(.spring(), value: showAnalogClock)
             .animation(.spring(), value: showSunPosition)
             .animation(.spring(), value: showWeatherCondition)
+            .animation(.spring(), value: showUVIndex)
             .animation(.spring(), value: showSunAzimuth)
             .animation(.spring(), value: showSunriseSunset)
             .animation(.spring(), value: showSolarCurve)

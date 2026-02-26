@@ -29,6 +29,7 @@ struct SettingsView: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
@@ -109,6 +110,8 @@ struct SettingsView: View {
             return String(localized: "Sunrise & Sunset")
         } else if showWeather && showWeatherCondition {
             return String(localized: "Weather Condition")
+        } else if showWeather && showUVIndex {
+            return String(localized: "UV Index")
         } else if showDaylight {
             return String(localized: "Daylight Curve")
         } else if showSolarCurve {
@@ -261,6 +264,7 @@ struct SettingsView: View {
                             showWeather = newValue
                             if !newValue {
                                 showWeatherCondition = false
+                                showUVIndex = false
                             }
                         }
                     )) {
@@ -409,6 +413,22 @@ struct SettingsView: View {
                                 )
                                 .transition(.identity)
                             }
+
+                            // UV Index Overlay - Centered
+                            if showWeather && showUVIndex {
+                                UVIndexIndicator(
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .environmentObject(weatherManager)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.identity)
+                            }
                             
                             // Sun Azimuth Overlay - Centered
                             if showSunAzimuth {
@@ -495,6 +515,7 @@ struct SettingsView: View {
                         .animation(.spring(), value: showAnalogClock)
                         .animation(.spring(), value: showSunPosition)
                         .animation(.spring(), value: showWeatherCondition)
+                        .animation(.spring(), value: showUVIndex)
                         .animation(.spring(), value: showSunAzimuth)
                         .animation(.spring(), value: showSunriseSunset)
                         .animation(.spring(), value: showDaylight)
@@ -568,7 +589,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showSunAzimuth && !showSunriseSunset && !showDaylight && !showSolarCurve {
+                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showUVIndex && !showSunAzimuth && !showSunriseSunset && !showDaylight && !showSolarCurve {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -580,7 +601,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve)
+                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
@@ -592,6 +613,11 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: showWeatherCondition) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showUVIndex) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
@@ -845,6 +871,7 @@ struct SettingsView: View {
                         showSunAzimuth: $showSunAzimuth,
                         showSunriseSunset: $showSunriseSunset,
                         showWeatherCondition: $showWeatherCondition,
+                        showUVIndex: $showUVIndex,
                         showDaylight: $showDaylight,
                         showSolarCurve: $showSolarCurve,
                         showWeather: showWeather,

@@ -29,6 +29,7 @@ struct SunriseSunsetSheet: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
@@ -459,7 +460,7 @@ struct SunriseSunsetSheet: View {
                                             .font(.headline)
                                             .lineLimit(1)
                                             .truncationMode(.tail)
-                                            .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showSunAzimuth || showSunriseSunset || showDaylight) ? 120 : .infinity, alignment: .leading)
+                                            .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showSunAzimuth || showSunriseSunset || showDaylight) ? 120 : .infinity, alignment: .leading)
                                             .contentTransition(.numericText())
                                         
                                         Spacer()
@@ -523,6 +524,22 @@ struct SunriseSunsetSheet: View {
                                 // Weather Condition Overlay - Centered
                                 if showWeather && showWeatherCondition {
                                     WeatherConditionView(
+                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .environmentObject(weatherManager)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                    .transition(.identity)
+                                }
+
+                                // UV Index Overlay - Centered
+                                if showWeather && showUVIndex {
+                                    UVIndexIndicator(
                                         timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
                                         size: 64,
                                         useMaterialBackground: true
@@ -1033,9 +1050,9 @@ struct SunriseSunsetSheet: View {
                 await weatherManager.getWeather(for: timeZoneIdentifier)
                 weatherLoadAttempted = true
             }
-            // Fetch weather for weather condition complication
-            .task(id: showWeatherCondition) {
-                if showWeather && showWeatherCondition {
+            // Fetch weather for weather-based complications
+            .task(id: "\(showWeatherCondition)_\(showUVIndex)") {
+                if showWeather && (showWeatherCondition || showUVIndex) {
                     await weatherManager.getWeather(for: timeZoneIdentifier)
                 }
             }
