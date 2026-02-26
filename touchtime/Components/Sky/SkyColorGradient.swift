@@ -70,10 +70,19 @@ struct SkyColorGradient {
         }
     }
     
+    // Keep derived time values stable to prevent invalid RGB calculations.
+    private static func wrapTo24Hours(_ value: Double) -> Double {
+        guard value.isFinite else { return 12.0 }
+        let wrapped = value.truncatingRemainder(dividingBy: 24.0)
+        return wrapped >= 0 ? wrapped : wrapped + 24.0
+    }
+    
     // Get normalized time with caching (cached sun times per day, then fast calculation)
     private static func calculateNormalizedTimeWithCache(date: Date, timeZoneIdentifier: String) -> Double {
         // Create cache key based on day-level precision and timezone
-        let calendar = Calendar.current
+        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
         let dayComponents = calendar.dateComponents([.year, .month, .day], from: date)
         let cacheKey = "\(timeZoneIdentifier)_\(dayComponents.year ?? 0)_\(dayComponents.month ?? 0)_\(dayComponents.day ?? 0)" as NSString
         
@@ -89,7 +98,11 @@ struct SkyColorGradient {
         }
         
         // Fast calculation using cached sun times
-        return calculateNormalizedTimeFromSunTimes(date: date, timeZoneIdentifier: timeZoneIdentifier, sunTimes: sunTimes)
+        let normalized = calculateNormalizedTimeFromSunTimes(date: date, timeZoneIdentifier: timeZoneIdentifier, sunTimes: sunTimes)
+        if normalized.isFinite {
+            return wrapTo24Hours(normalized)
+        }
+        return wrapTo24Hours(calculateFallbackTime(date: date, timeZoneIdentifier: timeZoneIdentifier))
     }
     
     // Calculate sun event times once per day (expensive SunKit calculation)
@@ -282,7 +295,7 @@ struct SkyColorGradient {
     
     // Calculate time value for animation (using normalized time)
     private var timeValue: Double {
-        return normalizedTime
+        return Self.wrapTo24Hours(normalizedTime)
     }
     
     // Calculate star visibility based on time of day
@@ -291,7 +304,7 @@ struct SkyColorGradient {
         // Rain clouds block all starlight via Mie scattering
         if isRainy { return 0.0 }
         
-        let normalizedTime = timeValue.truncatingRemainder(dividingBy: 24)
+        let normalizedTime = timeValue
         
         switch normalizedTime {
         case 0..<4:
@@ -335,7 +348,7 @@ struct SkyColorGradient {
         // When raining, use atmospheric-science-based rainy gradient
         if isRainy { return rainyColors }
         
-        let normalizedTime = timeValue.truncatingRemainder(dividingBy: 24)
+        let normalizedTime = timeValue
         
         switch normalizedTime {
         case 0..<4:
@@ -487,7 +500,7 @@ struct SkyColorGradient {
     // - Horizon is slightly brighter from forward scattering near low sun angles.
     // - Warm sunrise/sunset hues are intentionally suppressed to keep a cool, quiet mood.
     private var rainyColors: [Color] {
-        let normalizedTime = timeValue.truncatingRemainder(dividingBy: 24)
+        let normalizedTime = timeValue
         
         switch normalizedTime {
         case 0..<4:
