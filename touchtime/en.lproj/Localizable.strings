@@ -194,8 +194,8 @@
 "Sort by" = "Sort by";
 "West to East" = "West to East";
 "East to West" = "East to West";
-"%d city added" = "%d city added";
-"%d cities added" = "%d cities added";
+"%d city added." = "%d city added.";
+"%d cities added." = "%d cities added.";
 
 /* Weekdays */
 "Mon" = "M";

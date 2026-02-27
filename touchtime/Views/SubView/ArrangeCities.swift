@@ -459,9 +459,9 @@ struct ArrangeListView: View {
                 } footer: {
                     let cityCount = worldClocks.count
                     if cityCount > 1 {
-                        Text(String(format: String(localized: "%d cities added"), cityCount))
+                        Text(String(format: String(localized: "%d cities added."), cityCount))
                     } else {
-                        Text(String(format: String(localized: "%d city added"), cityCount))
+                        Text(String(format: String(localized: "%d city added."), cityCount))
                     }
                 }
             }
