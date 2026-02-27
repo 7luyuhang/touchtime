@@ -18,7 +18,6 @@ struct SettingsView: View {
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
-    @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
@@ -187,7 +186,7 @@ struct SettingsView: View {
                 
                 
                 // General Section
-                Section(header: Text("General"), footer: Text("System time shows at the top of the list with ambient background.")) {
+                Section(header: Text("General"), footer: Text("Powered by Hands Time.")) {
                     
                     Button(action: {
                         if hapticEnabled {
@@ -219,7 +218,11 @@ struct SettingsView: View {
                     }
                     .foregroundStyle(.primary)
                     
-                    // Haptic
+                }
+                
+                // Haptic & Local Time
+                Section(footer: Text("System time shows at the top of the list with ambient background.")) {
+                    
                     Toggle(isOn: $hapticEnabled) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
@@ -228,7 +231,6 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                     
-                    // Local Time
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
@@ -237,23 +239,6 @@ struct SettingsView: View {
                     }
                     .tint(.blue)
                 }
-                
-                // Continuous Scroll
-                Section {
-                    Toggle(isOn: $continuousScrollMode) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "lines.measurement.horizontal.aligned.bottom", topColor: .white, bottomColor: .white, foregroundColor: .black)
-                            Text("Continuous Scroll")
-                        }
-                    }
-                    .tint(.blue)
-                    .onChange(of: continuousScrollMode) { _, _ in
-                        NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
-                    }
-                } footer: {
-                    Text("Enable continuous scroll for slide to adjust.")
-                }
-                
                 
                 
                 // Temperature/Weather Section

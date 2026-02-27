@@ -14,6 +14,7 @@ struct AboutView: View {
     @State private var showOnboarding = false
     @State private var showResetConfirmation = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @State private var rippleCounter: Int = 0
     @State private var rippleOrigin: CGPoint = .init(x: 50, y: 50)
     @State private var safariURL: URL?
@@ -127,6 +128,22 @@ struct AboutView: View {
                 }
             } footer: {
                 Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
+            }
+
+            // Continuous Scroll
+            Section {
+                Toggle(isOn: $continuousScrollMode) {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "lines.measurement.horizontal.aligned.bottom", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                        Text("Continuous Scroll")
+                    }
+                }
+                .tint(.blue)
+                .onChange(of: continuousScrollMode) { _, _ in
+                    NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
+                }
+            } footer: {
+                Text("Enable continuous scroll for slide to adjust.")
             }
             
             // Credits Section
