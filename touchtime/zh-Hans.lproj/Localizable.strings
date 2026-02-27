@@ -55,6 +55,7 @@
 "Chat with me" = "与我交流";
 "Open to any thoughts or feedback :)" = "欢迎提出任何想法或反馈 :)";
 "General" = "通用";
+"Powered by Hands Time." = "由 Hands Time 驱动。";
 "Enable showing system time at the top of the list with ambient background." = "在列表顶部显示本地时间，并呈现柔和的氛围背景。";
 "Haptics" = "触觉反馈";
 "System Time" = "本地时间";
