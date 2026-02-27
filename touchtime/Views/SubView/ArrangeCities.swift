@@ -320,8 +320,12 @@ struct ArrangeListView: View {
                                     } label: {
                                         Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
                                     }
-                                    Button(role: .destructive) {
-                                        deleteSingleCollection(collection: collection)
+                                    Menu {
+                                        Button(role: .destructive) {
+                                            deleteSingleCollection(collection: collection)
+                                        } label: {
+                                            Label(String(localized: "Confirm Delete"), systemImage: "checkmark.circle.badge.xmark")
+                                        }
                                     } label: {
                                         Label(String(localized: "Delete"), systemImage: "xmark.circle")
                                     }

@@ -182,6 +182,7 @@
 "Arrange" = "整理";
 "Rename" = "重命名";
 "Delete" = "删除";
+"Confirm Delete" = "确认删除";
 "Add to Collection" = "添加到集合";
 "New Collection" = "新建集合";
 "Collection Name" = "集合名称";
