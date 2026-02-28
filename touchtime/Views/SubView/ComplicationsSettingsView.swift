@@ -23,6 +23,7 @@ struct ComplicationsSettingsView: View {
     @State private var currentDate = Date()
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
+    @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -103,6 +104,19 @@ struct ComplicationsSettingsView: View {
                                     Label(String(localized: "Dial Marker"), systemImage: "checkmark.circle")
                                 } else {
                                     Text(String(localized: "Dial Marker"))
+                                }
+                            }
+                            
+                            Button {
+                                analogClockShowUTCHand.toggle()
+                                if hapticEnabled {
+                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                }
+                            } label: {
+                                if analogClockShowUTCHand {
+                                    Label(String(localized: "UTC Hand"), systemImage: "checkmark.circle")
+                                } else {
+                                    Text(String(localized: "UTC Hand"))
                                 }
                             }
                         }

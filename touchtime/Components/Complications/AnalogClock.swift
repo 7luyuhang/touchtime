@@ -15,6 +15,8 @@ struct AnalogClockView: View {
     let useMaterialBackground: Bool
     let showScale: Bool
     
+    @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
+    
     init(date: Date = Date(), size: CGFloat = 100, timeZone: TimeZone = .current, useMaterialBackground: Bool = false, showScale: Bool = false) {
         self.date = date
         self.size = size
@@ -25,9 +27,25 @@ struct AnalogClockView: View {
     
     @Environment(\.colorScheme) private var colorScheme
     
-    private var time: (hour: Int, minute: Int) {
+    private var displayTime: (hour: Int, minute: Int) {
+        time(in: timeZone)
+    }
+    
+    private var utcTime: (hour: Int, minute: Int) {
+        time(in: utcTimeZone)
+    }
+    
+    private var utcTimeZone: TimeZone {
+        TimeZone(secondsFromGMT: 0) ?? .current
+    }
+    
+    private var shouldShowUTCHand: Bool {
+        analogClockShowUTCHand && timeZone.secondsFromGMT(for: date) != utcTimeZone.secondsFromGMT(for: date)
+    }
+    
+    private func time(in zone: TimeZone) -> (hour: Int, minute: Int) {
         var calendar = Calendar.current
-        calendar.timeZone = timeZone
+        calendar.timeZone = zone
         let components = calendar.dateComponents([.hour, .minute], from: date)
         return (components.hour ?? 0, components.minute ?? 0)
     }
@@ -60,19 +78,48 @@ struct AnalogClockView: View {
                 }
             }
             
+            // UTC 时针
+            if shouldShowUTCHand {
+                Path { path in
+                    let handWidth: CGFloat = 2
+                    let handHeight = size * 0.45
+                    let handRect = CGRect(
+                        x: (size - handWidth) / 2,
+                        y: size / 2 - size * 0.20 - handHeight / 2,
+                        width: handWidth,
+                        height: handHeight
+                    )
+                    let dotSize: CGFloat = 6
+                    let dotRect = CGRect(
+                        x: (size - dotSize) / 2,
+                        y: handRect.minY - dotSize / 2,
+                        width: dotSize,
+                        height: dotSize
+                    )
+                    
+                    path.addRoundedRect(
+                        in: handRect,
+                        cornerSize: CGSize(width: handWidth / 2, height: handWidth / 2)
+                    )
+                    path.addEllipse(in: dotRect)
+                }
+                .fill(.red)
+                .rotationEffect(.degrees(Double(utcTime.hour % 12) * 30 + Double(utcTime.minute) * 0.5))
+            }
+            
             // 时针
             Capsule()
                 .fill(.white)
                 .frame(width: 2.5, height: size * 0.25)
                 .offset(y: -size * 0.15)
-                .rotationEffect(.degrees(Double(time.hour % 12) * 30 + Double(time.minute) * 0.5))
+                .rotationEffect(.degrees(Double(displayTime.hour % 12) * 30 + Double(displayTime.minute) * 0.5))
             
             // 分针
             Capsule()
                 .fill(.white)
                 .frame(width: 2, height: size * 0.45)
                 .offset(y: -size * 0.20)
-                .rotationEffect(.degrees(Double(time.minute) * 6))
+                .rotationEffect(.degrees(Double(displayTime.minute) * 6))
             
             // 中心点
             Circle()
