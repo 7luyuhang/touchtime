@@ -195,4 +195,9 @@ class WeatherManager: ObservableObject {
             return formatter.string(from: temperature.converted(to: .fahrenheit))
         }
     }
+
+    // Get wind direction in degrees clockwise from north for a timezone.
+    func windDirectionDegrees(for timeZoneIdentifier: String) -> Double? {
+        weatherData[timeZoneIdentifier]?.wind.direction.converted(to: .degrees).value
+    }
 }

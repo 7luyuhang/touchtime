@@ -44,6 +44,7 @@ struct ComplicationOverlayView: View {
     let showSunPosition: Bool
     let showWeatherCondition: Bool
     let showUVIndex: Bool
+    let showWindDirection: Bool
     let showSunAzimuth: Bool
     let showSunriseSunset: Bool
     let showDaylight: Bool
@@ -86,6 +87,16 @@ struct ComplicationOverlayView: View {
 
             if showUVIndex {
                 UVIndexIndicator(
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .environmentObject(weatherManager)
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+
+            if showWindDirection {
+                WindDirectionIndicator(
                     timeZone: timeZone,
                     size: 64
                 )
@@ -202,6 +213,7 @@ struct HomeView: View {
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showUVIndex") private var showUVIndex = false
+    @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
@@ -629,6 +641,7 @@ struct HomeView: View {
             showSunPosition: showSunPosition,
             showWeatherCondition: showWeatherCondition,
             showUVIndex: showUVIndex,
+            showWindDirection: showWindDirection,
             showSunAzimuth: showSunAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: showDaylight,
@@ -772,7 +785,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showWindDirection || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             
@@ -813,6 +826,7 @@ struct HomeView: View {
                                         showSunPosition: showSunPosition,
                                         showWeatherCondition: showWeatherCondition,
                                         showUVIndex: showUVIndex,
+                                        showWindDirection: showWindDirection,
                                         showSunAzimuth: showSunAzimuth,
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: showDaylight,
@@ -970,7 +984,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showWindDirection || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             Spacer()
@@ -996,6 +1010,7 @@ struct HomeView: View {
                                         showSunPosition: showSunPosition,
                                         showWeatherCondition: showWeatherCondition,
                                         showUVIndex: showUVIndex,
+                                        showWindDirection: showWindDirection,
                                         showSunAzimuth: showSunAzimuth,
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: showDaylight,
@@ -1074,8 +1089,8 @@ struct HomeView: View {
                     .id(selectedCollectionId?.uuidString ?? "default")
                     .transition(.identity) // Collection Animation
                     // Centralized batch weather prefetch for all displayed cities
-                    .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(showWeatherCondition)_\(showUVIndex)_\(showSkyDot)") {
-                        if showWeather || showWeatherCondition || showUVIndex {
+                    .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(showWeatherCondition)_\(showUVIndex)_\(showWindDirection)_\(showSkyDot)") {
+                        if showWeather || showWeatherCondition || showUVIndex || showWindDirection {
                             var identifiers = displayedClocks.map(\.timeZoneIdentifier)
                             if showLocalTime {
                                 identifiers.insert(TimeZone.current.identifier, at: 0)
@@ -1131,6 +1146,7 @@ struct HomeView: View {
             .animation(.spring(), value: showSunPosition)
             .animation(.spring(), value: showWeatherCondition)
             .animation(.spring(), value: showUVIndex)
+            .animation(.spring(), value: showWindDirection)
             .animation(.spring(), value: showSunAzimuth)
             .animation(.spring(), value: showSunriseSunset)
             .animation(.spring(), value: showSolarCurve)

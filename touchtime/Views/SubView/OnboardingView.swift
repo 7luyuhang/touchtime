@@ -84,6 +84,7 @@ struct OnboardingView: View {
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showUVIndex") private var showUVIndex = false
+    @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
@@ -97,6 +98,7 @@ struct OnboardingView: View {
         case sunriseSunset
         case weatherCondition
         case uvIndex
+        case windDirection
         case daylight
         case solarCurve
         
@@ -108,6 +110,7 @@ struct OnboardingView: View {
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
             case .uvIndex: return String(localized: "UV Index")
+            case .windDirection: return String(localized: "Wind Direction")
             case .daylight: return String(localized: "Daylight Curve")
             case .solarCurve: return String(localized: "Solar Curve")
             }
@@ -184,6 +187,7 @@ struct OnboardingView: View {
             showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
             showUVIndex = type == .uvIndex
+            showWindDirection = type == .windDirection
             showDaylight = type == .daylight
             showSolarCurve = type == .solarCurve
         }
@@ -544,6 +548,20 @@ struct OnboardingView: View {
                                             .blendMode(.plusLighter)
                                     )
                                 }
+
+                                if showWeather && showWindDirection {
+                                    WindDirectionIndicator(
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .environmentObject(weatherManager)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
                             }
                             .background(
                                 showSkyDot ?
@@ -629,6 +647,15 @@ struct OnboardingView: View {
 
                                         complicationOption(type: .uvIndex, isSelected: showUVIndex) {
                                             UVIndexIndicator(
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                            .environmentObject(weatherManager)
+                                        }
+
+                                        complicationOption(type: .windDirection, isSelected: showWindDirection) {
+                                            WindDirectionIndicator(
                                                 timeZone: TimeZone.current,
                                                 size: 64,
                                                 useMaterialBackground: false
@@ -752,6 +779,7 @@ struct OnboardingView: View {
             if !newValue {
                 showWeatherCondition = false
                 showUVIndex = false
+                showWindDirection = false
             }
         }
         .onDisappear {

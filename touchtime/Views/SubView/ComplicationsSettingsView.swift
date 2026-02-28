@@ -15,6 +15,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showSunriseSunset: Bool
     @Binding var showWeatherCondition: Bool
     @Binding var showUVIndex: Bool
+    @Binding var showWindDirection: Bool
     @Binding var showDaylight: Bool
     @Binding var showSolarCurve: Bool
     var showWeather: Bool
@@ -35,6 +36,7 @@ struct ComplicationsSettingsView: View {
         case sunriseSunset
         case weatherCondition
         case uvIndex
+        case windDirection
         case daylight
         case solarCurve
         
@@ -46,6 +48,7 @@ struct ComplicationsSettingsView: View {
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
             case .uvIndex: return String(localized: "UV Index")
+            case .windDirection: return String(localized: "Wind Direction")
             case .daylight: return String(localized: "Daylight Curve")
             case .solarCurve: return String(localized: "Solar Curve")
             }
@@ -61,6 +64,7 @@ struct ComplicationsSettingsView: View {
             showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
             showUVIndex = type == .uvIndex
+            showWindDirection = type == .windDirection
             showDaylight = type == .daylight
             showSolarCurve = type == .solarCurve
         }
@@ -233,6 +237,18 @@ struct ComplicationsSettingsView: View {
                         isSelected: showUVIndex
                     ) {
                         UVIndexIndicator(
+                            timeZone: TimeZone.current,
+                            size: 64,
+                            useMaterialBackground: false
+                        )
+                        .environmentObject(weatherManager)
+                    }
+
+                    complicationOption(
+                        type: .windDirection,
+                        isSelected: showWindDirection
+                    ) {
+                        WindDirectionIndicator(
                             timeZone: TimeZone.current,
                             size: 64,
                             useMaterialBackground: false

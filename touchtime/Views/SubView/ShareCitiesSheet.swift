@@ -42,6 +42,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showUVIndex") private var showUVIndex = false
+    @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
@@ -186,6 +187,7 @@ struct ShareCitiesSheet: View {
             showSunPosition: showSunPosition,
             showWeatherCondition: showWeatherCondition,
             showUVIndex: showUVIndex,
+            showWindDirection: showWindDirection,
             showSunAzimuth: showSunAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: showDaylight,

@@ -38,6 +38,7 @@ struct CityCardSnapshotView: View {
     let showSunPosition: Bool
     let showWeatherCondition: Bool
     let showUVIndex: Bool
+    let showWindDirection: Bool
     let showSunAzimuth: Bool
     let showSunriseSunset: Bool
     let showDaylight: Bool
@@ -47,7 +48,7 @@ struct CityCardSnapshotView: View {
     let additionalTimeText: String
     
     private var hasComplication: Bool {
-        showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve
+        showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showWindDirection || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve
     }
     
     private var skyColorGradient: SkyColorGradient {
@@ -127,6 +128,7 @@ struct CityCardSnapshotView: View {
                     showSunPosition: showSunPosition,
                     showWeatherCondition: showWeatherCondition,
                     showUVIndex: showUVIndex,
+                    showWindDirection: showWindDirection,
                     showSunAzimuth: showSunAzimuth,
                     showSunriseSunset: showSunriseSunset,
                     showDaylight: showDaylight,
