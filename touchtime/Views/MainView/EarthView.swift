@@ -15,6 +15,13 @@ import CoreLocation
 import WeatherKit
 
 struct EarthView: View {
+    private static let timeFormatterCache: NSCache<NSString, DateFormatter> = {
+        let cache = NSCache<NSString, DateFormatter>()
+        cache.countLimit = 50
+        return cache
+    }()
+
+    @Binding var timeOffset: TimeInterval
     @Binding var worldClocks: [WorldClock]
     @ObservedObject var weatherManager: WeatherManager
     @State private var position = MapCameraPosition.region(MKCoordinateRegion(
@@ -37,6 +44,7 @@ struct EarthView: View {
     @State private var showSunriseSunsetSheet = false
     @State private var selectedCityName: String = ""
     @State private var selectedTimeZoneIdentifier: String = ""
+    @State private var showScrollTimeButtons = false
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("isUsingExploreMode") private var isUsingExploreMode = false
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -88,12 +96,37 @@ struct EarthView: View {
             return ""
         }
         
-        return currentDate.formattedDate(style: dateStyle, timeZone: targetTimeZone)
+        return displayDate.formattedDate(style: dateStyle, timeZone: targetTimeZone, relativeTo: currentDate)
     }
 
     private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
         guard showWeather else { return nil }
         return weatherManager.weatherData[timeZoneIdentifier]?.condition
+    }
+
+    private var displayDate: Date {
+        currentDate.addingTimeInterval(timeOffset)
+    }
+
+    private static func timeFormatter(for timeZone: TimeZone, use24Hour: Bool) -> DateFormatter {
+        let key = "\(timeZone.identifier)_\(use24Hour)" as NSString
+        if let cached = timeFormatterCache.object(forKey: key) {
+            return cached
+        }
+
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = use24Hour ? "HH:mm" : "h:mma"
+        timeFormatterCache.setObject(formatter, forKey: key)
+        return formatter
+    }
+
+    private func formattedTime(for timeZoneIdentifier: String) -> String {
+        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        return Self.timeFormatter(for: timeZone, use24Hour: use24HourFormat)
+            .string(from: displayDate)
+            .lowercased()
     }
     
     // Add to Calendar
@@ -103,7 +136,7 @@ struct EarthView: View {
                 DispatchQueue.main.async {
                     let event = EKEvent(eventStore: self.eventStore)
                     
-                    let currentDate = Date()
+                    let currentDate = self.displayDate
                     let formatter = DateFormatter()
                     formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
                     formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -204,8 +237,12 @@ struct EarthView: View {
         // Create a new timer
         timerCancellable = Timer.publish(every: 1, on: .main, in: .common)
             .autoconnect()
-            .sink { _ in
-                currentDate = Date()
+            .sink { now in
+                let calendar = Calendar.current
+                // The map only renders minute-level time, so avoid re-rendering all annotations every second.
+                if calendar.component(.minute, from: now) != calendar.component(.minute, from: currentDate) {
+                    currentDate = now
+                }
             }
     }
     
@@ -369,7 +406,6 @@ struct EarthView: View {
                                     Text(calculateFlightTime(from: fromTimeZone, to: toTimeZone))
                                         .font(.caption)
                                         .fontWeight(.bold)
-                                        .fontDesign(.rounded)
                                         .foregroundStyle(.white)
                                 }
                                 .padding(.horizontal, 12)
@@ -399,7 +435,7 @@ struct EarthView: View {
                                     
                                     if showSkyDot {
                                         SkyDotView(
-                                            date: currentDate,
+                                            date: displayDate,
                                             timeZoneIdentifier: TimeZone.current.identifier,
                                             weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
                                         )
@@ -412,20 +448,9 @@ struct EarthView: View {
                                     }
                                     
                                     HStack(spacing: 4) {
-                                        Text({
-                                            let formatter = DateFormatter()
-                                            formatter.timeZone = TimeZone.current
-                                            formatter.locale = Locale(identifier: "en_US_POSIX")
-                                            if use24HourFormat {
-                                                formatter.dateFormat = "HH:mm"
-                                            } else {
-                                                formatter.dateFormat = "h:mma"
-                                            }
-                                            return formatter.string(from: currentDate).lowercased()
-                                        }())
+                                        Text(formattedTime(for: TimeZone.current.identifier))
                                         .font(.caption)
                                         .fontWeight(.bold)
-                                        .fontDesign(.rounded)
                                         .foregroundStyle(.white)
                                         .monospacedDigit()
                                         .contentTransition(.numericText())
@@ -490,7 +515,7 @@ struct EarthView: View {
                                 HStack(spacing: 8) {
                                     if showSkyDot {
                                         SkyDotView(
-                                            date: currentDate,
+                                            date: displayDate,
                                             timeZoneIdentifier: clock.timeZoneIdentifier,
                                             weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
                                         )
@@ -502,20 +527,9 @@ struct EarthView: View {
                                         .transition(.blurReplace)
                                     }
                                     
-                                    Text({
-                                        let formatter = DateFormatter()
-                                        formatter.timeZone = TimeZone(identifier: clock.timeZoneIdentifier)
-                                        formatter.locale = Locale(identifier: "en_US_POSIX")
-                                        if use24HourFormat {
-                                            formatter.dateFormat = "HH:mm"
-                                        } else {
-                                            formatter.dateFormat = "h:mma"
-                                        }
-                                        return formatter.string(from: currentDate).lowercased()
-                                    }())
+                                    Text(formattedTime(for: clock.timeZoneIdentifier))
                                     .font(.caption)
                                     .fontWeight(.bold)
-                                    .fontDesign(.rounded)
                                     .foregroundStyle(.white)
                                     .monospacedDigit()
                                     .contentTransition(.numericText())
@@ -590,59 +604,50 @@ struct EarthView: View {
             .mapControls {
                 MapCompass()
             }
-            // Bottom Control Bar - Hide when renaming
+            // Bottom Controls - Hide when renaming
             if !showingRenameAlert {
-                GlassEffectContainer(spacing: 8.0) {
-                    HStack(spacing: 8) {
-                        // Group of main buttons
-                        HStack(spacing: 0) {
-                            // Back to Local Time Button - Only show when local time is enabled and flight time is not active
-                            if showLocalTime && !(selectedFlightCities.from != nil && selectedFlightCities.to != nil) {
-                                Button(action: {
-                                    if hapticEnabled {
-                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                        impactFeedback.prepare()
-                                        impactFeedback.impactOccurred()
-                                    }
-                                    
-                                    // Navigate to local time location
-                                    if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
-                                        withAnimation(.smooth()) {
-                                            position = MapCameraPosition.region(MKCoordinateRegion(
-                                                center: localCoordinate,
-                                                span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
-                                            ))
+                VStack(spacing: 8) {
+                    if !(worldClocks.isEmpty && !showLocalTime) {
+                        ScrollTimeView(
+                            timeOffset: $timeOffset,
+                            showButtons: $showScrollTimeButtons,
+                            worldClocks: $worldClocks
+                        )
+                        .padding(.horizontal)
+                        .transition(.blurReplace())
+                    }
+
+                    GlassEffectContainer(spacing: 8.0) {
+                        HStack(spacing: 8) {
+                            // Group of main buttons
+                            HStack(spacing: 0) {
+                                // Back to Local Time Button - Only show when local time is enabled and flight time is not active
+                                if showLocalTime && !(selectedFlightCities.from != nil && selectedFlightCities.to != nil) {
+                                    Button(action: {
+                                        if hapticEnabled {
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                            impactFeedback.prepare()
+                                            impactFeedback.impactOccurred()
                                         }
+                                        
+                                        // Navigate to local time location
+                                        if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
+                                            withAnimation(.smooth()) {
+                                                position = MapCameraPosition.region(MKCoordinateRegion(
+                                                    center: localCoordinate,
+                                                    span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
+                                                ))
+                                            }
+                                        }
+                                    }) {
+                                        Image(systemName: "location.fill")
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                            .frame(width: 52, height: 52)
                                     }
-                                }) {
-                                    Image(systemName: "location.fill")
-                                        .font(.headline)
-                                        .foregroundStyle(.white)
-                                        .frame(width: 52, height: 52)
-                                }
-                            }
-                            
-                            // Map Mode Toggle Button
-                            Button(action: {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
                                 }
                                 
-                                withAnimation(.spring()) {
-                                    isUsingExploreMode.toggle()
-                                }
-                            }) {
-                                Image(systemName: isUsingExploreMode ? "view.2d" : "view.3d")
-                                    .font(.headline)
-                                    .foregroundStyle(.white)
-                                    .frame(width: 52, height: 52)
-                                    .contentTransition(.symbolEffect(.replace))
-                            }
-                            
-                            // Map Labels Toggle Button - Only show in 2D mode (standard map)
-                            if !isUsingExploreMode {
+                                // Map Mode Toggle Button
                                 Button(action: {
                                     if hapticEnabled {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
@@ -651,49 +656,70 @@ struct EarthView: View {
                                     }
                                     
                                     withAnimation(.spring()) {
-                                        showMapLabels.toggle()
+                                        isUsingExploreMode.toggle()
                                     }
                                 }) {
-                                    Image(systemName: showMapLabels ? "square.2.layers.3d.fill" : "square.2.layers.3d")
+                                    Image(systemName: isUsingExploreMode ? "view.2d" : "view.3d")
                                         .font(.headline)
                                         .foregroundStyle(.white)
                                         .frame(width: 52, height: 52)
                                         .contentTransition(.symbolEffect(.replace))
                                 }
-                                .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
-                            }
-                        }
-                        .glassEffect(.regular)
-                        .glassEffectID("mapButtonGroup", in: glassEffectNamespace)
-                        .glassEffectTransition(.matchedGeometry)
-                        
-                        
-                        // Clear Flight Path Button - Show when flight path is active (placed on the right)
-                        if selectedFlightCities.from != nil && selectedFlightCities.to != nil {
-                            Button(action: {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
                                 
-                                withAnimation(.spring()) {
-                                    setFlightCitiesAndCenter(from: nil, to: nil)
+                                // Map Labels Toggle Button - Only show in 2D mode (standard map)
+                                if !isUsingExploreMode {
+                                    Button(action: {
+                                        if hapticEnabled {
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                            impactFeedback.prepare()
+                                            impactFeedback.impactOccurred()
+                                        }
+                                        
+                                        withAnimation(.spring()) {
+                                            showMapLabels.toggle()
+                                        }
+                                    }) {
+                                        Image(systemName: showMapLabels ? "square.2.layers.3d.fill" : "square.2.layers.3d")
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                            .frame(width: 52, height: 52)
+                                            .contentTransition(.symbolEffect(.replace))
+                                    }
+                                    .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
                                 }
-                            }) {
-                                Image(systemName: "xmark")
-                                    .font(.headline)
-                                    .foregroundStyle(.yellow)
-                                    .frame(width: 52, height: 52)
                             }
-                            .glassEffect(.regular.tint(.yellow.opacity(0.15)).interactive())
-                            .glassEffectID("clearFlightButton", in: glassEffectNamespace)
+                            .glassEffect(.regular)
+                            .glassEffectID("mapButtonGroup", in: glassEffectNamespace)
                             .glassEffectTransition(.matchedGeometry)
+                            
+                            
+                            // Clear Flight Path Button - Show when flight path is active (placed on the right)
+                            if selectedFlightCities.from != nil && selectedFlightCities.to != nil {
+                                Button(action: {
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.prepare()
+                                        impactFeedback.impactOccurred()
+                                    }
+                                    
+                                    withAnimation(.spring()) {
+                                        setFlightCitiesAndCenter(from: nil, to: nil)
+                                    }
+                                }) {
+                                    Image(systemName: "xmark")
+                                        .font(.headline)
+                                        .foregroundStyle(.yellow)
+                                        .frame(width: 52, height: 52)
+                                }
+                                .glassEffect(.regular.tint(.yellow.opacity(0.15)).interactive())
+                                .glassEffectID("clearFlightButton", in: glassEffectNamespace)
+                                .glassEffectTransition(.matchedGeometry)
+                            }
                         }
                     }
+                    .transition(.blurReplace())
                 }
                 .padding(.bottom, 8)
-                .transition(.blurReplace())
             }
                 
                 // Empty state - on top of map
@@ -773,7 +799,7 @@ struct EarthView: View {
                     worldClocks: $worldClocks,
                     showSheet: $showShareSheet,
                     currentDate: currentDate,
-                    timeOffset: 0
+                    timeOffset: timeOffset
                 )
                 .environmentObject(weatherManager)
             }
@@ -829,7 +855,7 @@ struct EarthView: View {
                     cityName: selectedCityName,
                     timeZoneIdentifier: selectedTimeZoneIdentifier,
                     initialDate: currentDate,
-                    timeOffset: 0
+                    timeOffset: timeOffset
                 )
                 .environmentObject(weatherManager)
                 .presentationDetents([.medium, .large])

@@ -12,6 +12,8 @@ import CoreHaptics
 import StoreKit
 
 struct ScrollTimeView: View {
+    private let minuteStep: TimeInterval = 60
+
     @Binding var timeOffset: TimeInterval
     @Binding var showButtons: Bool
     @Binding var worldClocks: [WorldClock]
@@ -43,6 +45,17 @@ struct ScrollTimeView: View {
     // Calculate hours from drag offset
     func hoursFromOffset(_ offset: CGFloat) -> Double {
         return Double(offset) / 15.0 // 15 points = 1 hour
+    }
+
+    private func snappedToWholeMinute(_ offset: TimeInterval) -> TimeInterval {
+        (offset / minuteStep).rounded(.towardZero) * minuteStep
+    }
+
+    private func commitTimeOffset(_ rawOffset: TimeInterval) {
+        let snappedOffset = snappedToWholeMinute(rawOffset)
+        if snappedOffset != timeOffset {
+            timeOffset = snappedOffset
+        }
     }
     
     // Format time offset into a human-readable string (e.g., "+1h 30m", "-2d 3h")
@@ -235,12 +248,12 @@ struct ScrollTimeView: View {
         // Play haptic every 30 minutes (1800 seconds) during inertia
         let tickInterval: TimeInterval = 1800
         
-        let currentTicks = Int(timeOffset / tickInterval)
+        let currentTicks = Int(accumulatedOffset / tickInterval)
         let lastTicks = Int(lastInertiaHapticOffset / tickInterval)
         
         if currentTicks != lastTicks {
             playTickHaptic(intensity: 0.35) // Lighter haptic during inertia
-            lastInertiaHapticOffset = timeOffset
+            lastInertiaHapticOffset = accumulatedOffset
         }
     }
     
@@ -264,7 +277,7 @@ struct ScrollTimeView: View {
         inertiaVelocity = min(max(velocity, -maxVelocity), maxVelocity)
         
         // Initialize haptic tracking
-        lastInertiaHapticOffset = timeOffset
+        lastInertiaHapticOffset = accumulatedOffset
         
         // Use a timer for smooth deceleration (60 fps)
         let frameInterval: TimeInterval = 1.0 / 60.0
@@ -289,7 +302,7 @@ struct ScrollTimeView: View {
             
             // Update offsets
             accumulatedOffset += deltaSeconds
-            timeOffset = accumulatedOffset
+            commitTimeOffset(accumulatedOffset)
             
             // Play haptic during inertia scroll
             checkAndPlayInertiaHapticTick()
@@ -645,9 +658,9 @@ struct ScrollTimeView: View {
                 let hours = hoursFromOffset(dragOffset)
                 
                 if continuousScrollMode {
-                    timeOffset = accumulatedOffset + hours * 3600
+                    commitTimeOffset(accumulatedOffset + hours * 3600)
                 } else {
-                    timeOffset = hours * 3600
+                    commitTimeOffset(hours * 3600)
                 }
                 
                 checkAndPlayHapticTick()
@@ -729,7 +742,10 @@ struct ScrollTimeView: View {
             stopInertia()
         }
         .onChange(of: timeOffset) { oldValue, newValue in
-            if continuousScrollMode && dragOffset == 0 {
+            if continuousScrollMode,
+               dragOffset == 0,
+               inertiaTimer == nil,
+               newValue != snappedToWholeMinute(accumulatedOffset) {
                 accumulatedOffset = newValue
             }
         }

@@ -1419,6 +1419,7 @@ struct HomeView: View {
             // Earth View
             .sheet(isPresented: $showEarthView) {
                 EarthView(
+                    timeOffset: $timeOffset,
                     worldClocks: $worldClocks,
                     weatherManager: weatherManager
                 )
