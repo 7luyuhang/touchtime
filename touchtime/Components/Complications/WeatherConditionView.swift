@@ -14,6 +14,7 @@ struct WeatherConditionView: View {
     let useMaterialBackground: Bool
     
     @EnvironmentObject private var weatherManager: WeatherManager
+    @AppStorage("weatherConditionUseColoredIcon") private var weatherConditionUseColoredIcon = false
     
     init(timeZone: TimeZone = .current, size: CGFloat = 100, useMaterialBackground: Bool = false) {
         self.timeZone = timeZone
@@ -47,11 +48,20 @@ struct WeatherConditionView: View {
             }
             
             // Weather Condition Icon
-            Image(systemName: iconName)
-                .font(.system(size: size * 0.325, weight: .regular))
-                .foregroundStyle(.white)
-                .symbolRenderingMode(.hierarchical)
-                .contentTransition(.symbolEffect(.replace))
+            Group {
+                if weatherConditionUseColoredIcon {
+                    Image(systemName: iconName)
+                        .font(.system(size: size * 0.325, weight: .regular))
+                        .symbolRenderingMode(.multicolor)
+                        .contentTransition(.symbolEffect(.replace))
+                } else {
+                    Image(systemName: iconName)
+                        .font(.system(size: size * 0.325, weight: .regular))
+                        .foregroundStyle(.white)
+                        .symbolRenderingMode(.hierarchical)
+                        .contentTransition(.symbolEffect(.replace))
+                }
+            }
         }
         .frame(width: size, height: size)
         .task {
@@ -80,4 +90,3 @@ struct WeatherConditionView: View {
         }
     }
 }
-

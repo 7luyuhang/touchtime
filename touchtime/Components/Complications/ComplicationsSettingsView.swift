@@ -25,6 +25,7 @@ struct ComplicationsSettingsView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
+    @AppStorage("weatherConditionUseColoredIcon") private var weatherConditionUseColoredIcon = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -95,32 +96,49 @@ struct ComplicationsSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                if showAnalogClock {
+                if showAnalogClock || (showWeather && showWeatherCondition) {
                     Menu {
                         Section(String(localized: "Customisation")) {
-                            Button {
-                                analogClockShowScale.toggle()
-                                if hapticEnabled {
-                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                            if showAnalogClock {
+                                Button {
+                                    analogClockShowScale.toggle()
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                    }
+                                } label: {
+                                    if analogClockShowScale {
+                                        Label(String(localized: "Dial Marker"), systemImage: "checkmark.circle")
+                                    } else {
+                                        Text(String(localized: "Dial Marker"))
+                                    }
                                 }
-                            } label: {
-                                if analogClockShowScale {
-                                    Label(String(localized: "Dial Marker"), systemImage: "checkmark.circle")
-                                } else {
-                                    Text(String(localized: "Dial Marker"))
+
+                                Button {
+                                    analogClockShowUTCHand.toggle()
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                    }
+                                } label: {
+                                    if analogClockShowUTCHand {
+                                        Label(String(localized: "UTC Hand"), systemImage: "checkmark.circle")
+                                    } else {
+                                        Text(String(localized: "UTC Hand"))
+                                    }
                                 }
                             }
-                            
-                            Button {
-                                analogClockShowUTCHand.toggle()
-                                if hapticEnabled {
-                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                                }
-                            } label: {
-                                if analogClockShowUTCHand {
-                                    Label(String(localized: "UTC Hand"), systemImage: "checkmark.circle")
-                                } else {
-                                    Text(String(localized: "UTC Hand"))
+
+                            if showWeather && showWeatherCondition {
+                                Button {
+                                    weatherConditionUseColoredIcon.toggle()
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                    }
+                                } label: {
+                                    if weatherConditionUseColoredIcon {
+                                        Label(String(localized: "Multicolor Icon"), systemImage: "checkmark.circle")
+                                    } else {
+                                        Text(String(localized: "Multicolor Icon"))
+                                    }
                                 }
                             }
                         }
