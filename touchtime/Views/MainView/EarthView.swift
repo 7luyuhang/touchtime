@@ -392,6 +392,7 @@ struct EarthView: View {
                     if shouldShowLocalTime,
                        let coordinate = getCoordinate(for: TimeZone.current.identifier) {
                         Annotation(String(localized: "Local"), coordinate: coordinate) {
+
                             VStack(spacing: 6) {
                                 // Time bubble with SkyDot - wrapped in contextMenu
                                 HStack(spacing: 8) {
@@ -443,7 +444,6 @@ struct EarthView: View {
                                 .padding(.trailing, 8)
                                 .padding(.vertical, 4)
                                 .clipShape(Capsule())
-//                                    .glassEffect(.clear.interactive())
                                 .background(
                                     Capsule()
                                         .fill(Color.black.opacity(0.25))
@@ -485,7 +485,6 @@ struct EarthView: View {
                         // Don't show duplicate of local time
                     } else if shouldShowClock, let coordinate = getCoordinate(for: clock.timeZoneIdentifier) {
                         Annotation(clock.localizedCityName, coordinate: coordinate) {
-                            
                             VStack(spacing: 6) {
                                 // Time bubble with SkyDot - wrapped in contextMenu
                                 HStack(spacing: 8) {
@@ -517,7 +516,7 @@ struct EarthView: View {
                                     .font(.caption)
                                     .fontWeight(.bold)
                                     .fontDesign(.rounded)
-                                    .foregroundColor(.white)
+                                    .foregroundStyle(.white)
                                     .monospacedDigit()
                                     .contentTransition(.numericText())
                                     .animation(.spring(), value: currentDate)
@@ -527,7 +526,6 @@ struct EarthView: View {
                                 .padding(.trailing, 8)
                                 .padding(.vertical, 4)
                                 .clipShape(Capsule())
-//                                    .glassEffect(.clear.interactive())
                                 .background(
                                     Capsule()
                                         .fill(Color.black.opacity(0.25))

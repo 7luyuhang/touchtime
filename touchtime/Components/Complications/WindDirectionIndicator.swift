@@ -13,6 +13,7 @@ struct WindDirectionIndicator: View {
     let size: CGFloat
     let useMaterialBackground: Bool
     private let previewWindFromDegrees: Double?
+    @State private var displayedDirectionDegrees: Double
 
     @EnvironmentObject private var weatherManager: WeatherManager
 
@@ -26,6 +27,8 @@ struct WindDirectionIndicator: View {
         self.size = size
         self.useMaterialBackground = useMaterialBackground
         self.previewWindFromDegrees = previewWindFromDegrees
+        let initialDirectionDegrees = ((previewWindFromDegrees ?? 0) + 180).truncatingRemainder(dividingBy: 360)
+        _displayedDirectionDegrees = State(initialValue: initialDirectionDegrees)
     }
 
     private var sourceDirectionDegrees: Double {
@@ -34,10 +37,6 @@ struct WindDirectionIndicator: View {
 
     private var directionDegrees: Double {
         (sourceDirectionDegrees + 180).truncatingRemainder(dividingBy: 360)
-    }
-
-    private var hasWindData: Bool {
-        weatherManager.windDirectionDegrees(for: timeZone.identifier) != nil
     }
 
     var body: some View {
@@ -71,35 +70,48 @@ struct WindDirectionIndicator: View {
                 let lineWidth = max(2, baseSize * 0.03)
                 let lineHeight = baseSize * 0.60
                 let triangleSize = max(8, baseSize * 0.15)
-                let strokeOpacity = hasWindData ? 1.0 : 0.50
                 let endDotSize = baseSize * 0.125
 
                 VStack(spacing: -triangleSize * 0.50) {
                     Image(systemName: "arrowtriangle.up.fill")
                         .font(.system(size: triangleSize * 1.50))
-                        .foregroundStyle(.white.opacity(strokeOpacity))
+                        .foregroundStyle(.white)
                         .zIndex(1)
 
                     VStack(spacing: -lineWidth * 0.5) {
                         Capsule(style: .continuous)
-                            .fill(.white.opacity(strokeOpacity))
+                            .fill(.white)
                             .frame(width: lineWidth, height: lineHeight)
 
                         Circle()
-                            .stroke(.white.opacity(strokeOpacity), lineWidth: max(1.5, lineWidth * 1.0))
+                            .stroke(.white, lineWidth: max(1.5, lineWidth * 1.0))
                             .frame(width: endDotSize, height: endDotSize)
                     }
                 }
                 .padding(.bottom, size * 0.025) // Optical alignment
                 .frame(width: geometry.size.width, height: geometry.size.height)
-                .rotationEffect(.degrees(directionDegrees), anchor: .center)
+                .rotationEffect(.degrees(displayedDirectionDegrees), anchor: .center)
             }
             .scaleEffect(0.85)
         }
         .frame(width: size, height: size)
+        .onAppear {
+            displayedDirectionDegrees = directionDegrees
+        }
+        .onChange(of: directionDegrees) { _, newValue in
+            withAnimation(.spring(duration: 0.5)) {
+                displayedDirectionDegrees = shortestRotationTarget(from: displayedDirectionDegrees, to: newValue)
+            }
+        }
         .task {
             await weatherManager.getWeather(for: timeZone.identifier)
         }
+    }
+
+    private func shortestRotationTarget(from current: Double, to target: Double) -> Double {
+        let delta = ((target - current).truncatingRemainder(dividingBy: 360) + 540)
+            .truncatingRemainder(dividingBy: 360) - 180
+        return current + delta
     }
 
 }
