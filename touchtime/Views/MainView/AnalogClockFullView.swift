@@ -480,6 +480,7 @@ struct AnalogClockFaceView: View {
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     
     @State private var hideOtherHands = false
@@ -940,7 +941,7 @@ struct AnalogClockFaceView: View {
             
             
             // Golden hour indicator (yellow)
-            if showGoldenHour, let times = sunTimes,
+            if hasLifetimeAccess, showGoldenHour, let times = sunTimes,
                let goldenHourStartAngle = angleForDate(times.goldenHourStart),
                let goldenHourEndAngle = angleForDate(times.goldenHourEnd) {
                 // Golden hour arc fill
@@ -964,7 +965,7 @@ struct AnalogClockFaceView: View {
             }
             
             // Sunrise and Sunset indicator lines with daylight arc
-            if showSunriseSunsetLines, let times = sunTimes {
+            if hasLifetimeAccess, showSunriseSunsetLines, let times = sunTimes {
                 // Daylight arc fill between sunrise and sunset
                 if let sunriseAngle = angleForDate(times.sunrise),
                    let sunsetAngle = angleForDate(times.sunset) {
@@ -991,7 +992,7 @@ struct AnalogClockFaceView: View {
             }
             
             // Available time indicators
-            if availableTimeEnabled {
+            if hasLifetimeAccess, availableTimeEnabled {
                 let startTime = parseTimeString(availableStartTime)
                 let endTime = parseTimeString(availableEndTime)
                 let indicatorRadius = (size - 24) / 2 - 10
@@ -1228,105 +1229,139 @@ struct ClockHandWithLabel: View {
         }
         return color
     }
+
+    private var labelCenterOffset: CGFloat {
+        size / 2 - 95
+    }
+
+    // Stop the hand at the inner edge of the label instead of its center.
+    private var handLength: CGFloat {
+        max(labelCenterOffset - 45.5, 0)
+    }
     
     var body: some View {
-        // Rotate the entire group together so hand and label animate in sync
         ZStack {
-            // Hand line - positioned straight up
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(handColor)
-                .frame(width: (isSelected || isLocal) ? 2.5 : 1.25, height: max(size / 2 - 95, 0))
-                .offset(y: -(size / 4 - 47.5))
-                .blendMode((isSelected || isLocal) ? .normal : .plusLighter)
-            
-            // City label - positioned straight up, at outer end, parallel to hand
-            Group {
-                if isSelected {
-                    // Selected (either Local or city) - white background
-                    if isLocal {
-                        HStack(spacing: 4) {
-                            Image(systemName: "location.fill")
-                                .font(.caption2.weight(.semibold))
-                                .foregroundStyle(.black)
+            // Visual layer
+            ZStack {
+                // Hand line - positioned straight up
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(handColor)
+                    .frame(width: (isSelected || isLocal) ? 2.5 : 1.25, height: handLength)
+                    .offset(y: -handLength / 2)
+                    .blendMode((isSelected || isLocal) ? .normal : .plusLighter)
+                
+                // City label - positioned straight up, at outer end, parallel to hand
+                Group {
+                    if isSelected {
+                        // Selected (either Local or city) - white background
+                        if isLocal {
+                            HStack(spacing: 4) {
+                                Image(systemName: "location.fill")
+                                    .font(.caption2.weight(.semibold))
+                                    .foregroundStyle(.black)
+                                Text(displayText)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.black)
+                                    .contentTransition(.numericText())
+                            }
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 10)
+                            .frame(maxWidth: 95)
+                            .glassEffect(
+                                .regular.tint(.white).interactive(),
+                                in: Capsule(style: .continuous)
+                            )
+                        } else {
                             Text(displayText)
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(.black)
                                 .contentTransition(.numericText())
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .padding(.vertical, 4)
+                                .padding(.horizontal, 10)
+                                .frame(maxWidth: 95)
+                                .glassEffect(
+                                    .regular.tint(.white).interactive(),
+                                    in: Capsule(style: .continuous)
+                                )
                         }
+                    } else if isLocal {
+                        // Local not selected - blue style
+                        HStack(spacing: 4) {
+                            Image(systemName: "location.fill")
+                                .font(.caption2.weight(.semibold))
+                            Text(displayText)
+                                .font(.caption.weight(.semibold))
+                                .contentTransition(.numericText())
+                        }
+                        .foregroundStyle(.white)
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .padding(.vertical, 4)
                         .padding(.horizontal, 10)
                         .frame(maxWidth: 95)
-                        .background(Color.white, in: Capsule(style: .continuous))
+                        .glassEffect(
+                            .regular.tint(.blue).interactive(),
+                            in: Capsule(style: .continuous)
+                        )
                     } else {
+                        // Non-local not selected
                         Text(displayText)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(.black)
+                            .foregroundStyle(.white)
                             .contentTransition(.numericText())
                             .lineLimit(1)
                             .truncationMode(.tail)
                             .padding(.vertical, 4)
                             .padding(.horizontal, 10)
                             .frame(maxWidth: 95)
-                            .background(Color.white, in: Capsule(style: .continuous))
-                    }
-                } else if isLocal {
-                    // Local not selected - blue style
-                    HStack(spacing: 4) {
-                        Image(systemName: "location.fill")
-                            .font(.caption2.weight(.semibold))
-                        Text(displayText)
-                            .font(.caption.weight(.semibold))
-                            .contentTransition(.numericText())
-                    }
-                    .foregroundStyle(.white)
-                    .lineLimit(1)
-                    .truncationMode(.tail)
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 10)
-                    .frame(maxWidth: 95)
-                    .background(Color.blue, in: Capsule(style: .continuous))
-                } else {
-                    // Non-local not selected
-                    Text(displayText)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .contentTransition(.numericText())
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 10)
-                        .frame(maxWidth: 95)
                         .blendMode(.plusLighter)
-                        .background(.thinMaterial, in: Capsule(style: .continuous))
-                        .overlay {
-                            Capsule(style: .continuous)
-                                .stroke(.white.opacity(0.1), lineWidth: 0.5)
-                        }
+                        .glassEffect(
+                            .regular.tint(.black.opacity(0.10)).interactive(),
+                            in: Capsule(style: .continuous)
+                        )
                 }
             }
-            .animation(.smooth, value: showTimeInsteadOfCityName)
-            .contentShape(Capsule())
-            .onTapGesture { // Tap hand
-                if hapticEnabled {
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                    impactFeedback.impactOccurred()
-                }
-                // Open details sheet when tapping selected city
-                if isSelected {
-                    showDetailsSheet = true
-                } else {
-                    selectedCityId = cityId
-                }
+                .animation(.smooth, value: showTimeInsteadOfCityName)
+                .allowsHitTesting(false)
+                // Rotate 90° to align parallel with hand, then flip if needed for readability
+                .rotationEffectIgnoringLayout(.degrees(-90 + textCounterRotation))
+                // Position closer to center
+                .offset(y: -labelCenterOffset)
             }
-            // Rotate 90° to align parallel with hand, then flip if needed for readability
-            .rotationEffect(.degrees(-90 + textCounterRotation))
-            // Position closer to center
-            .offset(y: -(size / 2 - 95))
+            .animation(.none, value: angle)
+            .rotationEffectIgnoringLayout(.degrees(angle))
+            
+            // Separate hit target so taps follow the rotated label's visible position.
+            Color.clear
+                .frame(width: 95, height: 28)
+                .contentShape(Capsule(style: .continuous))
+                .rotationEffect(.degrees(-90 + textCounterRotation))
+                .offset(y: -labelCenterOffset)
+                .rotationEffect(.degrees(angle))
+                .onTapGesture {
+                    if hapticEnabled {
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                        impactFeedback.impactOccurred()
+                    }
+                    // Open details sheet when tapping selected city
+                    if isSelected {
+                        showDetailsSheet = true
+                    } else {
+                        selectedCityId = cityId
+                    }
+                }
         }
-        .animation(.none, value: angle)
-        .rotationEffect(.degrees(angle))
+        .frame(width: size, height: size)
+    }
+}
+
+private extension View {
+    func rotationEffectIgnoringLayout(_ angle: SwiftUI.Angle, anchor: UnitPoint = .center) -> some View {
+        modifier(_RotationEffect(angle: angle, anchor: anchor).ignoredByLayout())
     }
 }
 

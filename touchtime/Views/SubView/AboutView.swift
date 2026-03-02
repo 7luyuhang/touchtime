@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SafariServices
+import StoreKit
 
 struct AboutView: View {
     @Binding var worldClocks: [WorldClock]
@@ -145,6 +146,33 @@ struct AboutView: View {
             } footer: {
                 Text("Enable continuous scroll for slide to adjust.")
             }
+
+            // Redeem Code
+            Section {
+                Button(action: {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                    Task { @MainActor in
+                        guard let windowScene = activeWindowScene else {
+                            print("Unable to find active window scene for offer code redemption.")
+                            return
+                        }
+
+                        do {
+                            try await AppStore.presentOfferCodeRedeemSheet(in: windowScene)
+                        } catch {
+                            print("Failed to present offer code redemption sheet: \(error)")
+                        }
+                    }
+                }) {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "infinity", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                        Text("Redeem")
+                    }
+                }
+                .foregroundStyle(.primary)
+            }
             
             // Credits Section
             Section {
@@ -227,6 +255,14 @@ struct AboutView: View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
         return "\(version) (\(build))"
+    }
+
+    @MainActor
+    var activeWindowScene: UIWindowScene? {
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+
+        return scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
     }
     
     // Reset to default clocks

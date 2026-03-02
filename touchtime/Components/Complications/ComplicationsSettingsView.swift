@@ -22,7 +22,9 @@ struct ComplicationsSettingsView: View {
     @ObservedObject var weatherManager: WeatherManager
     
     @State private var currentDate = Date()
+    @State private var showLifetimeStore = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
     @AppStorage("weatherConditionUseColoredIcon") private var weatherConditionUseColoredIcon = false
@@ -68,6 +70,23 @@ struct ComplicationsSettingsView: View {
             showWindDirection = type == .windDirection
             showDaylight = type == .daylight
             showSolarCurve = type == .solarCurve
+        }
+    }
+
+    private func isLocked(_ type: ComplicationType) -> Bool {
+        switch type {
+        case .weatherCondition, .uvIndex, .windDirection:
+            return !hasLifetimeAccess
+        default:
+            return false
+        }
+    }
+
+    private func enforceLifetimeAccess() {
+        guard !hasLifetimeAccess else { return }
+
+        if showWeatherCondition || showUVIndex || showWindDirection {
+            selectComplication(nil)
         }
     }
     
@@ -150,6 +169,30 @@ struct ComplicationsSettingsView: View {
         }
         .onReceive(timer) { _ in
             currentDate = Date()
+        }
+        .onAppear {
+            enforceLifetimeAccess()
+        }
+        .onChange(of: hasLifetimeAccess) { _, _ in
+            enforceLifetimeAccess()
+        }
+        .sheet(isPresented: $showLifetimeStore) {
+            NavigationStack {
+                LifetimeStoreView()
+                    .toolbar {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                if hapticEnabled {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                }
+                                showLifetimeStore = false
+                            } label: {
+                                Image(systemName: "xmark")
+                                    .fontWeight(.semibold)
+                            }
+                        }
+                    }
+            }
         }
     }
     
@@ -290,6 +333,10 @@ struct ComplicationsSettingsView: View {
             if hapticEnabled {
                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
             }
+            if isLocked(type) {
+                showLifetimeStore = true
+                return
+            }
             if isSelected {
                 selectComplication(nil)
             } else {
@@ -311,6 +358,20 @@ struct ComplicationsSettingsView: View {
                                 lineWidth: isSelected ? 2 : 0.5
                             )
                     )
+                    .overlay(alignment: .bottomTrailing) {
+                        if isLocked(type) {
+                            Image(systemName: "lock.fill")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white.opacity(0.5))
+                                .blendMode(.plusLighter)
+                                .padding(6)
+                                .background(
+                                    Circle()
+                                        .fill(.ultraThinMaterial)
+                                )
+                                .offset(x: 4, y: 4)
+                        }
+                    }
                 
                 Text(type.localizedName)
                     .font(.caption.weight(.medium))

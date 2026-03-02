@@ -37,7 +37,9 @@ struct SettingsView: View {
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @State private var currentDate = Date()
+    @State private var showLifetimeStore = false
     @State private var showSupportLove = false
     @State private var showComplicationsSheet = false
     @Environment(\.dismiss) private var dismiss
@@ -126,67 +128,102 @@ struct SettingsView: View {
         guard showWeather else { return nil }
         return weatherManager.weatherData[TimeZone.current.identifier]?.condition
     }
+
+    private var goldenHourBinding: Binding<Bool> {
+        Binding(
+            get: { hasLifetimeAccess && showGoldenHour },
+            set: { newValue in
+                if newValue {
+                    if hasLifetimeAccess {
+                        showGoldenHour = true
+                    } else {
+                        showLifetimeStore = true
+                    }
+                } else {
+                    showGoldenHour = false
+                }
+            }
+        )
+    }
+
+    private var sunriseSunsetLinesBinding: Binding<Bool> {
+        Binding(
+            get: { hasLifetimeAccess && showSunriseSunsetLines },
+            set: { newValue in
+                if newValue {
+                    if hasLifetimeAccess {
+                        showSunriseSunsetLines = true
+                    } else {
+                        showLifetimeStore = true
+                    }
+                } else {
+                    showSunriseSunsetLines = false
+                }
+            }
+        )
+    }
     
     var body: some View {
         NavigationStack {
             List {
-                
                 // Support & Love
-                Button(action: {
-                    if hapticEnabled {
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    }
-                    showSupportLove = true
-                }) {
-                    HStack(spacing: 12) {
-                        SystemIconImage(systemName: "heart.fill", topColor: .pink, bottomColor: .red)
-                        
-                        VStack (alignment: .leading) {
-                            Text("Support & Love")
-                                .font(.headline)
-                            Text("Your support means the world")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .blendMode(.plusLighter)
+                Section {
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                         }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "arrow.right")
-                            .font(.subheadline.weight(.bold))
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .glassEffect(.clear.tint(.pink), in: .capsule(style: .continuous))
+                        showSupportLove = true
+                    }) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "heart.fill", topColor: .pink, bottomColor: .red)
+                            
+                            VStack (alignment: .leading) {
+                                Text("Support & Love")
+                                    .font(.headline)
+                                Text("Your support means the world")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "arrow.right")
+                                .font(.subheadline.weight(.bold))
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .glassEffect(.clear.tint(.pink), in: .capsule(style: .continuous))
+                        }
                     }
+                    .foregroundStyle(.primary)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        ZStack {
+                            // Particle effect
+                            ParticleView(color: .white)
+                                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                            
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            //                          .fill(Color.black.opacity(0.25))
+                                .fill(LinearGradient(
+                                    colors: [
+                                        .pink,
+                                        .red
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ).opacity(0.15))
+                            //                            .fill(
+                            //                                SkyColorGradient(
+                            //                                    date: currentDate,
+                            //                                    timeZoneIdentifier: TimeZone.current.identifier
+                            //                                ).linearGradient(opacity: 0.50)
+                            //                            )
+                                .glassEffect(.clear.interactive(),
+                                             in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        }
+                    )
                 }
-                .foregroundStyle(.primary)
-                .listRowBackground(
-                    ZStack {
-                        // Particle effect
-                        ParticleView(color: .white)
-                            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                        
-                        RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        //                          .fill(Color.black.opacity(0.25))
-                            .fill(LinearGradient(
-                                colors: [
-                                    .pink,
-                                    .red
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ).opacity(0.15))
-                        //                            .fill(
-                        //                                SkyColorGradient(
-                        //                                    date: currentDate,
-                        //                                    timeZoneIdentifier: TimeZone.current.identifier
-                        //                                ).linearGradient(opacity: 0.50)
-                        //                            )
-                            .glassEffect(.clear.interactive(),
-                                         in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-                    }
-                )
-                
                 
                 // General Section
                 Section(header: Text("General"), footer: Text("Powered by Hands Time.")) {
@@ -680,18 +717,30 @@ struct SettingsView: View {
                 
                 // Analog Time Section
                 Section {
-                    Toggle(isOn: $showGoldenHour) {
+                    Toggle(isOn: goldenHourBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "angle", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
                             Text(String(localized: "Golden Hour Lines"))
+                            Spacer()
+                            if !hasLifetimeAccess {
+                                Image(systemName: "lock.fill")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
                     .tint(.blue)
                     
-                    Toggle(isOn: $showSunriseSunsetLines) {
+                    Toggle(isOn: sunriseSunsetLinesBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
                             Text(String(localized: "Sunrise & Sunset Lines"))
+                            Spacer()
+                            if !hasLifetimeAccess {
+                                Image(systemName: "lock.fill")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
                     .tint(.blue)
@@ -712,11 +761,32 @@ struct SettingsView: View {
                     
                     // Available Time Section - only show when System Time is enabled
                     if showLocalTime {
-                        NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
-                            HStack(spacing: 12) {
-                                SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
-                                Text("Available Time")
+                        if hasLifetimeAccess {
+                            NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
+                                HStack(spacing: 12) {
+                                    SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
+                                    Text("Available Time")
+                                }
                             }
+                        } else {
+                            Button(action: {
+                                if hapticEnabled {
+                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                }
+                                showLifetimeStore = true
+                            }) {
+                                HStack(spacing: 12) {
+                                    SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
+                                    Text("Available Time")
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "lock.fill")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .foregroundStyle(.primary)
                         }
                     }
                     
@@ -852,6 +922,32 @@ struct SettingsView: View {
                     await weatherManager.getWeather(for: TimeZone.current.identifier)
                 }
             }
+            .task {
+                await refreshLifetimeStatus()
+            }
+            .task {
+                for await _ in Transaction.updates {
+                    await refreshLifetimeStatus()
+                }
+            }
+            .sheet(isPresented: $showLifetimeStore) {
+                NavigationStack {
+                    LifetimeStoreView()
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button(action: {
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    }
+                                    showLifetimeStore = false
+                                }) {
+                                    Image(systemName: "xmark")
+                                        .fontWeight(.semibold)
+                                }
+                            }
+                        }
+                }
+            }
             
             // Support & Love
             .fullScreenCover(isPresented: $showSupportLove) {
@@ -905,6 +1001,42 @@ struct SettingsView: View {
                 }
                 .presentationDetents([.height(280)])
             }
+        }
+    }
+
+    @MainActor
+    private func refreshLifetimeStatus() async {
+        var isUnlocked = false
+
+        for await result in Transaction.currentEntitlements {
+            do {
+                let transaction = try checkVerified(result)
+                guard transaction.revocationDate == nil else { continue }
+
+                if transaction.productID == "com.time.lifetime" {
+                    isUnlocked = true
+                    break
+                }
+            } catch {
+                print("Failed to verify lifetime entitlement: \(error)")
+            }
+        }
+
+        hasLifetimeAccess = isUnlocked
+
+        if !isUnlocked {
+            showGoldenHour = false
+            showSunriseSunsetLines = false
+            availableTimeEnabled = false
+        }
+    }
+
+    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+        switch result {
+        case .unverified(_, let error):
+            throw error
+        case .verified(let safe):
+            return safe
         }
     }
     

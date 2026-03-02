@@ -205,6 +205,7 @@ struct HomeView: View {
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6" // Default Mon-Fri
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
@@ -803,7 +804,7 @@ struct HomeView: View {
                                         
                                         // Available Time Display with Progress Indicator
                                         // Only show if enabled AND at least one weekday is selected
-                                        if availableTimeEnabled && !availableWeekdays.isEmpty {
+                                        if hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty {
                                             
                                             AvailableTimeIndicator(
                                                 currentDate: currentDate,
@@ -831,7 +832,7 @@ struct HomeView: View {
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: showDaylight,
                                         showSolarCurve: showSolarCurve,
-                                        bottomPadding: (availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0
+                                        bottomPadding: (hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0
                                     )
                                     .environmentObject(weatherManager)
                                 }
@@ -1141,7 +1142,7 @@ struct HomeView: View {
             .animation(.spring(), value: worldClocks)
             .animation(.spring(), value: showSkyDot)
             .animation(.spring(), value: showLocalTime)
-            .animation(.spring(), value: availableTimeEnabled)
+            .animation(.spring(), value: hasLifetimeAccess && availableTimeEnabled)
             .animation(.spring(), value: showAnalogClock)
             .animation(.spring(), value: showSunPosition)
             .animation(.spring(), value: showWeatherCondition)

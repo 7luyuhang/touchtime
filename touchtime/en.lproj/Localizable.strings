@@ -380,3 +380,8 @@
 "Reset" = "Reset";
 "System time shows at the top of the list with ambient background." = "System time shows at the top of the list with ambient background.";
 "Enable continuous scroll for slide to adjust." = "Enable continuous scroll for slide to adjust.";
+
+/* Lifetime */
+"Lifetime" = "Lifetime";
+"Unlock the experience with all complications, available time, and more." = "Unlock the experience with all complications, available time, and more.";
+"Restore Purchases" = "Restore Purchases";

@@ -88,6 +88,7 @@ struct OnboardingView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -127,6 +128,10 @@ struct OnboardingView: View {
     private var weatherConditionForSky: WeatherCondition? {
         guard showWeather else { return nil }
         return weatherManager.weatherData[TimeZone.current.identifier]?.condition
+    }
+
+    private var canShowLifetimeWeatherComplications: Bool {
+        showWeather && hasLifetimeAccess
     }
     
     // Prepare haptic engine
@@ -190,6 +195,14 @@ struct OnboardingView: View {
             showWindDirection = type == .windDirection
             showDaylight = type == .daylight
             showSolarCurve = type == .solarCurve
+        }
+    }
+
+    private func enforceLifetimeAccess() {
+        guard !hasLifetimeAccess else { return }
+
+        if showWeatherCondition || showUVIndex || showWindDirection {
+            selectComplication(nil)
         }
     }
     
@@ -521,7 +534,7 @@ struct OnboardingView: View {
                                     )
                                 }
                                 
-                                if showWeather && showWeatherCondition {
+                                if canShowLifetimeWeatherComplications && showWeatherCondition {
                                     WeatherConditionView(
                                         timeZone: TimeZone.current,
                                         size: 64,
@@ -535,7 +548,7 @@ struct OnboardingView: View {
                                     )
                                 }
 
-                                if showWeather && showUVIndex {
+                                if canShowLifetimeWeatherComplications && showUVIndex {
                                     UVIndexIndicator(
                                         timeZone: TimeZone.current,
                                         size: 64,
@@ -549,7 +562,7 @@ struct OnboardingView: View {
                                     )
                                 }
 
-                                if showWeather && showWindDirection {
+                                if canShowLifetimeWeatherComplications && showWindDirection {
                                     WindDirectionIndicator(
                                         timeZone: TimeZone.current,
                                         size: 64,
@@ -635,7 +648,7 @@ struct OnboardingView: View {
                                         )
                                     }
                                     
-                                    if showWeather {
+                                    if canShowLifetimeWeatherComplications {
                                         complicationOption(type: .weatherCondition, isSelected: showWeatherCondition) {
                                             WeatherConditionView(
                                                 timeZone: TimeZone.current,
@@ -762,6 +775,7 @@ struct OnboardingView: View {
         }
         .onAppear {
             prepareHaptics()
+            enforceLifetimeAccess()
             
             animateIcon = true
             animateText = true
@@ -781,6 +795,9 @@ struct OnboardingView: View {
                 showUVIndex = false
                 showWindDirection = false
             }
+        }
+        .onChange(of: hasLifetimeAccess) { _, _ in
+            enforceLifetimeAccess()
         }
         .onDisappear {
             hapticEngine?.stop()

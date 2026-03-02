@@ -828,3 +828,8 @@
 /* DST */
 "Starts" = "開始於";
 "Ends" = "結束於";
+
+/* Lifetime */
+"Lifetime" = "永久版";
+"Unlock the experience with all complications, available time, and more." = "解鎖全部複雜功能、可用時間以及更多內容。";
+"Restore Purchases" = "恢復購買";
