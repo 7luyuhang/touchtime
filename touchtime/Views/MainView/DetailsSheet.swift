@@ -25,15 +25,6 @@ struct SunriseSunsetSheet: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
-    @AppStorage("showAnalogClock") private var showAnalogClock = false
-    @AppStorage("analogClockShowScale") private var analogClockShowScale = false
-    @AppStorage("showSunPosition") private var showSunPosition = false
-    @AppStorage("showWeatherCondition") private var showWeatherCondition = false
-    @AppStorage("showUVIndex") private var showUVIndex = false
-    @AppStorage("showWindDirection") private var showWindDirection = false
-    @AppStorage("showSunAzimuth") private var showSunAzimuth = false
-    @AppStorage("showSunriseSunset") private var showSunriseSunset = false
-    @AppStorage("showDaylight") private var showDaylight = false
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
     @EnvironmentObject private var weatherManager: WeatherManager
@@ -369,39 +360,20 @@ struct SunriseSunsetSheet: View {
     }
     
     private func formatNextFullMoonDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
-        formatter.locale = Locale.current
+        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
         
-        // Use relative date format if within a week, otherwise use short date format
-        let daysUntil = Calendar.current.dateComponents([.day], from: currentDate.addingTimeInterval(timeOffset), to: date).day ?? 0
+        let currentLocalDate = currentDate.addingTimeInterval(timeOffset)
+        let startOfToday = calendar.startOfDay(for: currentLocalDate)
+        let startOfTargetDay = calendar.startOfDay(for: date)
+        let daysUntil = max(calendar.dateComponents([.day], from: startOfToday, to: startOfTargetDay).day ?? 0, 0)
         
-        if daysUntil <= 7 {
-            if Locale.current.language.languageCode?.identifier == "zh" {
-                if daysUntil == 0 {
-                    return String(localized: "Today")
-                } else if daysUntil == 1 {
-                    return String(localized: "Tomorrow")
-                } else {
-                    return String(format: String(localized: "%d days"), daysUntil)
-                }
-            } else {
-                if daysUntil == 0 {
-                    return String(localized: "Today")
-                } else if daysUntil == 1 {
-                    return String(localized: "Tomorrow")
-                } else {
-                    return String(format: String(localized: "%d days"), daysUntil)
-                }
-            }
-        } else {
-            if Locale.current.language.languageCode?.identifier == "zh" {
-                formatter.dateFormat = "MMMd日"
-            } else {
-                formatter.dateFormat = "MMM d"
-            }
-            return formatter.string(from: date)
+        if Locale.current.language.languageCode?.identifier == "zh" {
+            return "\(daysUntil) 天"
         }
+        
+        return daysUntil == 1 ? "1 day" : "\(daysUntil) days"
     }
     
     
@@ -461,7 +433,7 @@ struct SunriseSunsetSheet: View {
                                             .font(.headline)
                                             .lineLimit(1)
                                             .truncationMode(.tail)
-                                            .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showWindDirection || showSunAzimuth || showSunriseSunset || showDaylight) ? 120 : .infinity, alignment: .leading)
+                                            .frame(maxWidth: .infinity, alignment: .leading)
                                             .contentTransition(.numericText())
                                         
                                         Spacer()
@@ -485,138 +457,8 @@ struct SunriseSunsetSheet: View {
                                         .contentTransition(.numericText())
                                     }
                                 }
-                                .frame(minHeight: 64) // For Complication Overlays
                                 .padding()
                                 .padding(.bottom, -4)
-                                
-                                // Analog Clock Overlay - Centered
-                                if showAnalogClock {
-                                    AnalogClockView(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        size: 64,
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        useMaterialBackground: true,
-                                        showScale: analogClockShowScale
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                                
-                                // Sun Position Overlay - Centered
-                                if showSunPosition {
-                                    SunPositionIndicator(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                                
-                                // Weather Condition Overlay - Centered
-                                if showWeather && showWeatherCondition {
-                                    WeatherConditionView(
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .environmentObject(weatherManager)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-
-                                // UV Index Overlay - Centered
-                                if showWeather && showUVIndex {
-                                    UVIndexIndicator(
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .environmentObject(weatherManager)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-
-                                // Wind Direction Overlay - Centered
-                                if showWeather && showWindDirection {
-                                    WindDirectionIndicator(
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .environmentObject(weatherManager)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                                
-                                // Sun Azimuth Overlay - Centered
-                                if showSunAzimuth {
-                                    SunAzimuthIndicator(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                                
-                                // Sunrise & Sunset Overlay - Centered
-                                if showSunriseSunset {
-                                    SunriseSunsetIndicator(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                                
-                                // Daylight Overlay - Centered
-                                if showDaylight {
-                                    DaylightIndicator(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
                             }
                             .background(
                                 showSkyDot ?
@@ -1066,12 +908,6 @@ struct SunriseSunsetSheet: View {
                 guard showWeather else { return }
                 await weatherManager.getWeather(for: timeZoneIdentifier)
                 weatherLoadAttempted = true
-            }
-            // Fetch weather for weather-based complications
-            .task(id: "\(showWeatherCondition)_\(showUVIndex)_\(showWindDirection)") {
-                if showWeather && (showWeatherCondition || showUVIndex || showWindDirection) {
-                    await weatherManager.getWeather(for: timeZoneIdentifier)
-                }
             }
             .onReceive(timer) { _ in
                 currentDate = Date()
