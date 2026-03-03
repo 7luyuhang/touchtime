@@ -37,6 +37,7 @@ struct SettingsView: View {
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
+    @AppStorage("showMinuteHand") private var showMinuteHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @State private var currentDate = Date()
     @State private var showLifetimeStore = false
@@ -158,6 +159,23 @@ struct SettingsView: View {
                     }
                 } else {
                     showSunriseSunsetLines = false
+                }
+            }
+        )
+    }
+
+    private var minuteHandBinding: Binding<Bool> {
+        Binding(
+            get: { hasLifetimeAccess && showMinuteHand },
+            set: { newValue in
+                if newValue {
+                    if hasLifetimeAccess {
+                        showMinuteHand = true
+                    } else {
+                        showLifetimeStore = true
+                    }
+                } else {
+                    showMinuteHand = false
                 }
             }
         )
@@ -744,6 +762,20 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
+
+                    Toggle(isOn: minuteHandBinding) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "hand.raised.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            Text(String(localized: "Minute Hand"))
+                            Spacer()
+                            if !hasLifetimeAccess {
+                                Image(systemName: "lock.fill")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                    }
+                    .tint(.blue)
                     
                     Toggle(isOn: $showArcIndicator) {
                         HStack(spacing: 12) {
@@ -1027,6 +1059,7 @@ struct SettingsView: View {
         if !isUnlocked {
             showGoldenHour = false
             showSunriseSunsetLines = false
+            showMinuteHand = false
             availableTimeEnabled = false
         }
     }

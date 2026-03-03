@@ -480,6 +480,7 @@ struct AnalogClockFaceView: View {
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
+    @AppStorage("showMinuteHand") private var showMinuteHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     
@@ -736,6 +737,18 @@ struct AnalogClockFaceView: View {
         calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .current
         let components = calendar.dateComponents([.hour, .minute], from: date)
         return (components.hour ?? 0, components.minute ?? 0)
+    }
+
+    // Get the currently displayed time for the selected timezone.
+    private var selectedClockTime: (hour: Int, minute: Int, second: Int) {
+        var calendar = Calendar.current
+        calendar.timeZone = selectedTimeZone
+        let components = calendar.dateComponents([.hour, .minute, .second], from: date)
+        return (
+            components.hour ?? 0,
+            components.minute ?? 0,
+            components.second ?? 0
+        )
     }
     
     // Get time for a specific timezone
@@ -1012,6 +1025,11 @@ struct AnalogClockFaceView: View {
                     .blendMode(.plusLighter)
                     .position(positionForTime(hour: endTime.hour, minute: endTime.minute, radius: indicatorRadius, center: center))
             }
+
+            if hasLifetimeAccess, showMinuteHand {
+                MinuteTickMarksView(size: size)
+                    .allowsHitTesting(false)
+            }
             
             // Sun/Weather icon
             Image(systemName: showWeather && weather != nil ? weather!.condition.icon : "sun.max.fill")
@@ -1049,6 +1067,15 @@ struct AnalogClockFaceView: View {
                     .position(x: size / 2, y: size / 2 - (size / 2 - 62) / 2)
                     .contentTransition(.numericText())
                     .animation(.spring(), value: moonPhaseName)
+            }
+            
+            if hasLifetimeAccess, showMinuteHand {
+                MinuteHandView(
+                    minute: selectedClockTime.minute,
+                    second: selectedClockTime.second,
+                    size: size
+                )
+                .allowsHitTesting(false)
             }
             
             
@@ -1395,6 +1422,65 @@ struct UTCClockHandView: View {
         }
         .animation(.none, value: angle)
         .rotationEffect(.degrees(angle))
+    }
+}
+
+// MARK: - Minute Hand
+struct MinuteHandView: View {
+    let minute: Int
+    let second: Int
+    let size: CGFloat
+    private let tailLength: CGFloat = 24
+    
+    private var angle: Double {
+        Double(minute) * 6.0 + Double(second) * 0.1
+    }
+    
+    private var forwardLength: CGFloat {
+        max(size / 2 - 20, 0)
+    }
+    
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(.white)
+                .frame(width: 2, height: forwardLength + tailLength)
+                .offset(y: -(forwardLength - tailLength) / 2)
+            
+            Circle()
+                .fill(.white)
+                .frame(width: 8, height: 8)
+                .offset(y: -forwardLength)
+        }
+        .animation(.none, value: angle)
+        .rotationEffect(.degrees(angle))
+    }
+}
+
+// MARK: - Minute Tick Marks
+struct MinuteTickMarksView: View {
+    let size: CGFloat
+    
+    private let tickLength: CGFloat = 10
+    private let tickWidth: CGFloat = 2
+    
+    private var tickRadius: CGFloat {
+        max(size / 2 - 63, 0)
+    }
+    
+    var body: some View {
+        ZStack {
+            ForEach(0..<12, id: \.self) { index in
+                if index != 0 && index != 6 {
+                    RoundedRectangle(cornerRadius: tickWidth / 2, style: .continuous)
+                        .fill(.white.opacity(0.25))
+                        .frame(width: tickWidth, height: tickLength)
+                        .offset(y: -tickRadius)
+                        .rotationEffect(.degrees(Double(index) * 30.0))
+                        .blendMode(.plusLighter)
+                }
+            }
+        }
     }
 }
 

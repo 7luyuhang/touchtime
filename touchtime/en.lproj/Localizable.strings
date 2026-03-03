@@ -64,6 +64,7 @@
 "Display" = "Display";
 "Arc Indicator" = "Arc Indicator";
 "Sunrise & Sunset Lines" = "Sunrise & Sunset Lines";
+"Minute Hand" = "Minute Hand";
 "Enable showing arc indicator for time offset." = "Enable showing arc indicator for time offset.";
 "Preview" = "Preview";
 "Sky Colour" = "Sky Colour";
