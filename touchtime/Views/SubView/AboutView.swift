@@ -168,7 +168,7 @@ struct AboutView: View {
                 }) {
                     HStack(spacing: 12) {
                         SystemIconImage(systemName: "infinity", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                        Text("Redeem")
+                        Text("Redeem Code")
                     }
                 }
                 .foregroundStyle(.primary)

@@ -45,13 +45,10 @@ struct LifetimeStoreView: View {
                             .padding(.horizontal, 32)
 
                         if purchaseState == .loading {
-                            HStack {
-                                ProgressView()
-                            }
-                            .padding()
-                            .glassEffect(.clear)
+                            ProgressView()
+                                .padding()
                         }
-
+                        
                     }
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: geometry.size.height, alignment: .center)
@@ -105,7 +102,7 @@ struct LifetimeStoreView: View {
             if purchaseState == .purchasing {
                 ProgressView()
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+                    .padding(.vertical)
                     .glassEffect(.clear.tint(.white.opacity(0.10)), in: Capsule(style: .continuous))
                 
             } else if let product {
@@ -126,7 +123,7 @@ struct LifetimeStoreView: View {
                     }
                     .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+                    .padding(.vertical)
                     .contentShape(Capsule(style: .continuous))
                     .glassEffect(.clear.tint(.white), in: Capsule(style: .continuous))
                 }
@@ -139,12 +136,6 @@ struct LifetimeStoreView: View {
     // Footer Actions
     private var footerActions: some View {
         HStack(spacing: 6) {
-            Link(String(localized: "Terms of Use"), destination: URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")!)
-                .buttonStyle(.plain)
-
-            Text("·")
-                .foregroundStyle(.secondary)
-
             Link(String(localized: "Privacy Policy"), destination: URL(string: "https://www.handstime.app/privacy")!)
                 .buttonStyle(.plain)
 
