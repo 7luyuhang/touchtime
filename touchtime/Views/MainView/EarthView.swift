@@ -20,14 +20,28 @@ struct EarthView: View {
         cache.countLimit = 50
         return cache
     }()
+    private static let defaultMapSpan = MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
+
+    private static func systemTimeCenteredRegion() -> MKCoordinateRegion {
+        let offsetHours = Double(TimeZone.current.secondsFromGMT(for: Date())) / 3600
+        var longitude = (offsetHours * 15).truncatingRemainder(dividingBy: 360)
+
+        if longitude > 180 {
+            longitude -= 360
+        } else if longitude < -180 {
+            longitude += 360
+        }
+
+        return MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 0, longitude: longitude),
+            span: defaultMapSpan
+        )
+    }
 
     @Binding var timeOffset: TimeInterval
     @Binding var worldClocks: [WorldClock]
     @ObservedObject var weatherManager: WeatherManager
-    @State private var position = MapCameraPosition.region(MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 0, longitude: 0),
-        span: MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
-    ))
+    @State private var position = MapCameraPosition.region(Self.systemTimeCenteredRegion())
     @State private var currentDate = Date()
     @State private var timerCancellable: AnyCancellable?
     @State private var showShareSheet = false
