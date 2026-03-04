@@ -96,14 +96,14 @@ struct SkyBackgroundView: View {
             // Background sky gradient with opacity for background usage
             RoundedRectangle(cornerRadius: 26, style: .continuous)
                 .fill(skyColorGradient.linearGradient(opacity: 0.65))
-                .animation(.spring(), value: skyColorGradient.animationValue)
+                .animation(.easeInOut(duration: 0.5), value: skyColorGradient.animationValue)
             
             // Stars overlay for nighttime
             if skyColorGradient.starOpacity > 0 {
                 StarsView()
                     .opacity(skyColorGradient.starOpacity)
                     .blendMode(.plusLighter)
-                    .animation(.spring(), value: skyColorGradient.starOpacity)
+                    .animation(.easeInOut(duration: 0.5), value: skyColorGradient.starOpacity)
                     .allowsHitTesting(false)
             }
         }

@@ -76,6 +76,11 @@ struct SkyColorGradient {
         let wrapped = value.truncatingRemainder(dividingBy: 24.0)
         return wrapped >= 0 ? wrapped : wrapped + 24.0
     }
+
+    // Clamp interpolation values to avoid transient out-of-range colors.
+    private static func clamp01(_ value: Double) -> Double {
+        min(max(value, 0.0), 1.0)
+    }
     
     // Get normalized time with caching (cached sun times per day, then fast calculation)
     private static func calculateNormalizedTimeWithCache(date: Date, timeZoneIdentifier: String) -> Double {
@@ -197,27 +202,27 @@ struct SkyColorGradient {
                 // Evening/night after sunset
                 if currentHour < sunsetHour + 1.0 {
                     // Sunset period (18-19 equivalent)
-                    let progress = (currentHour - sunsetHour) / 1.0
-                    return 18.0 + min(progress, 1.0)
+                    let progress = Self.clamp01((currentHour - sunsetHour) / 1.0)
+                    return 18.0 + progress
                 } else if currentHour < civilDuskHour {
                     // Civil twilight evening (19-20 equivalent)
-                    let progress = (currentHour - (sunsetHour + 1.0)) / max(0.1, civilDuskHour - (sunsetHour + 1.0))
-                    return 19.0 + min(progress, 1.0)
+                    let progress = Self.clamp01((currentHour - (sunsetHour + 1.0)) / max(0.1, civilDuskHour - (sunsetHour + 1.0)))
+                    return 19.0 + progress
                 } else if currentHour < nauticalDuskHour {
                     // Nautical twilight evening (20-21 equivalent)
-                    let progress = (currentHour - civilDuskHour) / max(0.1, nauticalDuskHour - civilDuskHour)
-                    return 20.0 + min(progress, 1.0)
+                    let progress = Self.clamp01((currentHour - civilDuskHour) / max(0.1, nauticalDuskHour - civilDuskHour))
+                    return 20.0 + progress
                 } else if currentHour < astronomicalDuskHour {
                     // Astronomical twilight evening (21-22 equivalent)
-                    let progress = (currentHour - nauticalDuskHour) / max(0.1, astronomicalDuskHour - nauticalDuskHour)
-                    return 21.0 + min(progress, 1.0)
+                    let progress = Self.clamp01((currentHour - nauticalDuskHour) / max(0.1, astronomicalDuskHour - nauticalDuskHour))
+                    return 21.0 + progress
                 } else {
                     // Deep night after astronomical dusk (21-24 or 0-4 equivalent)
                     let hoursAfterDusk = currentHour - astronomicalDuskHour
                     let nightEnd = astronomicalDawnHour < sunriseHour ? astronomicalDawnHour + 24.0 : astronomicalDawnHour
                     let nightDuration = nightEnd - astronomicalDuskHour
                     if nightDuration > 0 {
-                        let progress = hoursAfterDusk / nightDuration
+                        let progress = Self.clamp01(hoursAfterDusk / nightDuration)
                         if progress < 0.5 {
                             return 21.0 + progress * 6.0  // 21-24
                         } else {
@@ -232,23 +237,23 @@ struct SkyColorGradient {
                 // Order of events: astronomicalDawnHour < nauticalDawnHour < civilDawnHour < sunriseHour
                 if currentHour >= civilDawnHour {
                     // Civil twilight morning (6-7 equivalent) - closest to sunrise
-                    let progress = (currentHour - civilDawnHour) / max(0.1, sunriseHour - civilDawnHour)
-                    return 6.0 + min(progress, 1.0)
+                    let progress = Self.clamp01((currentHour - civilDawnHour) / max(0.1, sunriseHour - civilDawnHour))
+                    return 6.0 + progress
                 } else if currentHour >= nauticalDawnHour {
                     // Nautical twilight morning (5-6 equivalent)
-                    let progress = (currentHour - nauticalDawnHour) / max(0.1, civilDawnHour - nauticalDawnHour)
-                    return 5.0 + min(progress, 1.0)
+                    let progress = Self.clamp01((currentHour - nauticalDawnHour) / max(0.1, civilDawnHour - nauticalDawnHour))
+                    return 5.0 + progress
                 } else if currentHour >= astronomicalDawnHour {
                     // Astronomical twilight morning (4-5 equivalent) - earliest dawn
-                    let progress = (currentHour - astronomicalDawnHour) / max(0.1, nauticalDawnHour - astronomicalDawnHour)
-                    return 4.0 + min(progress, 1.0)
+                    let progress = Self.clamp01((currentHour - astronomicalDawnHour) / max(0.1, nauticalDawnHour - astronomicalDawnHour))
+                    return 4.0 + progress
                 } else {
                     // Deep night before dawn (0-4 equivalent)
                     let nightStart = astronomicalDuskHour
                     let hoursIntoNight = currentHour + (24.0 - nightStart)
                     let nightDuration = (astronomicalDawnHour + 24.0) - nightStart
                     if nightDuration > 0 {
-                        let progress = hoursIntoNight / nightDuration
+                        let progress = Self.clamp01(hoursIntoNight / nightDuration)
                         return progress * 4.0
                     }
                     return 2.0
@@ -258,25 +263,25 @@ struct SkyColorGradient {
             // Day period: between astronomical dawn and astronomical dusk
             if currentHour < sunriseHour + 1.0 {
                 // Sunrise period (7-8 equivalent)
-                let progress = (currentHour - sunriseHour) / 1.0
-                return 7.0 + min(progress, 1.0)
+                let progress = Self.clamp01((currentHour - sunriseHour) / 1.0)
+                return 7.0 + progress
             } else if currentHour < sunriseHour + 4.0 {
                 // Morning (8-11 equivalent)
-                let progress = (currentHour - sunriseHour - 1.0) / 3.0
+                let progress = Self.clamp01((currentHour - sunriseHour - 1.0) / 3.0)
                 return 8.0 + progress * 3.0
             } else if abs(currentHour - solarNoonHour) < 1.5 {
                 // Noon period (11-14 equivalent)
-                let progress = (currentHour - (solarNoonHour - 1.5)) / 3.0
-                return 11.0 + min(max(progress, 0), 3.0)
+                let progress = Self.clamp01((currentHour - (solarNoonHour - 1.5)) / 3.0)
+                return 11.0 + progress
             } else if currentHour < sunsetHour - 1.0 {
                 // Afternoon (14-17 equivalent)
                 let afternoonStart = solarNoonHour + 1.5
-                let progress = (currentHour - afternoonStart) / max(0.1, (sunsetHour - 1.0) - afternoonStart)
-                return 14.0 + min(progress, 1.0) * 3.0
+                let progress = Self.clamp01((currentHour - afternoonStart) / max(0.1, (sunsetHour - 1.0) - afternoonStart))
+                return 14.0 + progress * 3.0
             } else {
                 // Golden hour before sunset (17-18 equivalent)
-                let progress = (currentHour - (sunsetHour - 1.0)) / 1.0
-                return 17.0 + min(progress, 1.0)
+                let progress = Self.clamp01((currentHour - (sunsetHour - 1.0)) / 1.0)
+                return 17.0 + progress
             }
         }
     }
@@ -312,30 +317,30 @@ struct SkyColorGradient {
             return 1.0
         case 4..<5:
             // Astronomical twilight - stars fading
-            let progress = (normalizedTime - 4)
+            let progress = Self.clamp01(normalizedTime - 4)
             return 1.0 - (progress * 0.3)
         case 5..<6:
             // Nautical twilight - stars mostly faded
-            let progress = (normalizedTime - 5)
+            let progress = Self.clamp01(normalizedTime - 5)
             return 0.7 - (progress * 0.5)
         case 6..<7:
             // Civil twilight - stars barely visible
-            let progress = (normalizedTime - 6)
+            let progress = Self.clamp01(normalizedTime - 6)
             return 0.2 - (progress * 0.2)
         case 7..<19:
             // Daytime - no stars
             return 0.0
         case 19..<20:
             // Evening civil twilight - stars appearing
-            let progress = (normalizedTime - 19)
+            let progress = Self.clamp01(normalizedTime - 19)
             return progress * 0.2
         case 20..<21:
             // Nautical twilight - stars becoming visible
-            let progress = (normalizedTime - 20)
+            let progress = Self.clamp01(normalizedTime - 20)
             return 0.2 + (progress * 0.5)
         case 21..<22:
             // Astronomical twilight - stars brightening
-            let progress = (normalizedTime - 21)
+            let progress = Self.clamp01(normalizedTime - 21)
             return 0.7 + (progress * 0.3)
         default:
             // Late night (22:00 - 24:00) - full stars
@@ -353,7 +358,7 @@ struct SkyColorGradient {
         switch normalizedTime {
         case 0..<4:
             // Night (0:00 - 4:00) - Very dark blue to black
-            let progress = normalizedTime / 4
+            let progress = Self.clamp01(normalizedTime / 4)
             return [
                 Color(red: 0.005, green: 0.008, blue: 0.02), // Deep Space
                 Color(red: 0.01, green: 0.015, blue: 0.04),  // Upper Atmosphere
@@ -364,7 +369,7 @@ struct SkyColorGradient {
         case 4..<5:
             // Astronomical Twilight (4:00 - 5:00)
             // First hint of scattering, deep indigo/violet
-            let progress = (normalizedTime - 4)
+            let progress = Self.clamp01(normalizedTime - 4)
             return [
                 Color(red: 0.01, green: 0.01, blue: 0.05),   // Zenith
                 Color(red: 0.02, green: 0.025, blue: 0.10 + 0.05 * progress), // Mid
@@ -375,7 +380,7 @@ struct SkyColorGradient {
         case 5..<6:
             // Nautical Twilight (5:00 - 6:00)
             // "Blue Hour" begins. Ozone absorption (Chappuis band) contributes to rich blues.
-            let progress = (normalizedTime - 5)
+            let progress = Self.clamp01(normalizedTime - 5)
             return [
                 Color(red: 0.02, green: 0.03, blue: 0.12 + 0.05 * progress), // Zenith
                 Color(red: 0.05, green: 0.08, blue: 0.25 + 0.1 * progress),  // Upper
@@ -386,7 +391,7 @@ struct SkyColorGradient {
         case 6..<7:
             // Civil Twilight / Dawn (6:00 - 7:00)
             // Scattering intensifies. Horizon transitions from blue to cool pink/lavender (Less yellow).
-            let progress = (normalizedTime - 6)
+            let progress = Self.clamp01(normalizedTime - 6)
             return [
                 Color(red: 0.05, green: 0.1, blue: 0.35), // Zenith (Deep Blue)
                 Color(red: 0.2, green: 0.25, blue: 0.55), // Mid Sky
@@ -397,7 +402,7 @@ struct SkyColorGradient {
         case 7..<8:
             // Sunrise (7:00 - 8:00)
             // Sun breaches horizon. Intense brightness with clean white/blue tones (Less intense yellow).
-            let progress = (normalizedTime - 7)
+            let progress = Self.clamp01(normalizedTime - 7)
             return [
                 Color(red: 0.15, green: 0.4 + 0.1 * progress, blue: 0.7 + 0.05 * progress), // Zenith (Clean Blue)
                 Color(red: 0.45 + 0.1 * progress, green: 0.6 + 0.1 * progress, blue: 0.85), // Upper (Sky Blue)
@@ -408,7 +413,7 @@ struct SkyColorGradient {
         case 8..<11:
             // Morning (8:00 - 11:00)
             // Atmosphere clears. Rayleigh scattering stabilizes to pure blue.
-            let progress = (normalizedTime - 8) / 3
+            let progress = Self.clamp01((normalizedTime - 8) / 3)
             return [
                 Color(red: 0.1 + 0.05 * progress, green: 0.4 + 0.1 * progress, blue: 0.75 + 0.05 * progress), // Zenith (Deep Blue)
                 Color(red: 0.25 + 0.05 * progress, green: 0.55 + 0.05 * progress, blue: 0.85), // Mid
@@ -429,7 +434,7 @@ struct SkyColorGradient {
         case 14..<17:
             // Afternoon (14:00 - 17:00)
             // Light warms slightly as path length increases.
-            let progress = (normalizedTime - 14) / 3
+            let progress = Self.clamp01((normalizedTime - 14) / 3)
             return [
                 Color(red: 0.15, green: 0.48 - 0.05 * progress, blue: 0.85 - 0.1 * progress), // Zenith
                 Color(red: 0.30 + 0.05 * progress, green: 0.60 - 0.05 * progress, blue: 0.90 - 0.05 * progress), // Mid
@@ -440,7 +445,7 @@ struct SkyColorGradient {
         case 17..<18:
             // Golden Hour (17:00 - 18:00)
             // Blue scatters out, leaving warm golden tones. (Desaturated for realism)
-            let progress = (normalizedTime - 17)
+            let progress = Self.clamp01(normalizedTime - 17)
             return [
                 Color(red: 0.2 + 0.05 * progress, green: 0.45 - 0.05 * progress, blue: 0.7 - 0.1 * progress), // Zenith (Softer Blue)
                 Color(red: 0.45 + 0.1 * progress, green: 0.58 - 0.03 * progress, blue: 0.75 - 0.1 * progress), // Mid
@@ -451,7 +456,7 @@ struct SkyColorGradient {
         case 18..<19:
             // Sunset (18:00 - 19:00)
             // Dramatic spectrum split. Deep blue above, soft red/orange below (Natural saturation)
-            let progress = (normalizedTime - 18)
+            let progress = Self.clamp01(normalizedTime - 18)
             return [
                 Color(red: 0.15 + 0.05 * progress, green: 0.3 - 0.1 * progress, blue: 0.5 - 0.1 * progress), // Zenith
                 Color(red: 0.4 + 0.1 * progress, green: 0.4 - 0.05 * progress, blue: 0.55 - 0.15 * progress), // Upper
@@ -462,7 +467,7 @@ struct SkyColorGradient {
         case 19..<20:
             // Civil Dusk (19:00 - 20:00)
             // The "Belt of Venus" effect fading into blue hour.
-            let progress = (normalizedTime - 19)
+            let progress = Self.clamp01(normalizedTime - 19)
             return [
                 Color(red: 0.05 + 0.05 * progress, green: 0.1 - 0.05 * progress, blue: 0.4 - 0.1 * progress), // Zenith
                 Color(red: 0.2, green: 0.25 - 0.1 * progress, blue: 0.5 - 0.1 * progress), // Upper
@@ -473,7 +478,7 @@ struct SkyColorGradient {
         case 20..<21:
             // Nautical Dusk (20:00 - 21:00)
             // Horizon glow remains, but colors desaturate rapidly.
-            let progress = (normalizedTime - 20)
+            let progress = Self.clamp01(normalizedTime - 20)
             return [
                 Color(red: 0.02, green: 0.03, blue: 0.15 - 0.05 * progress), // Zenith
                 Color(red: 0.08, green: 0.1, blue: 0.25 - 0.05 * progress), // Upper
@@ -484,7 +489,7 @@ struct SkyColorGradient {
         default:
             // Astronomical Dusk to Night (21:00 - 24:00)
             // Returning to deep space black/navy.
-            let progress = min((normalizedTime - 21) / 3, 1)
+            let progress = Self.clamp01((normalizedTime - 21) / 3)
             return [
                 Color(red: 0.01, green: 0.01, blue: 0.05 - 0.03 * progress), // Zenith
                 Color(red: 0.02, green: 0.02, blue: 0.08 - 0.04 * progress), // Mid
@@ -505,7 +510,7 @@ struct SkyColorGradient {
         switch normalizedTime {
         case 0..<4:
             // Night rain: dark slate with subtle cloud-brightened horizon.
-            let progress = normalizedTime / 4
+            let progress = Self.clamp01(normalizedTime / 4)
             return [
                 Color(red: 0.09 + 0.02 * progress, green: 0.11 + 0.02 * progress, blue: 0.16 + 0.03 * progress),
                 Color(red: 0.12 + 0.02 * progress, green: 0.14 + 0.02 * progress, blue: 0.20 + 0.03 * progress),
@@ -515,7 +520,7 @@ struct SkyColorGradient {
             
         case 4..<5:
             // Astronomical twilight: darkness lifts into cold steel-blue.
-            let progress = (normalizedTime - 4)
+            let progress = Self.clamp01(normalizedTime - 4)
             return [
                 Color(red: 0.11 + 0.02 * progress, green: 0.13 + 0.02 * progress, blue: 0.19 + 0.04 * progress),
                 Color(red: 0.15 + 0.03 * progress, green: 0.17 + 0.03 * progress, blue: 0.24 + 0.04 * progress),
@@ -525,7 +530,7 @@ struct SkyColorGradient {
             
         case 5..<6:
             // Nautical twilight: diffuse light increases, still neutral-cool.
-            let progress = (normalizedTime - 5)
+            let progress = Self.clamp01(normalizedTime - 5)
             return [
                 Color(red: 0.13 + 0.04 * progress, green: 0.15 + 0.04 * progress, blue: 0.23 + 0.06 * progress),
                 Color(red: 0.18 + 0.06 * progress, green: 0.20 + 0.06 * progress, blue: 0.28 + 0.06 * progress),
@@ -535,7 +540,7 @@ struct SkyColorGradient {
             
         case 6..<7:
             // Civil twilight: brighter overcast, no orange sunrise push.
-            let progress = (normalizedTime - 6)
+            let progress = Self.clamp01(normalizedTime - 6)
             return [
                 Color(red: 0.17 + 0.06 * progress, green: 0.19 + 0.06 * progress, blue: 0.29 + 0.06 * progress),
                 Color(red: 0.24 + 0.07 * progress, green: 0.26 + 0.07 * progress, blue: 0.34 + 0.07 * progress),
@@ -545,7 +550,7 @@ struct SkyColorGradient {
             
         case 7..<8:
             // Sunrise window: brighter horizon from geometry, still cool-grey.
-            let progress = (normalizedTime - 7)
+            let progress = Self.clamp01(normalizedTime - 7)
             return [
                 Color(red: 0.23 + 0.07 * progress, green: 0.25 + 0.07 * progress, blue: 0.35 + 0.07 * progress),
                 Color(red: 0.31 + 0.08 * progress, green: 0.33 + 0.08 * progress, blue: 0.41 + 0.07 * progress),
@@ -555,7 +560,7 @@ struct SkyColorGradient {
             
         case 8..<11:
             // Morning overcast: high diffuse skylight, silver-blue cast.
-            let progress = (normalizedTime - 8) / 3
+            let progress = Self.clamp01((normalizedTime - 8) / 3)
             return [
                 Color(red: 0.30 + 0.12 * progress, green: 0.32 + 0.12 * progress, blue: 0.42 + 0.09 * progress),
                 Color(red: 0.39 + 0.11 * progress, green: 0.41 + 0.11 * progress, blue: 0.48 + 0.08 * progress),
@@ -574,7 +579,7 @@ struct SkyColorGradient {
             
         case 14..<17:
             // Afternoon: gradual dimming while preserving soft contrast.
-            let progress = (normalizedTime - 14) / 3
+            let progress = Self.clamp01((normalizedTime - 14) / 3)
             return [
                 Color(red: 0.42 - 0.09 * progress, green: 0.44 - 0.09 * progress, blue: 0.51 - 0.07 * progress),
                 Color(red: 0.50 - 0.09 * progress, green: 0.52 - 0.09 * progress, blue: 0.56 - 0.07 * progress),
@@ -584,7 +589,7 @@ struct SkyColorGradient {
             
         case 17..<18:
             // Late afternoon: low-angle light, horizon remains only slightly brighter.
-            let progress = (normalizedTime - 17)
+            let progress = Self.clamp01(normalizedTime - 17)
             return [
                 Color(red: 0.33 - 0.04 * progress, green: 0.35 - 0.04 * progress, blue: 0.44 - 0.05 * progress),
                 Color(red: 0.41 - 0.05 * progress, green: 0.43 - 0.05 * progress, blue: 0.49 - 0.06 * progress),
@@ -594,7 +599,7 @@ struct SkyColorGradient {
             
         case 18..<19:
             // Sunset period under cloud: avoid orange, stay steel-blue.
-            let progress = (normalizedTime - 18)
+            let progress = Self.clamp01(normalizedTime - 18)
             return [
                 Color(red: 0.29 - 0.04 * progress, green: 0.31 - 0.04 * progress, blue: 0.39 - 0.04 * progress),
                 Color(red: 0.36 - 0.05 * progress, green: 0.38 - 0.05 * progress, blue: 0.43 - 0.05 * progress),
@@ -604,7 +609,7 @@ struct SkyColorGradient {
             
         case 19..<20:
             // Civil dusk: stronger cooling and desaturation.
-            let progress = (normalizedTime - 19)
+            let progress = Self.clamp01(normalizedTime - 19)
             return [
                 Color(red: 0.25 - 0.05 * progress, green: 0.27 - 0.05 * progress, blue: 0.35 - 0.05 * progress),
                 Color(red: 0.31 - 0.07 * progress, green: 0.33 - 0.07 * progress, blue: 0.38 - 0.06 * progress),
@@ -614,7 +619,7 @@ struct SkyColorGradient {
             
         case 20..<21:
             // Nautical dusk: transition into rain-soaked night tones.
-            let progress = (normalizedTime - 20)
+            let progress = Self.clamp01(normalizedTime - 20)
             return [
                 Color(red: 0.20 - 0.04 * progress, green: 0.22 - 0.04 * progress, blue: 0.30 - 0.05 * progress),
                 Color(red: 0.24 - 0.05 * progress, green: 0.26 - 0.05 * progress, blue: 0.32 - 0.06 * progress),
@@ -624,7 +629,7 @@ struct SkyColorGradient {
             
         default:
             // Late night rain: smooth return to pre-dawn palette.
-            let progress = min((normalizedTime - 21) / 3, 1)
+            let progress = Self.clamp01((normalizedTime - 21) / 3)
             return [
                 Color(red: 0.16 - 0.05 * progress, green: 0.18 - 0.05 * progress, blue: 0.25 - 0.07 * progress),
                 Color(red: 0.19 - 0.06 * progress, green: 0.21 - 0.06 * progress, blue: 0.26 - 0.07 * progress),
