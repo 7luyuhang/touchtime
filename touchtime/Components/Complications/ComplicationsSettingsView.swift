@@ -12,6 +12,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showAnalogClock: Bool
     @Binding var showSunPosition: Bool
     @Binding var showSunAzimuth: Bool
+    @Binding var showMoonAzimuth: Bool
     @Binding var showSunriseSunset: Bool
     @Binding var showWeatherCondition: Bool
     @Binding var showUVIndex: Bool
@@ -36,6 +37,7 @@ struct ComplicationsSettingsView: View {
         case analogClock
         case sunElevation
         case sunAzimuth
+        case moonAzimuth
         case sunriseSunset
         case weatherCondition
         case uvIndex
@@ -48,6 +50,7 @@ struct ComplicationsSettingsView: View {
             case .analogClock: return String(localized: "Analog Clock")
             case .sunElevation: return String(localized: "Sun Elevation")
             case .sunAzimuth: return String(localized: "Sun Azimuth")
+            case .moonAzimuth: return String(localized: "Moon Azimuth")
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
             case .uvIndex: return String(localized: "UV Index")
@@ -64,6 +67,7 @@ struct ComplicationsSettingsView: View {
             showAnalogClock = type == .analogClock
             showSunPosition = type == .sunElevation
             showSunAzimuth = type == .sunAzimuth
+            showMoonAzimuth = type == .moonAzimuth
             showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
             showUVIndex = type == .uvIndex
@@ -75,7 +79,7 @@ struct ComplicationsSettingsView: View {
 
     private func isLocked(_ type: ComplicationType) -> Bool {
         switch type {
-        case .weatherCondition, .uvIndex, .windDirection:
+        case .moonAzimuth, .weatherCondition, .uvIndex, .windDirection:
             return !hasLifetimeAccess
         default:
             return false
@@ -85,7 +89,7 @@ struct ComplicationsSettingsView: View {
     private func enforceLifetimeAccess() {
         guard !hasLifetimeAccess else { return }
 
-        if showWeatherCondition || showUVIndex || showWindDirection {
+        if showMoonAzimuth || showWeatherCondition || showUVIndex || showWindDirection {
             selectComplication(nil)
         }
     }
@@ -239,7 +243,7 @@ struct ComplicationsSettingsView: View {
                         useMaterialBackground: false
                     )
                 }
-                
+
                 // Sunrise & Sunset
                 complicationOption(
                     type: .sunriseSunset,
@@ -272,6 +276,19 @@ struct ComplicationsSettingsView: View {
                     isSelected: showSolarCurve
                 ) {
                     SolarCurve(
+                        date: currentDate,
+                        timeZone: TimeZone.current,
+                        size: 64,
+                        useMaterialBackground: false
+                    )
+                }
+
+                // Moon Azimuth
+                complicationOption(
+                    type: .moonAzimuth,
+                    isSelected: showMoonAzimuth
+                ) {
+                    MoonAzimuthIndicator(
                         date: currentDate,
                         timeZone: TimeZone.current,
                         size: 64,

@@ -44,9 +44,11 @@ struct ShareCitiesSheet: View {
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     
     @EnvironmentObject private var weatherManager: WeatherManager
@@ -84,6 +86,22 @@ struct ShareCitiesSheet: View {
         
         let adjustedDate = currentDate.addingTimeInterval(timeOffset)
         return formatter.string(from: adjustedDate).lowercased()
+    }
+
+    private var effectiveShowWeatherCondition: Bool {
+        hasLifetimeAccess && showWeatherCondition
+    }
+
+    private var effectiveShowUVIndex: Bool {
+        hasLifetimeAccess && showUVIndex
+    }
+
+    private var effectiveShowWindDirection: Bool {
+        hasLifetimeAccess && showWindDirection
+    }
+
+    private var effectiveShowMoonAzimuth: Bool {
+        hasLifetimeAccess && showMoonAzimuth
     }
     
     // Generate share text
@@ -185,10 +203,11 @@ struct ShareCitiesSheet: View {
             showAnalogClock: showAnalogClock,
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,
-            showWeatherCondition: showWeatherCondition,
-            showUVIndex: showUVIndex,
-            showWindDirection: showWindDirection,
+            showWeatherCondition: effectiveShowWeatherCondition,
+            showUVIndex: effectiveShowUVIndex,
+            showWindDirection: effectiveShowWindDirection,
             showSunAzimuth: showSunAzimuth,
+            showMoonAzimuth: effectiveShowMoonAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: showDaylight,
             showSolarCurve: showSolarCurve,

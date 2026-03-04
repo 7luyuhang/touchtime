@@ -46,6 +46,7 @@ struct ComplicationOverlayView: View {
     let showUVIndex: Bool
     let showWindDirection: Bool
     let showSunAzimuth: Bool
+    let showMoonAzimuth: Bool
     let showSunriseSunset: Bool
     let showDaylight: Bool
     let showSolarCurve: Bool
@@ -107,6 +108,16 @@ struct ComplicationOverlayView: View {
             
             if showSunAzimuth {
                 SunAzimuthIndicator(
+                    date: date,
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+
+            if showMoonAzimuth {
+                MoonAzimuthIndicator(
                     date: date,
                     timeZone: timeZone,
                     size: 64
@@ -216,6 +227,7 @@ struct HomeView: View {
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
@@ -258,6 +270,35 @@ struct HomeView: View {
     private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
         guard showWeather else { return nil }
         return weatherManager.weatherData[timeZoneIdentifier]?.condition
+    }
+
+    private var effectiveShowWeatherCondition: Bool {
+        hasLifetimeAccess && showWeatherCondition
+    }
+
+    private var effectiveShowUVIndex: Bool {
+        hasLifetimeAccess && showUVIndex
+    }
+
+    private var effectiveShowWindDirection: Bool {
+        hasLifetimeAccess && showWindDirection
+    }
+
+    private var effectiveShowMoonAzimuth: Bool {
+        hasLifetimeAccess && showMoonAzimuth
+    }
+
+    private var hasVisibleComplication: Bool {
+        showAnalogClock ||
+        showSunPosition ||
+        effectiveShowWeatherCondition ||
+        effectiveShowUVIndex ||
+        effectiveShowWindDirection ||
+        showSunAzimuth ||
+        effectiveShowMoonAzimuth ||
+        showSunriseSunset ||
+        showDaylight ||
+        showSolarCurve
     }
     
     // Get local city name from timezone
@@ -640,10 +681,11 @@ struct HomeView: View {
             showAnalogClock: showAnalogClock,
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,
-            showWeatherCondition: showWeatherCondition,
-            showUVIndex: showUVIndex,
-            showWindDirection: showWindDirection,
+            showWeatherCondition: effectiveShowWeatherCondition,
+            showUVIndex: effectiveShowUVIndex,
+            showWindDirection: effectiveShowWindDirection,
             showSunAzimuth: showSunAzimuth,
+            showMoonAzimuth: effectiveShowMoonAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: showDaylight,
             showSolarCurve: showSolarCurve,
@@ -786,7 +828,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showWindDirection || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: hasVisibleComplication ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             
@@ -825,10 +867,11 @@ struct HomeView: View {
                                         showAnalogClock: showAnalogClock,
                                         analogClockShowScale: analogClockShowScale,
                                         showSunPosition: showSunPosition,
-                                        showWeatherCondition: showWeatherCondition,
-                                        showUVIndex: showUVIndex,
-                                        showWindDirection: showWindDirection,
+                                        showWeatherCondition: effectiveShowWeatherCondition,
+                                        showUVIndex: effectiveShowUVIndex,
+                                        showWindDirection: effectiveShowWindDirection,
                                         showSunAzimuth: showSunAzimuth,
+                                        showMoonAzimuth: effectiveShowMoonAzimuth,
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: showDaylight,
                                         showSolarCurve: showSolarCurve,
@@ -985,7 +1028,7 @@ struct HomeView: View {
                                                 .font(.headline)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
-                                                .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showWindDirection || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve) ? 120 : .infinity, alignment: .leading)
+                                                .frame(maxWidth: hasVisibleComplication ? 120 : .infinity, alignment: .leading)
                                                 .contentTransition(.numericText())
                                             
                                             Spacer()
@@ -1009,10 +1052,11 @@ struct HomeView: View {
                                         showAnalogClock: showAnalogClock,
                                         analogClockShowScale: analogClockShowScale,
                                         showSunPosition: showSunPosition,
-                                        showWeatherCondition: showWeatherCondition,
-                                        showUVIndex: showUVIndex,
-                                        showWindDirection: showWindDirection,
+                                        showWeatherCondition: effectiveShowWeatherCondition,
+                                        showUVIndex: effectiveShowUVIndex,
+                                        showWindDirection: effectiveShowWindDirection,
                                         showSunAzimuth: showSunAzimuth,
+                                        showMoonAzimuth: effectiveShowMoonAzimuth,
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: showDaylight,
                                         showSolarCurve: showSolarCurve,
@@ -1090,8 +1134,8 @@ struct HomeView: View {
                     .id(selectedCollectionId?.uuidString ?? "default")
                     .transition(.identity) // Collection Animation
                     // Centralized batch weather prefetch for all displayed cities
-                    .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(showWeatherCondition)_\(showUVIndex)_\(showWindDirection)_\(showSkyDot)") {
-                        if showWeather || showWeatherCondition || showUVIndex || showWindDirection {
+                    .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(effectiveShowWeatherCondition)_\(effectiveShowUVIndex)_\(effectiveShowWindDirection)_\(showSkyDot)") {
+                        if showWeather || effectiveShowWeatherCondition || effectiveShowUVIndex || effectiveShowWindDirection {
                             var identifiers = displayedClocks.map(\.timeZoneIdentifier)
                             if showLocalTime {
                                 identifiers.insert(TimeZone.current.identifier, at: 0)
@@ -1145,10 +1189,11 @@ struct HomeView: View {
             .animation(.spring(), value: hasLifetimeAccess && availableTimeEnabled)
             .animation(.spring(), value: showAnalogClock)
             .animation(.spring(), value: showSunPosition)
-            .animation(.spring(), value: showWeatherCondition)
-            .animation(.spring(), value: showUVIndex)
-            .animation(.spring(), value: showWindDirection)
+            .animation(.spring(), value: effectiveShowWeatherCondition)
+            .animation(.spring(), value: effectiveShowUVIndex)
+            .animation(.spring(), value: effectiveShowWindDirection)
             .animation(.spring(), value: showSunAzimuth)
+            .animation(.spring(), value: effectiveShowMoonAzimuth)
             .animation(.spring(), value: showSunriseSunset)
             .animation(.spring(), value: showSolarCurve)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)

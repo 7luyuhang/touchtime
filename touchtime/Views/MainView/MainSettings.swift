@@ -31,6 +31,7 @@ struct SettingsView: View {
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
@@ -109,13 +110,15 @@ struct SettingsView: View {
             return String(localized: "Sun Elevation")
         } else if showSunAzimuth {
             return String(localized: "Sun Azimuth")
+        } else if effectiveShowMoonAzimuth {
+            return String(localized: "Moon Azimuth")
         } else if showSunriseSunset {
             return String(localized: "Sunrise & Sunset")
-        } else if showWeather && showWeatherCondition {
+        } else if effectiveShowWeatherCondition {
             return String(localized: "Weather Condition")
-        } else if showWeather && showUVIndex {
+        } else if effectiveShowUVIndex {
             return String(localized: "UV Index")
-        } else if showWeather && showWindDirection {
+        } else if effectiveShowWindDirection {
             return String(localized: "Wind Direction")
         } else if showDaylight {
             return String(localized: "Daylight Curve")
@@ -128,6 +131,22 @@ struct SettingsView: View {
     private var weatherConditionForSky: WeatherCondition? {
         guard showWeather else { return nil }
         return weatherManager.weatherData[TimeZone.current.identifier]?.condition
+    }
+
+    private var effectiveShowWeatherCondition: Bool {
+        hasLifetimeAccess && showWeather && showWeatherCondition
+    }
+
+    private var effectiveShowUVIndex: Bool {
+        hasLifetimeAccess && showWeather && showUVIndex
+    }
+
+    private var effectiveShowWindDirection: Bool {
+        hasLifetimeAccess && showWeather && showWindDirection
+    }
+
+    private var effectiveShowMoonAzimuth: Bool {
+        hasLifetimeAccess && showMoonAzimuth
     }
 
     private var goldenHourBinding: Binding<Bool> {
@@ -443,7 +462,7 @@ struct SettingsView: View {
                             }
                             
                             // Weather Condition Overlay - Centered
-                            if showWeather && showWeatherCondition {
+                            if effectiveShowWeatherCondition {
                                 WeatherConditionView(
                                     timeZone: TimeZone.current,
                                     size: 64,
@@ -459,7 +478,7 @@ struct SettingsView: View {
                             }
 
                             // UV Index Overlay - Centered
-                            if showWeather && showUVIndex {
+                            if effectiveShowUVIndex {
                                 UVIndexIndicator(
                                     timeZone: TimeZone.current,
                                     size: 64,
@@ -475,7 +494,7 @@ struct SettingsView: View {
                             }
 
                             // Wind Direction Overlay - Centered
-                            if showWeather && showWindDirection {
+                            if effectiveShowWindDirection {
                                 WindDirectionIndicator(
                                     timeZone: TimeZone.current,
                                     size: 64,
@@ -493,6 +512,22 @@ struct SettingsView: View {
                             // Sun Azimuth Overlay - Centered
                             if showSunAzimuth {
                                 SunAzimuthIndicator(
+                                    date: currentDate,
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.identity)
+                            }
+
+                            // Moon Azimuth Overlay - Centered
+                            if effectiveShowMoonAzimuth {
+                                MoonAzimuthIndicator(
                                     date: currentDate,
                                     timeZone: TimeZone.current,
                                     size: 64,
@@ -574,10 +609,11 @@ struct SettingsView: View {
                         .animation(.spring(), value: showSkyDot)
                         .animation(.spring(), value: showAnalogClock)
                         .animation(.spring(), value: showSunPosition)
-                        .animation(.spring(), value: showWeatherCondition)
-                        .animation(.spring(), value: showUVIndex)
-                        .animation(.spring(), value: showWindDirection)
+                        .animation(.spring(), value: effectiveShowWeatherCondition)
+                        .animation(.spring(), value: effectiveShowUVIndex)
+                        .animation(.spring(), value: effectiveShowWindDirection)
                         .animation(.spring(), value: showSunAzimuth)
+                        .animation(.spring(), value: effectiveShowMoonAzimuth)
                         .animation(.spring(), value: showSunriseSunset)
                         .animation(.spring(), value: showDaylight)
                         .animation(.spring(), value: showSolarCurve)
@@ -650,7 +686,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showUVIndex && !showWindDirection && !showSunAzimuth && !showSunriseSunset && !showDaylight && !showSolarCurve {
+                        if !showAnalogClock && !showSunPosition && !effectiveShowWeatherCondition && !effectiveShowUVIndex && !effectiveShowWindDirection && !showSunAzimuth && !effectiveShowMoonAzimuth && !showSunriseSunset && !showDaylight && !showSolarCurve {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -662,7 +698,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showWindDirection || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve)
+                    .disabled(showAnalogClock || showSunPosition || effectiveShowWeatherCondition || effectiveShowUVIndex || effectiveShowWindDirection || showSunAzimuth || effectiveShowMoonAzimuth || showSunriseSunset || showDaylight || showSolarCurve)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
@@ -689,6 +725,11 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: showSunAzimuth) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showMoonAzimuth) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
@@ -1008,6 +1049,7 @@ struct SettingsView: View {
                         showAnalogClock: $showAnalogClock,
                         showSunPosition: $showSunPosition,
                         showSunAzimuth: $showSunAzimuth,
+                        showMoonAzimuth: $showMoonAzimuth,
                         showSunriseSunset: $showSunriseSunset,
                         showWeatherCondition: $showWeatherCondition,
                         showUVIndex: $showUVIndex,

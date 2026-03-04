@@ -348,6 +348,7 @@
 /* Sun Elevation */
 "Sun Elevation" = "Sun Elevation";
 "Sun Azimuth" = "Sun Azimuth";
+"Moon Azimuth" = "Moon Azimuth";
 "Daylight" = "Daylight";
 "Daylight Curve" = "Daylight Curve";
 "Solar Curve" = "Solar Curve";
