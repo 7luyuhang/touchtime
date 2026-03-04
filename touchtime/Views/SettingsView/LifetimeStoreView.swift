@@ -100,7 +100,7 @@ struct LifetimeStoreView: View {
     private var purchaseButton: some View {
         Group {
             if purchaseState == .purchasing {
-                ProgressView()
+                ProgressView() // Purchasing Loading Button
                     .frame(maxWidth: .infinity)
                     .padding(.vertical)
                     .glassEffect(.clear.tint(.white.opacity(0.10)), in: Capsule(style: .continuous))
