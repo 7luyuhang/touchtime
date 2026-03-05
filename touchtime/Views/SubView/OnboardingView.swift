@@ -504,20 +504,6 @@ struct OnboardingView: View {
                                     )
                                 }
 
-                                if effectiveShowMoonAzimuth {
-                                    MoonAzimuthIndicator(
-                                        date: currentDate,
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                }
-                                
                                 if showSunriseSunset {
                                     SunriseSunsetIndicator(
                                         date: currentDate,
@@ -548,6 +534,20 @@ struct OnboardingView: View {
                                 
                                 if showSolarCurve {
                                     SolarCurve(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
+
+                                if effectiveShowMoonAzimuth {
+                                    MoonAzimuthIndicator(
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
@@ -647,17 +647,6 @@ struct OnboardingView: View {
                                         )
                                     }
 
-                                    if canShowLifetimeComplications {
-                                        complicationOption(type: .moonAzimuth, isSelected: showMoonAzimuth) {
-                                            MoonAzimuthIndicator(
-                                                date: currentDate,
-                                                timeZone: TimeZone.current,
-                                                size: 64,
-                                                useMaterialBackground: false
-                                            )
-                                        }
-                                    }
-                                    
                                     complicationOption(type: .sunriseSunset, isSelected: showSunriseSunset) {
                                         SunriseSunsetIndicator(
                                             date: currentDate,
@@ -683,6 +672,17 @@ struct OnboardingView: View {
                                             size: 64,
                                             useMaterialBackground: false
                                         )
+                                    }
+
+                                    if canShowLifetimeComplications {
+                                        complicationOption(type: .moonAzimuth, isSelected: showMoonAzimuth) {
+                                            MoonAzimuthIndicator(
+                                                date: currentDate,
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                        }
                                     }
                                     
                                     if canShowLifetimeWeatherComplications {
