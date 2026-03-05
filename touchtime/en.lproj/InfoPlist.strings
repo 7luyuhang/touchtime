@@ -1,2 +1,5 @@
 /* Photo Library Additions - shown when user saves city card to Photos */
 "NSPhotoLibraryAddUsageDescription" = "Save city card images to your Photo Library.";
+
+/* Camera - shown when user enables live camera background */
+"NSCameraUsageDescription" = "Allow camera access to show live camera background.";

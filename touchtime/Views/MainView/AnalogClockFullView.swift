@@ -8,6 +8,7 @@
 import SwiftUI
 import Combine
 import UIKit
+import AVFoundation
 import CoreHaptics
 import WeatherKit
 import MoonKit
@@ -25,9 +26,18 @@ struct AnalogClockFullView: View {
     @State private var showDetailsSheet = false
     @State private var showShareSheet = false
     @State private var showSettingsSheet = false
-    @State private var showEarthView = false
     @State private var showTimeInsteadOfCityName = false
     @State private var showTimeAdjustmentSheet = false
+    @State private var isCameraBackgroundEnabled = false
+    @State private var isCameraPreparing = false
+    @State private var activeCameraRequestId = UUID()
+    @State private var cameraToggleTask: Task<Void, Never>? = nil
+    @State private var cameraWarmupTask: Task<Void, Never>? = nil
+    @State private var showCameraPermissionAlert = false
+    @State private var cameraAlertTitle = ""
+    @State private var cameraAlertMessage = ""
+    @StateObject private var cameraSessionController = CameraSessionController()
+    @Environment(\.scenePhase) private var scenePhase
     
     @AppStorage("use24HourFormat") private var use24HourFormat = true
     @AppStorage("showLocalTime") private var showLocalTime = true
@@ -36,10 +46,6 @@ struct AnalogClockFullView: View {
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
-    
-    // Namespace for zoom transition
-    @Namespace private var earthViewNamespace
-    
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -70,6 +76,116 @@ struct AnalogClockFullView: View {
         guard showWeather else { return nil }
         return weatherManager.weatherData[timeZoneIdentifier]?.condition
     }
+
+    private func triggerLightHaptic() {
+        guard hapticEnabled else { return }
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.prepare()
+        impactFeedback.impactOccurred()
+    }
+
+    private func showCameraAlert(title: String = "", message: String) {
+        cameraAlertTitle = title
+        cameraAlertMessage = message
+        showCameraPermissionAlert = true
+    }
+
+    private func disableCameraBackground() {
+        cameraToggleTask?.cancel()
+        cameraToggleTask = nil
+        activeCameraRequestId = UUID()
+        isCameraPreparing = false
+        isCameraBackgroundEnabled = false
+        cameraSessionController.stopRunning()
+    }
+
+    private func handleCameraToggle() {
+        triggerLightHaptic()
+
+        if isCameraBackgroundEnabled || isCameraPreparing {
+            disableCameraBackground()
+            return
+        }
+
+        let requestId = UUID()
+        activeCameraRequestId = requestId
+        isCameraPreparing = true
+
+        cameraToggleTask?.cancel()
+        cameraToggleTask = Task {
+            defer {
+                Task { @MainActor in
+                    if activeCameraRequestId == requestId {
+                        cameraToggleTask = nil
+                    }
+                }
+            }
+
+            let granted = await cameraSessionController.requestAccess()
+            if Task.isCancelled { return }
+            let isRequestActiveAfterPermission = await MainActor.run { activeCameraRequestId == requestId }
+            guard isRequestActiveAfterPermission else { return }
+            guard granted else {
+                await MainActor.run {
+                    isCameraPreparing = false
+                    showCameraAlert(
+                        message: String(localized: "Please allow camera access in Settings to show live camera background.")
+                    )
+                }
+                return
+            }
+
+            let configured = await cameraSessionController.configureIfNeeded()
+            if Task.isCancelled { return }
+            let isRequestActiveAfterConfigure = await MainActor.run { activeCameraRequestId == requestId }
+            guard isRequestActiveAfterConfigure else { return }
+            guard configured else {
+                await MainActor.run {
+                    isCameraPreparing = false
+                    showCameraAlert(
+                        title: String(localized: "Camera Unavailable"),
+                        message: String(localized: "Please allow camera access in Settings to show live camera background.")
+                    )
+                }
+                return
+            }
+
+            let sceneIsActive = await MainActor.run { scenePhase == .active }
+            guard sceneIsActive else {
+                await MainActor.run {
+                    isCameraPreparing = false
+                }
+                return
+            }
+
+            let started = await cameraSessionController.startRunning()
+            if Task.isCancelled { return }
+            let isRequestActiveAfterStart = await MainActor.run { activeCameraRequestId == requestId }
+            guard isRequestActiveAfterStart else { return }
+            guard cameraSessionController.isCameraAvailable else {
+                await MainActor.run {
+                    isCameraPreparing = false
+                    showCameraAlert(
+                        title: String(localized: "Camera Unavailable"),
+                        message: String(localized: "Please allow camera access in Settings to show live camera background.")
+                    )
+                }
+                return
+            }
+
+            await MainActor.run {
+                isCameraPreparing = false
+                if started {
+                    isCameraBackgroundEnabled = true
+                } else {
+                    showCameraAlert(
+                        title: String(localized: "Camera Unavailable"),
+                        message: String(localized: "Please allow camera access in Settings to show live camera background.")
+                    )
+                }
+            }
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -85,29 +201,35 @@ struct AnalogClockFullView: View {
                 ZStack {
                     // Background
                     Group {
-                        if showSkyDot {
-                            ZStack {
-                                skyGradient.linearGradient()
-                                    .ignoresSafeArea()
-                                    .opacity(0.65)
-                                    .animation(.spring(), value: selectedTimeZone.identifier)
-                                
-                                // Stars overlay for nighttime
-                                if skyGradient.starOpacity > 0 {
-                                    StarsView(starCount: 150)
-                                        .ignoresSafeArea()
-                                        .opacity(skyGradient.starOpacity)
-                                        .blendMode(.plusLighter)
-                                        .animation(.spring(), value: skyGradient.starOpacity)
-                                        .allowsHitTesting(false)
-                                }
-                            }
-                        } else {
-                            Color(UIColor.systemBackground)
+                        if isCameraBackgroundEnabled {
+                            CameraBackgroundView(session: cameraSessionController.session)
                                 .ignoresSafeArea()
+                        } else {
+                            if showSkyDot {
+                                ZStack {
+                                    skyGradient.linearGradient()
+                                        .ignoresSafeArea()
+                                        .opacity(0.65)
+                                        .animation(.spring(), value: selectedTimeZone.identifier)
+                                    
+                                    // Stars overlay for nighttime
+                                    if skyGradient.starOpacity > 0 {
+                                        StarsView(starCount: 150)
+                                            .ignoresSafeArea()
+                                            .opacity(skyGradient.starOpacity)
+                                            .blendMode(.plusLighter)
+                                            .animation(.spring(), value: skyGradient.starOpacity)
+                                            .allowsHitTesting(false)
+                                    }
+                                }
+                            } else {
+                                Color(UIColor.systemBackground)
+                                    .ignoresSafeArea()
+                            }
                         }
                     }
                     .animation(.spring(), value: showSkyDot)
+                    .animation(.spring(), value: isCameraBackgroundEnabled)
                     
                     // Empty state when no local time and no cities
                     if worldClocks.isEmpty && !showLocalTime {
@@ -281,19 +403,12 @@ struct AnalogClockFullView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .topBarTrailing) {
-                    // Earth View Button
+                ToolbarItemGroup(placement: .topBarTrailing) {
                     Button(action: {
-                        if hapticEnabled {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                            impactFeedback.prepare()
-                            impactFeedback.impactOccurred()
-                        }
-                        showEarthView = true
+                        handleCameraToggle()
                     }) {
-                        Image(systemName: "globe.americas.fill")
+                        Image(systemName: "camera.aperture")
                     }
-                    .matchedTransitionSource(id: "earthView", in: earthViewNamespace)
                 }
             }
             .onReceive(timer) { _ in
@@ -340,14 +455,6 @@ struct AnalogClockFullView: View {
                     weatherManager: weatherManager
                 )
             }
-            .sheet(isPresented: $showEarthView) {
-                EarthView(
-                    timeOffset: $timeOffset,
-                    worldClocks: $worldClocks,
-                    weatherManager: weatherManager
-                )
-                    .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
-            }
             .sheet(isPresented: $showTimeAdjustmentSheet) {
                 CityTimeAdjustmentSheet(
                     cityName: selectedCityName,
@@ -356,6 +463,16 @@ struct AnalogClockFullView: View {
                     showSheet: $showTimeAdjustmentSheet,
                     showScrollTimeButtons: $showScrollTimeButtons
                 )
+            }
+            .alert(cameraAlertTitle, isPresented: $showCameraPermissionAlert) {
+                Button(String(localized: "Cancel"), role: .cancel) { }
+                Button(String(localized: "Go to Settings")) {
+                    if let settingsURL = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(settingsURL)
+                    }
+                }
+            } message: {
+                Text(cameraAlertMessage)
             }
             // Fetch weather for sky gradient (rain-aware)
             .task(id: "\(showSkyDot)-\(showWeather)") {
@@ -372,6 +489,31 @@ struct AnalogClockFullView: View {
                 // If showLocalTime is disabled, default to first city instead of Local
                 if !showLocalTime && selectedCityId == nil {
                     selectedCityId = worldClocks.first?.id
+                }
+
+                cameraWarmupTask?.cancel()
+                cameraWarmupTask = Task {
+                    let status = AVCaptureDevice.authorizationStatus(for: .video)
+                    if Task.isCancelled { return }
+                    if status == .authorized {
+                        _ = await cameraSessionController.configureIfNeeded()
+                    }
+                }
+            }
+            .onDisappear {
+                cameraWarmupTask?.cancel()
+                cameraWarmupTask = nil
+                disableCameraBackground()
+            }
+            .onChange(of: scenePhase) { oldValue, newValue in
+                if newValue == .active {
+                    if isCameraBackgroundEnabled {
+                        Task {
+                            _ = await cameraSessionController.startRunning()
+                        }
+                    }
+                } else {
+                    cameraSessionController.stopRunning()
                 }
             }
             .onChange(of: showLocalTime) { oldValue, newValue in
