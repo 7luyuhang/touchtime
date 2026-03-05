@@ -1195,6 +1195,7 @@ struct HomeView: View {
             .animation(.spring(), value: showSunAzimuth)
             .animation(.spring(), value: effectiveShowMoonAzimuth)
             .animation(.spring(), value: showSunriseSunset)
+            .animation(.spring(), value: showDaylight)
             .animation(.spring(), value: showSolarCurve)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
