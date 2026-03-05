@@ -71,7 +71,6 @@ struct UVIndexIndicator: View {
                 .foregroundStyle(.white)
                 .rotationEffect(.degrees(180))
                 .offset(x: indicatorOffset, y: indicatorYOffset)
-                .blendMode(.plusLighter)
         }
         .frame(width: size, height: size)
         .task {

@@ -172,7 +172,7 @@ struct MoonAzimuthIndicator: View {
         let data = moonAzimuthData
         let isMoonVisible = data.altitude > 0
         let orbitRadius: CGFloat = size * 0.35
-        let symbolSize = max(10, size * 0.20)
+        let symbolSize = max(10, size * 0.185) // Moonphase symbol size
         let rotationAngle = SwiftUI.Angle(degrees: data.azimuth)
 
         ZStack {

@@ -16,6 +16,7 @@ struct AboutView: View {
     @State private var showResetConfirmation = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @State private var rippleCounter: Int = 0
     @State private var rippleOrigin: CGPoint = .init(x: 50, y: 50)
     @State private var safariURL: URL?
@@ -147,31 +148,33 @@ struct AboutView: View {
                 Text("Enable continuous scroll for slide to adjust.")
             }
 
-            // Redeem Code
-            Section {
-                Button(action: {
-                    if hapticEnabled {
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    }
-                    Task { @MainActor in
-                        guard let windowScene = activeWindowScene else {
-                            print("Unable to find active window scene for offer code redemption.")
-                            return
+            if !hasLifetimeAccess {
+                // Redeem Code
+                Section {
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                         }
+                        Task { @MainActor in
+                            guard let windowScene = activeWindowScene else {
+                                print("Unable to find active window scene for offer code redemption.")
+                                return
+                            }
 
-                        do {
-                            try await AppStore.presentOfferCodeRedeemSheet(in: windowScene)
-                        } catch {
-                            print("Failed to present offer code redemption sheet: \(error)")
+                            do {
+                                try await AppStore.presentOfferCodeRedeemSheet(in: windowScene)
+                            } catch {
+                                print("Failed to present offer code redemption sheet: \(error)")
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "infinity", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            Text("Redeem Code")
                         }
                     }
-                }) {
-                    HStack(spacing: 12) {
-                        SystemIconImage(systemName: "infinity", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
-                        Text("Redeem Code")
-                    }
+                    .foregroundStyle(.primary)
                 }
-                .foregroundStyle(.primary)
             }
             
             // Credits Section
