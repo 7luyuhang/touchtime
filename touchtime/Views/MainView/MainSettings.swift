@@ -39,6 +39,7 @@ struct SettingsView: View {
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
     @AppStorage("showMinuteHand") private var showMinuteHand = true
+    @AppStorage("showUTCHand") private var showUTCHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @State private var currentDate = Date()
     @State private var showLifetimeStore = false
@@ -821,6 +822,16 @@ struct SettingsView: View {
                         }
                     }
                     .tint(.blue)
+
+                    if additionalTimeDisplay == "UTC" {
+                        Toggle(isOn: $showUTCHand) {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "line.diagonal", topColor: .red, bottomColor: .red)
+                                Text(String(localized: "UTC Hand"))
+                            }
+                        }
+                        .tint(.blue)
+                    }
                     
                     Toggle(isOn: $showArcIndicator) {
                         HStack(spacing: 12) {

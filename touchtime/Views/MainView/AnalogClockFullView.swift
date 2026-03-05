@@ -481,6 +481,7 @@ struct AnalogClockFaceView: View {
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
     @AppStorage("showMinuteHand") private var showMinuteHand = true
+    @AppStorage("showUTCHand") private var showUTCHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     
@@ -1080,7 +1081,7 @@ struct AnalogClockFaceView: View {
             
             
             // UTC Hand
-            if additionalTimeDisplay == "UTC" {
+            if additionalTimeDisplay == "UTC", showUTCHand {
                 UTCClockHandView(
                     hour: utcTime.hour,
                     minute: utcTime.minute,
