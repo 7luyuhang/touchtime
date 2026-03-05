@@ -36,6 +36,9 @@ struct AnalogClockFullView: View {
     @State private var showCameraPermissionAlert = false
     @State private var cameraAlertTitle = ""
     @State private var cameraAlertMessage = ""
+    @State private var showCaptureFlash = false
+    @State private var isCaptureButtonHidden = false
+    @State private var staticCameraFrame: UIImage?
     @StateObject private var cameraSessionController = CameraSessionController()
     @Environment(\.scenePhase) private var scenePhase
     
@@ -187,6 +190,46 @@ struct AnalogClockFullView: View {
         }
     }
     
+    @MainActor
+    private func captureScreenshot() -> UIImage? {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+              let window = windowScene.windows.first else { return nil }
+
+        let renderer = UIGraphicsImageRenderer(bounds: window.bounds)
+        return renderer.image { _ in
+            window.drawHierarchy(in: window.bounds, afterScreenUpdates: true)
+        }
+    }
+
+    private func handleCapturePhoto() {
+        triggerLightHaptic()
+
+        guard let frame = cameraSessionController.getLatestFrameAsImage() else { return }
+
+        staticCameraFrame = frame
+        isCaptureButtonHidden = true
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            let screenshot = captureScreenshot()
+
+            withAnimation(.easeIn(duration: 0.1)) {
+                showCaptureFlash = true
+            }
+
+            if let screenshot {
+                UIImageWriteToSavedPhotosAlbum(screenshot, nil, nil, nil)
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                withAnimation(.easeOut(duration: 0.3)) {
+                    showCaptureFlash = false
+                }
+                staticCameraFrame = nil
+                isCaptureButtonHidden = false
+            }
+        }
+    }
+
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -202,8 +245,19 @@ struct AnalogClockFullView: View {
                     // Background
                     Group {
                         if isCameraBackgroundEnabled {
-                            CameraBackgroundView(session: cameraSessionController.session)
-                                .ignoresSafeArea()
+                            if let staticFrame = staticCameraFrame {
+                                Color.clear
+                                    .overlay {
+                                        Image(uiImage: staticFrame)
+                                            .resizable()
+                                            .scaledToFill()
+                                    }
+                                    .clipped()
+                                    .ignoresSafeArea()
+                            } else {
+                                CameraBackgroundView(session: cameraSessionController.session)
+                                    .ignoresSafeArea()
+                            }
                         } else {
                             if showSkyDot {
                                 ZStack {
@@ -230,6 +284,13 @@ struct AnalogClockFullView: View {
                     }
                     .animation(.spring(), value: showSkyDot)
                     .animation(.spring(), value: isCameraBackgroundEnabled)
+
+                    if showCaptureFlash {
+                        Color.black.opacity(0.50)
+                            .ignoresSafeArea()
+                            .allowsHitTesting(false)
+                            .transition(.opacity)
+                    }
                     
                     // Empty state when no local time and no cities
                     if worldClocks.isEmpty && !showLocalTime {
@@ -341,6 +402,27 @@ struct AnalogClockFullView: View {
                                 )
                                 .padding(.horizontal)
                                 .padding(.bottom, 8)
+                                .overlay(alignment: .topTrailing) {
+                                    if isCameraBackgroundEnabled {
+                                        Button(action: handleCapturePhoto) {
+                                            ZStack {
+                                                Circle()
+                                                    .strokeBorder(.white, lineWidth: 2.5)
+                                                Circle()
+                                                    .fill(.white)
+                                                    .padding(5)
+                                            }
+                                            .frame(width: 52, height: 52)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .contentShape(Circle())
+                                        .opacity(isCaptureButtonHidden ? 0 : 1)
+                                        .padding(.trailing, 20)
+                                        .padding(.bottom, 12)
+                                        .offset(y: -70)
+                                        .transition(.blurReplace)
+                                    }
+                                }
                             }
                             .frame(height: (geometry.size.height - size) / 2)
                         }
