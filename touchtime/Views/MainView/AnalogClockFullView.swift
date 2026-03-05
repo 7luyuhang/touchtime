@@ -286,7 +286,7 @@ struct AnalogClockFullView: View {
                     .animation(.spring(), value: isCameraBackgroundEnabled)
 
                     if showCaptureFlash {
-                        Color.black.opacity(0.50)
+                        Color.clear
                             .ignoresSafeArea()
                             .allowsHitTesting(false)
                             .transition(.opacity)
