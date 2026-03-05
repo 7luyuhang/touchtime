@@ -144,6 +144,10 @@ struct OnboardingView: View {
     private var effectiveShowMoonAzimuth: Bool {
         canShowLifetimeComplications && showMoonAzimuth
     }
+
+    private var effectiveShowDaylight: Bool {
+        canShowLifetimeComplications && showDaylight
+    }
     
     // Prepare haptic engine
     func prepareHaptics() {
@@ -213,7 +217,7 @@ struct OnboardingView: View {
     private func enforceLifetimeAccess() {
         guard !hasLifetimeAccess else { return }
 
-        if showMoonAzimuth || showWeatherCondition || showUVIndex || showWindDirection {
+        if showMoonAzimuth || showWeatherCondition || showUVIndex || showWindDirection || showDaylight {
             selectComplication(nil)
         }
     }
@@ -518,7 +522,7 @@ struct OnboardingView: View {
                                     )
                                 }
                                 
-                                if showDaylight {
+                                if effectiveShowDaylight {
                                     DaylightIndicator(
                                         date: currentDate,
                                         timeZone: TimeZone.current,
@@ -656,15 +660,6 @@ struct OnboardingView: View {
                                         )
                                     }
                                     
-                                    complicationOption(type: .daylight, isSelected: showDaylight) {
-                                        DaylightIndicator(
-                                            date: currentDate,
-                                            timeZone: TimeZone.current,
-                                            size: 64,
-                                            useMaterialBackground: false
-                                        )
-                                    }
-                                    
                                     complicationOption(type: .solarCurve, isSelected: showSolarCurve) {
                                         SolarCurve(
                                             date: currentDate,
@@ -672,6 +667,17 @@ struct OnboardingView: View {
                                             size: 64,
                                             useMaterialBackground: false
                                         )
+                                    }
+
+                                    if canShowLifetimeComplications {
+                                        complicationOption(type: .daylight, isSelected: effectiveShowDaylight) {
+                                            DaylightIndicator(
+                                                date: currentDate,
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                        }
                                     }
 
                                     if canShowLifetimeComplications {

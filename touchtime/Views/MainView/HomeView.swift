@@ -288,6 +288,10 @@ struct HomeView: View {
         hasLifetimeAccess && showMoonAzimuth
     }
 
+    private var effectiveShowDaylight: Bool {
+        hasLifetimeAccess && showDaylight
+    }
+
     private var hasVisibleComplication: Bool {
         showAnalogClock ||
         showSunPosition ||
@@ -297,7 +301,7 @@ struct HomeView: View {
         showSunAzimuth ||
         effectiveShowMoonAzimuth ||
         showSunriseSunset ||
-        showDaylight ||
+        effectiveShowDaylight ||
         showSolarCurve
     }
     
@@ -687,7 +691,7 @@ struct HomeView: View {
             showSunAzimuth: showSunAzimuth,
             showMoonAzimuth: effectiveShowMoonAzimuth,
             showSunriseSunset: showSunriseSunset,
-            showDaylight: showDaylight,
+            showDaylight: effectiveShowDaylight,
             showSolarCurve: showSolarCurve,
             additionalTimeDisplay: additionalTimeDisplay,
             showSkyDot: showSkyDot,
@@ -873,7 +877,7 @@ struct HomeView: View {
                                         showSunAzimuth: showSunAzimuth,
                                         showMoonAzimuth: effectiveShowMoonAzimuth,
                                         showSunriseSunset: showSunriseSunset,
-                                        showDaylight: showDaylight,
+                                        showDaylight: effectiveShowDaylight,
                                         showSolarCurve: showSolarCurve,
                                         bottomPadding: (hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0
                                     )
@@ -1058,7 +1062,7 @@ struct HomeView: View {
                                         showSunAzimuth: showSunAzimuth,
                                         showMoonAzimuth: effectiveShowMoonAzimuth,
                                         showSunriseSunset: showSunriseSunset,
-                                        showDaylight: showDaylight,
+                                        showDaylight: effectiveShowDaylight,
                                         showSolarCurve: showSolarCurve,
                                         bottomPadding: 0
                                     )
@@ -1195,7 +1199,7 @@ struct HomeView: View {
             .animation(.spring(), value: showSunAzimuth)
             .animation(.spring(), value: effectiveShowMoonAzimuth)
             .animation(.spring(), value: showSunriseSunset)
-            .animation(.spring(), value: showDaylight)
+            .animation(.spring(), value: effectiveShowDaylight)
             .animation(.spring(), value: showSolarCurve)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation

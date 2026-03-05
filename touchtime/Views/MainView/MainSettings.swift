@@ -120,7 +120,7 @@ struct SettingsView: View {
             return String(localized: "UV Index")
         } else if effectiveShowWindDirection {
             return String(localized: "Wind Direction")
-        } else if showDaylight {
+        } else if effectiveShowDaylight {
             return String(localized: "Daylight Curve")
         } else if showSolarCurve {
             return String(localized: "Solar Curve")
@@ -147,6 +147,10 @@ struct SettingsView: View {
 
     private var effectiveShowMoonAzimuth: Bool {
         hasLifetimeAccess && showMoonAzimuth
+    }
+
+    private var effectiveShowDaylight: Bool {
+        hasLifetimeAccess && showDaylight
     }
 
     private var goldenHourBinding: Binding<Bool> {
@@ -558,7 +562,7 @@ struct SettingsView: View {
                             }
                             
                             // Daylight Overlay - Centered
-                            if showDaylight {
+                            if effectiveShowDaylight {
                                 DaylightIndicator(
                                     date: currentDate,
                                     timeZone: TimeZone.current,
@@ -615,7 +619,7 @@ struct SettingsView: View {
                         .animation(.spring(), value: showSunAzimuth)
                         .animation(.spring(), value: effectiveShowMoonAzimuth)
                         .animation(.spring(), value: showSunriseSunset)
-                        .animation(.spring(), value: showDaylight)
+                        .animation(.spring(), value: effectiveShowDaylight)
                         .animation(.spring(), value: showSolarCurve)
                         .id("\(showSkyDot)-\(dateStyle)")
                         .onTapGesture {
@@ -686,7 +690,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition && !effectiveShowWeatherCondition && !effectiveShowUVIndex && !effectiveShowWindDirection && !showSunAzimuth && !effectiveShowMoonAzimuth && !showSunriseSunset && !showDaylight && !showSolarCurve {
+                        if !showAnalogClock && !showSunPosition && !effectiveShowWeatherCondition && !effectiveShowUVIndex && !effectiveShowWindDirection && !showSunAzimuth && !effectiveShowMoonAzimuth && !showSunriseSunset && !effectiveShowDaylight && !showSolarCurve {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -698,7 +702,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition || effectiveShowWeatherCondition || effectiveShowUVIndex || effectiveShowWindDirection || showSunAzimuth || effectiveShowMoonAzimuth || showSunriseSunset || showDaylight || showSolarCurve)
+                    .disabled(showAnalogClock || showSunPosition || effectiveShowWeatherCondition || effectiveShowUVIndex || effectiveShowWindDirection || showSunAzimuth || effectiveShowMoonAzimuth || showSunriseSunset || effectiveShowDaylight || showSolarCurve)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
@@ -1073,7 +1077,7 @@ struct SettingsView: View {
                         }
                     }
                 }
-                .presentationDetents([.height(280)])
+                .presentationDetents([.height(320)]) // Complication Sheet Height
             }
         }
     }

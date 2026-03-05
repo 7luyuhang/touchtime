@@ -103,6 +103,10 @@ struct ShareCitiesSheet: View {
     private var effectiveShowMoonAzimuth: Bool {
         hasLifetimeAccess && showMoonAzimuth
     }
+
+    private var effectiveShowDaylight: Bool {
+        hasLifetimeAccess && showDaylight
+    }
     
     // Generate share text
     func generateShareText() -> String {
@@ -209,7 +213,7 @@ struct ShareCitiesSheet: View {
             showSunAzimuth: showSunAzimuth,
             showMoonAzimuth: effectiveShowMoonAzimuth,
             showSunriseSunset: showSunriseSunset,
-            showDaylight: showDaylight,
+            showDaylight: effectiveShowDaylight,
             showSolarCurve: showSolarCurve,
             additionalTimeDisplay: additionalTimeDisplay,
             showSkyDot: showSkyDot,

@@ -79,7 +79,7 @@ struct ComplicationsSettingsView: View {
 
     private func isLocked(_ type: ComplicationType) -> Bool {
         switch type {
-        case .moonAzimuth, .weatherCondition, .uvIndex, .windDirection:
+        case .moonAzimuth, .weatherCondition, .uvIndex, .windDirection, .daylight:
             return !hasLifetimeAccess
         default:
             return false
@@ -89,7 +89,7 @@ struct ComplicationsSettingsView: View {
     private func enforceLifetimeAccess() {
         guard !hasLifetimeAccess else { return }
 
-        if showMoonAzimuth || showWeatherCondition || showUVIndex || showWindDirection {
+        if showMoonAzimuth || showWeatherCondition || showUVIndex || showWindDirection || showDaylight {
             selectComplication(nil)
         }
     }
@@ -257,25 +257,25 @@ struct ComplicationsSettingsView: View {
                     )
                 }
                 
-                // Daylight
-                complicationOption(
-                    type: .daylight,
-                    isSelected: showDaylight
-                ) {
-                    DaylightIndicator(
-                        date: currentDate,
-                        timeZone: TimeZone.current,
-                        size: 64,
-                        useMaterialBackground: false
-                    )
-                }
-                
                 // Solar Curve
                 complicationOption(
                     type: .solarCurve,
                     isSelected: showSolarCurve
                 ) {
                     SolarCurve(
+                        date: currentDate,
+                        timeZone: TimeZone.current,
+                        size: 64,
+                        useMaterialBackground: false
+                    )
+                }
+
+                // Daylight
+                complicationOption(
+                    type: .daylight,
+                    isSelected: showDaylight
+                ) {
+                    DaylightIndicator(
                         date: currentDate,
                         timeZone: TimeZone.current,
                         size: 64,
