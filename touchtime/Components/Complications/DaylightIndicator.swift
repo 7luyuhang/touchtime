@@ -18,8 +18,7 @@ struct DaylightIndicator: View {
     let timeZone: TimeZone
     let size: CGFloat
     let useMaterialBackground: Bool
-    @State private var animatedSunAngle: Double = 0
-    @State private var hasInitializedSunAngle = false
+    @State private var displayedSunDaylightBlend: Double = 0
 
     private struct SunTimes {
         let sunrise: Date?
@@ -105,12 +104,12 @@ struct DaylightIndicator: View {
         return 0
     }
 
-    // Keep angle continuity across 0/360 so rotation animation doesn't jump at midnight.
-    private func continuousAngle(target: Double, from current: Double) -> Double {
-        var candidate = target
-        while candidate - current > 180 { candidate -= 360 }
-        while candidate - current < -180 { candidate += 360 }
-        return candidate
+    // Only animate near sunrise/sunset when blend is transitioning.
+    private func shouldAnimateBlend(sunrise: Date?, sunset: Date?) -> Bool {
+        guard let sunrise, let sunset else { return false }
+        let transitionWindow: TimeInterval = 20 * 60
+        return abs(date.timeIntervalSince(sunrise)) <= transitionWindow
+            || abs(date.timeIntervalSince(sunset)) <= transitionWindow
     }
 
     var body: some View {
@@ -154,42 +153,34 @@ struct DaylightIndicator: View {
             }
 
             if let sunAngle {
-                let displayAngle = hasInitializedSunAngle ? animatedSunAngle : sunAngle
                 ZStack {
                     Circle()
                         .fill(.white)
-                        .opacity(sunDaylightBlend)
+                        .opacity(displayedSunDaylightBlend)
 
                     Circle()
                         .stroke(.white, lineWidth: 1.5)
-                        .opacity((1 - sunDaylightBlend) * 0.5)
+                        .opacity((1 - displayedSunDaylightBlend) * 0.5)
                 }
                 .frame(width: sunSize, height: sunSize)
                 .offset(y: -orbitRadius)
-                .rotationEffect(.degrees(displayAngle))
-                .animation(.spring(), value: sunDaylightBlend)
+                .rotationEffect(.degrees(sunAngle))
                 .blendMode(.plusLighter)
             }
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
         .onAppear {
-            guard let sunAngle else { return }
-            animatedSunAngle = sunAngle
-            hasInitializedSunAngle = true
+            displayedSunDaylightBlend = sunDaylightBlend
         }
-        .onChange(of: sunAngle) { _, newValue in
-            guard let newValue else { return }
-
-            if !hasInitializedSunAngle {
-                animatedSunAngle = newValue
-                hasInitializedSunAngle = true
-                return
-            }
-
-            let target = continuousAngle(target: newValue, from: animatedSunAngle)
-            withAnimation(.spring()) {
-                animatedSunAngle = target
+        .onChange(of: sunDaylightBlend) { _, newValue in
+            guard newValue != displayedSunDaylightBlend else { return }
+            if shouldAnimateBlend(sunrise: times.sunrise, sunset: times.sunset) {
+                withAnimation(.spring()) {
+                    displayedSunDaylightBlend = newValue
+                }
+            } else {
+                displayedSunDaylightBlend = newValue
             }
         }
     }
