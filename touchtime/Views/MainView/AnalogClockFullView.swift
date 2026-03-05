@@ -242,20 +242,22 @@ struct AnalogClockFullView: View {
                         }
                     } else {
                         // Analog Clock - always centered
-                        AnalogClockFaceView(
-                            date: currentDate.addingTimeInterval(timeOffset),
-                            timeOffset: $timeOffset,
-                            selectedTimeZone: selectedTimeZone,
-                            size: size,
-                            worldClocks: worldClocks,
-                            showLocalTime: showLocalTime,
-                            selectedCityId: $selectedCityId,
-                            hapticEnabled: hapticEnabled,
-                            showDetailsSheet: $showDetailsSheet,
-                            weather: weatherManager.weatherData[selectedTimeZone.identifier],
-                            showWeather: showWeather,
-                            showTimeInsteadOfCityName: showTimeInsteadOfCityName
-                        )
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            AnalogClockFaceView(
+                                date: context.date.addingTimeInterval(timeOffset),
+                                timeOffset: $timeOffset,
+                                selectedTimeZone: selectedTimeZone,
+                                size: size,
+                                worldClocks: worldClocks,
+                                showLocalTime: showLocalTime,
+                                selectedCityId: $selectedCityId,
+                                hapticEnabled: hapticEnabled,
+                                showDetailsSheet: $showDetailsSheet,
+                                weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                                showWeather: showWeather,
+                                showTimeInsteadOfCityName: showTimeInsteadOfCityName
+                            )
+                        }
                         
                         // Digital time and scroll controls overlay
                         VStack(spacing: 0) {
@@ -411,8 +413,11 @@ struct AnalogClockFullView: View {
                     }
                 }
             }
-            .onReceive(timer) { _ in
-                currentDate = Date()
+            .onReceive(timer) { now in
+                let calendar = Calendar.current
+                if calendar.component(.minute, from: now) != calendar.component(.minute, from: currentDate) {
+                    currentDate = now
+                }
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ResetScrollTime"))) { _ in
                 withAnimation(.smooth()) { // Hands Animation
@@ -503,7 +508,6 @@ struct AnalogClockFullView: View {
             .onDisappear {
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = nil
-                disableCameraBackground()
             }
             .onChange(of: scenePhase) { oldValue, newValue in
                 if newValue == .active {
