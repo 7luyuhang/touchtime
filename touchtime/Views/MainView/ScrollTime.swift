@@ -454,7 +454,7 @@ struct ScrollTimeView: View {
             Image(systemName: "plus")
                 .font(.system(size: 20))
                 .fontWeight(.medium)
-                .foregroundColor(.white)
+                .foregroundStyle(.white)
                 .frame(width: 52, height: 52)
         }
         .buttonStyle(.plain)
@@ -605,6 +605,7 @@ struct ScrollTimeView: View {
             }) {
                 Image(systemName: "plus")
                     .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.white)
                     .padding(.vertical, 8)
                     .padding(.horizontal, 16)
                     .contentShape(Capsule(style: .continuous))
