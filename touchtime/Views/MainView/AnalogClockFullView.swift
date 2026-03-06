@@ -36,7 +36,6 @@ struct AnalogClockFullView: View {
     @State private var showCameraPermissionAlert = false
     @State private var cameraAlertTitle = ""
     @State private var cameraAlertMessage = ""
-    @State private var showCaptureFlash = false
     @State private var isCaptureButtonHidden = false
     @State private var staticCameraFrame: UIImage?
     @StateObject private var cameraSessionController = CameraSessionController()
@@ -82,7 +81,7 @@ struct AnalogClockFullView: View {
 
     private func triggerLightHaptic() {
         guard hapticEnabled else { return }
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        let impactFeedback = UIImpactFeedbackGenerator(style: .rigid) // Capture Haptic
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
     }
@@ -98,7 +97,9 @@ struct AnalogClockFullView: View {
         cameraToggleTask = nil
         activeCameraRequestId = UUID()
         isCameraPreparing = false
-        isCameraBackgroundEnabled = false
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            isCameraBackgroundEnabled = false
+        }
         cameraSessionController.stopRunning()
     }
 
@@ -179,7 +180,9 @@ struct AnalogClockFullView: View {
             await MainActor.run {
                 isCameraPreparing = false
                 if started {
-                    isCameraBackgroundEnabled = true
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                        isCameraBackgroundEnabled = true
+                    }
                 } else {
                     showCameraAlert(
                         title: String(localized: "Camera Unavailable"),
@@ -207,25 +210,22 @@ struct AnalogClockFullView: View {
         guard let frame = cameraSessionController.getLatestFrameAsImage() else { return }
 
         staticCameraFrame = frame
-        isCaptureButtonHidden = true
+        withAnimation(.spring()) {
+            isCaptureButtonHidden = true
+        }
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             let screenshot = captureScreenshot()
-
-            withAnimation(.easeIn(duration: 0.1)) {
-                showCaptureFlash = true
-            }
 
             if let screenshot {
                 UIImageWriteToSavedPhotosAlbum(screenshot, nil, nil, nil)
             }
 
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                withAnimation(.easeOut(duration: 0.3)) {
-                    showCaptureFlash = false
-                }
                 staticCameraFrame = nil
-                isCaptureButtonHidden = false
+                withAnimation(.spring()) {
+                    isCaptureButtonHidden = false
+                }
             }
         }
     }
@@ -285,13 +285,6 @@ struct AnalogClockFullView: View {
                     .animation(.spring(), value: showSkyDot)
                     .animation(.spring(), value: isCameraBackgroundEnabled)
 
-                    if showCaptureFlash {
-                        Color.clear
-                            .ignoresSafeArea()
-                            .allowsHitTesting(false)
-                            .transition(.opacity)
-                    }
-                    
                     // Empty state when no local time and no cities
                     if worldClocks.isEmpty && !showLocalTime {
                         ContentUnavailableView {
@@ -402,25 +395,26 @@ struct AnalogClockFullView: View {
                                 )
                                 .padding(.horizontal)
                                 .padding(.bottom, 8)
-                                .overlay(alignment: .topTrailing) {
+                                .overlay(alignment: .topTrailing) { // Capture Button
                                     if isCameraBackgroundEnabled {
-                                        Button(action: handleCapturePhoto) {
-                                            ZStack {
-                                                Circle()
-                                                    .strokeBorder(.white, lineWidth: 2.5)
-                                                Circle()
-                                                    .fill(.white)
-                                                    .padding(5)
+                                        if !isCaptureButtonHidden {
+                                            Button(action: handleCapturePhoto) {
+                                                ZStack {
+                                                    Circle()
+                                                        .strokeBorder(.white, lineWidth: 2.5)
+                                                    Circle()
+                                                        .fill(.white)
+                                                        .padding(5)
+                                                }
+                                                .frame(width: 52, height: 52)
                                             }
-                                            .frame(width: 52, height: 52)
+                                            .buttonStyle(.plain)
+                                            .contentShape(Circle())
+                                            .padding(.trailing, 20)
+                                            .padding(.bottom, 12)
+                                            .offset(y: -70)
+                                            .transition(.blurReplace())
                                         }
-                                        .buttonStyle(.plain)
-                                        .contentShape(Circle())
-                                        .opacity(isCaptureButtonHidden ? 0 : 1)
-                                        .padding(.trailing, 20)
-                                        .padding(.bottom, 12)
-                                        .offset(y: -70)
-                                        .transition(.blurReplace)
                                     }
                                 }
                             }
