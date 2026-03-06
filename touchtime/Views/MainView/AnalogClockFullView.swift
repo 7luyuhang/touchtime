@@ -104,12 +104,8 @@ struct AnalogClockFullView: View {
     }
 
     private func handleCameraToggle() {
+        guard !isCameraBackgroundEnabled && !isCameraPreparing else { return }
         triggerLightHaptic()
-
-        if isCameraBackgroundEnabled || isCameraPreparing {
-            disableCameraBackground()
-            return
-        }
 
         let requestId = UUID()
         activeCameraRequestId = requestId
@@ -191,6 +187,11 @@ struct AnalogClockFullView: View {
                 }
             }
         }
+    }
+
+    private func handleCameraClose() {
+        triggerLightHaptic()
+        disableCameraBackground()
     }
     
     @MainActor
@@ -413,7 +414,26 @@ struct AnalogClockFullView: View {
                                             .padding(.trailing, 20)
                                             .padding(.bottom, 12)
                                             .offset(y: -70)
-                                            .transition(.blurReplace())
+                                            .transition(.blurReplace().combined(with: .opacity))
+                                        }
+                                    }
+                                }
+                                .overlay(alignment: .topLeading) { // Close Camera Button
+                                    if isCameraBackgroundEnabled {
+                                        if !isCaptureButtonHidden {
+                                            Button(action: handleCameraClose) {
+                                                Image(systemName: "xmark")
+                                                    .font(.headline)
+                                                    .foregroundStyle(.white)
+                                            }
+                                            .frame(width: 52, height: 52)
+                                            .glassEffect(.regular.interactive())
+                                            .buttonStyle(.plain)
+                                            .contentShape(Circle())
+                                            .padding(.leading, 20)
+                                            .padding(.bottom, 12)
+                                            .offset(y: -70)
+                                            .transition(.blurReplace().combined(with: .opacity))
                                         }
                                     }
                                 }
