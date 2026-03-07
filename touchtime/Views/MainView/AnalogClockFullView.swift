@@ -414,7 +414,7 @@ struct AnalogClockFullView: View {
                                             .padding(.trailing, 20)
                                             .padding(.bottom, 12)
                                             .offset(y: -70)
-                                            .transition(.blurReplace().combined(with: .opacity))
+                                            .transition(.blurReplace().combined(with: .opacity).combined(with: .scale(0.95)))
                                         }
                                     }
                                 }
@@ -433,7 +433,7 @@ struct AnalogClockFullView: View {
                                             .padding(.leading, 20)
                                             .padding(.bottom, 12)
                                             .offset(y: -70)
-                                            .transition(.blurReplace().combined(with: .opacity))
+                                            .transition(.blurReplace().combined(with: .opacity).combined(with: .scale(0.95)))
                                         }
                                     }
                                 }
