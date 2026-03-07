@@ -28,6 +28,7 @@ struct SettingsView: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
@@ -117,6 +118,8 @@ struct SettingsView: View {
             return String(localized: "Sunrise & Sunset")
         } else if effectiveShowWeatherCondition {
             return String(localized: "Weather Condition")
+        } else if effectiveShowTemperatureIndicator {
+            return String(localized: "Temperature Indicator")
         } else if effectiveShowUVIndex {
             return String(localized: "UV Index")
         } else if effectiveShowWindDirection {
@@ -136,6 +139,10 @@ struct SettingsView: View {
 
     private var effectiveShowWeatherCondition: Bool {
         hasLifetimeAccess && showWeather && showWeatherCondition
+    }
+
+    private var effectiveShowTemperatureIndicator: Bool {
+        hasLifetimeAccess && showWeather && showTemperatureIndicator
     }
 
     private var effectiveShowUVIndex: Bool {
@@ -331,6 +338,7 @@ struct SettingsView: View {
                             showWeather = newValue
                             if !newValue {
                                 showWeatherCondition = false
+                                showTemperatureIndicator = false
                                 showUVIndex = false
                                 showWindDirection = false
                             }
@@ -482,6 +490,22 @@ struct SettingsView: View {
                                 .transition(.identity)
                             }
 
+                            // Temperature Overlay - Centered
+                            if effectiveShowTemperatureIndicator {
+                                TemperatureIndicator(
+                                    timeZone: TimeZone.current,
+                                    size: 64,
+                                    useMaterialBackground: true
+                                )
+                                .environmentObject(weatherManager)
+                                .overlay(
+                                    Circle()
+                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                        .blendMode(.plusLighter)
+                                )
+                                .transition(.identity)
+                            }
+
                             // UV Index Overlay - Centered
                             if effectiveShowUVIndex {
                                 UVIndexIndicator(
@@ -615,6 +639,7 @@ struct SettingsView: View {
                         .animation(.spring(), value: showAnalogClock)
                         .animation(.spring(), value: showSunPosition)
                         .animation(.spring(), value: effectiveShowWeatherCondition)
+                        .animation(.spring(), value: effectiveShowTemperatureIndicator)
                         .animation(.spring(), value: effectiveShowUVIndex)
                         .animation(.spring(), value: effectiveShowWindDirection)
                         .animation(.spring(), value: showSunAzimuth)
@@ -691,7 +716,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition && !effectiveShowWeatherCondition && !effectiveShowUVIndex && !effectiveShowWindDirection && !showSunAzimuth && !effectiveShowMoonAzimuth && !showSunriseSunset && !effectiveShowDaylight && !showSolarCurve {
+                        if !showAnalogClock && !showSunPosition && !effectiveShowWeatherCondition && !effectiveShowTemperatureIndicator && !effectiveShowUVIndex && !effectiveShowWindDirection && !showSunAzimuth && !effectiveShowMoonAzimuth && !showSunriseSunset && !effectiveShowDaylight && !showSolarCurve {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -703,7 +728,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition || effectiveShowWeatherCondition || effectiveShowUVIndex || effectiveShowWindDirection || showSunAzimuth || effectiveShowMoonAzimuth || showSunriseSunset || effectiveShowDaylight || showSolarCurve)
+                    .disabled(showAnalogClock || showSunPosition || effectiveShowWeatherCondition || effectiveShowTemperatureIndicator || effectiveShowUVIndex || effectiveShowWindDirection || showSunAzimuth || effectiveShowMoonAzimuth || showSunriseSunset || effectiveShowDaylight || showSolarCurve)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
@@ -715,6 +740,11 @@ struct SettingsView: View {
                         }
                     }
                     .onChange(of: showWeatherCondition) { oldValue, newValue in
+                        if newValue {
+                            dateStyle = "Relative"
+                        }
+                    }
+                    .onChange(of: showTemperatureIndicator) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
                         }
@@ -1067,6 +1097,7 @@ struct SettingsView: View {
                         showMoonAzimuth: $showMoonAzimuth,
                         showSunriseSunset: $showSunriseSunset,
                         showWeatherCondition: $showWeatherCondition,
+                        showTemperatureIndicator: $showTemperatureIndicator,
                         showUVIndex: $showUVIndex,
                         showWindDirection: $showWindDirection,
                         showDaylight: $showDaylight,

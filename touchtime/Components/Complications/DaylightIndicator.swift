@@ -233,13 +233,13 @@ private struct DaylightOrbitArc: View {
             DaylightIndicator(
                 date: Date(),
                 timeZone: .current,
-                size: 100
+                size: 64
             )
 
             DaylightIndicator(
                 date: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(),
                 timeZone: .current,
-                size: 100
+                size: 64
             )
         }
     }

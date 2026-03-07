@@ -43,6 +43,7 @@ struct ComplicationOverlayView: View {
     let analogClockShowScale: Bool
     let showSunPosition: Bool
     let showWeatherCondition: Bool
+    let showTemperatureIndicator: Bool
     let showUVIndex: Bool
     let showWindDirection: Bool
     let showSunAzimuth: Bool
@@ -78,6 +79,16 @@ struct ComplicationOverlayView: View {
             
             if showWeatherCondition {
                 WeatherConditionView(
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .environmentObject(weatherManager)
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+
+            if showTemperatureIndicator {
+                TemperatureIndicator(
                     timeZone: timeZone,
                     size: 64
                 )
@@ -224,6 +235,7 @@ struct HomeView: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
@@ -276,6 +288,10 @@ struct HomeView: View {
         hasLifetimeAccess && showWeatherCondition
     }
 
+    private var effectiveShowTemperatureIndicator: Bool {
+        hasLifetimeAccess && showTemperatureIndicator
+    }
+
     private var effectiveShowUVIndex: Bool {
         hasLifetimeAccess && showUVIndex
     }
@@ -296,6 +312,7 @@ struct HomeView: View {
         showAnalogClock ||
         showSunPosition ||
         effectiveShowWeatherCondition ||
+        effectiveShowTemperatureIndicator ||
         effectiveShowUVIndex ||
         effectiveShowWindDirection ||
         showSunAzimuth ||
@@ -686,6 +703,7 @@ struct HomeView: View {
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,
             showWeatherCondition: effectiveShowWeatherCondition,
+            showTemperatureIndicator: effectiveShowTemperatureIndicator,
             showUVIndex: effectiveShowUVIndex,
             showWindDirection: effectiveShowWindDirection,
             showSunAzimuth: showSunAzimuth,
@@ -872,6 +890,7 @@ struct HomeView: View {
                                         analogClockShowScale: analogClockShowScale,
                                         showSunPosition: showSunPosition,
                                         showWeatherCondition: effectiveShowWeatherCondition,
+                                        showTemperatureIndicator: effectiveShowTemperatureIndicator,
                                         showUVIndex: effectiveShowUVIndex,
                                         showWindDirection: effectiveShowWindDirection,
                                         showSunAzimuth: showSunAzimuth,
@@ -1057,6 +1076,7 @@ struct HomeView: View {
                                         analogClockShowScale: analogClockShowScale,
                                         showSunPosition: showSunPosition,
                                         showWeatherCondition: effectiveShowWeatherCondition,
+                                        showTemperatureIndicator: effectiveShowTemperatureIndicator,
                                         showUVIndex: effectiveShowUVIndex,
                                         showWindDirection: effectiveShowWindDirection,
                                         showSunAzimuth: showSunAzimuth,
@@ -1138,8 +1158,8 @@ struct HomeView: View {
                     .id(selectedCollectionId?.uuidString ?? "default")
                     .transition(.identity) // Collection Animation
                     // Centralized batch weather prefetch for all displayed cities
-                    .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(effectiveShowWeatherCondition)_\(effectiveShowUVIndex)_\(effectiveShowWindDirection)_\(showSkyDot)") {
-                        if showWeather || effectiveShowWeatherCondition || effectiveShowUVIndex || effectiveShowWindDirection {
+                    .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(effectiveShowWeatherCondition)_\(effectiveShowTemperatureIndicator)_\(effectiveShowUVIndex)_\(effectiveShowWindDirection)_\(showSkyDot)") {
+                        if showWeather || effectiveShowWeatherCondition || effectiveShowTemperatureIndicator || effectiveShowUVIndex || effectiveShowWindDirection {
                             var identifiers = displayedClocks.map(\.timeZoneIdentifier)
                             if showLocalTime {
                                 identifiers.insert(TimeZone.current.identifier, at: 0)
@@ -1194,6 +1214,7 @@ struct HomeView: View {
             .animation(.spring(), value: showAnalogClock)
             .animation(.spring(), value: showSunPosition)
             .animation(.spring(), value: effectiveShowWeatherCondition)
+            .animation(.spring(), value: effectiveShowTemperatureIndicator)
             .animation(.spring(), value: effectiveShowUVIndex)
             .animation(.spring(), value: effectiveShowWindDirection)
             .animation(.spring(), value: showSunAzimuth)
