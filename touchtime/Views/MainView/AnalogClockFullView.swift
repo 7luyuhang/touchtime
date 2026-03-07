@@ -502,10 +502,24 @@ struct AnalogClockFullView: View {
                 }
                 
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    Button(action: {
-                        handleCameraToggle()
-                    }) {
-                        Image(systemName: "camera.aperture")
+                    if isCameraBackgroundEnabled {
+                        Button(action: {
+                            handleCameraToggle()
+                        }) {
+                            Image(systemName: "camera.aperture")
+                                .foregroundStyle(.black)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .buttonBorderShape(.circle)
+                        .tint(.yellow)
+                    } else {
+                        Button(action: {
+                            handleCameraToggle()
+                        }) {
+                            Image(systemName: "camera.aperture")
+                                .foregroundStyle(.primary)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
