@@ -424,7 +424,7 @@ struct AnalogClockFullView: View {
                                             Button(action: handleCameraClose) {
                                                 Image(systemName: "xmark")
                                                     .font(.headline)
-                                                    .foregroundStyle(.white)
+                                                    .foregroundStyle(.primary)
                                             }
                                             .frame(width: 52, height: 52)
                                             .glassEffect(.regular.interactive())

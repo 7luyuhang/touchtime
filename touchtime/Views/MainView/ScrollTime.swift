@@ -593,7 +593,7 @@ struct ScrollTimeView: View {
     /// Overlay buttons for continuous scroll mode (calendar + reset with time label)
     @ViewBuilder
     private var continuousScrollOverlayButtons: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 12.5) {
             // Add to Calendar button
             Button(action: {
                 if hapticEnabled {
@@ -605,40 +605,44 @@ struct ScrollTimeView: View {
             }) {
                 Image(systemName: "plus")
                     .font(.subheadline.weight(.semibold))
+                    .frame(width: 20, height: 20)
                     .foregroundStyle(.white)
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 15)
                     .contentShape(Capsule(style: .continuous))
                     .glassEffect(.regular.tint(.blue))
-//                    .background(
-//                        Capsule(style: .continuous)
-//                            .fill(.blue)
-//                    )
                     .padding(.leading, 5)
             }
             .buttonStyle(.plain)
-            
-            // Reset button with time offset
+
+            Text(formattedTimeOffset(timeOffset))
+                .font(.footnote.weight(.semibold))
+                .monospacedDigit()
+
+            // Reset button
             Button(action: {
                 DispatchQueue.main.async {
                     resetTimeOffset()
                 }
             }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.footnote.weight(.semibold))
-                    
-                    Text(formattedTimeOffset(timeOffset))
-                        .font(.footnote.weight(.semibold))
-                        .monospacedDigit()
-                }
-                .padding(.leading, 12)
-                .padding(.trailing, 16)
-                .padding(.vertical, 12)
-                .contentShape(Capsule())
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(.black)
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 15)
+                    .contentShape(Capsule(style: .continuous))
+                    .glassEffect(.regular.tint(.white))
+//                    .background(
+//                        Capsule(style: .continuous)
+//                            .fill(.primary.opacity(0.05))
+//                            .blendMode(.plusLighter)
+//                    )
+                    .padding(.trailing, 5)
             }
             .buttonStyle(.plain)
         }
+        .padding(.vertical, 5)
         .clipShape(Capsule(style: .continuous))
         .contentShape(Capsule(style: .continuous))
         .glassEffect(.regular.interactive())
