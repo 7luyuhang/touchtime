@@ -138,6 +138,9 @@
 "Share" = "分享";
 "Open Camera" = "打开相机";
 "Close Camera" = "关闭相机";
+"Camera Filter" = "相机滤镜";
+"Standard" = "标准";
+"Blur" = "模糊";
 "Please allow camera access in Settings to show live camera background." = "请在“设置”中允许相机访问以显示实时相机背景。";
 "Camera Unavailable" = "相机不可用";
 "Slide to Adjust" = "滑动以调整";

@@ -17,6 +17,11 @@ import CoreLocation
 import TipKit
 
 struct AnalogClockFullView: View {
+    private enum CameraPreviewFilter {
+        case standard
+        case blur
+    }
+
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
     @Binding var showScrollTimeButtons: Bool
@@ -38,6 +43,7 @@ struct AnalogClockFullView: View {
     @State private var cameraAlertMessage = ""
     @State private var isCaptureButtonHidden = false
     @State private var staticCameraFrame: UIImage?
+    @State private var cameraPreviewFilter: CameraPreviewFilter = .standard
     @StateObject private var cameraSessionController = CameraSessionController()
     @Environment(\.scenePhase) private var scenePhase
     
@@ -193,6 +199,12 @@ struct AnalogClockFullView: View {
         triggerLightHaptic()
         disableCameraBackground()
     }
+
+    private func setCameraFilter(_ filter: CameraPreviewFilter) {
+        guard cameraPreviewFilter != filter else { return }
+        triggerLightHaptic()
+        cameraPreviewFilter = filter
+    }
     
     @MainActor
     private func captureScreenshot() -> UIImage? {
@@ -281,6 +293,14 @@ struct AnalogClockFullView: View {
                                 Color(UIColor.systemBackground)
                                     .ignoresSafeArea()
                             }
+                        }
+                    }
+                    .overlay {
+                        if isCameraBackgroundEnabled && cameraPreviewFilter == .blur {
+                            Rectangle()
+                                .fill(.ultraThinMaterial)
+                                .ignoresSafeArea()
+                                .allowsHitTesting(false)
                         }
                     }
                     .animation(.spring(), value: showSkyDot)
@@ -503,15 +523,28 @@ struct AnalogClockFullView: View {
                 
                 ToolbarItemGroup(placement: .topBarTrailing) {
                     if isCameraBackgroundEnabled {
-                        Button(action: {
-                            handleCameraToggle()
-                        }) {
+                        Menu {
+                            Section("Camera Filter") {
+                                Button(action: { setCameraFilter(.standard) }) {
+                                    if cameraPreviewFilter == .standard {
+                                        Label("Standard", systemImage: "checkmark.circle")
+                                    } else {
+                                        Text("Standard")
+                                    }
+                                }
+                                Button(action: { setCameraFilter(.blur) }) {
+                                    if cameraPreviewFilter == .blur {
+                                        Label("Blur", systemImage: "checkmark.circle")
+                                    } else {
+                                        Text("Blur")
+                                    }
+                                }
+                            }
+                        } label: {
                             Image(systemName: "camera.aperture")
-                                .foregroundStyle(.black)
+                                .foregroundStyle(.primary)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .buttonBorderShape(.circle)
-                        .tint(.yellow)
+                        .buttonStyle(.plain)
                     } else {
                         Button(action: {
                             handleCameraToggle()
