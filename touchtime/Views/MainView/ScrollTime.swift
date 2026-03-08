@@ -18,9 +18,8 @@ struct ScrollTimeView: View {
     @Binding var showButtons: Bool
     @Binding var worldClocks: [WorldClock]
     @State private var dragOffset: CGFloat = 0
-    @State private var accumulatedOffset: TimeInterval = 0 // For continuous scroll mode
+    @State private var accumulatedOffset: TimeInterval = 0
     @State private var eventStore = EKEventStore()
-    @State private var showTimePicker = false
     @State private var showEventEditor = false
     @State private var eventToEdit: EKEvent?
     @State private var hapticEngine: CHHapticEngine?
@@ -447,46 +446,6 @@ struct ScrollTimeView: View {
     
     // MARK: - Sub Views
     
-    /// Add to Calendar button (left side)
-    @ViewBuilder
-    private var calendarButton: some View {
-        Button(action: addToCalendar) {
-            Image(systemName: "plus")
-                .font(.system(size: 20))
-                .fontWeight(.medium)
-                .foregroundStyle(.white)
-                .frame(width: 52, height: 52)
-        }
-        .buttonStyle(.plain)
-        .clipShape(Circle())
-        .contentShape(Circle())
-        .glassEffect(.regular.interactive().tint(.blue.opacity(0.85)))
-        .glassEffectID("calendarButton", in: glassNamespace)
-        .glassEffectTransition(.matchedGeometry)
-    }
-    
-    /// Reset button (right side)
-    @ViewBuilder
-    private var resetButton: some View {
-        Button(action: {
-            DispatchQueue.main.async {
-                resetTimeOffset()
-            }
-        }) {
-            Image(systemName: "arrow.counterclockwise")
-                .font(.system(size: 20))
-                .fontWeight(.medium)
-                .foregroundStyle(.primary)
-                .frame(width: 52, height: 52)
-        }
-        .buttonStyle(.plain)
-        .clipShape(Circle())
-        .contentShape(Circle())
-        .glassEffect(.regular.interactive())
-        .glassEffectID("resetButton", in: glassNamespace)
-        .glassEffectTransition(.matchedGeometry)
-    }
-    
     /// Dragging indicator with dots and chevrons
     @ViewBuilder
     private var draggingIndicator: some View {
@@ -510,26 +469,6 @@ struct ScrollTimeView: View {
         }
     }
     
-    /// Time offset text button (non-continuous mode)
-    @ViewBuilder
-    private var timeOffsetTextButton: some View {
-        Button(action: {
-            showTimePicker = true
-        }) {
-            Text(formattedTimeOffset(timeOffset))
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-                .monospacedDigit()
-                .frame(maxWidth: .infinity, alignment: .center)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
-        .contentShape(Rectangle())
-        .transition(.blurReplace())
-    }
-    
     /// Default "Slide to Adjust" indicator
     @ViewBuilder
     private var defaultSlideIndicator: some View {
@@ -542,19 +481,11 @@ struct ScrollTimeView: View {
         
         Spacer()
         
-        if continuousScrollMode {
-            Text("Slide to Adjust")
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-                .transition(.blurReplace().combined(with: .move(edge: .top)))
-                .blendMode(.plusLighter)
-        } else {
-            Text("Slide to Adjust")
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-                .transition(.blurReplace())
-                .blendMode(.plusLighter)
-        }
+        Text("Slide to Adjust")
+            .fontWeight(.medium)
+            .foregroundColor(.secondary)
+            .transition(.blurReplace().combined(with: .move(edge: .top)))
+            .blendMode(.plusLighter)
         
         Spacer()
         
@@ -570,21 +501,18 @@ struct ScrollTimeView: View {
     @ViewBuilder
     private var mainContent: some View {
         HStack {
-            if dragOffset != 0 || (continuousScrollMode && timeOffset != 0) {
+            if dragOffset != 0 || timeOffset != 0 {
                 draggingIndicator
-            } else if timeOffset != 0 && !continuousScrollMode {
-                timeOffsetTextButton
             } else {
                 defaultSlideIndicator
             }
         }
-        .padding(.horizontal, (timeOffset == 0 || dragOffset != 0 || continuousScrollMode) ? 16 : 0)
+        .padding(.horizontal, 16)
         .font(.subheadline)
         .animation(.spring(duration: 0.25), value: dragOffset)
         .animation(.spring(duration: 0.25), value: timeOffset)
-        .frame(maxWidth: showButtons ? nil : .infinity)
+        .frame(maxWidth: .infinity)
         .frame(height: 52)
-        .padding(.horizontal, showButtons ? 24 : 0)
         .contentShape(Rectangle())
         .glassEffect(.regular.interactive())
         .glassEffectID("mainContent", in: glassNamespace)
@@ -655,19 +583,10 @@ struct ScrollTimeView: View {
     private var scrollDragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
-                if continuousScrollMode {
-                    stopInertia()
-                }
-                
+                stopInertia()
                 dragOffset = value.translation.width
                 let hours = hoursFromOffset(dragOffset)
-                
-                if continuousScrollMode {
-                    commitTimeOffset(accumulatedOffset + hours * 3600)
-                } else {
-                    commitTimeOffset(hours * 3600)
-                }
-                
+                commitTimeOffset(accumulatedOffset + hours * 3600)
                 checkAndPlayHapticTick()
             }
             .onEnded { value in
@@ -678,23 +597,16 @@ struct ScrollTimeView: View {
                     impactFeedback.prepare()
                     impactFeedback.impactOccurred()
                 }
-                
-                if continuousScrollMode {
-                    let hours = hoursFromOffset(dragOffset)
-                    accumulatedOffset += hours * 3600
-                    let velocity = value.velocity.width
-                    
-                    withAnimation(.spring()) {
-                        dragOffset = 0
-                    }
-                    
-                    startInertiaScroll(velocity: velocity)
-                } else {
-                    withAnimation(.spring()) {
-                        showButtons = true
-                        dragOffset = 0
-                    }
+
+                let hours = hoursFromOffset(dragOffset)
+                accumulatedOffset += hours * 3600
+                let velocity = value.velocity.width
+
+                withAnimation(.spring()) {
+                    dragOffset = 0
                 }
+
+                startInertiaScroll(velocity: velocity)
             }
     }
     
@@ -702,23 +614,21 @@ struct ScrollTimeView: View {
     
     var body: some View {
         GlassEffectContainer(spacing: 8) {
-            HStack(spacing: 8) {
-                if showButtons { calendarButton }
-                mainContent
-                if showButtons { resetButton }
-            }
-            .animation(.spring(), value: showButtons)
+            mainContent
         }
         .padding(.horizontal, 5)
         .overlay(alignment: .top) {
-            if continuousScrollMode && timeOffset != 0 && !showButtons {
+            if timeOffset != 0 {
                 continuousScrollOverlayButtons
             }
         }
-        .animation(.spring(), value: continuousScrollMode)
         .animation(.spring(), value: timeOffset != 0)
-        .gesture(showButtons ? nil : scrollDragGesture)
+        .gesture(scrollDragGesture)
         .onAppear {
+            if !continuousScrollMode {
+                continuousScrollMode = true
+            }
+            showButtons = false
             prepareHaptics()
         }
         .onDisappear {
@@ -741,25 +651,23 @@ struct ScrollTimeView: View {
                 lastHapticOffset = 0
                 lastInertiaHapticOffset = 0
                 accumulatedOffset = 0
+                showButtons = false
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StopScrollTimeInertia"))) { _ in
             stopInertia()
         }
-        .onChange(of: timeOffset) { oldValue, newValue in
-            if continuousScrollMode,
-               dragOffset == 0,
+        .onChange(of: showButtons) { _, newValue in
+            if newValue {
+                showButtons = false
+            }
+        }
+        .onChange(of: timeOffset) { _, newValue in
+            if dragOffset == 0,
                inertiaTimer == nil,
                newValue != snappedToWholeMinute(accumulatedOffset) {
                 accumulatedOffset = newValue
             }
-        }
-        .sheet(isPresented: $showTimePicker) {
-            TimeOffsetPickerView(
-                timeOffset: $timeOffset,
-                showTimePicker: $showTimePicker,
-                showButtons: $showButtons
-            )
         }
         .sheet(isPresented: $showEventEditor) {
             EventEditView(
