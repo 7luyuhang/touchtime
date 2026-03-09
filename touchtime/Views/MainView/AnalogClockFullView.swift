@@ -375,16 +375,6 @@ struct AnalogClockFullView: View {
                                     showTimeAdjustmentSheet = true
                                 }
                                 .animation(.spring(), value: selectedTimeZone.identifier)
-                                .task(id: showWeather) {
-                                    if showWeather {
-                                        await weatherManager.getWeather(for: selectedTimeZone.identifier)
-                                    }
-                                }
-                                .task(id: selectedTimeZone.identifier) {
-                                    if showWeather {
-                                        await weatherManager.getWeather(for: selectedTimeZone.identifier)
-                                    }
-                                }
                                 Spacer()
                             }
                             .frame(height: (geometry.size.height - size) / 2)
@@ -647,14 +637,9 @@ struct AnalogClockFullView: View {
             } message: {
                 Text(cameraAlertMessage)
             }
-            // Fetch weather for sky gradient (rain-aware)
-            .task(id: "\(showSkyDot)-\(showWeather)") {
-                if showSkyDot && showWeather {
-                    await weatherManager.getWeather(for: selectedTimeZone.identifier)
-                }
-            }
-            .task(id: "\(showSkyDot)-\(showWeather)-\(selectedTimeZone.identifier)") {
-                if showSkyDot && showWeather {
+            // Unified weather fetch trigger for this screen.
+            .task(id: "\(showWeather)-\(selectedTimeZone.identifier)") {
+                if showWeather {
                     await weatherManager.getWeather(for: selectedTimeZone.identifier)
                 }
             }

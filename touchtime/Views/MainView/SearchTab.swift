@@ -34,8 +34,10 @@ struct TimeZoneData: Identifiable {
 struct TimeZonePickerViewWrapper: View {
     @Binding var worldClocks: [WorldClock]
     @State private var searchText = ""
+    @State private var currentDate = Date()
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Precomputed timezone data
     @State private var precomputedTimeZones: [TimeZoneData] = []
@@ -328,6 +330,7 @@ struct TimeZonePickerViewWrapper: View {
                                     TimeZoneCellView(
                                         timeZoneData: timeZoneData,
                                         isSelected: worldClocks.contains(where: { $0.timeZoneIdentifier == timeZoneData.identifier }),
+                                        currentDate: currentDate,
                                         use24HourFormat: use24HourFormat,
                                         onToggle: {
                                             toggleClock(cityName: timeZoneData.cityName, identifier: timeZoneData.identifier)
@@ -377,8 +380,15 @@ struct TimeZonePickerViewWrapper: View {
             }
         }
         .onAppear {
+            currentDate = Date()
             if precomputedTimeZones.isEmpty {
                 precomputeTimeZones()
+            }
+        }
+        .onReceive(timer) { now in
+            let calendar = Calendar.current
+            if calendar.component(.minute, from: now) != calendar.component(.minute, from: currentDate) {
+                currentDate = now
             }
         }
     }
@@ -419,16 +429,18 @@ struct TimeZonePickerViewWrapper: View {
     }
 }
 
-// Individual cell view with its own timer
+// Individual cell view driven by the parent timestamp
 struct TimeZoneCellView: View {
     let timeZoneData: TimeZoneData
     let isSelected: Bool
+    let currentDate: Date
     let use24HourFormat: Bool
     let onToggle: () -> Void
-    
-    @State private var currentDate = Date()
-    // Timer to update time every second - each cell has its own timer
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private static let formatterCache: NSCache<NSString, DateFormatter> = {
+        let cache = NSCache<NSString, DateFormatter>()
+        cache.countLimit = 50
+        return cache
+    }()
     
     var body: some View {
         Button(action: onToggle) {
@@ -473,13 +485,14 @@ struct TimeZoneCellView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
-        .onReceive(timer) { _ in
-            currentDate = Date()
-        }
     }
-    
-    // Get current time for timezone (for preview)
-    private func currentTime(for timeZone: TimeZone) -> String {
+
+    private static func formatter(for timeZone: TimeZone, use24HourFormat: Bool) -> DateFormatter {
+        let key = "\(timeZone.identifier)_\(use24HourFormat)" as NSString
+        if let cached = formatterCache.object(forKey: key) {
+            return cached
+        }
+
         let formatter = DateFormatter()
         formatter.timeZone = timeZone
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -490,6 +503,13 @@ struct TimeZoneCellView: View {
             formatter.amSymbol = "am"
             formatter.pmSymbol = "pm"
         }
+        formatterCache.setObject(formatter, forKey: key)
+        return formatter
+    }
+    
+    // Get current time for timezone (for preview)
+    private func currentTime(for timeZone: TimeZone) -> String {
+        let formatter = Self.formatter(for: timeZone, use24HourFormat: use24HourFormat)
         return formatter.string(from: currentDate)
     }
 }

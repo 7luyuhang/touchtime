@@ -32,6 +32,11 @@ struct SunriseSunsetSheet: View {
     @State private var isWeatherExpanded = false // Track weather section expansion
     @State private var currentDetent: PresentationDetent = .medium // Track current sheet size
     @State private var showMoonPhaseView = false // Track moon phase view navigation
+    @State private var sunTimes: (sunrise: Date?, sunset: Date?)?
+    @State private var eveningGoldenHour: (start: Date?, end: Date?)?
+    @State private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)?
+    @State private var nextFullMoonDate: Date?
+    @State private var astronomyDayCacheKey: String = ""
     
     // Computed properties to get weather data directly from weatherManager
     private var currentWeather: CurrentWeather? {
@@ -54,46 +59,6 @@ struct SunriseSunsetSheet: View {
     // Timer to update the current date
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    // Calculate sunrise and sunset times
-    private var sunTimes: (sunrise: Date?, sunset: Date?)? {
-        // Get coordinates for the timezone
-        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
-            return nil
-        }
-        
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        
-        // Create Sun object with coordinates and timezone
-        var sun = Sun(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current)
-        
-        // Set the date for calculations
-        sun.setDate(adjustedDate)
-        
-        // Get sunrise and sunset times as properties
-        let sunrise = sun.sunrise
-        let sunset = sun.sunset
-        
-        return (sunrise, sunset)
-    }
-    
-    // Calculate evening golden hour times
-    private var eveningGoldenHour: (start: Date?, end: Date?)? {
-        // Get coordinates for the timezone
-        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
-            return nil
-        }
-        
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        
-        // Create Sun object with coordinates and timezone
-        var sun = Sun(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current)
-        
-        // Set the date for calculations
-        sun.setDate(adjustedDate)
-        
-        return (sun.eveningGoldenHourStart, sun.eveningGoldenHourEnd)
-    }
-    
     // Check if weather is clear (sunny)
     private var isWeatherClear: Bool {
         guard let weather = currentWeather else { return false }
@@ -105,63 +70,78 @@ struct SunriseSunsetSheet: View {
         }
     }
     
-    // Calculate moon information
-    private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)? {
-        // Get coordinates for the timezone
-        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
-            return nil
-        }
-        
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        
-        // Create Moon object with coordinates and timezone
-        let moon = Moon(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current)
-        
-        // Set the date for calculations
-        moon.setDate(adjustedDate)
-        
-        // Get moon information
-        let moonrise = moon.moonRise
-        let moonset = moon.moonSet
-        let moonPhase = moon.currentMoonPhase
-        let phase = formatMoonPhase(moonPhase)
-        let phaseIcon = getMoonPhaseIcon(moonPhase)
-        
-        return (moonrise, moonset, phase, phaseIcon)
-    }
     
-    // Calculate next full moon date
-    private var nextFullMoonDate: Date? {
-        // Get coordinates for the timezone
-        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
-            return nil
-        }
-        
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-        
-        // Create Moon object with coordinates and timezone
-        let moon = Moon(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: timeZone)
-        
-        // Start searching from tomorrow to find the next full moon
-        var searchDate = adjustedDate
+    private func calendarForTimeZone() -> Calendar {
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        return calendar
+    }
+
+    private func astronomyDayKey(for adjustedDate: Date) -> String {
+        let calendar = calendarForTimeZone()
+        let components = calendar.dateComponents([.year, .month, .day], from: adjustedDate)
+        return "\(timeZoneIdentifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
+    }
+
+    private func findNextFullMoonDate(using moon: Moon, startingFrom date: Date, calendar: Calendar) -> Date? {
+        var searchDate = date
         var attempts = 0
-        let maxAttempts = 60 // Search up to 60 days ahead
-        
+        let maxAttempts = 60
+
         while attempts < maxAttempts {
-            searchDate = Calendar.current.date(byAdding: .day, value: 1, to: searchDate) ?? searchDate
+            searchDate = calendar.date(byAdding: .day, value: 1, to: searchDate) ?? searchDate
             moon.setDate(searchDate)
-            
-            // Check if current phase is full moon by comparing string representation
+
             let phaseString = String(describing: moon.currentMoonPhase).lowercased()
             if phaseString.contains("fullmoon") || phaseString.contains("full moon") {
                 return searchDate
             }
-            
+
             attempts += 1
         }
-        
+
         return nil
+    }
+
+    private func refreshAstronomyData(force: Bool = false, referenceDate: Date) {
+        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
+            sunTimes = nil
+            eveningGoldenHour = nil
+            moonInfo = nil
+            nextFullMoonDate = nil
+            astronomyDayCacheKey = ""
+            return
+        }
+
+        let adjustedDate = referenceDate.addingTimeInterval(timeOffset)
+        let dayKey = astronomyDayKey(for: adjustedDate)
+
+        if !force && dayKey == astronomyDayCacheKey {
+            return
+        }
+
+        astronomyDayCacheKey = dayKey
+
+        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        let location = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
+        let calendar = calendarForTimeZone()
+
+        var sun = Sun(location: location, timeZone: timeZone)
+        sun.setDate(adjustedDate)
+        sunTimes = (sun.sunrise, sun.sunset)
+        eveningGoldenHour = (sun.eveningGoldenHourStart, sun.eveningGoldenHourEnd)
+
+        let moon = Moon(location: location, timeZone: timeZone)
+        moon.setDate(adjustedDate)
+        let phase = moon.currentMoonPhase
+        moonInfo = (
+            moonrise: moon.moonRise,
+            moonset: moon.moonSet,
+            phase: formatMoonPhase(phase),
+            phaseIcon: getMoonPhaseIcon(phase)
+        )
+
+        nextFullMoonDate = findNextFullMoonDate(using: moon, startingFrom: adjustedDate, calendar: calendar)
     }
     
     // Format moon phase to readable string
@@ -901,16 +881,22 @@ struct SunriseSunsetSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 currentDate = initialDate
+                refreshAstronomyData(force: true, referenceDate: initialDate)
             }
             .task(id: timeZoneIdentifier) {
+                refreshAstronomyData(force: true, referenceDate: currentDate)
                 // Fetch weather data only if weather is enabled
                 // Using .task(id:) ensures this runs when timeZoneIdentifier changes
                 guard showWeather else { return }
                 await weatherManager.getWeather(for: timeZoneIdentifier)
                 weatherLoadAttempted = true
             }
-            .onReceive(timer) { _ in
-                currentDate = Date()
+            .onReceive(timer) { now in
+                let calendar = Calendar.current
+                if calendar.component(.minute, from: now) != calendar.component(.minute, from: currentDate) {
+                    currentDate = now
+                    refreshAstronomyData(referenceDate: now)
+                }
             }
             .onChange(of: currentDetent) { oldValue, newValue in
                 if newValue == .large && hapticEnabled {

@@ -18,6 +18,7 @@ struct DotMatrixOverlay: View {
     let spacing: CGFloat = 10
     
     @State private var animatedDots = Set<Int>()
+    private let timer = Timer.publish(every: 0.75, on: .main, in: .common).autoconnect()
     
     var body: some View {
         GeometryReader { geometry in
@@ -40,21 +41,19 @@ struct DotMatrixOverlay: View {
                         .blendMode(.plusLighter)
                 }
             }
-            .onAppear {
-                animateRandomDots()
+            .onReceive(timer) { _ in
+                animateRandomDotsStep()
             }
         }
     }
     
-    private func animateRandomDots() {
-        Timer.scheduledTimer(withTimeInterval: 0.75, repeats: true) { _ in
-            withAnimation(.spring()) {
-                // Remove some dots
-                animatedDots = animatedDots.filter { _ in Bool.random() }
-                // Add new random dots
-                for _ in 0..<50 {
-                    animatedDots.insert(Int.random(in: 0..<(rows * columns)))
-                }
+    private func animateRandomDotsStep() {
+        withAnimation(.spring()) {
+            // Remove some dots
+            animatedDots = animatedDots.filter { _ in Bool.random() }
+            // Add new random dots
+            for _ in 0..<50 {
+                animatedDots.insert(Int.random(in: 0..<(rows * columns)))
             }
         }
     }
