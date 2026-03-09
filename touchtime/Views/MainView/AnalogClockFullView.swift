@@ -20,6 +20,12 @@ struct AnalogClockFullView: View {
     private enum CameraPreviewFilter {
         case standard
         case blur
+        case blackAndWhite
+    }
+
+    private enum CameraFilterParameters {
+        static let blackAndWhiteSaturation = 0.0
+        static let blackAndWhiteContrast = 1.25
     }
 
     @Binding var worldClocks: [WorldClock]
@@ -258,19 +264,31 @@ struct AnalogClockFullView: View {
                     // Background
                     Group {
                         if isCameraBackgroundEnabled {
-                            if let staticFrame = staticCameraFrame {
-                                Color.clear
-                                    .overlay {
-                                        Image(uiImage: staticFrame)
-                                            .resizable()
-                                            .scaledToFill()
-                                    }
-                                    .clipped()
-                                    .ignoresSafeArea()
-                            } else {
-                                CameraBackgroundView(session: cameraSessionController.session)
-                                    .ignoresSafeArea()
+                            Group {
+                                if let staticFrame = staticCameraFrame {
+                                    Color.clear
+                                        .overlay {
+                                            Image(uiImage: staticFrame)
+                                                .resizable()
+                                                .scaledToFill()
+                                        }
+                                        .clipped()
+                                        .ignoresSafeArea()
+                                } else {
+                                    CameraBackgroundView(session: cameraSessionController.session)
+                                        .ignoresSafeArea()
+                                }
                             }
+                            .saturation(
+                                cameraPreviewFilter == .blackAndWhite
+                                ? CameraFilterParameters.blackAndWhiteSaturation
+                                : 1
+                            )
+                            .contrast(
+                                cameraPreviewFilter == .blackAndWhite
+                                ? CameraFilterParameters.blackAndWhiteContrast
+                                : 1
+                            )
                         } else {
                             if showSkyDot {
                                 ZStack {
@@ -539,9 +557,16 @@ struct AnalogClockFullView: View {
                                         Text("Blur")
                                     }
                                 }
+                                Button(action: { setCameraFilter(.blackAndWhite) }) {
+                                    if cameraPreviewFilter == .blackAndWhite {
+                                        Label("Black and White", systemImage: "checkmark.circle")
+                                    } else {
+                                        Text("Black and White")
+                                    }
+                                }
                             }
                         } label: {
-                            Image(systemName: "camera.aperture")
+                            Image(systemName: "camera.filters")
                                 .foregroundStyle(.primary)
                         }
                         .buttonStyle(.plain)

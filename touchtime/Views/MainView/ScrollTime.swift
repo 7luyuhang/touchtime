@@ -482,8 +482,8 @@ struct ScrollTimeView: View {
         Spacer()
         
         Text("Slide to Adjust")
+            .foregroundStyle(.secondary)
             .fontWeight(.medium)
-            .foregroundColor(.secondary)
             .transition(.blurReplace().combined(with: .move(edge: .top)))
             .blendMode(.plusLighter)
         
