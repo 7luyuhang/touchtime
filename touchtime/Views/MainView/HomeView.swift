@@ -669,6 +669,7 @@ struct HomeView: View {
     func renderCardImage(cityName: String, timeZoneIdentifier: String, weatherCondition: WeatherCondition? = nil) -> CardImage {
         let adjustedDate = currentDate.addingTimeInterval(timeOffset)
         let effectiveWeatherCondition = showWeather ? weatherCondition : nil
+        let weatherForSnapshot = showWeather ? weatherManager.weatherData[timeZoneIdentifier] : nil
         
         let formatter = DateFormatter()
         formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
@@ -698,7 +699,9 @@ struct HomeView: View {
             date: adjustedDate,
             timeZone: targetTimeZone,
             timeZoneIdentifier: timeZoneIdentifier,
+            weather: weatherForSnapshot,
             weatherCondition: effectiveWeatherCondition,
+            useCelsius: useCelsius,
             showAnalogClock: showAnalogClock,
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,

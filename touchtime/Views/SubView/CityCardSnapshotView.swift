@@ -106,7 +106,9 @@ struct CityCardSnapshotView: View {
     let date: Date
     let timeZone: TimeZone
     let timeZoneIdentifier: String
+    let weather: CurrentWeather?
     let weatherCondition: WeatherCondition?
+    let useCelsius: Bool
     let showAnalogClock: Bool
     let analogClockShowScale: Bool
     let showSunPosition: Bool
@@ -180,6 +182,14 @@ struct CityCardSnapshotView: View {
                         }
                         
                         Spacer()
+
+                        if weather != nil {
+                            WeatherView(
+                                weather: weather,
+                                useCelsius: useCelsius
+                            )
+                            .contentTransition(.numericText())
+                        }
                         
                         Text(dateString)
                             .font(.subheadline)

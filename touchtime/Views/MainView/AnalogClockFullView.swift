@@ -564,8 +564,7 @@ struct AnalogClockFullView: View {
                         Button(action: {
                             handleCameraToggle()
                         }) {
-                            Image(systemName: "camera.fill")
-                                .font(.subheadline.weight(.semibold))
+                            Image(systemName: "camera.aperture")
                                 .foregroundStyle(.primary)
                         }
                         .buttonStyle(.plain)

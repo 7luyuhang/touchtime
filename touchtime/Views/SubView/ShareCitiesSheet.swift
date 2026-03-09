@@ -37,6 +37,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
@@ -184,6 +185,7 @@ struct ShareCitiesSheet: View {
     // Render city card as image for sharing
     func renderCardImage(cityName: String, timeZoneIdentifier: String) -> CardImage {
         let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+        let weatherForSnapshot = showWeather ? weatherManager.weatherData[timeZoneIdentifier] : nil
         let weatherConditionForSky = showWeather ? weatherManager.weatherData[timeZoneIdentifier]?.condition : nil
         
         let formatter = DateFormatter()
@@ -208,7 +210,9 @@ struct ShareCitiesSheet: View {
             date: adjustedDate,
             timeZone: targetTimeZone,
             timeZoneIdentifier: timeZoneIdentifier,
+            weather: weatherForSnapshot,
             weatherCondition: weatherConditionForSky,
+            useCelsius: useCelsius,
             showAnalogClock: showAnalogClock,
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,
