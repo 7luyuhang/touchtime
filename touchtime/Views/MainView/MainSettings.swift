@@ -1105,21 +1105,9 @@ struct SettingsView: View {
                         showWeather: showWeather,
                         weatherManager: weatherManager
                     )
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button(action: {
-                                if hapticEnabled {
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                }
-                                showComplicationsSheet = false
-                            }) {
-                                Image(systemName: "xmark")
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                    }
                 }
-                .presentationDetents([.height(320)]) // Complication Sheet Height
+                .presentationDetents([.medium]) // Complication Sheet Height
+                .presentationDragIndicator(.visible)
             }
         }
     }

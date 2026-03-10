@@ -99,25 +99,11 @@ struct ComplicationsSettingsView: View {
     }
     
     var body: some View {
-        VStack {
-            Spacer()
-            VStack(spacing: 48){
-                // Complications
-                complicationSelector
-                
-                //Text
-                HStack {
-                    Image(systemName: "location.fill")
-                        .font(.footnote.weight(.semibold))
-                    Text(String(localized: "Use your current location"))
-                        .font(.footnote.weight(.medium))
-                }
-                .foregroundStyle(.secondary)
-                .blendMode(.plusLighter)
-            }
-            
-            Spacer()
+        VStack(spacing: 0) {
+            complicationSelector
         }
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .padding(.horizontal)
         .scrollIndicators(.hidden)
         .navigationTitle("Complications")
         .navigationBarTitleDisplayMode(.inline)
@@ -206,154 +192,175 @@ struct ComplicationsSettingsView: View {
     
     // MARK: - Complication Selector
     private var complicationSelector: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(alignment: .top, spacing: 16) {
-                // Analog Clock
-                complicationOption(
-                    type: .analogClock,
-                    isSelected: showAnalogClock
+        ScrollView(.vertical, showsIndicators: false) {
+            VStack(spacing: 16) {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible(), spacing: 8),
+                        GridItem(.flexible(), spacing: 8)
+                    ],
+                    spacing: 8
                 ) {
-                    AnalogClockView(
-                        date: currentDate,
-                        size: 64,
-                        timeZone: TimeZone.current,
-                        useMaterialBackground: false,
-                        showScale: analogClockShowScale
-                    )
-                }
-                
-                // Sun Elevation
-                complicationOption(
-                    type: .sunElevation,
-                    isSelected: showSunPosition
-                ) {
-                    SunPositionIndicator(
-                        date: currentDate,
-                        timeZone: TimeZone.current,
-                        size: 64,
-                        useMaterialBackground: false
-                    )
-                }
-                
-                // Sun Azimuth
-                complicationOption(
-                    type: .sunAzimuth,
-                    isSelected: showSunAzimuth
-                ) {
-                    SunAzimuthIndicator(
-                        date: currentDate,
-                        timeZone: TimeZone.current,
-                        size: 64,
-                        useMaterialBackground: false
-                    )
-                }
-
-                // Sunrise & Sunset
-                complicationOption(
-                    type: .sunriseSunset,
-                    isSelected: showSunriseSunset
-                ) {
-                    SunriseSunsetIndicator(
-                        date: currentDate,
-                        timeZone: TimeZone.current,
-                        size: 64,
-                        useMaterialBackground: false
-                    )
-                }
-                
-                // Solar Curve
-                complicationOption(
-                    type: .solarCurve,
-                    isSelected: showSolarCurve
-                ) {
-                    SolarCurve(
-                        date: currentDate,
-                        timeZone: TimeZone.current,
-                        size: 64,
-                        useMaterialBackground: false
-                    )
-                }
-
-                // Daylight
-                complicationOption(
-                    type: .daylight,
-                    isSelected: showDaylight
-                ) {
-                    DaylightIndicator(
-                        date: currentDate,
-                        timeZone: TimeZone.current,
-                        size: 64,
-                        useMaterialBackground: false
-                    )
-                }
-
-                // Moon Azimuth
-                complicationOption(
-                    type: .moonAzimuth,
-                    isSelected: showMoonAzimuth
-                ) {
-                    MoonAzimuthIndicator(
-                        date: currentDate,
-                        timeZone: TimeZone.current,
-                        size: 64,
-                        useMaterialBackground: false
-                    )
-                }
-                
-                // Weather Condition (only show if weather is enabled)
-                if showWeather {
+                    // Analog Clock
                     complicationOption(
-                        type: .weatherCondition,
-                        isSelected: showWeatherCondition
+                        type: .analogClock,
+                        isSelected: showAnalogClock
                     ) {
-                        WeatherConditionView(
+                        AnalogClockView(
+                            date: currentDate,
+                            size: 64,
+                            timeZone: TimeZone.current,
+                            useMaterialBackground: false,
+                            showScale: analogClockShowScale
+                        )
+                    }
+                    
+                    // Sun Elevation
+                    complicationOption(
+                        type: .sunElevation,
+                        isSelected: showSunPosition
+                    ) {
+                        SunPositionIndicator(
+                            date: currentDate,
                             timeZone: TimeZone.current,
                             size: 64,
                             useMaterialBackground: false
                         )
-                        .environmentObject(weatherManager)
                     }
-
+                    
+                    // Sun Azimuth
                     complicationOption(
-                        type: .temperatureIndicator,
-                        isSelected: showTemperatureIndicator
+                        type: .sunAzimuth,
+                        isSelected: showSunAzimuth
                     ) {
-                        TemperatureIndicator(
+                        SunAzimuthIndicator(
+                            date: currentDate,
                             timeZone: TimeZone.current,
                             size: 64,
                             useMaterialBackground: false
                         )
-                        .environmentObject(weatherManager)
                     }
 
+                    // Sunrise & Sunset
                     complicationOption(
-                        type: .uvIndex,
-                        isSelected: showUVIndex
+                        type: .sunriseSunset,
+                        isSelected: showSunriseSunset
                     ) {
-                        UVIndexIndicator(
+                        SunriseSunsetIndicator(
+                            date: currentDate,
                             timeZone: TimeZone.current,
                             size: 64,
                             useMaterialBackground: false
                         )
-                        .environmentObject(weatherManager)
                     }
-
+                    
+                    // Solar Curve
                     complicationOption(
-                        type: .windDirection,
-                        isSelected: showWindDirection
+                        type: .solarCurve,
+                        isSelected: showSolarCurve
                     ) {
-                        WindDirectionIndicator(
+                        SolarCurve(
+                            date: currentDate,
                             timeZone: TimeZone.current,
                             size: 64,
                             useMaterialBackground: false
                         )
-                        .environmentObject(weatherManager)
+                    }
+
+                    // Daylight
+                    complicationOption(
+                        type: .daylight,
+                        isSelected: showDaylight
+                    ) {
+                        DaylightIndicator(
+                            date: currentDate,
+                            timeZone: TimeZone.current,
+                            size: 64,
+                            useMaterialBackground: false
+                        )
+                    }
+
+                    // Moon Azimuth
+                    complicationOption(
+                        type: .moonAzimuth,
+                        isSelected: showMoonAzimuth
+                    ) {
+                        MoonAzimuthIndicator(
+                            date: currentDate,
+                            timeZone: TimeZone.current,
+                            size: 64,
+                            useMaterialBackground: false
+                        )
+                    }
+                    
+                    // Weather Condition (only show if weather is enabled)
+                    if showWeather {
+                        complicationOption(
+                            type: .weatherCondition,
+                            isSelected: showWeatherCondition
+                        ) {
+                            WeatherConditionView(
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                            .environmentObject(weatherManager)
+                        }
+
+                        complicationOption(
+                            type: .temperatureIndicator,
+                            isSelected: showTemperatureIndicator
+                        ) {
+                            TemperatureIndicator(
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                            .environmentObject(weatherManager)
+                        }
+
+                        complicationOption(
+                            type: .uvIndex,
+                            isSelected: showUVIndex
+                        ) {
+                            UVIndexIndicator(
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                            .environmentObject(weatherManager)
+                        }
+
+                        complicationOption(
+                            type: .windDirection,
+                            isSelected: showWindDirection
+                        ) {
+                            WindDirectionIndicator(
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                            .environmentObject(weatherManager)
+                        }
                     }
                 }
+
+                locationHint
             }
-            .padding(.horizontal, 24)
-            .padding(.top, 8)
+            .padding(.vertical, 4)
         }
+    }
+
+    private var locationHint: some View {
+        HStack {
+            Image(systemName: "location.fill")
+                .font(.footnote.weight(.semibold))
+            Text(String(localized: "Use your current location"))
+                .font(.footnote.weight(.medium))
+        }
+        .foregroundStyle(.secondary)
+        .blendMode(.plusLighter)
+        .padding(.top, 16)
     }
     
     // MARK: - Complication Option View
@@ -379,41 +386,44 @@ struct ComplicationsSettingsView: View {
             VStack(spacing: 10) {
                 content()
                     .frame(width: 64, height: 64)
-                    .background(
-                        Circle()
-                            .fill(Color.black.opacity(0.25))
-                            .glassEffect(.clear)
-                    )
                     .overlay(
                         Circle()
-                            .stroke(
-                                isSelected ? Color.white : Color.white.opacity(0.1),
-                                lineWidth: isSelected ? 2 : 0.5
-                            )
+                            .stroke(.white.opacity(0.1), lineWidth: 1)
+                            .blendMode(.plusLighter)
                     )
-                    .overlay(alignment: .bottomTrailing) {
-                        if isLocked(type) {
-                            Image(systemName: "lock.fill")
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(.white.opacity(0.5))
-                                .blendMode(.plusLighter)
-                                .padding(6)
-                                .background(
-                                    Circle()
-                                        .fill(.ultraThinMaterial)
-                                )
-                                .offset(x: 4, y: 4)
-                        }
-                    }
                 
                 Text(type.localizedName)
-                    .font(.caption.weight(.medium))
+                    .font(.caption.weight(isSelected ? .semibold : .medium))
                     .multilineTextAlignment(.center)
                     .foregroundStyle(isSelected ? .primary : .secondary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .frame(width: 72)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 100)
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.black.opacity(0.25))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .strokeBorder(isSelected ? Color.white : .clear, lineWidth: 2)
+            )
+            .overlay(alignment: .topTrailing) {
+                if isLocked(type) {
+                    Image(systemName: "lock.fill")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .blendMode(.plusLighter)
+                        .padding(6)
+                        .background(
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                        )
+                        .padding(8)
+                }
+            }
         }
         .buttonStyle(.plain)
         .animation(.spring(), value: isSelected)
