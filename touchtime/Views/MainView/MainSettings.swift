@@ -51,30 +51,29 @@ struct SettingsView: View {
     
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    private static let preview24HourFormatter: DateFormatter = makeFormatter("HH:mm")
+    private static let preview12HourFormatter: DateFormatter = makeFormatter("h:mm")
+    private static let settingInputTimeFormatter: DateFormatter = makeFormatter("HH:mm")
+    private static let settingDisplayTimeFormatter: DateFormatter = {
+        let formatter = makeFormatter("h:mm a")
+        formatter.amSymbol = "am"
+        formatter.pmSymbol = "pm"
+        return formatter
+    }()
+
+    private static func makeFormatter(_ dateFormat: String) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = dateFormat
+        return formatter
+    }
     
     // Format time for preview (time part only)
     func formatTime(use24Hour: Bool) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
+        let formatter = use24Hour ? Self.preview24HourFormatter : Self.preview12HourFormatter
         formatter.timeZone = TimeZone.current
-        
-        if use24Hour {
-            formatter.dateFormat = "HH:mm"
-        } else {
-            formatter.dateFormat = "h:mm"
-        }
-        
-        return formatter.string(from: currentDate)
-    }
-    
-    // Format AM/PM for preview
-    func formatAMPM() -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        formatter.dateFormat = "a"
-        formatter.amSymbol = "am"
-        formatter.pmSymbol = "pm"
         return formatter.string(from: currentDate)
     }
     
@@ -161,6 +160,20 @@ struct SettingsView: View {
         hasLifetimeAccess && showDaylight
     }
 
+    private var hasComplicationEnabled: Bool {
+        showAnalogClock ||
+        showSunPosition ||
+        effectiveShowWeatherCondition ||
+        effectiveShowTemperatureIndicator ||
+        effectiveShowUVIndex ||
+        effectiveShowWindDirection ||
+        showSunAzimuth ||
+        effectiveShowMoonAzimuth ||
+        showSunriseSunset ||
+        effectiveShowDaylight ||
+        showSolarCurve
+    }
+
     private var goldenHourBinding: Binding<Bool> {
         Binding(
             get: { hasLifetimeAccess && showGoldenHour },
@@ -210,6 +223,17 @@ struct SettingsView: View {
                 }
             }
         )
+    }
+
+    @ViewBuilder
+    private func previewComplication<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .overlay(
+                Circle()
+                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                    .blendMode(.plusLighter)
+            )
+            .transition(.identity)
     }
     
     var body: some View {
@@ -443,179 +467,135 @@ struct SettingsView: View {
                             
                             // Analog Clock Overlay - Centered
                             if showAnalogClock {
-                                AnalogClockView(
-                                    date: currentDate,
-                                    size: 64,
-                                    timeZone: TimeZone.current,
-                                    useMaterialBackground: true,
-                                    showScale: analogClockShowScale
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    AnalogClockView(
+                                        date: currentDate,
+                                        size: 64,
+                                        timeZone: TimeZone.current,
+                                        useMaterialBackground: true,
+                                        showScale: analogClockShowScale
+                                    )
+                                }
                             }
                             
                             // Sun Position Overlay - Centered
                             if showSunPosition {
-                                SunPositionIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    SunPositionIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                }
                             }
                             
                             // Weather Condition Overlay - Centered
                             if effectiveShowWeatherCondition {
-                                WeatherConditionView(
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .environmentObject(weatherManager)
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    WeatherConditionView(
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .environmentObject(weatherManager)
+                                }
                             }
 
                             // Temperature Overlay - Centered
                             if effectiveShowTemperatureIndicator {
-                                TemperatureIndicator(
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .environmentObject(weatherManager)
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    TemperatureIndicator(
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .environmentObject(weatherManager)
+                                }
                             }
 
                             // UV Index Overlay - Centered
                             if effectiveShowUVIndex {
-                                UVIndexIndicator(
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .environmentObject(weatherManager)
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    UVIndexIndicator(
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .environmentObject(weatherManager)
+                                }
                             }
 
                             // Wind Direction Overlay - Centered
                             if effectiveShowWindDirection {
-                                WindDirectionIndicator(
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .environmentObject(weatherManager)
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    WindDirectionIndicator(
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .environmentObject(weatherManager)
+                                }
                             }
                             
                             // Sun Azimuth Overlay - Centered
                             if showSunAzimuth {
-                                SunAzimuthIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    SunAzimuthIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                }
                             }
 
                             // Moon Azimuth Overlay - Centered
                             if effectiveShowMoonAzimuth {
-                                MoonAzimuthIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    MoonAzimuthIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                }
                             }
                             
                             // Sunrise & Sunset Overlay - Centered
                             if showSunriseSunset {
-                                SunriseSunsetIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    SunriseSunsetIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                }
                             }
                             
                             // Daylight Overlay - Centered
                             if effectiveShowDaylight {
-                                DaylightIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    DaylightIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                }
                             }
                             
                             // Solar Curve Overlay - Centered
                             if showSolarCurve {
-                                SolarCurve(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
+                                previewComplication {
+                                    SolarCurve(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                }
                             }
                         }
                         .background(
@@ -716,7 +696,7 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition && !effectiveShowWeatherCondition && !effectiveShowTemperatureIndicator && !effectiveShowUVIndex && !effectiveShowWindDirection && !showSunAzimuth && !effectiveShowMoonAzimuth && !showSunriseSunset && !effectiveShowDaylight && !showSolarCurve {
+                        if !hasComplicationEnabled {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
@@ -728,7 +708,7 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition || effectiveShowWeatherCondition || effectiveShowTemperatureIndicator || effectiveShowUVIndex || effectiveShowWindDirection || showSunAzimuth || effectiveShowMoonAzimuth || showSunriseSunset || effectiveShowDaylight || showSolarCurve)
+                    .disabled(hasComplicationEnabled)
                     .onChange(of: showAnalogClock) { oldValue, newValue in
                         if newValue {
                             dateStyle = "Relative"
@@ -1031,7 +1011,10 @@ struct SettingsView: View {
                 }
             }
             .onReceive(timer) { _ in
-                currentDate = Date()
+                let now = Date()
+                if !Calendar.current.isDate(now, equalTo: currentDate, toGranularity: .minute) {
+                    currentDate = now
+                }
             }
             .onAppear {
                 // Fetch weather for local timezone
@@ -1151,20 +1134,17 @@ struct SettingsView: View {
     
     // Format time for settings display
     func formatTimeForSetting(_ timeString: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        
-        guard let date = formatter.date(from: timeString) else {
+        Self.settingInputTimeFormatter.timeZone = TimeZone.current
+        Self.settingDisplayTimeFormatter.timeZone = TimeZone.current
+
+        guard let date = Self.settingInputTimeFormatter.date(from: timeString) else {
             return timeString
         }
         
         if use24HourFormat {
             return timeString
         } else {
-            formatter.dateFormat = "h:mm a"
-            return formatter.string(from: date).lowercased()
+            return Self.settingDisplayTimeFormatter.string(from: date).lowercased()
         }
     }
     
