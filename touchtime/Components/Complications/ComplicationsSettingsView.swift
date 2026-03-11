@@ -343,6 +343,11 @@ struct ComplicationsSettingsView: View {
                             .environmentObject(weatherManager)
                         }
                     }
+
+                    if !showWeather {
+                        weatherReminderCard
+                            .gridCellColumns(2)
+                    }
                 }
 
                 locationHint
@@ -361,6 +366,33 @@ struct ComplicationsSettingsView: View {
         .foregroundStyle(.secondary)
         .blendMode(.plusLighter)
         .padding(.top, 16)
+    }
+
+    private var weatherReminderCard: some View {
+        Text(String(localized: "Enable Weather to discover more"))
+            .font(.caption.weight(.medium))
+            .multilineTextAlignment(.center)
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 12)
+            .frame(
+                maxWidth: .infinity,
+                minHeight: standardComplicationCellHeight,
+                maxHeight: standardComplicationCellHeight
+            )
+            .background(
+                RoundedRectangle(cornerRadius: 20, style: .continuous)
+                    .fill(Color.black.opacity(0.25))
+            )
+    }
+
+    private var standardComplicationCellHeight: CGFloat {
+        let iconHeight: CGFloat = 64
+        let iconTextSpacing: CGFloat = 10
+        let verticalPadding: CGFloat = 24
+        let captionLineHeight = UIFont.preferredFont(forTextStyle: .caption1).lineHeight
+        return max(100, ceil(iconHeight + iconTextSpacing + captionLineHeight + verticalPadding))
     }
     
     // MARK: - Complication Option View
