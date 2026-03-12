@@ -118,6 +118,24 @@ struct ShareCitiesSheet: View {
     private var effectiveShowDaylight: Bool {
         hasLifetimeAccess && showDaylight
     }
+
+    private var complicationOptions: ComplicationDisplayOptions {
+        ComplicationDisplayOptions(
+            showAnalogClock: showAnalogClock,
+            analogClockShowScale: analogClockShowScale,
+            showSunPosition: showSunPosition,
+            showWeatherCondition: effectiveShowWeatherCondition,
+            showTemperatureIndicator: effectiveShowTemperatureIndicator,
+            showUVIndex: effectiveShowUVIndex,
+            showWindDirection: effectiveShowWindDirection,
+            showSunAzimuth: showSunAzimuth,
+            showMoonAzimuth: effectiveShowMoonAzimuth,
+            showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
+            showSunriseSunset: showSunriseSunset,
+            showDaylight: effectiveShowDaylight,
+            showSolarCurve: showSolarCurve
+        )
+    }
     
     // Generate share text
     func generateShareText() -> String {
@@ -218,19 +236,7 @@ struct ShareCitiesSheet: View {
             weather: weatherForSnapshot,
             weatherCondition: weatherConditionForSky,
             useCelsius: useCelsius,
-            showAnalogClock: showAnalogClock,
-            analogClockShowScale: analogClockShowScale,
-            showSunPosition: showSunPosition,
-            showWeatherCondition: effectiveShowWeatherCondition,
-            showTemperatureIndicator: effectiveShowTemperatureIndicator,
-            showUVIndex: effectiveShowUVIndex,
-            showWindDirection: effectiveShowWindDirection,
-            showSunAzimuth: showSunAzimuth,
-            showMoonAzimuth: effectiveShowMoonAzimuth,
-            showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
-            showSunriseSunset: showSunriseSunset,
-            showDaylight: effectiveShowDaylight,
-            showSolarCurve: showSolarCurve,
+            complications: complicationOptions,
             additionalTimeDisplay: additionalTimeDisplay,
             showSkyDot: showSkyDot,
             additionalTimeText: additionalText

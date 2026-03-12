@@ -35,152 +35,6 @@ struct LazyCardImage: Transferable {
     }
 }
 
-// MARK: - Complication Overlay View
-struct ComplicationOverlayView: View {
-    let date: Date
-    let timeZone: TimeZone
-    let showAnalogClock: Bool
-    let analogClockShowScale: Bool
-    let showSunPosition: Bool
-    let showWeatherCondition: Bool
-    let showTemperatureIndicator: Bool
-    let showUVIndex: Bool
-    let showWindDirection: Bool
-    let showSunAzimuth: Bool
-    let showMoonAzimuth: Bool
-    let showMoonSunAzimuth: Bool
-    let showSunriseSunset: Bool
-    let showDaylight: Bool
-    let showSolarCurve: Bool
-    let bottomPadding: CGFloat
-    @EnvironmentObject var weatherManager: WeatherManager
-    
-    var body: some View {
-        Group {
-            if showAnalogClock {
-                AnalogClockView(
-                    date: date,
-                    size: 64,
-                    timeZone: timeZone,
-                    showScale: analogClockShowScale
-                )
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-            
-            if showSunPosition {
-                SunPositionIndicator(
-                    date: date,
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-            
-            if showWeatherCondition {
-                WeatherConditionView(
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .environmentObject(weatherManager)
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-
-            if showTemperatureIndicator {
-                TemperatureIndicator(
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .environmentObject(weatherManager)
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-
-            if showUVIndex {
-                UVIndexIndicator(
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .environmentObject(weatherManager)
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-
-            if showWindDirection {
-                WindDirectionIndicator(
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .environmentObject(weatherManager)
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-            
-            if showSunAzimuth {
-                SunAzimuthIndicator(
-                    date: date,
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-
-            if showMoonAzimuth {
-                MoonAzimuthIndicator(
-                    date: date,
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-
-            if showMoonSunAzimuth {
-                MoonSunAzimuthIndicator(
-                    date: date,
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-            
-            if showSunriseSunset {
-                SunriseSunsetIndicator(
-                    date: date,
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-            
-            if showDaylight {
-                DaylightIndicator(
-                    date: date,
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-            
-            if showSolarCurve {
-                SolarCurve(
-                    date: date,
-                    timeZone: timeZone,
-                    size: 64
-                )
-                .padding(.bottom, bottomPadding)
-                .transition(.blurReplace)
-            }
-        }
-    }
-}
-
 struct HomeView: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
@@ -324,19 +178,26 @@ struct HomeView: View {
         hasLifetimeAccess && showDaylight
     }
 
+    private var complicationOptions: ComplicationDisplayOptions {
+        ComplicationDisplayOptions(
+            showAnalogClock: showAnalogClock,
+            analogClockShowScale: analogClockShowScale,
+            showSunPosition: showSunPosition,
+            showWeatherCondition: effectiveShowWeatherCondition,
+            showTemperatureIndicator: effectiveShowTemperatureIndicator,
+            showUVIndex: effectiveShowUVIndex,
+            showWindDirection: effectiveShowWindDirection,
+            showSunAzimuth: showSunAzimuth,
+            showMoonAzimuth: effectiveShowMoonAzimuth,
+            showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
+            showSunriseSunset: showSunriseSunset,
+            showDaylight: effectiveShowDaylight,
+            showSolarCurve: showSolarCurve
+        )
+    }
+
     private var hasVisibleComplication: Bool {
-        showAnalogClock ||
-        showSunPosition ||
-        effectiveShowWeatherCondition ||
-        effectiveShowTemperatureIndicator ||
-        effectiveShowUVIndex ||
-        effectiveShowWindDirection ||
-        showSunAzimuth ||
-        effectiveShowMoonAzimuth ||
-        effectiveShowMoonSunAzimuth ||
-        showSunriseSunset ||
-        effectiveShowDaylight ||
-        showSolarCurve
+        complicationOptions.hasVisibleComplication
     }
     
     // Get local city name from timezone
@@ -719,19 +580,7 @@ struct HomeView: View {
             weather: weatherForSnapshot,
             weatherCondition: effectiveWeatherCondition,
             useCelsius: useCelsius,
-            showAnalogClock: showAnalogClock,
-            analogClockShowScale: analogClockShowScale,
-            showSunPosition: showSunPosition,
-            showWeatherCondition: effectiveShowWeatherCondition,
-            showTemperatureIndicator: effectiveShowTemperatureIndicator,
-            showUVIndex: effectiveShowUVIndex,
-            showWindDirection: effectiveShowWindDirection,
-            showSunAzimuth: showSunAzimuth,
-            showMoonAzimuth: effectiveShowMoonAzimuth,
-            showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
-            showSunriseSunset: showSunriseSunset,
-            showDaylight: effectiveShowDaylight,
-            showSolarCurve: showSolarCurve,
+            complications: complicationOptions,
             additionalTimeDisplay: additionalTimeDisplay,
             showSkyDot: showSkyDot,
             additionalTimeText: additionalText
@@ -907,19 +756,7 @@ struct HomeView: View {
                                     ComplicationOverlayView(
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZone: TimeZone.current,
-                                        showAnalogClock: showAnalogClock,
-                                        analogClockShowScale: analogClockShowScale,
-                                        showSunPosition: showSunPosition,
-                                        showWeatherCondition: effectiveShowWeatherCondition,
-                                        showTemperatureIndicator: effectiveShowTemperatureIndicator,
-                                        showUVIndex: effectiveShowUVIndex,
-                                        showWindDirection: effectiveShowWindDirection,
-                                        showSunAzimuth: showSunAzimuth,
-                                        showMoonAzimuth: effectiveShowMoonAzimuth,
-                                        showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
-                                        showSunriseSunset: showSunriseSunset,
-                                        showDaylight: effectiveShowDaylight,
-                                        showSolarCurve: showSolarCurve,
+                                        options: complicationOptions,
                                         bottomPadding: (hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0
                                     )
                                     .environmentObject(weatherManager)
@@ -1094,19 +931,7 @@ struct HomeView: View {
                                     ComplicationOverlayView(
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
-                                        showAnalogClock: showAnalogClock,
-                                        analogClockShowScale: analogClockShowScale,
-                                        showSunPosition: showSunPosition,
-                                        showWeatherCondition: effectiveShowWeatherCondition,
-                                        showTemperatureIndicator: effectiveShowTemperatureIndicator,
-                                        showUVIndex: effectiveShowUVIndex,
-                                        showWindDirection: effectiveShowWindDirection,
-                                        showSunAzimuth: showSunAzimuth,
-                                        showMoonAzimuth: effectiveShowMoonAzimuth,
-                                        showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
-                                        showSunriseSunset: showSunriseSunset,
-                                        showDaylight: effectiveShowDaylight,
-                                        showSolarCurve: showSolarCurve,
+                                        options: complicationOptions,
                                         bottomPadding: 0
                                     )
                                     .environmentObject(weatherManager)

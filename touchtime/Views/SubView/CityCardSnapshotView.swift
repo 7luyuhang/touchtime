@@ -109,25 +109,13 @@ struct CityCardSnapshotView: View {
     let weather: CurrentWeather?
     let weatherCondition: WeatherCondition?
     let useCelsius: Bool
-    let showAnalogClock: Bool
-    let analogClockShowScale: Bool
-    let showSunPosition: Bool
-    let showWeatherCondition: Bool
-    let showTemperatureIndicator: Bool
-    let showUVIndex: Bool
-    let showWindDirection: Bool
-    let showSunAzimuth: Bool
-    let showMoonAzimuth: Bool
-    let showMoonSunAzimuth: Bool
-    let showSunriseSunset: Bool
-    let showDaylight: Bool
-    let showSolarCurve: Bool
+    let complications: ComplicationDisplayOptions
     let additionalTimeDisplay: String
     let showSkyDot: Bool
     let additionalTimeText: String
     
     private var hasComplication: Bool {
-        showAnalogClock || showSunPosition || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showSunAzimuth || showMoonAzimuth || showMoonSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve
+        complications.hasVisibleComplication
     }
     
     private var skyColorGradient: SkyColorGradient {
@@ -232,19 +220,7 @@ struct CityCardSnapshotView: View {
                 ComplicationOverlayView(
                     date: date,
                     timeZone: timeZone,
-                    showAnalogClock: showAnalogClock,
-                    analogClockShowScale: analogClockShowScale,
-                    showSunPosition: showSunPosition,
-                    showWeatherCondition: showWeatherCondition,
-                    showTemperatureIndicator: showTemperatureIndicator,
-                    showUVIndex: showUVIndex,
-                    showWindDirection: showWindDirection,
-                    showSunAzimuth: showSunAzimuth,
-                    showMoonAzimuth: showMoonAzimuth,
-                    showMoonSunAzimuth: showMoonSunAzimuth,
-                    showSunriseSunset: showSunriseSunset,
-                    showDaylight: showDaylight,
-                    showSolarCurve: showSolarCurve,
+                    options: complications,
                     bottomPadding: 0
                 )
             }
