@@ -81,6 +81,7 @@ struct OnboardingView: View {
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
+    @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
@@ -98,6 +99,7 @@ struct OnboardingView: View {
         case sunElevation
         case sunAzimuth
         case moonAzimuth
+        case moonSunAzimuth
         case sunriseSunset
         case weatherCondition
         case temperatureIndicator
@@ -112,6 +114,7 @@ struct OnboardingView: View {
             case .sunElevation: return String(localized: "Sun Elevation")
             case .sunAzimuth: return String(localized: "Sun Azimuth")
             case .moonAzimuth: return String(localized: "Moon Azimuth")
+            case .moonSunAzimuth: return String(localized: "Moon & Sun Azimuth")
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
             case .temperatureIndicator: return String(localized: "Temperature Indicator")
@@ -145,6 +148,10 @@ struct OnboardingView: View {
 
     private var effectiveShowMoonAzimuth: Bool {
         canShowLifetimeComplications && showMoonAzimuth
+    }
+
+    private var effectiveShowMoonSunAzimuth: Bool {
+        canShowLifetimeComplications && showMoonSunAzimuth
     }
 
     private var effectiveShowDaylight: Bool {
@@ -207,6 +214,7 @@ struct OnboardingView: View {
             showSunPosition = type == .sunElevation
             showSunAzimuth = type == .sunAzimuth
             showMoonAzimuth = type == .moonAzimuth
+            showMoonSunAzimuth = type == .moonSunAzimuth
             showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
             showTemperatureIndicator = type == .temperatureIndicator
@@ -220,7 +228,7 @@ struct OnboardingView: View {
     private func enforceLifetimeAccess() {
         guard !hasLifetimeAccess else { return }
 
-        if showMoonAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight {
+        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight {
             selectComplication(nil)
         }
     }
@@ -566,6 +574,20 @@ struct OnboardingView: View {
                                             .blendMode(.plusLighter)
                                     )
                                 }
+
+                                if effectiveShowMoonSunAzimuth {
+                                    MoonSunAzimuthIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
                                 
                                 if canShowLifetimeWeatherComplications && showWeatherCondition {
                                     WeatherConditionView(
@@ -700,6 +722,17 @@ struct OnboardingView: View {
                                     if canShowLifetimeComplications {
                                         complicationOption(type: .moonAzimuth, isSelected: showMoonAzimuth) {
                                             MoonAzimuthIndicator(
+                                                date: currentDate,
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                        }
+                                    }
+
+                                    if canShowLifetimeComplications {
+                                        complicationOption(type: .moonSunAzimuth, isSelected: showMoonSunAzimuth) {
+                                            MoonSunAzimuthIndicator(
                                                 date: currentDate,
                                                 timeZone: TimeZone.current,
                                                 size: 64,

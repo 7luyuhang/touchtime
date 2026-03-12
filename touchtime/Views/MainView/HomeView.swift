@@ -48,6 +48,7 @@ struct ComplicationOverlayView: View {
     let showWindDirection: Bool
     let showSunAzimuth: Bool
     let showMoonAzimuth: Bool
+    let showMoonSunAzimuth: Bool
     let showSunriseSunset: Bool
     let showDaylight: Bool
     let showSolarCurve: Bool
@@ -129,6 +130,16 @@ struct ComplicationOverlayView: View {
 
             if showMoonAzimuth {
                 MoonAzimuthIndicator(
+                    date: date,
+                    timeZone: timeZone,
+                    size: 64
+                )
+                .padding(.bottom, bottomPadding)
+                .transition(.blurReplace)
+            }
+
+            if showMoonSunAzimuth {
+                MoonSunAzimuthIndicator(
                     date: date,
                     timeZone: timeZone,
                     size: 64
@@ -240,6 +251,7 @@ struct HomeView: View {
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
+    @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
@@ -304,6 +316,10 @@ struct HomeView: View {
         hasLifetimeAccess && showMoonAzimuth
     }
 
+    private var effectiveShowMoonSunAzimuth: Bool {
+        hasLifetimeAccess && showMoonSunAzimuth
+    }
+
     private var effectiveShowDaylight: Bool {
         hasLifetimeAccess && showDaylight
     }
@@ -317,6 +333,7 @@ struct HomeView: View {
         effectiveShowWindDirection ||
         showSunAzimuth ||
         effectiveShowMoonAzimuth ||
+        effectiveShowMoonSunAzimuth ||
         showSunriseSunset ||
         effectiveShowDaylight ||
         showSolarCurve
@@ -711,6 +728,7 @@ struct HomeView: View {
             showWindDirection: effectiveShowWindDirection,
             showSunAzimuth: showSunAzimuth,
             showMoonAzimuth: effectiveShowMoonAzimuth,
+            showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: effectiveShowDaylight,
             showSolarCurve: showSolarCurve,
@@ -898,6 +916,7 @@ struct HomeView: View {
                                         showWindDirection: effectiveShowWindDirection,
                                         showSunAzimuth: showSunAzimuth,
                                         showMoonAzimuth: effectiveShowMoonAzimuth,
+                                        showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: effectiveShowDaylight,
                                         showSolarCurve: showSolarCurve,
@@ -1084,6 +1103,7 @@ struct HomeView: View {
                                         showWindDirection: effectiveShowWindDirection,
                                         showSunAzimuth: showSunAzimuth,
                                         showMoonAzimuth: effectiveShowMoonAzimuth,
+                                        showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
                                         showSunriseSunset: showSunriseSunset,
                                         showDaylight: effectiveShowDaylight,
                                         showSolarCurve: showSolarCurve,
@@ -1222,6 +1242,7 @@ struct HomeView: View {
             .animation(.spring(), value: effectiveShowWindDirection)
             .animation(.spring(), value: showSunAzimuth)
             .animation(.spring(), value: effectiveShowMoonAzimuth)
+            .animation(.spring(), value: effectiveShowMoonSunAzimuth)
             .animation(.spring(), value: showSunriseSunset)
             .animation(.spring(), value: effectiveShowDaylight)
             .animation(.spring(), value: showSolarCurve)

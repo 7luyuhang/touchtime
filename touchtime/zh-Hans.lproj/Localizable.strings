@@ -805,6 +805,7 @@
 "Sun Elevation" = "太阳高度";
 "Sun Azimuth" = "太阳方位角";
 "Moon Azimuth" = "月亮方位角";
+"Moon & Sun Azimuth" = "月亮与太阳方位角";
 "Daylight" = "日照";
 
 /* Complications */

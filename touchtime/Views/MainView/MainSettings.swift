@@ -33,6 +33,7 @@ struct SettingsView: View {
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
+    @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
@@ -75,6 +76,7 @@ struct SettingsView: View {
         case sunElevation
         case sunAzimuth
         case moonAzimuth
+        case moonSunAzimuth
         case sunriseSunset
         case weatherCondition
         case temperatureIndicator
@@ -93,6 +95,8 @@ struct SettingsView: View {
                 return String(localized: "Sun Azimuth")
             case .moonAzimuth:
                 return String(localized: "Moon Azimuth")
+            case .moonSunAzimuth:
+                return String(localized: "Moon & Sun Azimuth")
             case .sunriseSunset:
                 return String(localized: "Sunrise & Sunset")
             case .weatherCondition:
@@ -153,6 +157,8 @@ struct SettingsView: View {
             return .sunAzimuth
         } else if effectiveShowMoonAzimuth {
             return .moonAzimuth
+        } else if effectiveShowMoonSunAzimuth {
+            return .moonSunAzimuth
         } else if showSunriseSunset {
             return .sunriseSunset
         } else if effectiveShowWeatherCondition {
@@ -194,6 +200,10 @@ struct SettingsView: View {
 
     private var effectiveShowMoonAzimuth: Bool {
         hasLifetimeAccess && showMoonAzimuth
+    }
+
+    private var effectiveShowMoonSunAzimuth: Bool {
+        hasLifetimeAccess && showMoonSunAzimuth
     }
 
     private var effectiveShowDaylight: Bool {
@@ -293,6 +303,13 @@ struct SettingsView: View {
             )
         case .moonAzimuth:
             MoonAzimuthIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .moonSunAzimuth:
+            MoonSunAzimuthIndicator(
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
@@ -1005,6 +1022,7 @@ struct SettingsView: View {
                         showSunPosition: $showSunPosition,
                         showSunAzimuth: $showSunAzimuth,
                         showMoonAzimuth: $showMoonAzimuth,
+                        showMoonSunAzimuth: $showMoonSunAzimuth,
                         showSunriseSunset: $showSunriseSunset,
                         showWeatherCondition: $showWeatherCondition,
                         showTemperatureIndicator: $showTemperatureIndicator,

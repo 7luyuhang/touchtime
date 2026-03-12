@@ -13,6 +13,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showSunPosition: Bool
     @Binding var showSunAzimuth: Bool
     @Binding var showMoonAzimuth: Bool
+    @Binding var showMoonSunAzimuth: Bool
     @Binding var showSunriseSunset: Bool
     @Binding var showWeatherCondition: Bool
     @Binding var showTemperatureIndicator: Bool
@@ -39,6 +40,7 @@ struct ComplicationsSettingsView: View {
         case sunElevation
         case sunAzimuth
         case moonAzimuth
+        case moonSunAzimuth
         case sunriseSunset
         case weatherCondition
         case temperatureIndicator
@@ -53,6 +55,7 @@ struct ComplicationsSettingsView: View {
             case .sunElevation: return String(localized: "Sun Elevation")
             case .sunAzimuth: return String(localized: "Sun Azimuth")
             case .moonAzimuth: return String(localized: "Moon Azimuth")
+            case .moonSunAzimuth: return String(localized: "Moon & Sun Azimuth")
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
             case .temperatureIndicator: return String(localized: "Temperature Indicator")
@@ -71,6 +74,7 @@ struct ComplicationsSettingsView: View {
             showSunPosition = type == .sunElevation
             showSunAzimuth = type == .sunAzimuth
             showMoonAzimuth = type == .moonAzimuth
+            showMoonSunAzimuth = type == .moonSunAzimuth
             showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
             showTemperatureIndicator = type == .temperatureIndicator
@@ -83,7 +87,7 @@ struct ComplicationsSettingsView: View {
 
     private func isLocked(_ type: ComplicationType) -> Bool {
         switch type {
-        case .moonAzimuth, .weatherCondition, .temperatureIndicator, .uvIndex, .windDirection, .daylight:
+        case .moonAzimuth, .moonSunAzimuth, .weatherCondition, .temperatureIndicator, .uvIndex, .windDirection, .daylight:
             return !hasLifetimeAccess
         default:
             return false
@@ -93,7 +97,7 @@ struct ComplicationsSettingsView: View {
     private func enforceLifetimeAccess() {
         guard !hasLifetimeAccess else { return }
 
-        if showMoonAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight {
+        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight {
             selectComplication(nil)
         }
     }
@@ -286,6 +290,19 @@ struct ComplicationsSettingsView: View {
                         isSelected: showMoonAzimuth
                     ) {
                         MoonAzimuthIndicator(
+                            date: currentDate,
+                            timeZone: TimeZone.current,
+                            size: 64,
+                            useMaterialBackground: false
+                        )
+                    }
+
+                    // Moon & Sun Azimuth
+                    complicationOption(
+                        type: .moonSunAzimuth,
+                        isSelected: showMoonSunAzimuth
+                    ) {
+                        MoonSunAzimuthIndicator(
                             date: currentDate,
                             timeZone: TimeZone.current,
                             size: 64,

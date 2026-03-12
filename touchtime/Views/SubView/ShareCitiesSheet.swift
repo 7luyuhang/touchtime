@@ -47,6 +47,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
+    @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
@@ -108,6 +109,10 @@ struct ShareCitiesSheet: View {
 
     private var effectiveShowMoonAzimuth: Bool {
         hasLifetimeAccess && showMoonAzimuth
+    }
+
+    private var effectiveShowMoonSunAzimuth: Bool {
+        hasLifetimeAccess && showMoonSunAzimuth
     }
 
     private var effectiveShowDaylight: Bool {
@@ -222,6 +227,7 @@ struct ShareCitiesSheet: View {
             showWindDirection: effectiveShowWindDirection,
             showSunAzimuth: showSunAzimuth,
             showMoonAzimuth: effectiveShowMoonAzimuth,
+            showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: effectiveShowDaylight,
             showSolarCurve: showSolarCurve,
