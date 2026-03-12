@@ -69,6 +69,47 @@ struct SettingsView: View {
         formatter.dateFormat = dateFormat
         return formatter
     }
+
+    private enum PreviewComplication: String {
+        case analogClock
+        case sunElevation
+        case sunAzimuth
+        case moonAzimuth
+        case sunriseSunset
+        case weatherCondition
+        case temperatureIndicator
+        case uvIndex
+        case windDirection
+        case daylight
+        case solarCurve
+
+        var localizedName: String {
+            switch self {
+            case .analogClock:
+                return String(localized: "Analog Clock")
+            case .sunElevation:
+                return String(localized: "Sun Elevation")
+            case .sunAzimuth:
+                return String(localized: "Sun Azimuth")
+            case .moonAzimuth:
+                return String(localized: "Moon Azimuth")
+            case .sunriseSunset:
+                return String(localized: "Sunrise & Sunset")
+            case .weatherCondition:
+                return String(localized: "Weather Condition")
+            case .temperatureIndicator:
+                return String(localized: "Temperature Indicator")
+            case .uvIndex:
+                return String(localized: "UV Index")
+            case .windDirection:
+                return String(localized: "Wind Direction")
+            case .daylight:
+                return String(localized: "Daylight Curve")
+            case .solarCurve:
+                return String(localized: "Solar Curve")
+            }
+        }
+    }
     
     // Format time for preview (time part only)
     func formatTime(use24Hour: Bool) -> String {
@@ -103,30 +144,29 @@ struct SettingsView: View {
         }
     }
     
-    // Get current complication name
-    var currentComplicationName: String? {
+    private var selectedPreviewComplication: PreviewComplication? {
         if showAnalogClock {
-            return String(localized: "Analog Clock")
+            return .analogClock
         } else if showSunPosition {
-            return String(localized: "Sun Elevation")
+            return .sunElevation
         } else if showSunAzimuth {
-            return String(localized: "Sun Azimuth")
+            return .sunAzimuth
         } else if effectiveShowMoonAzimuth {
-            return String(localized: "Moon Azimuth")
+            return .moonAzimuth
         } else if showSunriseSunset {
-            return String(localized: "Sunrise & Sunset")
+            return .sunriseSunset
         } else if effectiveShowWeatherCondition {
-            return String(localized: "Weather Condition")
+            return .weatherCondition
         } else if effectiveShowTemperatureIndicator {
-            return String(localized: "Temperature Indicator")
+            return .temperatureIndicator
         } else if effectiveShowUVIndex {
-            return String(localized: "UV Index")
+            return .uvIndex
         } else if effectiveShowWindDirection {
-            return String(localized: "Wind Direction")
+            return .windDirection
         } else if effectiveShowDaylight {
-            return String(localized: "Daylight Curve")
+            return .daylight
         } else if showSolarCurve {
-            return String(localized: "Solar Curve")
+            return .solarCurve
         }
         return nil
     }
@@ -161,17 +201,7 @@ struct SettingsView: View {
     }
 
     private var hasComplicationEnabled: Bool {
-        showAnalogClock ||
-        showSunPosition ||
-        effectiveShowWeatherCondition ||
-        effectiveShowTemperatureIndicator ||
-        effectiveShowUVIndex ||
-        effectiveShowWindDirection ||
-        showSunAzimuth ||
-        effectiveShowMoonAzimuth ||
-        showSunriseSunset ||
-        effectiveShowDaylight ||
-        showSolarCurve
+        selectedPreviewComplication != nil
     }
 
     private var goldenHourBinding: Binding<Bool> {
@@ -234,6 +264,90 @@ struct SettingsView: View {
                     .blendMode(.plusLighter)
             )
             .transition(.identity)
+    }
+
+    @ViewBuilder
+    private func previewComplicationContent(for complication: PreviewComplication) -> some View {
+        switch complication {
+        case .analogClock:
+            AnalogClockView(
+                date: currentDate,
+                size: 64,
+                timeZone: TimeZone.current,
+                useMaterialBackground: true,
+                showScale: analogClockShowScale
+            )
+        case .sunElevation:
+            SunPositionIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .sunAzimuth:
+            SunAzimuthIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .moonAzimuth:
+            MoonAzimuthIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .sunriseSunset:
+            SunriseSunsetIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .weatherCondition:
+            WeatherConditionView(
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+            .environmentObject(weatherManager)
+        case .temperatureIndicator:
+            TemperatureIndicator(
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+            .environmentObject(weatherManager)
+        case .uvIndex:
+            UVIndexIndicator(
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+            .environmentObject(weatherManager)
+        case .windDirection:
+            WindDirectionIndicator(
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+            .environmentObject(weatherManager)
+        case .daylight:
+            DaylightIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .solarCurve:
+            SolarCurve(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        }
     }
     
     var body: some View {
@@ -465,136 +579,9 @@ struct SettingsView: View {
                             .padding()
                             .padding(.bottom, -4)
                             
-                            // Analog Clock Overlay - Centered
-                            if showAnalogClock {
+                            if let complication = selectedPreviewComplication {
                                 previewComplication {
-                                    AnalogClockView(
-                                        date: currentDate,
-                                        size: 64,
-                                        timeZone: TimeZone.current,
-                                        useMaterialBackground: true,
-                                        showScale: analogClockShowScale
-                                    )
-                                }
-                            }
-                            
-                            // Sun Position Overlay - Centered
-                            if showSunPosition {
-                                previewComplication {
-                                    SunPositionIndicator(
-                                        date: currentDate,
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                }
-                            }
-                            
-                            // Weather Condition Overlay - Centered
-                            if effectiveShowWeatherCondition {
-                                previewComplication {
-                                    WeatherConditionView(
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .environmentObject(weatherManager)
-                                }
-                            }
-
-                            // Temperature Overlay - Centered
-                            if effectiveShowTemperatureIndicator {
-                                previewComplication {
-                                    TemperatureIndicator(
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .environmentObject(weatherManager)
-                                }
-                            }
-
-                            // UV Index Overlay - Centered
-                            if effectiveShowUVIndex {
-                                previewComplication {
-                                    UVIndexIndicator(
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .environmentObject(weatherManager)
-                                }
-                            }
-
-                            // Wind Direction Overlay - Centered
-                            if effectiveShowWindDirection {
-                                previewComplication {
-                                    WindDirectionIndicator(
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .environmentObject(weatherManager)
-                                }
-                            }
-                            
-                            // Sun Azimuth Overlay - Centered
-                            if showSunAzimuth {
-                                previewComplication {
-                                    SunAzimuthIndicator(
-                                        date: currentDate,
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                }
-                            }
-
-                            // Moon Azimuth Overlay - Centered
-                            if effectiveShowMoonAzimuth {
-                                previewComplication {
-                                    MoonAzimuthIndicator(
-                                        date: currentDate,
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                }
-                            }
-                            
-                            // Sunrise & Sunset Overlay - Centered
-                            if showSunriseSunset {
-                                previewComplication {
-                                    SunriseSunsetIndicator(
-                                        date: currentDate,
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                }
-                            }
-                            
-                            // Daylight Overlay - Centered
-                            if effectiveShowDaylight {
-                                previewComplication {
-                                    DaylightIndicator(
-                                        date: currentDate,
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                }
-                            }
-                            
-                            // Solar Curve Overlay - Centered
-                            if showSolarCurve {
-                                previewComplication {
-                                    SolarCurve(
-                                        date: currentDate,
-                                        timeZone: TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
+                                    previewComplicationContent(for: complication)
                                 }
                             }
                         }
@@ -616,18 +603,8 @@ struct SettingsView: View {
                                         RoundedRectangle(cornerRadius: 26, style: .continuous)
                         )
                         .animation(.spring(), value: showSkyDot)
-                        .animation(.spring(), value: showAnalogClock)
-                        .animation(.spring(), value: showSunPosition)
-                        .animation(.spring(), value: effectiveShowWeatherCondition)
-                        .animation(.spring(), value: effectiveShowTemperatureIndicator)
-                        .animation(.spring(), value: effectiveShowUVIndex)
-                        .animation(.spring(), value: effectiveShowWindDirection)
-                        .animation(.spring(), value: showSunAzimuth)
-                        .animation(.spring(), value: effectiveShowMoonAzimuth)
-                        .animation(.spring(), value: showSunriseSunset)
-                        .animation(.spring(), value: effectiveShowDaylight)
-                        .animation(.spring(), value: showSolarCurve)
-                        .id("\(showSkyDot)-\(dateStyle)")
+                        .animation(.spring(), value: selectedPreviewComplication?.rawValue)
+                        .id("\(showSkyDot)-\(dateStyle)-\(selectedPreviewComplication?.rawValue ?? "none")")
                         .onTapGesture {
                             if hapticEnabled {
                                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
@@ -709,58 +686,8 @@ struct SettingsView: View {
                     .pickerStyle(.menu)
                     .tint(.secondary)
                     .disabled(hasComplicationEnabled)
-                    .onChange(of: showAnalogClock) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showSunPosition) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showWeatherCondition) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showTemperatureIndicator) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showUVIndex) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showWindDirection) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showSunAzimuth) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showMoonAzimuth) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showSunriseSunset) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showDaylight) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showSolarCurve) { oldValue, newValue in
-                        if newValue {
+                    .onChange(of: selectedPreviewComplication?.rawValue) { _, newValue in
+                        if newValue != nil {
                             dateStyle = "Relative"
                         }
                     }
@@ -780,7 +707,7 @@ struct SettingsView: View {
                             }
                             .layoutPriority(1)
                             Spacer(minLength: 8)
-                            Text(currentComplicationName ?? String(localized: "None"))
+                            Text(selectedPreviewComplication?.localizedName ?? String(localized: "None"))
                                 .foregroundStyle(.secondary)
                         }
                     }
