@@ -175,6 +175,7 @@
 "No Weather Data" = "暂无天气数据";
 "Cities" = "城市";
 "%d added" = "已添加 %d 个";
+"Total %d Cities" = "总共 %d 个城市";
 "City" = "城市";
 
 /* Tabs */

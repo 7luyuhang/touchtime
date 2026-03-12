@@ -346,7 +346,13 @@ struct TimeZonePickerViewWrapper: View {
                             Section {
                                 HStack {
                                     Spacer()
-                                    EarthImageView()
+                                    VStack(spacing: 16) {
+                                        EarthImageView()
+                                        Text(String(format: String(localized: "Total %d Cities"), precomputedTimeZones.count))
+                                            .font(.system(.caption, design: .monospaced).weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                            .textCase(.uppercase)
+                                    }
                                     Spacer()
                                 }
                                 .listRowBackground(Color.clear)

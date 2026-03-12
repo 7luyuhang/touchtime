@@ -171,6 +171,7 @@
 "No Weather Data" = "暫無天氣數據";
 "Cities" = "城市";
 "%d added" = "已新增 %d 個";
+"Total %d Cities" = "總共 %d 個城市";
 "City" = "城市";
 
 /* Tabs */
