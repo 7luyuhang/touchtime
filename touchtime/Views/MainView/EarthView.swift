@@ -76,12 +76,6 @@ struct EarthView: View {
     // Namespace for Glass Effect morphing
     @Namespace private var glassEffectNamespace
     
-    // 設置地圖縮放限制
-    private let cameraBounds = MapCameraBounds(
-        minimumDistance: 5000000,     // 最小高度 1,000km（最大放大）
-        maximumDistance: nil
-    )
-    
     // Get local city name from timezone
     var localCityName: String {
         let identifier = TimeZone.current.identifier
@@ -366,7 +360,7 @@ struct EarthView: View {
         NavigationStack {
             ZStack(alignment: .bottom) {
             
-                Map(position: $position, bounds: cameraBounds) {
+                Map(position: $position) {
                 // Show flight path if two cities are selected
                 if let fromClock = selectedFlightCities.from,
                    let toClock = selectedFlightCities.to,
