@@ -59,32 +59,26 @@ struct ScrollTimeView: View {
     
     // Format time offset into a human-readable string (e.g., "+1h 30m", "-2d 3h")
     func formattedTimeOffset(_ offset: TimeInterval) -> String {
-        let totalHours = offset / 3600
-        let isPositive = totalHours >= 0
-        let absoluteHours = abs(totalHours)
-        let days = Int(absoluteHours / 24)
-        let hours = Int(absoluteHours) % 24
-        let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
+        let totalMinutes = Int(abs(offset).rounded() / 60)
+        let days = totalMinutes / (24 * 60)
+        let hours = (totalMinutes % (24 * 60)) / 60
+        let minutes = totalMinutes % 60
         
-        let sign = isPositive ? "+" : "-"
-        var result = ""
+        let sign = offset >= 0 ? "+" : "-"
+        let result: String
+        
         if days > 0 {
-            result = String(format: String(localized: "%dd"), days)
             if hours > 0 {
-                result += " " + String(format: String(localized: "%dh"), hours)
+                result = String(format: String(localized: "%dd %dh %02dm"), days, hours, minutes)
+            } else {
+                result = String(format: String(localized: "%dd %02dm"), days, minutes)
             }
-            if minutes > 0 {
-                result += " " + String(format: String(localized: "%02dm"), minutes)
-            }
-        } else if hours > 0 && minutes > 0 {
-            result = String(format: String(localized: "%dh %02dm"), hours, minutes)
         } else if hours > 0 {
-            result = String(format: String(localized: "%dh"), hours)
-        } else if minutes > 0 {
-            result = String(format: String(localized: "%02dm"), minutes)
+            result = String(format: String(localized: "%dh %02dm"), hours, minutes)
         } else {
-            result = String(localized: "00m")
+            result = String(format: String(localized: "%02dm"), minutes)
         }
+        
         return sign + result
     }
     
