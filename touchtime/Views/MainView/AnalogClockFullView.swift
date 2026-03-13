@@ -36,7 +36,9 @@ struct AnalogClockFullView: View {
     @State private var selectedCityId: UUID? = nil // nil means Local is selected
     @State private var showDetailsSheet = false
     @State private var showShareSheet = false
+    @State private var showArrangeListSheet = false
     @State private var showSettingsSheet = false
+    @State private var showLifetimeStore = false
     @State private var showTimeInsteadOfCityName = false
     @State private var showTimeAdjustmentSheet = false
     @State private var isCameraBackgroundEnabled = false
@@ -60,6 +62,7 @@ struct AnalogClockFullView: View {
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -497,6 +500,23 @@ struct AnalogClockFullView: View {
                 
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
+                        if !hasLifetimeAccess {
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showLifetimeStore = true
+                            }) {
+                                Text(String(localized: "Lifetime"))
+                                Text(String(localized: "Unlock all features"))
+                                Image(systemName: "heart.fill")
+                            }
+                            
+                            Divider()
+                        }
+
                         // Share Section - only show if there are world clocks
                         if !worldClocks.isEmpty {
                             Button(action: {
@@ -508,6 +528,17 @@ struct AnalogClockFullView: View {
                                 showShareSheet = true
                             }) {
                                 Label("Share", systemImage: "square.and.arrow.up")
+                            }
+
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showArrangeListSheet = true
+                            }) {
+                                Label(String(localized: "Arrange"), systemImage: "list.bullet")
                             }
                             
                             Divider()
@@ -612,11 +643,37 @@ struct AnalogClockFullView: View {
                 )
                 .environmentObject(weatherManager)
             }
+            .sheet(isPresented: $showArrangeListSheet) {
+                ArrangeListView(
+                    worldClocks: $worldClocks,
+                    showSheet: $showArrangeListSheet,
+                    currentDate: currentDate,
+                    timeOffset: timeOffset
+                )
+            }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(
                     worldClocks: $worldClocks,
                     weatherManager: weatherManager
                 )
+            }
+            .sheet(isPresented: $showLifetimeStore) {
+                NavigationStack {
+                    LifetimeStoreView()
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button(action: {
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    }
+                                    showLifetimeStore = false
+                                }) {
+                                    Image(systemName: "xmark")
+                                        .fontWeight(.semibold)
+                                }
+                            }
+                        }
+                }
             }
             .sheet(isPresented: $showTimeAdjustmentSheet) {
                 CityTimeAdjustmentSheet(

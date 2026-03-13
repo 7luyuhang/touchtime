@@ -48,6 +48,7 @@ struct HomeView: View {
     @State private var originalClockName = ""
     @State private var showShareSheet = false
     @State private var showSettingsSheet = false
+    @State private var showLifetimeStore = false
     @State private var eventStore = EKEventStore()
     @State private var showEventEditor = false
     @State private var eventToEdit: EKEvent?
@@ -1109,6 +1110,23 @@ struct HomeView: View {
                 }
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
+                        if !hasLifetimeAccess {
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showLifetimeStore = true
+                            }) {
+                                Text(String(localized: "Lifetime"))
+                                Text(String(localized: "Unlock all features"))
+                                Image(systemName: "heart.fill")
+                            }
+                            
+                            Divider()
+                        }
+
                         // Collections
                         if !collections.isEmpty {
                             Button {
@@ -1298,6 +1316,24 @@ struct HomeView: View {
                         selectedCollectionId = nil
                         saveSelectedCollection()
                     }
+                }
+            }
+            .sheet(isPresented: $showLifetimeStore) {
+                NavigationStack {
+                    LifetimeStoreView()
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button(action: {
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    }
+                                    showLifetimeStore = false
+                                }) {
+                                    Image(systemName: "xmark")
+                                        .fontWeight(.semibold)
+                                }
+                            }
+                        }
                 }
             }
             
