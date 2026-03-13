@@ -1121,7 +1121,7 @@ struct HomeView: View {
                             }) {
                                 Text(String(localized: "Lifetime"))
                                 Text(String(localized: "Unlock all features"))
-                                Image(systemName: "heart.fill")
+                                Image(systemName: "heart")
                             }
                             
                             Divider()

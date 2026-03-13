@@ -158,6 +158,18 @@ struct AnalogClockFullView: View {
         triggerMenuHaptic()
     }
 
+    private func cycleToNextCollection() {
+        guard !collections.isEmpty else { return }
+
+        if let currentId = selectedCollectionId,
+           let currentIndex = collections.firstIndex(where: { $0.id == currentId }) {
+            let nextIndex = (currentIndex + 1) % collections.count
+            selectCollection(collections[nextIndex].id)
+        } else {
+            selectCollection(collections.first?.id)
+        }
+    }
+
     private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
         guard showWeather else { return nil }
         return weatherManager.weatherData[timeZoneIdentifier]?.condition
@@ -189,9 +201,13 @@ struct AnalogClockFullView: View {
             .contentShape(Capsule())
             .animation(.snappy, value: currentCollectionName)
             .onTapGesture {
-                triggerMenuHaptic()
-                withAnimation(.smooth) {
-                    showTimeInsteadOfCityName.toggle()
+                if selectedCollectionId != nil && collections.count > 1 {
+                    cycleToNextCollection()
+                } else {
+                    triggerMenuHaptic()
+                    withAnimation(.smooth) {
+                        showTimeInsteadOfCityName.toggle()
+                    }
                 }
             }
     }
@@ -205,7 +221,7 @@ struct AnalogClockFullView: View {
             }) {
                 Text(String(localized: "Lifetime"))
                 Text(String(localized: "Unlock all features"))
-                Image(systemName: "heart.fill")
+                Image(systemName: "heart")
             }
 
             Divider()
@@ -764,11 +780,23 @@ struct AnalogClockFullView: View {
                     timeOffset: timeOffset
                 )
             }
+            .onChange(of: showArrangeListSheet) { oldValue, newValue in
+                if oldValue && !newValue {
+                    loadCollections()
+                    ensureValidSelectedCity(in: displayedClocks)
+                }
+            }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(
                     worldClocks: $worldClocks,
                     weatherManager: weatherManager
                 )
+            }
+            .onChange(of: showSettingsSheet) { oldValue, newValue in
+                if oldValue && !newValue {
+                    loadCollections()
+                    ensureValidSelectedCity(in: displayedClocks)
+                }
             }
             .sheet(isPresented: $showLifetimeStore) {
                 NavigationStack {
