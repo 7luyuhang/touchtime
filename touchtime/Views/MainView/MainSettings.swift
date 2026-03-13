@@ -455,8 +455,8 @@ struct SettingsView: View {
                             }
                             .layoutPriority(1)
                             Spacer(minLength: 8)
-                            Image(systemName: "arrow.up.forward")
-                                .font(.subheadline.weight(.semibold))
+                            Image(systemName: "arrow.up.forward.app.fill")
+                                .font(.title3.weight(.semibold))
                                 .foregroundStyle(.tertiary)
                         }
                     }
