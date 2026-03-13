@@ -39,6 +39,8 @@ struct AnalogClockFullView: View {
     @State private var showArrangeListSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
+    @State private var collections: [CityCollection] = []
+    @State private var selectedCollectionId: UUID? = nil
     @State private var showTimeInsteadOfCityName = false
     @State private var showTimeAdjustmentSheet = false
     @State private var isCameraBackgroundEnabled = false
@@ -63,17 +65,47 @@ struct AnalogClockFullView: View {
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("selectedCollectionId") private var savedSelectedCollectionId: String = ""
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    // Get displayed clocks based on selected collection
+    private var displayedClocks: [WorldClock] {
+        if let collectionId = selectedCollectionId,
+           let collection = collections.first(where: { $0.id == collectionId }) {
+            return collection.cities
+        }
+        return worldClocks
+    }
+
+    // Current collection name for display
+    private var currentCollectionName: String {
+        if let collectionId = selectedCollectionId,
+           let collection = collections.first(where: { $0.id == collectionId }) {
+            return collection.name
+        }
+        return String(localized: "All Cities")
+    }
+
+    private var toolbarTitleText: String {
+        if selectedCollectionId == nil {
+            return selectedCityName
+        }
+        return currentCollectionName
+    }
+
+    private var shouldShowToolbarTitle: Bool {
+        !toolbarTitleText.isEmpty
+    }
     
     // Get selected city name
     private var selectedCityName: String {
         // Return empty when no local time and no cities
-        if worldClocks.isEmpty && !showLocalTime {
+        if displayedClocks.isEmpty && !showLocalTime {
             return ""
         }
         if let cityId = selectedCityId,
-           let city = worldClocks.first(where: { $0.id == cityId }) {
+           let city = displayedClocks.first(where: { $0.id == cityId }) {
             return city.localizedCityName
         }
         return String(localized: "Local")
@@ -82,11 +114,48 @@ struct AnalogClockFullView: View {
     // Get selected timezone
     private var selectedTimeZone: TimeZone {
         if let cityId = selectedCityId,
-           let city = worldClocks.first(where: { $0.id == cityId }),
+           let city = displayedClocks.first(where: { $0.id == cityId }),
            let timeZone = TimeZone(identifier: city.timeZoneIdentifier) {
             return timeZone
         }
         return TimeZone.current
+    }
+
+    private func loadCollections() {
+        collections = CollectionsStore.load()
+
+        if let uuid = UUID(uuidString: savedSelectedCollectionId),
+           collections.contains(where: { $0.id == uuid }) {
+            selectedCollectionId = uuid
+        } else {
+            selectedCollectionId = nil
+            if !savedSelectedCollectionId.isEmpty {
+                savedSelectedCollectionId = ""
+            }
+        }
+    }
+
+    private func saveSelectedCollection() {
+        savedSelectedCollectionId = selectedCollectionId?.uuidString ?? ""
+    }
+
+    private func ensureValidSelectedCity(in clocks: [WorldClock]) {
+        if let cityId = selectedCityId,
+           !clocks.contains(where: { $0.id == cityId }) {
+            selectedCityId = showLocalTime ? nil : clocks.first?.id
+            return
+        }
+
+        if !showLocalTime && selectedCityId == nil {
+            selectedCityId = clocks.first?.id
+        }
+    }
+
+    private func selectCollection(_ collectionId: UUID?) {
+        selectedCollectionId = collectionId
+        saveSelectedCollection()
+        ensureValidSelectedCity(in: displayedClocks)
+        triggerMenuHaptic()
     }
 
     private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
@@ -101,6 +170,110 @@ struct AnalogClockFullView: View {
         impactFeedback.impactOccurred()
     }
 
+    private func triggerMenuHaptic() {
+        guard hapticEnabled else { return }
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.prepare()
+        impactFeedback.impactOccurred()
+    }
+
+    @ViewBuilder
+    private var collectionTitleView: some View {
+        Text(toolbarTitleText)
+            .font(.subheadline.weight(.semibold))
+            .contentTransition(.numericText())
+            .padding(.horizontal, 16)
+            .frame(height: 44)
+            .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+            .lineLimit(1)
+            .contentShape(Capsule())
+            .animation(.snappy, value: currentCollectionName)
+            .onTapGesture {
+                triggerMenuHaptic()
+                withAnimation(.smooth) {
+                    showTimeInsteadOfCityName.toggle()
+                }
+            }
+    }
+
+    @ViewBuilder
+    private var leadingMenuContent: some View {
+        if !hasLifetimeAccess {
+            Button(action: {
+                triggerMenuHaptic()
+                showLifetimeStore = true
+            }) {
+                Text(String(localized: "Lifetime"))
+                Text(String(localized: "Unlock all features"))
+                Image(systemName: "heart.fill")
+            }
+
+            Divider()
+        }
+
+        if !collections.isEmpty {
+            Button {
+                selectCollection(nil)
+            } label: {
+                Label("All Cities", systemImage: selectedCollectionId == nil ? "checkmark.circle" : "")
+            }
+
+            ForEach(collections) { collection in
+                Button {
+                    selectCollection(collection.id)
+                } label: {
+                    Label(collection.name, systemImage: selectedCollectionId == collection.id ? "checkmark.circle" : "")
+                }
+            }
+            Divider()
+        }
+
+        // Share Section - only show if there are world clocks
+        if !worldClocks.isEmpty {
+            Button(action: {
+                triggerMenuHaptic()
+                showShareSheet = true
+            }) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+        }
+
+        // Arrange Section - show if there are world clocks or collections
+        if !worldClocks.isEmpty || !collections.isEmpty {
+            Button(action: {
+                triggerMenuHaptic()
+                showArrangeListSheet = true
+            }) {
+                Label(String(localized: "Arrange"), systemImage: "list.bullet")
+            }
+
+            Divider()
+        }
+
+        // Settings Section
+        Button(action: {
+            triggerMenuHaptic()
+            showSettingsSheet = true
+        }) {
+            Label("Settings", systemImage: "gear")
+        }
+    }
+
+    private var addCitiesButton: some View {
+        Button {
+            showArrangeListSheet = true
+            triggerMenuHaptic()
+        } label: {
+            Text("Add Cities")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
+                .glassEffect(.clear.interactive())
+        }
+        .buttonStyle(.plain)
+    }
+
     private func showCameraAlert(title: String = "", message: String) {
         cameraAlertTitle = title
         cameraAlertMessage = message
@@ -112,7 +285,7 @@ struct AnalogClockFullView: View {
         cameraToggleTask = nil
         activeCameraRequestId = UUID()
         isCameraPreparing = false
-        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+        withAnimation(.spring()) {
             isCameraBackgroundEnabled = false
         }
         cameraSessionController.stopRunning()
@@ -328,13 +501,17 @@ struct AnalogClockFullView: View {
                     .animation(.spring(), value: isCameraBackgroundEnabled)
 
                     // Empty state when no local time and no cities
-                    if worldClocks.isEmpty && !showLocalTime {
+                    if displayedClocks.isEmpty && !showLocalTime {
                         ContentUnavailableView {
-                            Label("Nothing here", systemImage: "location.magnifyingglass")
+                            Label("Nothing here", systemImage: selectedCollectionId != nil ? "questionmark.folder" : "location.magnifyingglass")
                                 .blendMode(.plusLighter)
                         } description: {
-                            Text("Add cities to track time.")
+                            Text(selectedCollectionId != nil ? "No cities in this collection." : "Add cities to track time.")
                                 .blendMode(.plusLighter)
+                        } actions: {
+                            if selectedCollectionId != nil {
+                                addCitiesButton
+                            }
                         }
                     } else {
                         // Analog Clock - always centered
@@ -344,7 +521,7 @@ struct AnalogClockFullView: View {
                                 timeOffset: $timeOffset,
                                 selectedTimeZone: selectedTimeZone,
                                 size: size,
-                                worldClocks: worldClocks,
+                                worldClocks: displayedClocks,
                                 showLocalTime: showLocalTime,
                                 selectedCityId: $selectedCityId,
                                 hapticEnabled: hapticEnabled,
@@ -389,6 +566,10 @@ struct AnalogClockFullView: View {
                             // Bottom section - Scroll controls
                             VStack {
                                 Spacer()
+                                if showLocalTime && displayedClocks.isEmpty && selectedCollectionId != nil {
+                                    addCitiesButton
+                                        .padding(.bottom, 20)
+                                }
                                 // Local time display (hidden when continuous scroll reset button is showing)
                                 if selectedCityId != nil && !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
                                     HStack(spacing: 4) {
@@ -476,129 +657,61 @@ struct AnalogClockFullView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    // Hide when empty state (no cities and no local time)
-                    if !worldClocks.isEmpty || showLocalTime {
-                        Text(selectedCityName)
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 16)
-                            .frame(height: 44)
-                            .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
-                            .lineLimit(1)
-                            .contentShape(Capsule())
-                            .onTapGesture {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.impactOccurred()
-                                }
-                                withAnimation(.smooth) {
-                                    showTimeInsteadOfCityName.toggle()
-                                }
-                            }
+                if shouldShowToolbarTitle {
+                    ToolbarItem(placement: .principal) {
+                        collectionTitleView
                     }
                 }
                 
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
-                        if !hasLifetimeAccess {
-                            Button(action: {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
-                                showLifetimeStore = true
-                            }) {
-                                Text(String(localized: "Lifetime"))
-                                Text(String(localized: "Unlock all features"))
-                                Image(systemName: "heart.fill")
-                            }
-                            
-                            Divider()
-                        }
-
-                        // Share Section - only show if there are world clocks
-                        if !worldClocks.isEmpty {
-                            Button(action: {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
-                                showShareSheet = true
-                            }) {
-                                Label("Share", systemImage: "square.and.arrow.up")
-                            }
-
-                            Button(action: {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
-                                showArrangeListSheet = true
-                            }) {
-                                Label(String(localized: "Arrange"), systemImage: "list.bullet")
-                            }
-                            
-                            Divider()
-                        }
-                        
-                        // Settings Section
-                        Button(action: {
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                            showSettingsSheet = true
-                        }) {
-                            Label("Settings", systemImage: "gear")
-                        }
+                        leadingMenuContent
                     } label: {
                         Image(systemName: "ellipsis")
                     }
                 }
                 
-                ToolbarItemGroup(placement: .topBarTrailing) {
-                    if isCameraBackgroundEnabled {
-                        Menu {
-                            Section("Camera Filter") {
-                                Button(action: { setCameraFilter(.standard) }) {
-                                    if cameraPreviewFilter == .standard {
-                                        Label("Standard", systemImage: "checkmark.circle")
-                                    } else {
-                                        Text("Standard")
+                if !displayedClocks.isEmpty {
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        if isCameraBackgroundEnabled {
+                            Menu {
+                                Section("Camera Filter") {
+                                    Button(action: { setCameraFilter(.standard) }) {
+                                        if cameraPreviewFilter == .standard {
+                                            Label("Standard", systemImage: "checkmark.circle")
+                                        } else {
+                                            Text("Standard")
+                                        }
+                                    }
+                                    Button(action: { setCameraFilter(.blur) }) {
+                                        if cameraPreviewFilter == .blur {
+                                            Label("Blur", systemImage: "checkmark.circle")
+                                        } else {
+                                            Text("Blur")
+                                        }
+                                    }
+                                    Button(action: { setCameraFilter(.blackAndWhite) }) {
+                                        if cameraPreviewFilter == .blackAndWhite {
+                                            Label("Black and White", systemImage: "checkmark.circle")
+                                        } else {
+                                            Text("Black and White")
+                                        }
                                     }
                                 }
-                                Button(action: { setCameraFilter(.blur) }) {
-                                    if cameraPreviewFilter == .blur {
-                                        Label("Blur", systemImage: "checkmark.circle")
-                                    } else {
-                                        Text("Blur")
-                                    }
-                                }
-                                Button(action: { setCameraFilter(.blackAndWhite) }) {
-                                    if cameraPreviewFilter == .blackAndWhite {
-                                        Label("Black and White", systemImage: "checkmark.circle")
-                                    } else {
-                                        Text("Black and White")
-                                    }
-                                }
+                            } label: {
+                                Image(systemName: "camera.filters")
+                                    .foregroundStyle(.primary)
                             }
-                        } label: {
-                            Image(systemName: "camera.filters")
-                                .foregroundStyle(.primary)
+                            .buttonStyle(.plain)
+                        } else {
+                            Button(action: {
+                                handleCameraToggle()
+                            }) {
+                                Image(systemName: "camera.aperture")
+                                    .foregroundStyle(.primary)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
-                    } else {
-                        Button(action: {
-                            handleCameraToggle()
-                        }) {
-                            Image(systemName: "camera.aperture")
-                                .foregroundStyle(.primary)
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -616,7 +729,7 @@ struct AnalogClockFullView: View {
             }
             .sheet(isPresented: $showDetailsSheet) {
                 if let cityId = selectedCityId,
-                   let city = worldClocks.first(where: { $0.id == cityId }) {
+                   let city = displayedClocks.first(where: { $0.id == cityId }) {
                     SunriseSunsetSheet(
                         cityName: city.localizedCityName,
                         timeZoneIdentifier: city.timeZoneIdentifier,
@@ -701,10 +814,8 @@ struct AnalogClockFullView: View {
                 }
             }
             .onAppear {
-                // If showLocalTime is disabled, default to first city instead of Local
-                if !showLocalTime && selectedCityId == nil {
-                    selectedCityId = worldClocks.first?.id
-                }
+                loadCollections()
+                ensureValidSelectedCity(in: displayedClocks)
 
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = Task {
@@ -721,6 +832,8 @@ struct AnalogClockFullView: View {
             }
             .onChange(of: scenePhase) { oldValue, newValue in
                 if newValue == .active {
+                    loadCollections()
+                    ensureValidSelectedCity(in: displayedClocks)
                     if isCameraBackgroundEnabled {
                         Task {
                             _ = await cameraSessionController.startRunning()
@@ -731,20 +844,10 @@ struct AnalogClockFullView: View {
                 }
             }
             .onChange(of: showLocalTime) { oldValue, newValue in
-                // When showLocalTime is turned off and Local is selected, switch to first city
-                if !newValue && selectedCityId == nil {
-                    selectedCityId = worldClocks.first?.id
-                }
+                ensureValidSelectedCity(in: displayedClocks)
             }
             .onChange(of: worldClocks) { oldValue, newValue in
-                // When worldClocks changes and showLocalTime is disabled
-                if !showLocalTime {
-                    // Always select the first city when showLocalTime is off
-                    let firstCityId = newValue.first?.id
-                    if selectedCityId != firstCityId {
-                        selectedCityId = firstCityId
-                    }
-                }
+                ensureValidSelectedCity(in: displayedClocks)
             }
         }
         .preferredColorScheme(.dark)
