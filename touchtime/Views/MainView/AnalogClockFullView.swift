@@ -582,10 +582,6 @@ struct AnalogClockFullView: View {
                             // Bottom section - Scroll controls
                             VStack {
                                 Spacer()
-                                if showLocalTime && displayedClocks.isEmpty && selectedCollectionId != nil {
-                                    addCitiesButton
-                                        .padding(.bottom, 20)
-                                }
                                 // Local time display (hidden when continuous scroll reset button is showing)
                                 if selectedCityId != nil && !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
                                     HStack(spacing: 4) {
