@@ -436,8 +436,13 @@ struct ShareCitiesSheet: View {
                                     Label(String(localized: "Share as Image"), systemImage: "camera.macro")
                                 }
                             } label: {
-                                Text(String(localized: "Share"))
-                                    .font(.headline)
+                                HStack(spacing: 6) {
+                                    Text(String(localized: "Share"))
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundStyle(.secondary)
+                                }
+                                .font(.headline)
                             }
                         } else {
                             // Multiple selections: direct ShareLink
