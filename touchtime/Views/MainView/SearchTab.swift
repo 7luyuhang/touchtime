@@ -44,6 +44,7 @@ struct TimeZonePickerViewWrapper: View {
     @State private var collections: [CityCollection] = []
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("showWhatsNewLongpressCity") private var showWhatsNewLongpressCity = true
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Precomputed timezone data
@@ -331,6 +332,46 @@ struct TimeZonePickerViewWrapper: View {
                     ContentUnavailableView.search(text: searchText)
                 } else {
                     List {
+                        // What's New Section
+                        if showWhatsNewLongpressCity {
+                            Section {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "hand.tap.fill")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .frame(width: 24, height: 24)
+                                    
+                                    Text(String(localized: "Press and hold to view more about the city"))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "xmark")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .frame(width: 24, height: 24)
+                                }
+                                .listRowBackground(
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                        .fill(Color.black.opacity(0.10))
+                                        .glassEffect(.clear.interactive(),
+                                                     in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    withAnimation(.spring()) {
+                                        showWhatsNewLongpressCity = false
+                                    }
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                }
+                            }
+                        }
+                        
                         ForEach(filteredSortedKeys, id: \.self) { key in
                             Section(header: Text(key)) {
                                 ForEach(filteredGroupedTimeZones[key] ?? [], id: \.id) { timeZoneData in

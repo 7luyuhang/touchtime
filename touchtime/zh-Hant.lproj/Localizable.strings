@@ -126,6 +126,7 @@
 
 /* Home View */
 "Swipe right for precise time adjustment" = "右滑城市以精確調整時間";
+"Press and hold to view more about the city" = "長按查看城市更多資訊";
 "Add cities to track time." = "新增城市以追蹤時間。";
 "No cities in this collection." = "此集合中暫無城市。";
 "Add Cities" = "新增城市";
