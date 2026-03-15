@@ -1004,6 +1004,7 @@ struct EarthView: View {
                     .padding(.horizontal, 16)
                     .glassEffect(.regular.interactive())
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .offset(y: -20)
                     .allowsHitTesting(false)
                 }
         }
