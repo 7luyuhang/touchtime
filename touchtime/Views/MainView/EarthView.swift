@@ -13,6 +13,7 @@ import EventKit
 import EventKitUI
 import CoreLocation
 import WeatherKit
+import SunKit
 
 struct EarthView: View {
     private static let timeFormatterCache: NSCache<NSString, DateFormatter> = {
@@ -42,6 +43,8 @@ struct EarthView: View {
     @Binding var worldClocks: [WorldClock]
     @ObservedObject var weatherManager: WeatherManager
     @State private var position = MapCameraPosition.region(Self.systemTimeCenteredRegion())
+    @State private var mapCenterCoordinate = Self.systemTimeCenteredRegion().center
+    @State private var mapCenterTimeZoneSecondsFromGMT = TimeZone.current.secondsFromGMT(for: Date())
     @State private var currentDate = Date()
     @State private var timerCancellable: AnyCancellable?
     @State private var showShareSheet = false
@@ -70,6 +73,7 @@ struct EarthView: View {
     @AppStorage("showMapLabels") private var showMapLabels = true // 默认显示地图标签
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("showSunCompass") private var showSunCompass = true
     
     @Environment(\.dismiss) private var dismiss
     
@@ -114,6 +118,139 @@ struct EarthView: View {
 
     private var displayDate: Date {
         currentDate.addingTimeInterval(timeOffset)
+    }
+
+    // MARK: - Sun Times Cache
+    private struct MapSunTimesData {
+        let sunrise: Date?
+        let sunset: Date?
+        let sunriseAzimuth: Double?
+        let sunsetAzimuth: Double?
+    }
+
+    private class MapSunTimesDataWrapper {
+        let data: MapSunTimesData
+        init(_ data: MapSunTimesData) { self.data = data }
+    }
+
+    private static let mapSunTimesCache: NSCache<NSString, MapSunTimesDataWrapper> = {
+        let cache = NSCache<NSString, MapSunTimesDataWrapper>()
+        cache.countLimit = 120
+        return cache
+    }()
+
+    private static func mapCenterTimeZoneSeconds(from longitude: Double) -> Int {
+        var normalizedLongitude = longitude.truncatingRemainder(dividingBy: 360)
+        if normalizedLongitude > 180 {
+            normalizedLongitude -= 360
+        } else if normalizedLongitude < -180 {
+            normalizedLongitude += 360
+        }
+
+        // Use a longitude-derived offset to avoid abrupt jumps from nearest-city timezone switching.
+        let seconds = Int((normalizedLongitude / 15.0 * 3600.0).rounded())
+        return min(max(seconds, -18 * 3600), 18 * 3600)
+    }
+
+    private var mapCenterTimeZone: TimeZone {
+        TimeZone(secondsFromGMT: mapCenterTimeZoneSecondsFromGMT) ?? .gmt
+    }
+
+    private var mapCenterSunTimes: MapSunTimesData? {
+        var calendar = Calendar.current
+        calendar.timeZone = mapCenterTimeZone
+        let components = calendar.dateComponents([.year, .month, .day], from: displayDate)
+        let roundedLatitude = (mapCenterCoordinate.latitude * 100).rounded() / 100
+        let roundedLongitude = (mapCenterCoordinate.longitude * 100).rounded() / 100
+        let cacheKey = "\(mapCenterTimeZoneSecondsFromGMT)_earth_sun_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)_\(roundedLatitude)_\(roundedLongitude)" as NSString
+
+        if let cached = Self.mapSunTimesCache.object(forKey: cacheKey) {
+            return cached.data
+        }
+
+        var sun = Sun(
+            location: CLLocation(latitude: mapCenterCoordinate.latitude, longitude: mapCenterCoordinate.longitude),
+            timeZone: mapCenterTimeZone
+        )
+        sun.setDate(displayDate)
+
+        let sunrise = sun.sunrise
+        let sunset = sun.sunset
+        sun.setDate(sunrise)
+        let sunriseAzimuth = sun.azimuth.degrees
+        sun.setDate(sunset)
+        let sunsetAzimuth = sun.azimuth.degrees
+
+        let data = MapSunTimesData(
+            sunrise: sunrise,
+            sunset: sunset,
+            sunriseAzimuth: sunriseAzimuth,
+            sunsetAzimuth: sunsetAzimuth
+        )
+        Self.mapSunTimesCache.setObject(MapSunTimesDataWrapper(data), forKey: cacheKey)
+        return data
+    }
+
+    private func dateAt(hour: Int, minute: Int, in timeZone: TimeZone) -> Date? {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        var components = calendar.dateComponents([.year, .month, .day], from: displayDate)
+        components.hour = hour
+        components.minute = minute
+        return calendar.date(from: components)
+    }
+
+    private func normalizedAzimuth(_ azimuth: Double?) -> Double? {
+        guard let azimuth, azimuth.isFinite else { return nil }
+        var normalized = azimuth.truncatingRemainder(dividingBy: 360)
+        if normalized < 0 {
+            normalized += 360
+        }
+        return normalized
+    }
+
+    private func sunAzimuth(for date: Date?, in timeZone: TimeZone) -> Double? {
+        guard let date else { return nil }
+        var sun = Sun(
+            location: CLLocation(latitude: mapCenterCoordinate.latitude, longitude: mapCenterCoordinate.longitude),
+            timeZone: timeZone
+        )
+        sun.setDate(date)
+        return normalizedAzimuth(sun.azimuth.degrees)
+    }
+
+    private var mapSolarAngles: (sunrise: Double, sunset: Double, currentSun: Double) {
+        let timeZone = mapCenterTimeZone
+        let sunTimes = mapCenterSunTimes
+        let sunriseFallbackDate = dateAt(hour: 6, minute: 0, in: timeZone)
+        let sunsetFallbackDate = dateAt(hour: 18, minute: 0, in: timeZone)
+
+        return (
+            sunrise: normalizedAzimuth(sunTimes?.sunriseAzimuth)
+                ?? sunAzimuth(for: sunriseFallbackDate, in: timeZone)
+                ?? 90,
+            sunset: normalizedAzimuth(sunTimes?.sunsetAzimuth)
+                ?? sunAzimuth(for: sunsetFallbackDate, in: timeZone)
+                ?? 270,
+            currentSun: sunAzimuth(for: displayDate, in: timeZone) ?? 180
+        )
+    }
+
+    private func updateMapSolarReference(center: CLLocationCoordinate2D) {
+        mapCenterCoordinate = center
+        mapCenterTimeZoneSecondsFromGMT = Self.mapCenterTimeZoneSeconds(from: center.longitude)
+    }
+
+    private func toggleSunCompass() {
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+
+        withAnimation(.spring()) {
+            showSunCompass.toggle()
+        }
     }
 
     private static func timeFormatter(for timeZone: TimeZone, use24Hour: Bool) -> DateFormatter {
@@ -359,6 +496,7 @@ struct EarthView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
+                let ringAndControlsOffsetY: CGFloat = -20
             
                 Map(position: $position) {
                 // Show flight path if two cities are selected
@@ -612,6 +750,77 @@ struct EarthView: View {
             .mapControls {
                 MapCompass()
             }
+            .onMapCameraChange(frequency: .continuous) { context in
+                updateMapSolarReference(center: context.region.center)
+            }
+
+            if isUsingExploreMode && showSunCompass {
+                GeometryReader { geometry in
+                    let analogClockSize = min(geometry.size.width, geometry.size.height)
+                    let ringDiameter = max(analogClockSize - 24, 0)
+                    let ringWidth: CGFloat = 32
+                    let lineRadius = max((ringDiameter / 2) - (ringWidth / 2), 0)
+                    let angles = mapSolarAngles
+
+                    ZStack {
+                        // External Circle
+                        Circle()
+                            .glassEffect(.clear.tint(.black.opacity(0.75)))
+                            .mask {
+                                Circle()
+                                    .stroke(style: StrokeStyle(lineWidth: ringWidth))
+                            }
+                            .overlay { // Internal Border
+                                Circle()
+                                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                                    .frame(
+                                        width: max(ringDiameter - ringWidth, 0),
+                                        height: max(ringDiameter - ringWidth, 0)
+                                    )
+                                    .blendMode(.plusLighter)
+                            }
+
+                        EarthCompassLabelsView(
+                            diameter: ringDiameter,
+                            ringWidth: ringWidth
+                        )
+
+                        EarthSolarLineView(
+                            angle: angles.sunrise,
+                            diameter: ringDiameter,
+                            radius: lineRadius,
+                            color: Color.white.opacity(0.50)
+                        )
+
+                        EarthSolarLineView(
+                            angle: angles.sunset,
+                            diameter: ringDiameter,
+                            radius: lineRadius,
+                            color: Color.white.opacity(0.50)
+                        )
+
+                        EarthSolarLineView(
+                            angle: angles.currentSun,
+                            diameter: ringDiameter,
+                            radius: lineRadius,
+                            color: .white,
+                            lineWidth: 2.5,
+                            endpointSize: 16,
+                            disableAnimation: false
+                        )
+
+                        // Center Point
+                        Circle()
+                            .fill(.white)
+                            .frame(width: 8, height: 8)
+                    }
+                    .frame(width: ringDiameter, height: ringDiameter)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .allowsHitTesting(false)
+                }
+                .offset(y: ringAndControlsOffsetY)
+            }
+
             // Bottom Controls - Hide when renaming
             if !showingRenameAlert {
                 VStack(spacing: 8) {
@@ -695,6 +904,20 @@ struct EarthView: View {
                                     }
                                     .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
                                 }
+
+                                // Sun Compass Toggle Button - Only show in 2D mode
+                                if isUsingExploreMode {
+                                    Button(action: {
+                                        toggleSunCompass()
+                                    }) {
+                                        Image(systemName: showSunCompass ? "safari.fill" : "safari")
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                            .frame(width: 52, height: 52)
+                                            .contentTransition(.symbolEffect(.replace))
+                                    }
+                                    .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
+                                }
                             }
                             .glassEffect(.regular)
                             .glassEffectID("mapButtonGroup", in: glassEffectNamespace)
@@ -745,13 +968,10 @@ struct EarthView: View {
                     .allowsHitTesting(false)
                 }
         }
-//            // Title
-//            .navigationTitle("Touch Time")
-//            .navigationBarTitleDisplayMode(.inline)
-            
         .animation(.spring(), value: worldClocks)
         .animation(.spring(), value: isUsingExploreMode)
         .animation(.spring(), value: showMapLabels)
+        .animation(.spring(), value: showSunCompass)
         .animation(.spring(), value: showingRenameAlert)
         .animation(.spring(), value: selectedFlightCities.from)
         .animation(.spring(), value: selectedFlightCities.to)
@@ -759,6 +979,7 @@ struct EarthView: View {
         .task {
             currentDate = Date()
             startTimer()
+            updateMapSolarReference(center: mapCenterCoordinate)
         }
         // Fetch weather for sky gradient (rain-aware)
         .task(id: "\(showSkyDot)-\(showWeather)") {
@@ -786,7 +1007,7 @@ struct EarthView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItemGroup(placement: .topBarLeading) {
                     // Flight Time button - Only show when no flight path is active and there are cities
                     if (selectedFlightCities.from == nil || selectedFlightCities.to == nil) && !worldClocks.isEmpty {
                         Button(action: {
@@ -871,4 +1092,90 @@ struct EarthView: View {
             }
         }
     }  
+}
+
+private struct EarthSolarLineView: View {
+    let angle: Double
+    let diameter: CGFloat
+    let radius: CGFloat
+    let color: Color
+    var lineWidth: CGFloat = 1.50
+    var endpointSize: CGFloat = 0
+    var disableAnimation: Bool = true
+
+    var body: some View {
+        Canvas { context, size in
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let endPoint = CGPoint(
+                x: center.x,
+                y: center.y - radius
+            )
+
+            var linePath = Path()
+            linePath.move(to: center)
+            linePath.addLine(to: endPoint)
+            context.stroke(
+                linePath,
+                with: .color(color),
+                style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+            )
+
+            if endpointSize > 0 {
+                let circleRect = CGRect(
+                    x: endPoint.x - endpointSize / 2,
+                    y: endPoint.y - endpointSize / 2,
+                    width: endpointSize,
+                    height: endpointSize
+                )
+                context.fill(Path(ellipseIn: circleRect), with: .color(color))
+            }
+        }
+        .frame(width: diameter, height: diameter)
+        .rotationEffect(.degrees(angle))
+        .transaction { transaction in
+            if disableAnimation {
+                transaction.animation = nil
+            }
+        }
+    }
+}
+
+private struct EarthCompassLabelsView: View {
+    let diameter: CGFloat
+    let ringWidth: CGFloat
+
+    private let directions: [(label: String, angle: Double, rotation: Double)] = [
+        ("N", 0, 0),
+        ("NE", 45, 45),
+        ("E", 90, 0),
+        ("SE", 135, -45),
+        ("S", 180, 0),
+        ("SW", 225, 45),
+        ("W", 270, 0),
+        ("NW", 315, -45)
+    ]
+
+    var body: some View {
+        let labelOffset: CGFloat = 8
+        let radius = max((diameter / 2) - (ringWidth / 2) + labelOffset, 0)
+        let center = CGPoint(x: diameter / 2, y: diameter / 2)
+
+        ZStack {
+            ForEach(directions, id: \.label) { direction in
+                let angleRadians = (direction.angle - 90) * .pi / 180
+                let position = CGPoint(
+                    x: center.x + radius * CGFloat(cos(angleRadians)),
+                    y: center.y + radius * CGFloat(sin(angleRadians))
+                )
+
+                Text(direction.label)
+                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .fixedSize()
+                    .rotationEffect(.degrees(direction.rotation))
+                    .position(x: position.x, y: position.y)
+            }
+        }
+        .frame(width: diameter, height: diameter)
+    }
 }

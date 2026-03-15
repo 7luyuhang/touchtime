@@ -1381,6 +1381,7 @@ struct HomeView: View {
                     weatherManager: weatherManager
                 )
                     .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
+                    .interactiveDismissDisabled(true)
             }
             
             // City Time Adjustment Sheet

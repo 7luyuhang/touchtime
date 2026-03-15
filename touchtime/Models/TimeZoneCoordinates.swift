@@ -557,6 +557,31 @@ struct TimeZoneCoordinates {
         return index
     }()
 
+    private static func wrappedLongitudeDelta(_ from: Double, _ to: Double) -> Double {
+        var delta = abs(from - to)
+        if delta > 180 {
+            delta = 360 - delta
+        }
+        return delta
+    }
+
+    static func nearestTimeZoneIdentifier(to coordinate: CLLocationCoordinate2D) -> String {
+        var nearestIdentifier = TimeZone.current.identifier
+        var nearestScore = Double.greatestFiniteMagnitude
+
+        for (identifier, coords) in coordinatesMap {
+            let latitudeDelta = coords.latitude - coordinate.latitude
+            let longitudeDelta = wrappedLongitudeDelta(coords.longitude, coordinate.longitude)
+            let score = (latitudeDelta * latitudeDelta) + (longitudeDelta * longitudeDelta)
+            if score < nearestScore {
+                nearestScore = score
+                nearestIdentifier = identifier
+            }
+        }
+
+        return nearestIdentifier
+    }
+
     static func getCoordinate(for timeZoneIdentifier: String) -> (latitude: Double, longitude: Double)? {
         // Exact match first.
         if let coords = coordinatesMap[timeZoneIdentifier] {
