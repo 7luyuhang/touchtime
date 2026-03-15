@@ -30,11 +30,18 @@ struct TimeZoneData: Identifiable {
     let groupKey: String
 }
 
+struct CollectionMenuItem: Identifiable {
+    let id: UUID
+    let name: String
+    let isIncluded: Bool
+}
+
 // Wrapper to adapt TimeZonePickerView for tab usage
 struct TimeZonePickerViewWrapper: View {
     @Binding var worldClocks: [WorldClock]
     @State private var searchText = ""
     @State private var currentDate = Date()
+    @State private var collections: [CityCollection] = []
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -332,8 +339,16 @@ struct TimeZonePickerViewWrapper: View {
                                         isSelected: worldClocks.contains(where: { $0.timeZoneIdentifier == timeZoneData.identifier }),
                                         currentDate: currentDate,
                                         use24HourFormat: use24HourFormat,
+                                        collectionMenuItems: collectionMenuItems(for: timeZoneData.identifier),
                                         onToggle: {
                                             toggleClock(cityName: timeZoneData.cityName, identifier: timeZoneData.identifier)
+                                        },
+                                        onToggleCollectionMembership: { collectionId in
+                                            toggleCityInCollection(
+                                                cityName: timeZoneData.cityName,
+                                                identifier: timeZoneData.identifier,
+                                                collectionId: collectionId
+                                            )
                                         }
                                     )
                                 }
@@ -390,6 +405,7 @@ struct TimeZonePickerViewWrapper: View {
             if precomputedTimeZones.isEmpty {
                 precomputeTimeZones()
             }
+            loadCollections()
         }
         .onReceive(timer) { now in
             let calendar = Calendar.current
@@ -401,6 +417,53 @@ struct TimeZonePickerViewWrapper: View {
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
+    
+    private func loadCollections() {
+        collections = CollectionsStore.load()
+    }
+    
+    private func collectionMenuItems(for identifier: String) -> [CollectionMenuItem] {
+        collections.map { collection in
+            CollectionMenuItem(
+                id: collection.id,
+                name: collection.name,
+                isIncluded: collection.cities.contains(where: { $0.timeZoneIdentifier == identifier })
+            )
+        }
+    }
+    
+    private func ensureClockExists(cityName: String, identifier: String) -> WorldClock {
+        if let existing = worldClocks.first(where: { $0.timeZoneIdentifier == identifier }) {
+            return existing
+        }
+        
+        let newClock = WorldClock(cityName: cityName, timeZoneIdentifier: identifier)
+        worldClocks.append(newClock)
+        saveWorldClocks()
+        return newClock
+    }
+    
+    private func toggleCityInCollection(cityName: String, identifier: String, collectionId: UUID) {
+        var allCollections = CollectionsStore.load()
+        
+        guard let collectionIndex = allCollections.firstIndex(where: { $0.id == collectionId }) else { return }
+        
+        if let cityIndex = allCollections[collectionIndex].cities.firstIndex(where: { $0.timeZoneIdentifier == identifier }) {
+            allCollections[collectionIndex].cities.remove(at: cityIndex)
+        } else {
+            let clock = ensureClockExists(cityName: cityName, identifier: identifier)
+            allCollections[collectionIndex].cities.append(clock)
+        }
+        
+        CollectionsStore.save(allCollections)
+        collections = allCollections
+        
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
     
     // Toggle clock selection
     func toggleClock(cityName: String, identifier: String) {
@@ -418,6 +481,7 @@ struct TimeZonePickerViewWrapper: View {
                 let removedClock = worldClocks.remove(at: index)
                 CollectionsStore.removeCity(withId: removedClock.id)
                 saveWorldClocks()
+                loadCollections()
             } else {
                 // If doesn't exist, add it
                 let newClock = WorldClock(cityName: cityName, timeZoneIdentifier: identifier)
@@ -441,7 +505,12 @@ struct TimeZoneCellView: View {
     let isSelected: Bool
     let currentDate: Date
     let use24HourFormat: Bool
+    let collectionMenuItems: [CollectionMenuItem]
     let onToggle: () -> Void
+    let onToggleCollectionMembership: (UUID) -> Void
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("showSkyDot") private var showSkyDot = true
     private static let formatterCache: NSCache<NSString, DateFormatter> = {
         let cache = NSCache<NSString, DateFormatter>()
         cache.countLimit = 50
@@ -491,6 +560,50 @@ struct TimeZoneCellView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(PlainButtonStyle())
+        .contextMenu {
+            if isSelected {
+                Button(role: .destructive, action: onToggle) {
+                    Label(String(localized: "Delete"), systemImage: "xmark.circle")
+                        .tint(.red)
+                }
+            } else {
+                Button(action: onToggle) {
+                    Label(String(localized: "Add"), systemImage: "plus.circle")
+                }
+            }
+            
+            if !collectionMenuItems.isEmpty {
+                Divider()
+                
+                Menu {
+                    ForEach(collectionMenuItems) { collection in
+                        Button {
+                            onToggleCollectionMembership(collection.id)
+                        } label: {
+                            if collection.isIncluded {
+                                Label(collection.name, systemImage: "checkmark.circle.fill")
+                            } else {
+                                Text(collection.name)
+                            }
+                        }
+                    }
+                } label: {
+                    Label(String(localized: "Add to Collection"), systemImage: "plus.circle")
+                }
+            }
+        } preview: {
+            TimeZoneSectionPreviewCard(
+                cityName: timeZoneData.localizedCityName,
+                timeString: currentTime(for: TimeZone(identifier: timeZoneData.identifier) ?? .current),
+                dateString: previewDateString,
+                additionalText: previewAdditionalText,
+                showAdditionalText: additionalTimeDisplay != "None",
+                showSkyDotBadge: showSkyDot && additionalTimeDisplay == "None",
+                showSkyBackground: showSkyDot,
+                timeZoneIdentifier: timeZoneData.identifier,
+                currentDate: currentDate
+            )
+        }
     }
 
     private static func formatter(for timeZone: TimeZone, use24HourFormat: Bool) -> DateFormatter {
@@ -517,5 +630,98 @@ struct TimeZoneCellView: View {
     private func currentTime(for timeZone: TimeZone) -> String {
         let formatter = Self.formatter(for: timeZone, use24HourFormat: use24HourFormat)
         return formatter.string(from: currentDate)
+    }
+    
+    private var previewDateString: String {
+        let timeZone = TimeZone(identifier: timeZoneData.identifier) ?? .current
+        return currentDate.formattedDate(
+            style: dateStyle,
+            timeZone: timeZone,
+            relativeTo: currentDate
+        )
+    }
+    
+    private var previewAdditionalText: String {
+        let previewClock = WorldClock(cityName: timeZoneData.cityName, timeZoneIdentifier: timeZoneData.identifier)
+        return additionalTimeDisplay == "Time Difference" ? previewClock.timeDifference : previewClock.utcOffset
+    }
+}
+
+private struct TimeZoneSectionPreviewCard: View {
+    let cityName: String
+    let timeString: String
+    let dateString: String
+    let additionalText: String
+    let showAdditionalText: Bool
+    let showSkyDotBadge: Bool
+    let showSkyBackground: Bool
+    let timeZoneIdentifier: String
+    let currentDate: Date
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                if showAdditionalText {
+                    if !additionalText.isEmpty {
+                        Text(additionalText)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .blendMode(.plusLighter)
+                    }
+                } else if showSkyDotBadge {
+                    SkyDotView(
+                        date: currentDate,
+                        timeZoneIdentifier: timeZoneIdentifier,
+                        weatherCondition: nil
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                            .blendMode(.plusLighter)
+                    )
+                }
+                
+                Spacer()
+                
+                Text(dateString)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+            }
+            
+            HStack(alignment: .lastTextBaseline) {
+                Text(cityName)
+                    .font(.headline)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                Spacer()
+                
+                Text(timeString)
+                    .font(.system(size: 36))
+                    .fontWeight(.light)
+                    .fontDesign(.rounded)
+                    .monospacedDigit()
+            }
+            .padding(.bottom, -4)
+        }
+        .frame(width: 320)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .background {
+            if showSkyBackground {
+                SkyBackgroundView(
+                    date: currentDate,
+                    timeZoneIdentifier: timeZoneIdentifier,
+                    weatherCondition: nil
+                )
+            } else {
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    .fill(Color(UIColor.secondarySystemBackground))
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .padding(8)
     }
 }
