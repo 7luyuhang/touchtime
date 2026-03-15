@@ -43,6 +43,7 @@ struct EarthView: View {
     @Binding var worldClocks: [WorldClock]
     @ObservedObject var weatherManager: WeatherManager
     @State private var position = MapCameraPosition.region(Self.systemTimeCenteredRegion())
+    @State private var lastKnownRegion = Self.systemTimeCenteredRegion()
     @State private var mapCenterCoordinate = Self.systemTimeCenteredRegion().center
     @State private var mapCenterTimeZoneSecondsFromGMT = TimeZone.current.secondsFromGMT(for: Date())
     @State private var currentDate = Date()
@@ -120,6 +121,11 @@ struct EarthView: View {
         currentDate.addingTimeInterval(timeOffset)
     }
 
+    // In 2D (explore) mode, disable pitch gestures so two-finger drag won't tilt into 3D.
+    private var mapInteractionModes: MapInteractionModes {
+        isUsingExploreMode ? [.pan, .zoom, .rotate] : .all
+    }
+
     // MARK: - Sun Times Cache
     private struct MapSunTimesData {
         let sunrise: Date?
@@ -136,6 +142,17 @@ struct EarthView: View {
     private static let mapSunTimesCache: NSCache<NSString, MapSunTimesDataWrapper> = {
         let cache = NSCache<NSString, MapSunTimesDataWrapper>()
         cache.countLimit = 120
+        return cache
+    }()
+
+    private class MapSunAzimuthDataWrapper {
+        let azimuth: Double?
+        init(_ azimuth: Double?) { self.azimuth = azimuth }
+    }
+
+    private static let mapSunAzimuthCache: NSCache<NSString, MapSunAzimuthDataWrapper> = {
+        let cache = NSCache<NSString, MapSunAzimuthDataWrapper>()
+        cache.countLimit = 1_440
         return cache
     }()
 
@@ -211,12 +228,26 @@ struct EarthView: View {
 
     private func sunAzimuth(for date: Date?, in timeZone: TimeZone) -> Double? {
         guard let date else { return nil }
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let minuteComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let roundedLatitude = (mapCenterCoordinate.latitude * 100).rounded() / 100
+        let roundedLongitude = (mapCenterCoordinate.longitude * 100).rounded() / 100
+        let cacheKey =
+            "\(timeZone.identifier)_\(timeZone.secondsFromGMT(for: date))_azimuth_\(minuteComponents.year ?? 0)_\(minuteComponents.month ?? 0)_\(minuteComponents.day ?? 0)_\(minuteComponents.hour ?? 0)_\(minuteComponents.minute ?? 0)_\(roundedLatitude)_\(roundedLongitude)" as NSString
+
+        if let cached = Self.mapSunAzimuthCache.object(forKey: cacheKey) {
+            return cached.azimuth
+        }
+
         var sun = Sun(
             location: CLLocation(latitude: mapCenterCoordinate.latitude, longitude: mapCenterCoordinate.longitude),
             timeZone: timeZone
         )
         sun.setDate(date)
-        return normalizedAzimuth(sun.azimuth.degrees)
+        let azimuth = normalizedAzimuth(sun.azimuth.degrees)
+        Self.mapSunAzimuthCache.setObject(MapSunAzimuthDataWrapper(azimuth), forKey: cacheKey)
+        return azimuth
     }
 
     private var mapSolarAngles: (sunrise: Double, sunset: Double, currentSun: Double) {
@@ -498,7 +529,7 @@ struct EarthView: View {
             ZStack(alignment: .bottom) {
                 let ringAndControlsOffsetY: CGFloat = -20
             
-                Map(position: $position) {
+                Map(position: $position, interactionModes: mapInteractionModes) {
                 // Show flight path if two cities are selected
                 if let fromClock = selectedFlightCities.from,
                    let toClock = selectedFlightCities.to,
@@ -751,7 +782,15 @@ struct EarthView: View {
                 MapCompass()
             }
             .onMapCameraChange(frequency: .continuous) { context in
+                lastKnownRegion = context.region
                 updateMapSolarReference(center: context.region.center)
+            }
+            .onChange(of: isUsingExploreMode) { _, isExploreMode in
+                guard isExploreMode else { return }
+                withAnimation(.smooth(duration: 0.25)) {
+                    // Force a flat camera when entering 2D mode.
+                    position = .region(lastKnownRegion)
+                }
             }
 
             if isUsingExploreMode && showSunCompass {
