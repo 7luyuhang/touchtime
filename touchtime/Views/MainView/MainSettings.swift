@@ -394,9 +394,10 @@ struct SettingsView: View {
                             
                             Image(systemName: "arrow.right")
                                 .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.white)
                                 .padding(.vertical, 8)
                                 .padding(.horizontal, 12)
-                                .glassEffect(.clear.tint(.pink), in: .capsule(style: .continuous))
+                                .glassEffect(.regular.interactive().tint(.pink), in: .capsule(style: .continuous))
                         }
                     }
                     .foregroundStyle(.primary)
