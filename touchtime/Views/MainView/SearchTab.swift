@@ -592,9 +592,17 @@ struct TimeZoneCellView: View {
                 // Show current time preview
                 HStack(spacing: 8) {
                     if let tz = TimeZone(identifier: timeZoneData.identifier) {
-                        Text(currentTime(for: tz))
-                            .foregroundStyle(.secondary)
-                            .monospacedDigit()
+                        VStack(alignment: .trailing) {
+                            Text(currentTime(for: tz))
+                                .foregroundStyle(.secondary)
+                                .monospacedDigit()
+                            
+                            if !listAdditionalText.isEmpty || additionalTimeDisplay == "UTC" {
+                                Text(listAdditionalText)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
                     }
                 }
             }
@@ -682,9 +690,25 @@ struct TimeZoneCellView: View {
         )
     }
     
+    private var listAdditionalText: String {
+        let clock = WorldClock(cityName: timeZoneData.cityName, timeZoneIdentifier: timeZoneData.identifier)
+        return additionalText(for: clock)
+    }
+    
     private var previewAdditionalText: String {
         let previewClock = WorldClock(cityName: timeZoneData.cityName, timeZoneIdentifier: timeZoneData.identifier)
-        return additionalTimeDisplay == "Time Difference" ? previewClock.timeDifference : previewClock.utcOffset
+        return additionalText(for: previewClock)
+    }
+    
+    private func additionalText(for clock: WorldClock) -> String {
+        switch additionalTimeDisplay {
+        case "Time Difference":
+            return clock.timeDifference
+        case "UTC":
+            return clock.utcOffset
+        default:
+            return ""
+        }
     }
 }
 
