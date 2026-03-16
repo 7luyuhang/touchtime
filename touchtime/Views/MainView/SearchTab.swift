@@ -356,7 +356,7 @@ struct TimeZonePickerViewWrapper: View {
                                 .listRowBackground(
                                     RoundedRectangle(cornerRadius: 26, style: .continuous)
                                         .fill(Color.black.opacity(0.10))
-                                        .glassEffect(.clear.interactive(),
+                                        .glassEffect(.regular.interactive(),
                                                      in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                                 )
                                 .contentShape(Rectangle())
