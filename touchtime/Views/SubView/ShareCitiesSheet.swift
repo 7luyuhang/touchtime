@@ -286,24 +286,17 @@ struct ShareCitiesSheet: View {
                 VStack(spacing: 0) {
                     // Local time card
                     if showLocalTimeInHome {
+                        let isSelected = showLocalTime
+
                         HStack(spacing: 16) {
                             
                             // Selection indicator
-                            ZStack {
-                                if showLocalTime {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.title3)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(Color.primary)
-                                        .transition(.blurReplace.combined(with: .scale))
-                                } else {
-                                    Image(systemName: "circle")
-                                        .font(.title3)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(Color.primary.opacity(0.25))
-                                        .transition(.blurReplace.combined(with: .scale))
-                                }
-                            }
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.25))
+                                .contentTransition(.symbolEffect(.replace))
+                                .animation(.spring(), value: isSelected)
                             
                             // City name
                                 Text(String(localized: "Local"))
@@ -340,23 +333,16 @@ struct ShareCitiesSheet: View {
                     
                     // World clocks cards
                     ForEach(worldClocks) { clock in
+                        let isSelected = selectedCities.contains(clock.id)
+
                         HStack(spacing: 16) {
                             // Selection indicator
-                            ZStack {
-                                if selectedCities.contains(clock.id) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.title3)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(Color.primary)
-                                        .transition(.blurReplace.combined(with: .scale))
-                                } else {
-                                    Image(systemName: "circle")
-                                        .font(.title3)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(Color.primary.opacity(0.25))
-                                        .transition(.blurReplace.combined(with: .scale))
-                                }
-                            }
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.25))
+                                .contentTransition(.symbolEffect(.replace))
+                                .animation(.spring(), value: isSelected)
                             
                             // City name
                             Text(clock.localizedCityName)
