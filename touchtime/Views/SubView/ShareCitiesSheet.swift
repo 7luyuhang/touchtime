@@ -282,123 +282,122 @@ struct ShareCitiesSheet: View {
     
     var body: some View {
         NavigationView {
-            ZStack {
-                ScrollView {
-                    VStack(spacing: 0) {
-                        // Local time card
-                        if showLocalTimeInHome {
-                            HStack(spacing: 16) {
-                                
-                                // Selection indicator
-                                ZStack {
-                                    if showLocalTime {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.title3)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(Color.primary)
-                                            .transition(.blurReplace.combined(with: .scale))
-                                    } else {
-                                        Image(systemName: "circle")
-                                            .font(.title3)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(Color.primary.opacity(0.25))
-                                            .transition(.blurReplace.combined(with: .scale))
-                                    }
-                                }
-                                
-                                // City name
-                                    Text(String(localized: "Local"))
-                                        .lineLimit(1)
-                                        .truncationMode(.tail)
-                           
-                                Spacer()
-                                
-                                // Time
-                                HStack(spacing: 6) {
-                                    Image(systemName: "location.fill")
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                    Text(formatTime(for: TimeZone.current))
-                                        .monospacedDigit()
-                                    .foregroundStyle(.secondary)}
-
-                            }
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                withAnimation(.spring()) {
-                                    showLocalTime.toggle()
-                                }
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.impactOccurred()
+            ScrollView {
+                VStack(spacing: 0) {
+                    // Local time card
+                    if showLocalTimeInHome {
+                        HStack(spacing: 16) {
+                            
+                            // Selection indicator
+                            ZStack {
+                                if showLocalTime {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.title3)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(Color.primary)
+                                        .transition(.blurReplace.combined(with: .scale))
+                                } else {
+                                    Image(systemName: "circle")
+                                        .font(.title3)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(Color.primary.opacity(0.25))
+                                        .transition(.blurReplace.combined(with: .scale))
                                 }
                             }
-//                            Divider()
-//                                .padding(.vertical, 12)
-                        }
-                        
-                        // World clocks cards
-                        ForEach(worldClocks) { clock in
-                            HStack(spacing: 16) {
-                                // Selection indicator
-                                ZStack {
-                                    if selectedCities.contains(clock.id) {
-                                        Image(systemName: "checkmark.circle.fill")
-                                            .font(.title3)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(Color.primary)
-                                            .transition(.blurReplace.combined(with: .scale))
-                                    } else {
-                                        Image(systemName: "circle")
-                                            .font(.title3)
-                                            .fontWeight(.semibold)
-                                            .foregroundStyle(Color.primary.opacity(0.25))
-                                            .transition(.blurReplace.combined(with: .scale))
-                                    }
-                                }
-                                
-                                // City name
-                                Text(clock.localizedCityName)
+                            
+                            // City name
+                                Text(String(localized: "Local"))
                                     .lineLimit(1)
                                     .truncationMode(.tail)
-                                
-                                Spacer()
-                                
-                                // Time on the right
-                                if let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) {
-                                    Text(formatTime(for: timeZone))
-                                        .monospacedDigit()
-                                        .foregroundStyle(.secondary)
+                       
+                            Spacer()
+                            
+                            // Time
+                            HStack(spacing: 6) {
+                                Image(systemName: "location.fill")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                Text(formatTime(for: TimeZone.current))
+                                    .monospacedDigit()
+                                .foregroundStyle(.secondary)}
+
+                        }
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring()) {
+                                showLocalTime.toggle()
+                            }
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
+                            }
+                        }
+//                            Divider()
+//                                .padding(.vertical, 12)
+                    }
+                    
+                    // World clocks cards
+                    ForEach(worldClocks) { clock in
+                        HStack(spacing: 16) {
+                            // Selection indicator
+                            ZStack {
+                                if selectedCities.contains(clock.id) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.title3)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(Color.primary)
+                                        .transition(.blurReplace.combined(with: .scale))
+                                } else {
+                                    Image(systemName: "circle")
+                                        .font(.title3)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(Color.primary.opacity(0.25))
+                                        .transition(.blurReplace.combined(with: .scale))
                                 }
                             }
-                            .padding(.vertical, 12)
-                            .frame(maxWidth: .infinity)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                withAnimation(.spring()) {
-                                    if selectedCities.contains(clock.id) {
-                                        selectedCities.remove(clock.id)
-                                    } else {
-                                        selectedCities.insert(clock.id)
-                                    }
+                            
+                            // City name
+                            Text(clock.localizedCityName)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            
+                            Spacer()
+                            
+                            // Time on the right
+                            if let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) {
+                                Text(formatTime(for: timeZone))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring()) {
+                                if selectedCities.contains(clock.id) {
+                                    selectedCities.remove(clock.id)
+                                } else {
+                                    selectedCities.insert(clock.id)
                                 }
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.impactOccurred()
-                                }
+                            }
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
                             }
                         }
                     }
-                    // Overall List
-                    .padding(.horizontal)
                 }
-                
-                // Select All button
-                VStack {
-                    Spacer()
-                    
+                // Overall List
+                .padding(.horizontal)
+            }
+            .safeAreaPadding(.bottom, 8)
+            .navigationTitle(String(localized: "Share Cities"))
+            .navigationBarTitleDisplayMode(.inline)
+            .scrollIndicators(.hidden)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
                 Button(action: toggleSelectAll) {
                     Text(allCitiesSelected ? String(localized: "Deselect All") : String(localized: "Select All"))
                         .font(.headline)
@@ -411,13 +410,10 @@ struct ShareCitiesSheet: View {
                         .stroke(Color.white.opacity(0.05), lineWidth: 1)
                         .blendMode(.plusLighter)
                 )
+                .contentShape(Capsule(style: .continuous))
                 .glassEffect(.regular.interactive())
                 .buttonStyle(.plain)
-                }
             }
-            .navigationTitle(String(localized: "Share Cities"))
-            .navigationBarTitleDisplayMode(.inline)
-            .scrollIndicators(.hidden)
             
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
