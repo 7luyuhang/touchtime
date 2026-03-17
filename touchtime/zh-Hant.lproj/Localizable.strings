@@ -175,6 +175,7 @@
 "%d added" = "已新增 %d 個";
 "Total %d Cities" = "總共 %d 個城市";
 "City" = "城市";
+"Time" = "時間";
 
 /* Tabs */
 "List" = "列表";

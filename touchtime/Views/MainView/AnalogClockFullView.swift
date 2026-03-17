@@ -189,27 +189,50 @@ struct AnalogClockFullView: View {
         impactFeedback.impactOccurred()
     }
 
-    @ViewBuilder
-    private var collectionTitleView: some View {
-        Text(toolbarTitleText)
-            .font(.subheadline.weight(.semibold))
-            .contentTransition(.numericText())
-            .padding(.horizontal, 16)
-            .frame(height: 44)
-            .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
-            .lineLimit(1)
-            .contentShape(Capsule())
-            .animation(.snappy, value: currentCollectionName)
-            .onTapGesture {
-                if selectedCollectionId != nil && collections.count > 1 {
-                    cycleToNextCollection()
-                } else {
-                    triggerMenuHaptic()
-                    withAnimation(.smooth) {
-                        showTimeInsteadOfCityName.toggle()
-                    }
+    private var cityTimeSegmentSelection: Binding<Bool> {
+        Binding(
+            get: { showTimeInsteadOfCityName },
+            set: { newValue in
+                guard newValue != showTimeInsteadOfCityName else { return }
+                triggerMenuHaptic()
+                withAnimation(.smooth) {
+                    showTimeInsteadOfCityName = newValue
                 }
             }
+        )
+    }
+
+    @ViewBuilder
+    private var collectionTitleView: some View {
+        if selectedCollectionId == nil {
+            Picker("", selection: cityTimeSegmentSelection) {
+                Text(String(localized: "City")).tag(false)
+                Text(String(localized: "Time")).tag(true)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .frame(width: 128)
+        } else {
+            Text(toolbarTitleText)
+                .font(.subheadline.weight(.semibold))
+                .contentTransition(.numericText())
+                .padding(.horizontal, 16)
+                .frame(height: 44)
+                .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                .lineLimit(1)
+                .contentShape(Capsule())
+                .animation(.snappy, value: currentCollectionName)
+                .onTapGesture {
+                    if collections.count > 1 {
+                        cycleToNextCollection()
+                    } else {
+                        triggerMenuHaptic()
+                        withAnimation(.smooth) {
+                            showTimeInsteadOfCityName.toggle()
+                        }
+                    }
+                }
+        }
     }
 
     @ViewBuilder

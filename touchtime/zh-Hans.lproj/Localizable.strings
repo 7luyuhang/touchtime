@@ -179,6 +179,7 @@
 "%d added" = "已添加 %d 个";
 "Total %d Cities" = "总共 %d 个城市";
 "City" = "城市";
+"Time" = "时间";
 
 /* Tabs */
 "List" = "列表";
