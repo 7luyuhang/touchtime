@@ -45,6 +45,7 @@ struct AlarmRecord: Identifiable, Codable, Equatable {
 }
 
 struct SetAlarmSheet: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var alarmRecords: [AlarmRecord] = []
     @State private var authorizationState: AlarmManager.AuthorizationState = AlarmManager.shared.authorizationState
     @State private var errorMessage = ""
@@ -62,15 +63,35 @@ struct SetAlarmSheet: View {
         alarmRecords.sorted { $0.createdAt > $1.createdAt }
     }
 
-    private var datePickerLocale: Locale {
-        Locale(identifier: use24HourFormat ? "en_GB" : "en_US")
-    }
-
     var body: some View {
         NavigationStack {
             alarmsPage
-            .navigationTitle(String(localized: "Alarm"))
+            .navigationTitle(String(localized: "Alarms"))
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        triggerHaptic()
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+
+                if !alarmRecords.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button(role: .destructive) {
+                                deleteAllRecords()
+                            } label: {
+                                Label(String(localized: "Remove All"), systemImage: "minus.circle")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                        }
+                    }
+                }
+            }
         }
         .task {
             await prepareSheet()
@@ -102,45 +123,49 @@ struct SetAlarmSheet: View {
             ContentUnavailableView {
                 Label("No Alarms", systemImage: "alarm")
             } description: {
-                Text("Swipe right to set an alarm for the selected city")
+                Text(String(localized: "Swipe right to set an alarm for the selected city"))
             }
             .frame(maxHeight: .infinity)
         } else {
             List {
                 ForEach(sortedRecords) { record in
                     HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(String(localized: "Local")) \(formattedTime(hour: record.hour, minute: record.minute))")
-                                .font(.headline)
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "location.fill")
+                                    .font(.footnote.weight(.semibold))
+                                Text(formattedTime(hour: record.hour, minute: record.minute))
+                                    .font(.headline)
+                            }
+                            .foregroundStyle(.primary)
 
                             if let cityName = record.sourceCityName,
                                let cityHour = record.sourceCityHour,
                                let cityMinute = record.sourceCityMinute {
-                                Text("\(cityName) \(formattedTime(hour: cityHour, minute: cityMinute))")
-                                    .font(.footnote)
+                                Text("\(cityName) · \(formattedTime(hour: cityHour, minute: cityMinute))")
+                                    .font(.subheadline)
                                     .foregroundStyle(.secondary)
                             }
                         }
-
                         Spacer()
-
                         Toggle(
                             "",
                             isOn: bindingForToggle(recordID: record.id)
                         )
                         .labelsHidden()
-                        .tint(.blue)
+                        .tint(.blue) // Toggle Colour
                     }
                     .padding(.vertical, 4)
                     .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                         Button(role: .destructive) {
                             deleteRecord(record)
                         } label: {
-                            Label(String(localized: "Delete"), systemImage: "trash")
+                            Label(String(localized: "Remove"), systemImage: "minus.circle.fill")
                         }
                     }
                 }
             }
+            .scrollIndicators(.hidden)
             .listStyle(.insetGrouped)
         }
     }
@@ -222,7 +247,7 @@ struct SetAlarmSheet: View {
                 title: alarmTitle,
                 stopButton: AlarmButton(
                     text: doneText,
-                    textColor: .blue,
+                    textColor: .white,
                     systemImageName: "checkmark"
                 )
             )
@@ -230,7 +255,7 @@ struct SetAlarmSheet: View {
 
         let attributes = AlarmAttributes<TouchtimeAlarmMetadata>(
             presentation: AlarmPresentation(alert: alert),
-            tintColor: .blue
+            tintColor: .white
         )
 
         let schedule = Alarm.Schedule.relative(
@@ -335,7 +360,7 @@ struct SetAlarmSheet: View {
         let date = calendar.date(from: components) ?? Date()
 
         let formatter = DateFormatter()
-        formatter.locale = datePickerLocale
+        formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = .current
         formatter.dateFormat = use24HourFormat ? "HH:mm" : "h:mm a"
 
@@ -369,6 +394,17 @@ struct SetAlarmSheet: View {
         }
 
         alarmRecords.removeAll { $0.id == record.id }
+        saveAlarmRecords()
+        triggerHaptic()
+    }
+
+    @MainActor
+    private func deleteAllRecords() {
+        for record in alarmRecords {
+            try? alarmManager.cancel(id: record.id)
+        }
+
+        alarmRecords.removeAll()
         saveAlarmRecords()
         triggerHaptic()
     }

@@ -193,13 +193,16 @@
 "Set Alarm" = "設定鬧鐘";
 "Alarms" = "鬧鐘";
 "No Alarms" = "暫無鬧鐘";
+"Swipe right to set an alarm for the selected city" = "向右滑動即可為所選城市設定鬧鐘";
 "Alarm" = "鬧鐘";
 "Alarm Error" = "鬧鐘錯誤";
 "Alarm Permission Needed" = "需要鬧鐘權限";
 "Alarm access is required to schedule alarms." = "需要鬧鐘權限才能設定鬧鐘。";
 "Please allow alarm access in Settings to create alarms." = "請在「設定」中允許鬧鐘權限以建立鬧鐘。";
 "Rename" = "重新命名";
+"Remove" = "移除";
 "Delete" = "刪除";
+"Delete All Alarms" = "刪除所有鬧鐘";
 "Confirm Delete" = "確認刪除";
 "Add to Collection" = "加入集合";
 "New Collection" = "新建集合";

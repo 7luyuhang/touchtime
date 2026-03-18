@@ -637,7 +637,7 @@ struct TimeZoneCellView: View {
                         }
                     }
                 } label: {
-                    Label(String(localized: "Add to Collection"), systemImage: "plus.circle")
+                    Label(String(localized: "Add to Collection"), systemImage: "folder.badge.plus")
                 }
             }
         } preview: {

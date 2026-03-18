@@ -235,8 +235,8 @@ struct CityTimeAdjustmentSheet: View {
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
-                        .glassEffect(.regular.tint(.white))
-                        .foregroundStyle(.black)
+                        .glassEffect(.regular.tint(.blue))
+                        .foregroundStyle(.white)
                     }
                     .padding(.leading, 20)
                     .padding(.trailing, 10)
@@ -253,6 +253,7 @@ struct CityTimeAdjustmentSheet: View {
                 .buttonStyle(.plain)
                 .disabled(isSchedulingAlarm)
                 .opacity(isSchedulingAlarm ? 0.50 : 1)
+                .offset(y: 8) // Overall button offset
             }
         }
         .onDisappear {
@@ -338,9 +339,9 @@ struct CityTimeAdjustmentSheet: View {
             }
 
             if hapticEnabled {
-                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                impactFeedback.prepare()
-                impactFeedback.impactOccurred()
+                let notificationFeedback = UINotificationFeedbackGenerator()
+                notificationFeedback.prepare()
+                notificationFeedback.notificationOccurred(.success)
             }
             showAlarmSuccessTemporarily()
         } catch {
@@ -399,7 +400,7 @@ struct CityTimeAdjustmentSheet: View {
                 title: alarmTitle,
                 stopButton: AlarmButton(
                     text: doneText,
-                    textColor: .blue,
+                    textColor: .white,
                     systemImageName: "checkmark"
                 )
             )
@@ -407,7 +408,7 @@ struct CityTimeAdjustmentSheet: View {
 
         let attributes = AlarmAttributes<TouchtimeAlarmMetadata>(
             presentation: AlarmPresentation(alert: alert),
-            tintColor: .blue
+            tintColor: .white
         )
 
         let schedule = Alarm.Schedule.relative(

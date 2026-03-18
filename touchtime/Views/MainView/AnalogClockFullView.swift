@@ -37,6 +37,7 @@ struct AnalogClockFullView: View {
     @State private var showDetailsSheet = false
     @State private var showShareSheet = false
     @State private var showArrangeListSheet = false
+    @State private var showSetAlarmSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
     @State private var collections: [CityCollection] = []
@@ -285,9 +286,16 @@ struct AnalogClockFullView: View {
             }) {
                 Label(String(localized: "Arrange"), systemImage: "list.bullet")
             }
-
-            Divider()
         }
+
+        Button(action: {
+            triggerMenuHaptic()
+            showSetAlarmSheet = true
+        }) {
+            Label(String(localized: "Alarm"), systemImage: "alarm")
+        }
+
+        Divider()
 
         // Settings Section
         Button(action: {
@@ -804,6 +812,9 @@ struct AnalogClockFullView: View {
                     loadCollections()
                     ensureValidSelectedCity(in: displayedClocks)
                 }
+            }
+            .sheet(isPresented: $showSetAlarmSheet) {
+                SetAlarmSheet()
             }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(

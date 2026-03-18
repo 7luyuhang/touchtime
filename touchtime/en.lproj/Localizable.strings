@@ -194,13 +194,16 @@
 "Set Alarm" = "Set Alarm";
 "Alarms" = "Alarms";
 "No Alarms" = "No Alarms";
+"Swipe right to set an alarm for the selected city" = "Swipe right to set an alarm for the selected city";
 "Alarm" = "Alarm";
 "Alarm Error" = "Alarm Error";
 "Alarm Permission Needed" = "Alarm Permission Needed";
 "Alarm access is required to schedule alarms." = "Alarm access is required to schedule alarms.";
 "Please allow alarm access in Settings to create alarms." = "Please allow alarm access in Settings to create alarms.";
 "Rename" = "Rename";
+"Remove" = "Remove";
 "Delete" = "Delete";
+"Delete All Alarms" = "Delete All Alarms";
 "Confirm Delete" = "Confirm Delete";
 "Add to Collection" = "Add to Collection";
 "New Collection" = "New Collection";
