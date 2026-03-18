@@ -194,6 +194,14 @@
 
 /* Arrange */
 "Arrange" = "整理";
+"Set Alarm" = "设置闹钟";
+"Alarms" = "闹钟";
+"No Alarms" = "暂无闹钟";
+"Alarm" = "闹钟";
+"Alarm Error" = "闹钟错误";
+"Alarm Permission Needed" = "需要闹钟权限";
+"Alarm access is required to schedule alarms." = "需要闹钟权限才能设置闹钟。";
+"Please allow alarm access in Settings to create alarms." = "请在“设置”中允许闹钟权限以创建闹钟。";
 "Rename" = "重命名";
 "Delete" = "删除";
 "Confirm Delete" = "确认删除";

@@ -57,6 +57,7 @@ struct HomeView: View {
     @State private var selectedTimeZone: String = ""
     @State private var selectedCityName: String = ""
     @State private var showArrangeListSheet = false
+    @State private var showSetAlarmSheet = false
     @State private var showEarthView = false
     @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
     @State private var showCalendarPermissionAlert = false
@@ -1182,9 +1183,20 @@ struct HomeView: View {
                             }) {
                                 Label(String(localized: "Arrange"), systemImage: "list.bullet")
                             }
-                            
-                            Divider()
                         }
+
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showSetAlarmSheet = true
+                        }) {
+                            Label(String(localized: "Alarm"), systemImage: "alarm")
+                        }
+
+                        Divider()
                         
                         // Settings Section
                         Button(action: {
@@ -1371,6 +1383,11 @@ struct HomeView: View {
                 if !newValue && oldValue { // Sheet was dismissed
                     loadCollections() // Reload collections in case they were modified
                 }
+            }
+
+            // Set Alarm Sheet
+            .sheet(isPresented: $showSetAlarmSheet) {
+                SetAlarmSheet()
             }
             
             // Earth View

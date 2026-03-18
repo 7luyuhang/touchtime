@@ -4,6 +4,8 @@
 <dict>
 	<key>NSCameraUsageDescription</key>
 	<string>Allow camera access to show live camera background.</string>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>Allow alarm access to let you set local alarms.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Save city card images to your Photo Library.</string>
 	<key>LSApplicationQueriesSchemes</key>

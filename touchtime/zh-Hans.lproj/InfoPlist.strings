@@ -3,3 +3,6 @@
 
 /* Camera - shown when user enables live camera background */
 "NSCameraUsageDescription" = "允许访问相机以显示实时相机背景。";
+
+/* AlarmKit - shown when user sets alarms in app */
+"NSAlarmKitUsageDescription" = "允许访问闹钟，以便在应用中设置本地闹钟。";

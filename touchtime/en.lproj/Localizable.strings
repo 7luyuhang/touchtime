@@ -191,6 +191,14 @@
 
 /* Arrange */
 "Arrange" = "Arrange";
+"Set Alarm" = "Set Alarm";
+"Alarms" = "Alarms";
+"No Alarms" = "No Alarms";
+"Alarm" = "Alarm";
+"Alarm Error" = "Alarm Error";
+"Alarm Permission Needed" = "Alarm Permission Needed";
+"Alarm access is required to schedule alarms." = "Alarm access is required to schedule alarms.";
+"Please allow alarm access in Settings to create alarms." = "Please allow alarm access in Settings to create alarms.";
 "Rename" = "Rename";
 "Delete" = "Delete";
 "Confirm Delete" = "Confirm Delete";

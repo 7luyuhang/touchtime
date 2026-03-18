@@ -3,3 +3,6 @@
 
 /* Camera - shown when user enables live camera background */
 "NSCameraUsageDescription" = "允許存取相機以顯示即時相機背景。";
+
+/* AlarmKit - shown when user sets alarms in app */
+"NSAlarmKitUsageDescription" = "允許存取鬧鐘，以便在 App 中設定本地鬧鐘。";

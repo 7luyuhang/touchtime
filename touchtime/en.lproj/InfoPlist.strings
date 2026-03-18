@@ -3,3 +3,6 @@
 
 /* Camera - shown when user enables live camera background */
 "NSCameraUsageDescription" = "Allow camera access to show live camera background.";
+
+/* AlarmKit - shown when user sets alarms in app */
+"NSAlarmKitUsageDescription" = "Allow alarm access to let you set local alarms.";

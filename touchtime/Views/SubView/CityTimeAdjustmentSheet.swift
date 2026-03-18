@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import AlarmKit
+import UIKit
 
 struct CityTimeAdjustmentSheet: View {
     let cityName: String
@@ -15,10 +17,19 @@ struct CityTimeAdjustmentSheet: View {
     @Binding var showScrollTimeButtons: Bool
     
     @State private var selectedTime: Date
+    @State private var showAlarmPermissionAlert = false
+    @State private var showAlarmErrorAlert = false
+    @State private var alarmErrorMessage = ""
+    @State private var isSchedulingAlarm = false
+    @State private var showAlarmSuccessIcon = false
+    @State private var alarmIconResetTask: Task<Void, Never>? = nil
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
+
+    private let alarmManager = AlarmManager.shared
+    private let alarmRecordsKey = "savedAlarmRecords"
     
     init(cityName: String, timeZoneIdentifier: String, timeOffset: Binding<TimeInterval>, showSheet: Binding<Bool>, showScrollTimeButtons: Binding<Bool>) {
         self.cityName = cityName
@@ -194,8 +205,301 @@ struct CityTimeAdjustmentSheet: View {
                     }
                 }
             }
+            .safeAreaPadding(.bottom, 8)
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                Button(action: {
+                    Task {
+                        await setAlarmFromSelectedCityTime()
+                    }
+                }) {
+                        HStack(spacing: 12) {
+                            HStack (spacing: 8) {
+                                Image(systemName: showAlarmSuccessIcon ? "checkmark.circle.fill" : "alarm.fill")
+                                    .font(.headline)
+                                    .contentTransition(.symbolEffect(.replace))
+                                    .animation(.snappy(duration: 0.15), value: showAlarmSuccessIcon)
+                                
+                                Text(String(localized: "Set Alarm"))
+                                    .font(.subheadline.weight(.semibold))
+                            }
+                        
+                        HStack(spacing: 4) {
+                            Image(systemName: "location.fill")
+                                .font(.subheadline.weight(.semibold))
+                            
+                            Text(adjustedLocalTimeText)
+                                .font(.subheadline.weight(.semibold))
+                                .monospacedDigit()
+                                .contentTransition(.numericText())
+                                .animation(.smooth(duration: 0.25), value: adjustedLocalTimeText)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 8)
+                        .glassEffect(.regular.tint(.white))
+                        .foregroundStyle(.black)
+                    }
+                    .padding(.leading, 20)
+                    .padding(.trailing, 10)
+                    .padding(.vertical, 10)
+                }
+                // Border
+                .overlay(
+                    Capsule(style: .continuous)
+                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
+                        .blendMode(.plusLighter)
+                )
+                .contentShape(Capsule(style: .continuous))
+                .glassEffect(.regular.interactive())
+                .buttonStyle(.plain)
+                .disabled(isSchedulingAlarm)
+                .opacity(isSchedulingAlarm ? 0.50 : 1)
+            }
         }
-        .presentationDetents([.height(280)])
+        .onDisappear {
+            alarmIconResetTask?.cancel()
+            alarmIconResetTask = nil
+            showAlarmSuccessIcon = false
+        }
+        .alert("Alarm Permission Needed", isPresented: $showAlarmPermissionAlert) {
+            Button(String(localized: "Cancel"), role: .cancel) { }
+            Button(String(localized: "Go to Settings")) {
+                openSystemSettings()
+            }
+        } message: {
+            Text("Please allow alarm access in Settings to create alarms.")
+        }
+        .alert("Alarm Error", isPresented: $showAlarmErrorAlert) {
+            Button(String(localized: "Done"), role: .cancel) { }
+        } message: {
+            Text(alarmErrorMessage)
+        }
+        .presentationDetents([.height(360)])
+    }
+
+    @MainActor
+    private func setAlarmFromSelectedCityTime() async {
+        guard !isSchedulingAlarm else { return }
+        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else { return }
+
+        isSchedulingAlarm = true
+        defer { isSchedulingAlarm = false }
+
+        guard await ensureAlarmAuthorization() else { return }
+
+        let selectedComponents = Calendar.current.dateComponents([.hour, .minute], from: selectedTime)
+        guard let cityHour = selectedComponents.hour,
+              let cityMinute = selectedComponents.minute else { return }
+
+        let localTime = convertCityTimeToLocalTime(
+            cityHour: cityHour,
+            cityMinute: cityMinute,
+            targetTimeZone: targetTimeZone
+        )
+        var records = loadAlarmRecords()
+
+        do {
+            let matchingIndices = records.indices.filter { records[$0].hour == localTime.hour && records[$0].minute == localTime.minute }
+
+            if let existingIndex = matchingIndices.first {
+                for duplicateIndex in matchingIndices.dropFirst().sorted(by: >) {
+                    let duplicateID = records[duplicateIndex].id
+                    try? alarmManager.cancel(id: duplicateID)
+                    records.remove(at: duplicateIndex)
+                }
+
+                var updatedRecords = records
+                var updatedRecord = updatedRecords[existingIndex]
+                updatedRecord.isEnabled = true
+                updatedRecord.sourceCityName = cityName
+                updatedRecord.sourceCityHour = cityHour
+                updatedRecord.sourceCityMinute = cityMinute
+                updatedRecords[existingIndex] = updatedRecord
+
+                try? alarmManager.cancel(id: updatedRecord.id)
+                try await scheduleAlarm(id: updatedRecord.id, hour: localTime.hour, minute: localTime.minute)
+                saveAlarmRecords(updatedRecords)
+            } else {
+                let record = AlarmRecord(
+                    id: UUID(),
+                    hour: localTime.hour,
+                    minute: localTime.minute,
+                    isEnabled: true,
+                    createdAt: Date(),
+                    sourceCityName: cityName,
+                    sourceCityHour: cityHour,
+                    sourceCityMinute: cityMinute
+                )
+
+                try await scheduleAlarm(id: record.id, hour: localTime.hour, minute: localTime.minute)
+
+                var updatedRecords = records
+                updatedRecords.append(record)
+                saveAlarmRecords(updatedRecords)
+            }
+
+            if hapticEnabled {
+                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                impactFeedback.prepare()
+                impactFeedback.impactOccurred()
+            }
+            showAlarmSuccessTemporarily()
+        } catch {
+            alarmErrorMessage = error.localizedDescription
+            showAlarmErrorAlert = true
+        }
+    }
+
+    @MainActor
+    private func ensureAlarmAuthorization() async -> Bool {
+        switch alarmManager.authorizationState {
+        case .authorized:
+            return true
+        case .denied:
+            showAlarmPermissionAlert = true
+            return false
+        case .notDetermined:
+            do {
+                let state = try await alarmManager.requestAuthorization()
+                if state == .authorized {
+                    return true
+                }
+                showAlarmPermissionAlert = true
+                return false
+            } catch {
+                alarmErrorMessage = error.localizedDescription
+                showAlarmErrorAlert = true
+                return false
+            }
+        @unknown default:
+            return false
+        }
+    }
+
+    private func convertCityTimeToLocalTime(cityHour: Int, cityMinute: Int, targetTimeZone: TimeZone) -> (hour: Int, minute: Int) {
+        let now = Date()
+        let localOffsetMinutes = TimeZone.current.secondsFromGMT(for: now) / 60
+        let targetOffsetMinutes = targetTimeZone.secondsFromGMT(for: now) / 60
+
+        let selectedCityTotalMinutes = cityHour * 60 + cityMinute
+        let localTotalMinutes = selectedCityTotalMinutes + (localOffsetMinutes - targetOffsetMinutes)
+        let normalizedMinutes = ((localTotalMinutes % 1440) + 1440) % 1440
+
+        return (hour: normalizedMinutes / 60, minute: normalizedMinutes % 60)
+    }
+
+    private func scheduleAlarm(id: UUID, hour: Int, minute: Int) async throws {
+        let alarmTitle = LocalizedStringResource("Alarm")
+        let doneText = LocalizedStringResource("Done")
+        let alert: AlarmPresentation.Alert
+
+        if #available(iOS 26.1, *) {
+            alert = AlarmPresentation.Alert(title: alarmTitle)
+        } else {
+            alert = AlarmPresentation.Alert(
+                title: alarmTitle,
+                stopButton: AlarmButton(
+                    text: doneText,
+                    textColor: .blue,
+                    systemImageName: "checkmark"
+                )
+            )
+        }
+
+        let attributes = AlarmAttributes<TouchtimeAlarmMetadata>(
+            presentation: AlarmPresentation(alert: alert),
+            tintColor: .blue
+        )
+
+        let schedule = Alarm.Schedule.relative(
+            .init(
+                time: .init(hour: hour, minute: minute),
+                repeats: .never
+            )
+        )
+
+        _ = try await alarmManager.schedule(
+            id: id,
+            configuration: .alarm(schedule: schedule, attributes: attributes)
+        )
+    }
+
+    private func loadAlarmRecords() -> [AlarmRecord] {
+        if let data = UserDefaults.standard.data(forKey: alarmRecordsKey),
+           let decoded = try? JSONDecoder().decode([AlarmRecord].self, from: data) {
+            return decoded
+        }
+
+        return []
+    }
+
+    private func saveAlarmRecords(_ records: [AlarmRecord]) {
+        guard let encoded = try? JSONEncoder().encode(records) else { return }
+        UserDefaults.standard.set(encoded, forKey: alarmRecordsKey)
+    }
+
+    private var adjustedLocalTimeText: String {
+        guard let localTime = selectedLocalAlarmTime else {
+            return "--:--"
+        }
+
+        return formattedLocalTime(hour: localTime.hour, minute: localTime.minute)
+    }
+
+    private var selectedLocalAlarmTime: (hour: Int, minute: Int)? {
+        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
+            return nil
+        }
+
+        let selectedComponents = Calendar.current.dateComponents([.hour, .minute], from: selectedTime)
+        let cityHour = selectedComponents.hour ?? 0
+        let cityMinute = selectedComponents.minute ?? 0
+        return convertCityTimeToLocalTime(
+            cityHour: cityHour,
+            cityMinute: cityMinute,
+            targetTimeZone: targetTimeZone
+        )
+    }
+
+    private func formattedLocalTime(hour: Int, minute: Int) -> String {
+        var components = DateComponents()
+        components.hour = hour
+        components.minute = minute
+
+        let calendar = Calendar.current
+        let date = calendar.date(from: components) ?? Date()
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: use24HourFormat ? "de_DE" : "en_US")
+        formatter.timeZone = .current
+        formatter.dateFormat = use24HourFormat ? "HH:mm" : "h:mm a"
+
+        if use24HourFormat {
+            return formatter.string(from: date)
+        }
+
+        return formatter.string(from: date).lowercased()
+    }
+
+    private func openSystemSettings() {
+        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
+        UIApplication.shared.open(url)
+    }
+
+    @MainActor
+    private func showAlarmSuccessTemporarily() {
+        alarmIconResetTask?.cancel()
+        withAnimation(.snappy(duration: 0.15)) {
+            showAlarmSuccessIcon = true
+        }
+
+        alarmIconResetTask = Task {
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            if Task.isCancelled { return }
+            await MainActor.run {
+                withAnimation(.snappy(duration: 0.15)) {
+                    showAlarmSuccessIcon = false
+                }
+            }
+        }
     }
 }
-
