@@ -40,28 +40,27 @@ struct CityTimeAdjustmentSheet: View {
         self._showScrollTimeButtons = showScrollTimeButtons
         
         // Initialize selectedTime to show current time in the city's timezone
-        let currentDate = Date().addingTimeInterval(timeOffset.wrappedValue)
+        let baseDate = Date().addingTimeInterval(timeOffset.wrappedValue)
         
-        if let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) {
-            let calendar = Calendar.current
-            // Get the current time components in the target timezone
-            let targetComponents = calendar.dateComponents(in: targetTimeZone, from: currentDate)
-            
-            // Create a date with those hour/minute values in the local timezone
-            // This way the DatePicker will display the correct time for the city
-            var localComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: Date())
-            localComponents.hour = targetComponents.hour
-            localComponents.minute = targetComponents.minute
-            localComponents.second = 0
-            
-            if let adjustedDate = calendar.date(from: localComponents) {
-                self._selectedTime = State(initialValue: adjustedDate)
-            } else {
-                self._selectedTime = State(initialValue: currentDate)
-            }
+        if let targetTimeZone = TimeZone(identifier: timeZoneIdentifier),
+           let pickerDate = Self.makePickerDisplayDate(for: baseDate, in: targetTimeZone) {
+            self._selectedTime = State(initialValue: pickerDate)
         } else {
-            self._selectedTime = State(initialValue: currentDate)
+            self._selectedTime = State(initialValue: baseDate)
         }
+    }
+
+    // Convert a city's wall-clock time into a local Date used by DatePicker.
+    private static func makePickerDisplayDate(for date: Date, in targetTimeZone: TimeZone) -> Date? {
+        let calendar = Calendar.current
+        let targetComponents = calendar.dateComponents(in: targetTimeZone, from: date)
+
+        var localComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute, .second], from: date)
+        localComponents.hour = targetComponents.hour
+        localComponents.minute = targetComponents.minute
+        localComponents.second = 0
+
+        return calendar.date(from: localComponents)
     }
     
     // Calculate the current time displayed in the target city
@@ -109,8 +108,14 @@ struct CityTimeAdjustmentSheet: View {
         }
         
         withAnimation(.spring()) {
+            let now = Date()
             timeOffset = 0
-            selectedTime = Date()
+            if let targetTimeZone = TimeZone(identifier: timeZoneIdentifier),
+               let pickerDate = Self.makePickerDisplayDate(for: now, in: targetTimeZone) {
+                selectedTime = pickerDate
+            } else {
+                selectedTime = now
+            }
             showScrollTimeButtons = false
         }
     }
