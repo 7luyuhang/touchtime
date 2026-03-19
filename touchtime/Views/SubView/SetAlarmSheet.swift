@@ -122,8 +122,6 @@ struct SetAlarmSheet: View {
         if sortedRecords.isEmpty {
             ContentUnavailableView {
                 Label("No Alarms", systemImage: "alarm")
-            } description: {
-                Text(String(localized: "Swipe right to set an alarm for the selected city"))
             }
             .frame(maxHeight: .infinity)
         } else {
