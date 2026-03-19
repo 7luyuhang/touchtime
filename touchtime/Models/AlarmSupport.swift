@@ -23,6 +23,7 @@ struct AlarmRecord: Identifiable, Codable, Equatable {
     var sourceCityName: String?
     var sourceCityHour: Int?
     var sourceCityMinute: Int?
+    var eventTitle: String?
 
     init(
         id: UUID,
@@ -32,7 +33,8 @@ struct AlarmRecord: Identifiable, Codable, Equatable {
         createdAt: Date,
         sourceCityName: String? = nil,
         sourceCityHour: Int? = nil,
-        sourceCityMinute: Int? = nil
+        sourceCityMinute: Int? = nil,
+        eventTitle: String? = nil
     ) {
         self.id = id
         self.hour = hour
@@ -42,6 +44,7 @@ struct AlarmRecord: Identifiable, Codable, Equatable {
         self.sourceCityName = sourceCityName
         self.sourceCityHour = sourceCityHour
         self.sourceCityMinute = sourceCityMinute
+        self.eventTitle = eventTitle
     }
 }
 
@@ -91,9 +94,13 @@ enum AlarmSupport {
         id: UUID,
         hour: Int,
         minute: Int,
+        eventTitle: String? = nil,
         using alarmManager: AlarmManager = .shared
     ) async throws {
-        let alarmTitle = LocalizedStringResource("Alarm")
+        let defaultAlarmTitle = String(localized: "Alarm")
+        let trimmedTitle = eventTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedTitle = (trimmedTitle?.isEmpty == false ? trimmedTitle : nil) ?? defaultAlarmTitle
+        let alarmTitle = LocalizedStringResource(stringLiteral: resolvedTitle)
         let doneText = LocalizedStringResource("Done")
         let alert: AlarmPresentation.Alert
 

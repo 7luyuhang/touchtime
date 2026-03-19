@@ -198,6 +198,10 @@
 "Alarm Permission Needed" = "需要鬧鐘權限";
 "Alarm access is required to schedule alarms." = "需要鬧鐘權限才能設定鬧鐘。";
 "Please allow alarm access in Settings to create alarms." = "請在「設定」中允許鬧鐘權限以建立鬧鐘。";
+"Event Title" = "事件標題";
+"Enter event title" = "輸入事件標題";
+"Enter the event title for this alarm." = "請輸入這個鬧鐘的事件標題。";
+"Confirm" = "確認";
 "Rename" = "重新命名";
 "Remove" = "移除";
 "Delete" = "刪除";

@@ -199,6 +199,10 @@
 "Alarm Permission Needed" = "Alarm Permission Needed";
 "Alarm access is required to schedule alarms." = "Alarm access is required to schedule alarms.";
 "Please allow alarm access in Settings to create alarms." = "Please allow alarm access in Settings to create alarms.";
+"Event Title" = "Event Title";
+"Enter event title" = "Enter event title";
+"Enter the event title for this alarm." = "Enter the event title for this alarm.";
+"Confirm" = "Confirm";
 "Rename" = "Rename";
 "Remove" = "Remove";
 "Delete" = "Delete";

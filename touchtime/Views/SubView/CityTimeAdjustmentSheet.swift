@@ -19,7 +19,9 @@ struct CityTimeAdjustmentSheet: View {
     @State private var selectedTime: Date
     @State private var showAlarmPermissionAlert = false
     @State private var showAlarmErrorAlert = false
+    @State private var showAlarmTitleAlert = false
     @State private var alarmErrorMessage = ""
+    @State private var alarmEventTitleInput = ""
     @State private var isSchedulingAlarm = false
     @State private var showAlarmSuccessIcon = false
     @State private var alarmIconResetTask: Task<Void, Never>? = nil
@@ -115,57 +117,50 @@ struct CityTimeAdjustmentSheet: View {
     
     var body: some View {
         NavigationView {
-            VStack {
-                // DatePicker configured for the city's timezone
-                DatePicker(
-                    "",
-                    selection: Binding(
-                        get: { selectedTime },
-                        set: { newTime in
-                            selectedTime = newTime
-                            
-                            // Calculate offset from current real time
-                            // When user picks a time, they're picking what time they want to see in THIS city
-                            // We need to calculate the global offset that would make this city show that time
-                            
-                            guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else { return }
-                            
-                            let calendar = Calendar.current
-                            let currentDate = Date()
-                            
-                            // Get current time in target timezone
-                            let currentComponents = calendar.dateComponents(in: targetTimeZone, from: currentDate)
-                            
-                            // Get selected time components (the picker returns in current device timezone, we interpret it as target timezone)
-                            let selectedComponents = calendar.dateComponents([.hour, .minute], from: newTime)
-                            
-                            // Calculate the time difference in the target timezone
-                            let currentMinutes = (currentComponents.hour ?? 0) * 60 + (currentComponents.minute ?? 0)
-                            let selectedMinutes = (selectedComponents.hour ?? 0) * 60 + (selectedComponents.minute ?? 0)
-                            
-                            var minuteDifference = selectedMinutes - currentMinutes
-                            
-                            // Handle day boundary (wrap around midnight)
-                            if minuteDifference < -720 {
-                                minuteDifference += 1440
-                            } else if minuteDifference > 720 {
-                                minuteDifference -= 1440
+            GeometryReader { _ in
+                VStack {
+                    DatePicker(
+                        "",
+                        selection: Binding(
+                            get: { selectedTime },
+                            set: { newTime in
+                                selectedTime = newTime
+                                
+                                guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else { return }
+                                
+                                let calendar = Calendar.current
+                                let currentDate = Date()
+                                
+                                let currentComponents = calendar.dateComponents(in: targetTimeZone, from: currentDate)
+                                let selectedComponents = calendar.dateComponents([.hour, .minute], from: newTime)
+                                
+                                let currentMinutes = (currentComponents.hour ?? 0) * 60 + (currentComponents.minute ?? 0)
+                                let selectedMinutes = (selectedComponents.hour ?? 0) * 60 + (selectedComponents.minute ?? 0)
+                                
+                                var minuteDifference = selectedMinutes - currentMinutes
+                                
+                                if minuteDifference < -720 {
+                                    minuteDifference += 1440
+                                } else if minuteDifference > 720 {
+                                    minuteDifference -= 1440
+                                }
+                                
+                                timeOffset = TimeInterval(minuteDifference * 60)
+                                
+                                if minuteDifference != 0 && !continuousScrollMode {
+                                    showScrollTimeButtons = true
+                                }
                             }
-                            
-                            timeOffset = TimeInterval(minuteDifference * 60)
-                            
-                            // Show buttons when time is adjusted (only in normal mode, not continuous scroll mode)
-                            if minuteDifference != 0 && !continuousScrollMode {
-                                showScrollTimeButtons = true
-                            }
-                        }
-                    ),
-                    displayedComponents: [.hourAndMinute]
-                )
-                .datePickerStyle(.wheel)
-                .labelsHidden()
-                .environment(\.locale, Locale(identifier: use24HourFormat ? "de_DE" : "en_US"))
+                        ),
+                        displayedComponents: [.hourAndMinute]
+                    )
+                    .datePickerStyle(.wheel)
+                    .labelsHidden()
+                    .environment(\.locale, Locale(identifier: use24HourFormat ? "de_DE" : "en_US"))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
@@ -207,9 +202,8 @@ struct CityTimeAdjustmentSheet: View {
             .safeAreaPadding(.bottom, 8)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Button(action: {
-                    Task {
-                        await setAlarmFromSelectedCityTime()
-                    }
+                    alarmEventTitleInput = ""
+                    showAlarmTitleAlert = true
                 }) {
                         HStack(spacing: 12) {
                             HStack (spacing: 8) {
@@ -260,6 +254,22 @@ struct CityTimeAdjustmentSheet: View {
             alarmIconResetTask = nil
             showAlarmSuccessIcon = false
         }
+        .alert(String(localized: "Event Title"), isPresented: $showAlarmTitleAlert) {
+            TextField(String(localized: "Optional"), text: $alarmEventTitleInput)
+            Button(String(localized: "Cancel")) {
+                alarmEventTitleInput = ""
+            }
+            Button(String(localized: "Create")) {
+                let trimmedTitle = alarmEventTitleInput.trimmingCharacters(in: .whitespacesAndNewlines)
+                let customTitle = trimmedTitle.isEmpty ? nil : trimmedTitle
+                alarmEventTitleInput = ""
+                Task {
+                    await setAlarmFromSelectedCityTime(eventTitle: customTitle)
+                }
+            }
+        } message: {
+            Text(String(localized: "Enter the event title for this alarm."))
+        }
         .alert("Alarm Permission Needed", isPresented: $showAlarmPermissionAlert) {
             Button(String(localized: "Cancel"), role: .cancel) { }
             Button(String(localized: "Go to Settings")) {
@@ -277,7 +287,7 @@ struct CityTimeAdjustmentSheet: View {
     }
 
     @MainActor
-    private func setAlarmFromSelectedCityTime() async {
+    private func setAlarmFromSelectedCityTime(eventTitle: String? = nil) async {
         guard !isSchedulingAlarm else { return }
         guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else { return }
 
@@ -313,6 +323,7 @@ struct CityTimeAdjustmentSheet: View {
                 updatedRecord.sourceCityName = cityName
                 updatedRecord.sourceCityHour = cityHour
                 updatedRecord.sourceCityMinute = cityMinute
+                updatedRecord.eventTitle = eventTitle
                 updatedRecords[existingIndex] = updatedRecord
 
                 try? alarmManager.cancel(id: updatedRecord.id)
@@ -320,6 +331,7 @@ struct CityTimeAdjustmentSheet: View {
                     id: updatedRecord.id,
                     hour: localTime.hour,
                     minute: localTime.minute,
+                    eventTitle: eventTitle,
                     using: alarmManager
                 )
                 saveAlarmRecords(updatedRecords)
@@ -332,13 +344,15 @@ struct CityTimeAdjustmentSheet: View {
                     createdAt: Date(),
                     sourceCityName: cityName,
                     sourceCityHour: cityHour,
-                    sourceCityMinute: cityMinute
+                    sourceCityMinute: cityMinute,
+                    eventTitle: eventTitle
                 )
 
                 try await AlarmSupport.scheduleAlarm(
                     id: record.id,
                     hour: localTime.hour,
                     minute: localTime.minute,
+                    eventTitle: eventTitle,
                     using: alarmManager
                 )
 

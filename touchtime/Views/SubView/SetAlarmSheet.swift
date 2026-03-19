@@ -190,6 +190,7 @@ struct SetAlarmSheet: View {
                 id: record.id,
                 hour: record.hour,
                 minute: record.minute,
+                eventTitle: record.eventTitle,
                 using: alarmManager
             )
             synchronizeWithSystemAlarms()
