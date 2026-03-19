@@ -270,15 +270,15 @@ struct CityTimeAdjustmentSheet: View {
         } message: {
             Text(String(localized: "Enter the event title for this alarm."))
         }
-        .alert("Alarm Permission Needed", isPresented: $showAlarmPermissionAlert) {
+        .alert(String(localized: "Alarm Permission Needed"), isPresented: $showAlarmPermissionAlert) {
             Button(String(localized: "Cancel"), role: .cancel) { }
             Button(String(localized: "Go to Settings")) {
                 AlarmSupport.openSystemSettings()
             }
         } message: {
-            Text("Please allow alarm access in Settings to create alarms.")
+            Text(String(localized: "Please allow alarm access in Settings to create alarms."))
         }
-        .alert("Alarm Error", isPresented: $showAlarmErrorAlert) {
+        .alert(String(localized: "Alarm Error"), isPresented: $showAlarmErrorAlert) {
             Button(String(localized: "Done"), role: .cancel) { }
         } message: {
             Text(alarmErrorMessage)

@@ -200,13 +200,14 @@
 "Alarm" = "闹钟";
 "Alarm Error" = "闹钟错误";
 "Alarm Permission Needed" = "需要闹钟权限";
-"Alarm access is required to schedule alarms." = "需要闹钟权限才能设置闹钟。";
 "Please allow alarm access in Settings to create alarms." = "请在“设置”中允许闹钟权限以创建闹钟。";
 "Event Title" = "事件标题";
-"Enter event title" = "输入事件标题";
+"Optional" = "可选";
+"Create" = "创建";
 "Enter the event title for this alarm." = "请输入这个闹钟的事件标题。";
 "Confirm" = "确认";
 "Rename" = "重命名";
+"Remove All" = "移除全部";
 "Remove" = "移除";
 "Delete" = "删除";
 "Delete All Alarms" = "删除所有闹钟";

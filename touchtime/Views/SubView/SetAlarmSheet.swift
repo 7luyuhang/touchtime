@@ -64,15 +64,15 @@ struct SetAlarmSheet: View {
             alarmUpdatesTask?.cancel()
             alarmUpdatesTask = nil
         }
-        .alert("Alarm Permission Needed", isPresented: $showPermissionAlert) {
+        .alert(String(localized: "Alarm Permission Needed"), isPresented: $showPermissionAlert) {
             Button(String(localized: "Cancel"), role: .cancel) { }
             Button(String(localized: "Go to Settings")) {
                 AlarmSupport.openSystemSettings()
             }
         } message: {
-            Text("Please allow alarm access in Settings to create alarms.")
+            Text(String(localized: "Please allow alarm access in Settings to create alarms."))
         }
-        .alert("Alarm Error", isPresented: $showErrorAlert) {
+        .alert(String(localized: "Alarm Error"), isPresented: $showErrorAlert) {
             Button(String(localized: "Done"), role: .cancel) { }
         } message: {
             Text(errorMessage)
