@@ -29,7 +29,6 @@ struct CityTimeAdjustmentSheet: View {
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
 
     private let alarmManager = AlarmManager.shared
-    private let alarmRecordsKey = "savedAlarmRecords"
     
     init(cityName: String, timeZoneIdentifier: String, timeOffset: Binding<TimeInterval>, showSheet: Binding<Bool>, showScrollTimeButtons: Binding<Bool>) {
         self.cityName = cityName
@@ -264,7 +263,7 @@ struct CityTimeAdjustmentSheet: View {
         .alert("Alarm Permission Needed", isPresented: $showAlarmPermissionAlert) {
             Button(String(localized: "Cancel"), role: .cancel) { }
             Button(String(localized: "Go to Settings")) {
-                openSystemSettings()
+                AlarmSupport.openSystemSettings()
             }
         } message: {
             Text("Please allow alarm access in Settings to create alarms.")
@@ -317,7 +316,12 @@ struct CityTimeAdjustmentSheet: View {
                 updatedRecords[existingIndex] = updatedRecord
 
                 try? alarmManager.cancel(id: updatedRecord.id)
-                try await scheduleAlarm(id: updatedRecord.id, hour: localTime.hour, minute: localTime.minute)
+                try await AlarmSupport.scheduleAlarm(
+                    id: updatedRecord.id,
+                    hour: localTime.hour,
+                    minute: localTime.minute,
+                    using: alarmManager
+                )
                 saveAlarmRecords(updatedRecords)
             } else {
                 let record = AlarmRecord(
@@ -331,7 +335,12 @@ struct CityTimeAdjustmentSheet: View {
                     sourceCityMinute: cityMinute
                 )
 
-                try await scheduleAlarm(id: record.id, hour: localTime.hour, minute: localTime.minute)
+                try await AlarmSupport.scheduleAlarm(
+                    id: record.id,
+                    hour: localTime.hour,
+                    minute: localTime.minute,
+                    using: alarmManager
+                )
 
                 var updatedRecords = records
                 updatedRecords.append(record)
@@ -352,26 +361,15 @@ struct CityTimeAdjustmentSheet: View {
 
     @MainActor
     private func ensureAlarmAuthorization() async -> Bool {
-        switch alarmManager.authorizationState {
+        switch await AlarmSupport.ensureAuthorization(using: alarmManager) {
         case .authorized:
             return true
         case .denied:
             showAlarmPermissionAlert = true
             return false
-        case .notDetermined:
-            do {
-                let state = try await alarmManager.requestAuthorization()
-                if state == .authorized {
-                    return true
-                }
-                showAlarmPermissionAlert = true
-                return false
-            } catch {
-                alarmErrorMessage = error.localizedDescription
-                showAlarmErrorAlert = true
-                return false
-            }
-        @unknown default:
+        case .failed(let error):
+            alarmErrorMessage = error.localizedDescription
+            showAlarmErrorAlert = true
             return false
         }
     }
@@ -388,54 +386,12 @@ struct CityTimeAdjustmentSheet: View {
         return (hour: normalizedMinutes / 60, minute: normalizedMinutes % 60)
     }
 
-    private func scheduleAlarm(id: UUID, hour: Int, minute: Int) async throws {
-        let alarmTitle = LocalizedStringResource("Alarm")
-        let doneText = LocalizedStringResource("Done")
-        let alert: AlarmPresentation.Alert
-
-        if #available(iOS 26.1, *) {
-            alert = AlarmPresentation.Alert(title: alarmTitle)
-        } else {
-            alert = AlarmPresentation.Alert(
-                title: alarmTitle,
-                stopButton: AlarmButton(
-                    text: doneText,
-                    textColor: .white,
-                    systemImageName: "checkmark"
-                )
-            )
-        }
-
-        let attributes = AlarmAttributes<TouchtimeAlarmMetadata>(
-            presentation: AlarmPresentation(alert: alert),
-            tintColor: .white
-        )
-
-        let schedule = Alarm.Schedule.relative(
-            .init(
-                time: .init(hour: hour, minute: minute),
-                repeats: .never
-            )
-        )
-
-        _ = try await alarmManager.schedule(
-            id: id,
-            configuration: .alarm(schedule: schedule, attributes: attributes)
-        )
-    }
-
     private func loadAlarmRecords() -> [AlarmRecord] {
-        if let data = UserDefaults.standard.data(forKey: alarmRecordsKey),
-           let decoded = try? JSONDecoder().decode([AlarmRecord].self, from: data) {
-            return decoded
-        }
-
-        return []
+        AlarmSupport.loadRecords()
     }
 
     private func saveAlarmRecords(_ records: [AlarmRecord]) {
-        guard let encoded = try? JSONEncoder().encode(records) else { return }
-        UserDefaults.standard.set(encoded, forKey: alarmRecordsKey)
+        AlarmSupport.saveRecords(records)
     }
 
     private var adjustedLocalTimeText: String {
@@ -479,11 +435,6 @@ struct CityTimeAdjustmentSheet: View {
         }
 
         return formatter.string(from: date).lowercased()
-    }
-
-    private func openSystemSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
     }
 
     @MainActor

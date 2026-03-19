@@ -9,41 +9,6 @@ import SwiftUI
 import AlarmKit
 import UIKit
 
-nonisolated struct TouchtimeAlarmMetadata: AlarmMetadata {
-    // Empty metadata
-}
-
-struct AlarmRecord: Identifiable, Codable, Equatable {
-    let id: UUID
-    let hour: Int
-    let minute: Int
-    var isEnabled: Bool
-    let createdAt: Date
-    var sourceCityName: String?
-    var sourceCityHour: Int?
-    var sourceCityMinute: Int?
-
-    init(
-        id: UUID,
-        hour: Int,
-        minute: Int,
-        isEnabled: Bool,
-        createdAt: Date,
-        sourceCityName: String? = nil,
-        sourceCityHour: Int? = nil,
-        sourceCityMinute: Int? = nil
-    ) {
-        self.id = id
-        self.hour = hour
-        self.minute = minute
-        self.isEnabled = isEnabled
-        self.createdAt = createdAt
-        self.sourceCityName = sourceCityName
-        self.sourceCityHour = sourceCityHour
-        self.sourceCityMinute = sourceCityMinute
-    }
-}
-
 struct SetAlarmSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var alarmRecords: [AlarmRecord] = []
@@ -57,7 +22,6 @@ struct SetAlarmSheet: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
     private let alarmManager = AlarmManager.shared
-    private let alarmRecordsKey = "savedAlarmRecords"
 
     private var sortedRecords: [AlarmRecord] {
         alarmRecords.sorted { $0.createdAt > $1.createdAt }
@@ -103,7 +67,7 @@ struct SetAlarmSheet: View {
         .alert("Alarm Permission Needed", isPresented: $showPermissionAlert) {
             Button(String(localized: "Cancel"), role: .cancel) { }
             Button(String(localized: "Go to Settings")) {
-                openSystemSettings()
+                AlarmSupport.openSystemSettings()
             }
         } message: {
             Text("Please allow alarm access in Settings to create alarms.")
@@ -222,7 +186,12 @@ struct SetAlarmSheet: View {
     @MainActor
     private func scheduleAndSync(record: AlarmRecord) async {
         do {
-            try await scheduleAlarm(id: record.id, hour: record.hour, minute: record.minute)
+            try await AlarmSupport.scheduleAlarm(
+                id: record.id,
+                hour: record.hour,
+                minute: record.minute,
+                using: alarmManager
+            )
             synchronizeWithSystemAlarms()
         } catch {
             if let index = alarmRecords.firstIndex(where: { $0.id == record.id }) {
@@ -233,67 +202,19 @@ struct SetAlarmSheet: View {
         }
     }
 
-    private func scheduleAlarm(id: UUID, hour: Int, minute: Int) async throws {
-        let alarmTitle = LocalizedStringResource("Alarm")
-        let doneText = LocalizedStringResource("Done")
-        let alert: AlarmPresentation.Alert
-
-        if #available(iOS 26.1, *) {
-            alert = AlarmPresentation.Alert(title: alarmTitle)
-        } else {
-            alert = AlarmPresentation.Alert(
-                title: alarmTitle,
-                stopButton: AlarmButton(
-                    text: doneText,
-                    textColor: .white,
-                    systemImageName: "checkmark"
-                )
-            )
-        }
-
-        let attributes = AlarmAttributes<TouchtimeAlarmMetadata>(
-            presentation: AlarmPresentation(alert: alert),
-            tintColor: .white
-        )
-
-        let schedule = Alarm.Schedule.relative(
-            .init(
-                time: .init(hour: hour, minute: minute),
-                repeats: .never
-            )
-        )
-
-        _ = try await alarmManager.schedule(
-            id: id,
-            configuration: .alarm(schedule: schedule, attributes: attributes)
-        )
-    }
-
     @MainActor
     private func ensureAuthorizationForAlarmActions() async -> Bool {
-        authorizationState = alarmManager.authorizationState
-
-        switch authorizationState {
+        switch await AlarmSupport.ensureAuthorization(using: alarmManager) {
         case .authorized:
+            authorizationState = .authorized
             return true
         case .denied:
+            authorizationState = alarmManager.authorizationState
             showPermissionAlert = true
             return false
-        case .notDetermined:
-            do {
-                authorizationState = try await alarmManager.requestAuthorization()
-                if authorizationState == .authorized {
-                    return true
-                }
-
-                showPermissionAlert = true
-                return false
-            } catch {
-                authorizationState = alarmManager.authorizationState
-                presentError(error)
-                return false
-            }
-        @unknown default:
+        case .failed(let error):
+            authorizationState = alarmManager.authorizationState
+            presentError(error)
             return false
         }
     }
@@ -371,18 +292,11 @@ struct SetAlarmSheet: View {
 
     @MainActor
     private func loadAlarmRecords() {
-        guard let data = UserDefaults.standard.data(forKey: alarmRecordsKey),
-              let decoded = try? JSONDecoder().decode([AlarmRecord].self, from: data) else {
-            alarmRecords = []
-            return
-        }
-
-        alarmRecords = decoded
+        alarmRecords = AlarmSupport.loadRecords()
     }
 
     private func saveAlarmRecords() {
-        guard let encoded = try? JSONEncoder().encode(alarmRecords) else { return }
-        UserDefaults.standard.set(encoded, forKey: alarmRecordsKey)
+        AlarmSupport.saveRecords(alarmRecords)
     }
 
     @MainActor
@@ -411,11 +325,6 @@ struct SetAlarmSheet: View {
     private func presentError(_ error: Error) {
         errorMessage = error.localizedDescription
         showErrorAlert = true
-    }
-
-    private func openSystemSettings() {
-        guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
-        UIApplication.shared.open(url)
     }
 
     private func triggerHaptic() {
