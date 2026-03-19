@@ -208,6 +208,8 @@
 "Delete" = "刪除";
 "Delete All Alarms" = "刪除所有鬧鐘";
 "Confirm Delete" = "確認刪除";
+"Are you sure want to remove all alarms?" = "確定要移除所有鬧鐘嗎？";
+"Confirm Remove" = "確認移除";
 "Add to Collection" = "加入集合";
 "New Collection" = "新建集合";
 "Collection Name" = "集合名稱";

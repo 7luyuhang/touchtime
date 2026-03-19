@@ -209,6 +209,8 @@
 "Delete" = "Delete";
 "Delete All Alarms" = "Delete All Alarms";
 "Confirm Delete" = "Confirm Delete";
+"Are you sure want to remove all alarms?" = "Are you sure want to remove all alarms?";
+"Confirm Remove" = "Confirm Remove";
 "Add to Collection" = "Add to Collection";
 "New Collection" = "New Collection";
 "Collection Name" = "Collection Name";

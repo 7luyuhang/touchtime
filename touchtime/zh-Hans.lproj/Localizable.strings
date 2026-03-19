@@ -212,6 +212,8 @@
 "Delete" = "删除";
 "Delete All Alarms" = "删除所有闹钟";
 "Confirm Delete" = "确认删除";
+"Are you sure want to remove all alarms?" = "确定要移除所有闹钟吗？";
+"Confirm Remove" = "确认移除";
 "Add to Collection" = "添加到集合";
 "New Collection" = "新建集合";
 "Collection Name" = "集合名称";

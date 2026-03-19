@@ -16,6 +16,7 @@ struct SetAlarmSheet: View {
     @State private var errorMessage = ""
     @State private var showErrorAlert = false
     @State private var showPermissionAlert = false
+    @State private var showRemoveAllConfirmationDialog = false
     @State private var alarmUpdatesTask: Task<Void, Never>? = nil
 
     @AppStorage("use24HourFormat") private var use24HourFormat = false
@@ -46,12 +47,21 @@ struct SetAlarmSheet: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
                             Button(role: .destructive) {
-                                deleteAllRecords()
+                                showRemoveAllConfirmationDialog = true
                             } label: {
                                 Label(String(localized: "Remove All"), systemImage: "minus.circle")
                             }
                         } label: {
                             Image(systemName: "ellipsis")
+                        }
+                        .confirmationDialog(
+                            String(localized: "Are you sure want to remove all alarms?"),
+                            isPresented: $showRemoveAllConfirmationDialog,
+                            titleVisibility: .visible
+                        ) {
+                            Button(String(localized: "Confirm Remove"), role: .destructive) {
+                                deleteAllRecords()
+                            }
                         }
                     }
                 }
