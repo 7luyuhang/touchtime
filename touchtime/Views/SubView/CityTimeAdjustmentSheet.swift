@@ -199,8 +199,7 @@ struct CityTimeAdjustmentSheet: View {
                             impactFeedback.impactOccurred()
                         }
                     }) {
-                        Image(systemName: "checkmark")
-                            .fontWeight(.medium)
+                        Image(systemName: "xmark")
                     }
                 }
             }

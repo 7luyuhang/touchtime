@@ -93,20 +93,25 @@ struct SetAlarmSheet: View {
                 ForEach(sortedRecords) { record in
                     HStack(spacing: 12) {
                         VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "location.fill")
-                                    .font(.footnote.weight(.semibold))
-                                Text(formattedTime(hour: record.hour, minute: record.minute))
-                                    .font(.headline)
+                            if let eventTitle = normalizedEventTitle(for: record) {
+                                Text(eventTitle)
+                                    .font(.subheadline.weight(.medium))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                    .blendMode(.plusLighter)
                             }
-                            .foregroundStyle(.primary)
-
+                            
+                            Text(formattedTime(hour: record.hour, minute: record.minute))
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            
                             if let cityName = record.sourceCityName,
                                let cityHour = record.sourceCityHour,
                                let cityMinute = record.sourceCityMinute {
                                 Text("\(cityName) · \(formattedTime(hour: cityHour, minute: cityMinute))")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
                             }
                         }
                         Spacer()
@@ -289,6 +294,12 @@ struct SetAlarmSheet: View {
         }
 
         return formatter.string(from: date).lowercased()
+    }
+
+    private func normalizedEventTitle(for record: AlarmRecord) -> String? {
+        let trimmedTitle = record.eventTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmedTitle, !trimmedTitle.isEmpty else { return nil }
+        return trimmedTitle
     }
 
     @MainActor
