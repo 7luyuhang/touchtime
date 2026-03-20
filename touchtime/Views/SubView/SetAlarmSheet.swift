@@ -232,6 +232,9 @@ struct SetAlarmSheet: View {
     @MainActor
     private func scheduleAndSync(record: AlarmRecord) async {
         do {
+            // Avoid duplicate-ID failures if a system alarm with the same ID still exists.
+            try? alarmManager.cancel(id: record.id)
+
             try await AlarmSupport.scheduleAlarm(
                 id: record.id,
                 hour: record.hour,
@@ -239,7 +242,6 @@ struct SetAlarmSheet: View {
                 eventTitle: record.eventTitle,
                 using: alarmManager
             )
-            synchronizeWithSystemAlarms()
         } catch {
             if let index = alarmRecords.firstIndex(where: { $0.id == record.id }) {
                 alarmRecords[index].isEnabled = false
@@ -273,8 +275,9 @@ struct SetAlarmSheet: View {
             var didChange = false
 
             for index in alarmRecords.indices {
-                if alarmRecords[index].isEnabled && !activeAlarmIDs.contains(alarmRecords[index].id) {
-                    alarmRecords[index].isEnabled = false
+                let shouldBeEnabled = activeAlarmIDs.contains(alarmRecords[index].id)
+                if alarmRecords[index].isEnabled != shouldBeEnabled {
+                    alarmRecords[index].isEnabled = shouldBeEnabled
                     didChange = true
                 }
             }
@@ -293,8 +296,9 @@ struct SetAlarmSheet: View {
         var didChange = false
 
         for index in alarmRecords.indices {
-            if alarmRecords[index].isEnabled && !activeAlarmIDs.contains(alarmRecords[index].id) {
-                alarmRecords[index].isEnabled = false
+            let shouldBeEnabled = activeAlarmIDs.contains(alarmRecords[index].id)
+            if alarmRecords[index].isEnabled != shouldBeEnabled {
+                alarmRecords[index].isEnabled = shouldBeEnabled
                 didChange = true
             }
         }
@@ -447,7 +451,13 @@ struct SetAlarmSheet: View {
                 eventTitle: updatedTitle,
                 using: alarmManager
             )
-            synchronizeWithSystemAlarms()
+
+            if let rescheduledIndex = alarmRecords.firstIndex(where: { $0.id == record.id }),
+               !alarmRecords[rescheduledIndex].isEnabled {
+                alarmRecords[rescheduledIndex].isEnabled = true
+                saveAlarmRecords()
+            }
+
             triggerHaptic()
         } catch {
             if let restoredIndex = alarmRecords.firstIndex(where: { $0.id == record.id }) {
