@@ -177,19 +177,6 @@ struct ComplicationsSettingsView: View {
         .sheet(isPresented: $showLifetimeStore) {
             NavigationStack {
                 LifetimeStoreView()
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button {
-                                if hapticEnabled {
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                }
-                                showLifetimeStore = false
-                            } label: {
-                                Image(systemName: "xmark")
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                    }
             }
         }
     }

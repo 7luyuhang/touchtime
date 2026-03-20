@@ -87,6 +87,19 @@ struct LifetimeStoreView: View {
         .safeAreaInset(edge: .bottom) {
             bottomActions
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    }
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                        .fontWeight(.semibold)
+                }
+            }
+        }
     }
 
     private var bottomActions: some View {
