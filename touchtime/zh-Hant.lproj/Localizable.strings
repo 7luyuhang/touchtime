@@ -125,7 +125,7 @@
 "Copyright © %d Negative Time Limited. \nAll rights reserved." = "版權所有 © %d Negative Time Limited。\n保留所有權利。";
 
 /* Home View */
-"Swipe right for precise time adjustment" = "右滑城市以精確調整時間";
+"Swipe right for precise time adjustment or set alarms" = "右滑城市以精確調整時間或設定鬧鐘";
 "Press and hold to view more about the city" = "長按查看城市更多資訊";
 "Press and hold a collection for more actions" = "長按集合查看更多操作";
 "Add cities to track time." = "新增城市以追蹤時間。";

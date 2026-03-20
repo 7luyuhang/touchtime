@@ -650,7 +650,7 @@ struct HomeView: View {
                                         .blendMode(.plusLighter)
                                         .frame(width: 24, height: 24)
                                     
-                                    Text("Swipe right for precise time adjustment")
+                                    Text("Swipe right for precise time adjustment or set alarms")
                                         .font(.subheadline)
                                         .foregroundStyle(.primary)
                                     
