@@ -40,6 +40,7 @@ struct AnalogClockFullView: View {
     @State private var showSetAlarmSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
+    @State private var showAlarmTip = false
     @State private var collections: [CityCollection] = []
     @State private var selectedCollectionId: UUID? = nil
     @State private var showTimeInsteadOfCityName = false
@@ -66,6 +67,7 @@ struct AnalogClockFullView: View {
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("hasShownSetAlarmTip") private var hasShownSetAlarmTip = false
     @AppStorage("selectedCollectionId") private var savedSelectedCollectionId: String = ""
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -591,13 +593,18 @@ struct AnalogClockFullView: View {
                                     use24HourFormat: use24HourFormat,
                                     weather: weatherManager.weatherData[selectedTimeZone.identifier],
                                     showWeather: showWeather,
-                                    useCelsius: useCelsius
-                                )
-                                .contentShape(Rectangle())
-                                .onTapGesture {
+                                    useCelsius: useCelsius,
+                                    hapticEnabled: hapticEnabled,
+                                    showAlarmTip: $showAlarmTip
+                                ) {
                                     if hapticEnabled {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
                                         impactFeedback.impactOccurred()
+                                    }
+                                    if showAlarmTip {
+                                        withAnimation(.smooth) {
+                                            showAlarmTip = false
+                                        }
                                     }
                                     showTimeAdjustmentSheet = true
                                 }
@@ -874,6 +881,10 @@ struct AnalogClockFullView: View {
             .onAppear {
                 loadCollections()
                 ensureValidSelectedCity(in: displayedClocks)
+                if !hasShownSetAlarmTip {
+                    showAlarmTip = true
+                    hasShownSetAlarmTip = true
+                }
 
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = Task {
@@ -2168,6 +2179,9 @@ struct DigitalTimeDisplayView: View {
     let weather: CurrentWeather?
     let showWeather: Bool
     let useCelsius: Bool
+    let hapticEnabled: Bool
+    @Binding var showAlarmTip: Bool
+    let onTimeTap: () -> Void
     
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
@@ -2215,42 +2229,68 @@ struct DigitalTimeDisplayView: View {
                     .blendMode(.plusLighter)
             }
             
-            Text({
-                let formatter = DateFormatter()
-                formatter.timeZone = selectedTimeZone
-                formatter.locale = Locale(identifier: "en_US_POSIX")
-                if use24HourFormat {
-                    formatter.dateFormat = "HH:mm"
-                } else {
-                    formatter.dateFormat = "h:mm"
-                }
-                let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                return formatter.string(from: adjustedDate)
-            }())
-            .font(.system(size: 52))
-            .fontWeight(.light)
-            .fontDesign(.rounded)
-            .monospacedDigit()
-            .foregroundStyle(.white)
-            .contentTransition(.numericText())
-            
-            // Date display with weather - follows app's dateStyle setting
-            HStack(spacing: 4) {
-                if showWeather {
-                    WeatherView(
-                        weather: weather,
-                        useCelsius: useCelsius
-                    )
-                }
-                
+            Button(action: onTimeTap) {
                 Text({
+                    let formatter = DateFormatter()
+                    formatter.timeZone = selectedTimeZone
+                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                    if use24HourFormat {
+                        formatter.dateFormat = "HH:mm"
+                    } else {
+                        formatter.dateFormat = "h:mm"
+                    }
                     let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                    return adjustedDate.formattedDate(style: dateStyle, timeZone: selectedTimeZone)
+                    return formatter.string(from: adjustedDate)
                 }())
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
-                .blendMode(.plusLighter)
+                .font(.system(size: 52))
+                .fontWeight(.light)
+                .fontDesign(.rounded)
+                .monospacedDigit()
+                .foregroundStyle(.white)
                 .contentTransition(.numericText())
+            }
+            .buttonStyle(.plain)
+            .contentShape(Rectangle())
+            
+            if showAlarmTip {
+                Button {
+                    if hapticEnabled {
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                        impactFeedback.impactOccurred()
+                    }
+                    withAnimation(.smooth) {
+                        showAlarmTip = false
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Text(String(localized: "Tap time to set an alarm"))
+                            .lineLimit(1)
+                        Image(systemName: "xmark.circle.fill")
+                    }
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                }
+                .buttonStyle(.plain)
+                .transition(.blurReplace().combined(with: .opacity))
+            } else {
+                HStack(spacing: 4) {
+                    if showWeather {
+                        WeatherView(
+                            weather: weather,
+                            useCelsius: useCelsius
+                        )
+                    }
+
+                    Text({
+                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                        return adjustedDate.formattedDate(style: dateStyle, timeZone: selectedTimeZone)
+                    }())
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .contentTransition(.numericText())
+                }
             }
         }
     }

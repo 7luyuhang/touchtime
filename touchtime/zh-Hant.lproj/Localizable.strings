@@ -855,6 +855,9 @@
 "Focus Time" = "專注時間";
 "Double-tap to focus on the selected time." = "雙擊錶盤以專注於所選時間";
 
+/* Alarm Tip */
+"Tap time to set an alarm" = "輕點時間以設定鬧鐘";
+
 /* Continuous Scroll Mode */
 "Continuous Scroll" = "連續滑動";
 "Reset" = "重置";
