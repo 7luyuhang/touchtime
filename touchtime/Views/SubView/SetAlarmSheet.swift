@@ -124,6 +124,8 @@ struct SetAlarmSheet: View {
                                     .font(.subheadline.weight(.medium))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
+                                    .contentTransition(.numericText())
+                                    .animation(.smooth(duration: 0.25), value: eventTitle)
                                     .blendMode(.plusLighter)
                             }
                             
