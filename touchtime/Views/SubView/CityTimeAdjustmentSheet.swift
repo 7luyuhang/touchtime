@@ -303,6 +303,7 @@ struct CityTimeAdjustmentSheet: View {
         let selectedComponents = Calendar.current.dateComponents([.hour, .minute], from: selectedTime)
         guard let cityHour = selectedComponents.hour,
               let cityMinute = selectedComponents.minute else { return }
+        let sourceCityCustomName = resolvedSourceCityCustomName()
 
         let localTime = convertCityTimeToLocalTime(
             cityHour: cityHour,
@@ -325,6 +326,8 @@ struct CityTimeAdjustmentSheet: View {
                 var updatedRecord = updatedRecords[existingIndex]
                 updatedRecord.isEnabled = true
                 updatedRecord.sourceCityName = cityName
+                updatedRecord.sourceCityTimeZoneIdentifier = timeZoneIdentifier
+                updatedRecord.sourceCityCustomName = sourceCityCustomName
                 updatedRecord.sourceCityHour = cityHour
                 updatedRecord.sourceCityMinute = cityMinute
                 updatedRecord.eventTitle = eventTitle
@@ -347,6 +350,8 @@ struct CityTimeAdjustmentSheet: View {
                     isEnabled: true,
                     createdAt: Date(),
                     sourceCityName: cityName,
+                    sourceCityTimeZoneIdentifier: timeZoneIdentifier,
+                    sourceCityCustomName: sourceCityCustomName,
                     sourceCityHour: cityHour,
                     sourceCityMinute: cityMinute,
                     eventTitle: eventTitle
@@ -402,6 +407,29 @@ struct CityTimeAdjustmentSheet: View {
         let normalizedMinutes = ((localTotalMinutes % 1440) + 1440) % 1440
 
         return (hour: normalizedMinutes / 60, minute: normalizedMinutes % 60)
+    }
+
+    private func resolvedSourceCityCustomName() -> String? {
+        let trimmedCityName = cityName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedCityName.isEmpty else { return nil }
+
+        let fallbackCityName = originalCityName(from: timeZoneIdentifier)
+        let localizedFallbackName = String(localized: String.LocalizationValue(fallbackCityName))
+
+        if trimmedCityName == fallbackCityName || trimmedCityName == localizedFallbackName {
+            return nil
+        }
+
+        return trimmedCityName
+    }
+
+    private func originalCityName(from timeZoneIdentifier: String) -> String {
+        let components = timeZoneIdentifier.split(separator: "/")
+        if components.count >= 2 {
+            return components.last!.replacingOccurrences(of: "_", with: " ")
+        }
+
+        return String(components.first ?? "")
     }
 
     private func loadAlarmRecords() -> [AlarmRecord] {

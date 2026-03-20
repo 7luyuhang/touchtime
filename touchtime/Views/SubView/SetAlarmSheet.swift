@@ -133,7 +133,7 @@ struct SetAlarmSheet: View {
                                 .font(.headline)
                                 .foregroundStyle(.primary)
                             
-                            if let cityName = record.sourceCityName,
+                            if let cityName = sourceCityDisplayName(for: record),
                                let cityHour = record.sourceCityHour,
                                let cityMinute = record.sourceCityMinute {
                                 Text("\(cityName) · \(formattedTime(hour: cityHour, minute: cityMinute))")
@@ -341,6 +341,38 @@ struct SetAlarmSheet: View {
         let trimmedTitle = record.eventTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let trimmedTitle, !trimmedTitle.isEmpty else { return nil }
         return trimmedTitle
+    }
+
+    private func sourceCityDisplayName(for record: AlarmRecord) -> String? {
+        if let customName = normalizedText(record.sourceCityCustomName) {
+            return customName
+        }
+
+        if let timeZoneIdentifier = normalizedText(record.sourceCityTimeZoneIdentifier) {
+            let cityKey = originalCityName(from: timeZoneIdentifier)
+            return String(localized: String.LocalizationValue(cityKey))
+        }
+
+        if let legacyCityName = normalizedText(record.sourceCityName) {
+            return String(localized: String.LocalizationValue(legacyCityName))
+        }
+
+        return nil
+    }
+
+    private func originalCityName(from timeZoneIdentifier: String) -> String {
+        let components = timeZoneIdentifier.split(separator: "/")
+        if components.count >= 2 {
+            return components.last!.replacingOccurrences(of: "_", with: " ")
+        }
+
+        return String(components.first ?? "")
+    }
+
+    private func normalizedText(_ value: String?) -> String? {
+        let trimmed = value?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let trimmed, !trimmed.isEmpty else { return nil }
+        return trimmed
     }
 
     @MainActor

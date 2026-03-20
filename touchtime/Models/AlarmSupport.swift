@@ -21,6 +21,8 @@ struct AlarmRecord: Identifiable, Codable, Equatable {
     var isEnabled: Bool
     let createdAt: Date
     var sourceCityName: String?
+    var sourceCityTimeZoneIdentifier: String?
+    var sourceCityCustomName: String?
     var sourceCityHour: Int?
     var sourceCityMinute: Int?
     var eventTitle: String?
@@ -32,6 +34,8 @@ struct AlarmRecord: Identifiable, Codable, Equatable {
         isEnabled: Bool,
         createdAt: Date,
         sourceCityName: String? = nil,
+        sourceCityTimeZoneIdentifier: String? = nil,
+        sourceCityCustomName: String? = nil,
         sourceCityHour: Int? = nil,
         sourceCityMinute: Int? = nil,
         eventTitle: String? = nil
@@ -42,6 +46,8 @@ struct AlarmRecord: Identifiable, Codable, Equatable {
         self.isEnabled = isEnabled
         self.createdAt = createdAt
         self.sourceCityName = sourceCityName
+        self.sourceCityTimeZoneIdentifier = sourceCityTimeZoneIdentifier
+        self.sourceCityCustomName = sourceCityCustomName
         self.sourceCityHour = sourceCityHour
         self.sourceCityMinute = sourceCityMinute
         self.eventTitle = eventTitle
