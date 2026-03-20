@@ -17,6 +17,9 @@ struct SetAlarmSheet: View {
     @State private var showErrorAlert = false
     @State private var showPermissionAlert = false
     @State private var showRemoveAllConfirmationDialog = false
+    @State private var showRenameEventAlert = false
+    @State private var renameEventTitleInput = ""
+    @State private var renameTargetRecordID: UUID? = nil
     @State private var alarmUpdatesTask: Task<Void, Never>? = nil
 
     @AppStorage("use24HourFormat") private var use24HourFormat = false
@@ -87,8 +90,21 @@ struct SetAlarmSheet: View {
         } message: {
             Text(errorMessage)
         }
+        .alert(String(localized: "Event Title"), isPresented: $showRenameEventAlert) {
+            TextField(String(localized: "Optional"), text: $renameEventTitleInput)
+            Button(String(localized: "Cancel")) {
+                renameEventTitleInput = ""
+                renameTargetRecordID = nil
+            }
+            Button(String(localized: "Rename")) {
+                Task {
+                    await renameTargetRecord()
+                }
+            }
+        } message: {
+            Text(String(localized: "Enter the event title for this alarm."))
+        }
         .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
     }
 
     @ViewBuilder
@@ -138,6 +154,19 @@ struct SetAlarmSheet: View {
                             deleteRecord(record)
                         } label: {
                             Label(String(localized: "Remove"), systemImage: "minus.circle.fill")
+                        }
+                    }
+                    .contextMenu {
+                        Button {
+                            beginRename(for: record)
+                        } label: {
+                            Label(String(localized: "Rename Event"), systemImage: "pencil.tip.crop.circle")
+                        }
+
+                        Button(role: .destructive) {
+                            deleteRecord(record)
+                        } label: {
+                            Label(String(localized: "Remove"), systemImage: "minus.circle")
                         }
                     }
                 }
@@ -341,6 +370,67 @@ struct SetAlarmSheet: View {
         alarmRecords.removeAll()
         saveAlarmRecords()
         triggerHaptic()
+    }
+
+    @MainActor
+    private func beginRename(for record: AlarmRecord) {
+        renameTargetRecordID = record.id
+        renameEventTitleInput = normalizedEventTitle(for: record) ?? ""
+        showRenameEventAlert = true
+    }
+
+    @MainActor
+    private func renameTargetRecord() async {
+        guard let recordID = renameTargetRecordID,
+              let index = alarmRecords.firstIndex(where: { $0.id == recordID }) else {
+            renameEventTitleInput = ""
+            renameTargetRecordID = nil
+            return
+        }
+
+        let trimmedTitle = renameEventTitleInput.trimmingCharacters(in: .whitespacesAndNewlines)
+        let updatedTitle = trimmedTitle.isEmpty ? nil : trimmedTitle
+        let previousTitle = alarmRecords[index].eventTitle
+        let record = alarmRecords[index]
+
+        alarmRecords[index].eventTitle = updatedTitle
+        saveAlarmRecords()
+
+        renameEventTitleInput = ""
+        renameTargetRecordID = nil
+
+        guard record.isEnabled else {
+            triggerHaptic()
+            return
+        }
+
+        do {
+            try? alarmManager.cancel(id: record.id)
+            try await AlarmSupport.scheduleAlarm(
+                id: record.id,
+                hour: record.hour,
+                minute: record.minute,
+                eventTitle: updatedTitle,
+                using: alarmManager
+            )
+            synchronizeWithSystemAlarms()
+            triggerHaptic()
+        } catch {
+            if let restoredIndex = alarmRecords.firstIndex(where: { $0.id == record.id }) {
+                alarmRecords[restoredIndex].eventTitle = previousTitle
+                saveAlarmRecords()
+            }
+
+            try? await AlarmSupport.scheduleAlarm(
+                id: record.id,
+                hour: record.hour,
+                minute: record.minute,
+                eventTitle: previousTitle,
+                using: alarmManager
+            )
+            synchronizeWithSystemAlarms()
+            presentError(error)
+        }
     }
 
     @MainActor

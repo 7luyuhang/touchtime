@@ -207,6 +207,7 @@
 "Enter the event title for this alarm." = "请输入这个闹钟的事件标题。";
 "Confirm" = "确认";
 "Rename" = "重命名";
+"Rename Event" = "重命名事件";
 "Remove All" = "移除全部";
 "Remove" = "移除";
 "Delete" = "删除";

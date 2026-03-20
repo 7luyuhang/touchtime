@@ -204,6 +204,7 @@
 "Enter the event title for this alarm." = "Enter the event title for this alarm.";
 "Confirm" = "Confirm";
 "Rename" = "Rename";
+"Rename Event" = "Rename Event";
 "Remove All" = "Remove All";
 "Remove" = "Remove";
 "Delete" = "Delete";
