@@ -112,6 +112,8 @@ struct SetAlarmSheet: View {
         if sortedRecords.isEmpty {
             ContentUnavailableView {
                 Label("No Alarms", systemImage: "alarm")
+            } description: {
+                Text(String(localized: "Create alarms for your moments"))
             }
             .frame(maxHeight: .infinity)
         } else {
