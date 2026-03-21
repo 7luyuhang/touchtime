@@ -206,6 +206,9 @@
 "Confirm" = "Confirm";
 "Rename" = "Rename";
 "Rename Event" = "Rename Event";
+"Repeat" = "Repeat";
+"Once" = "Once";
+"Weekly" = "Weekly";
 "Remove All" = "Remove All";
 "Remove" = "Remove";
 "Delete" = "Delete";

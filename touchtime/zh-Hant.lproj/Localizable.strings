@@ -205,6 +205,9 @@
 "Confirm" = "確認";
 "Rename" = "重新命名";
 "Rename Event" = "重新命名事件";
+"Repeat" = "重複";
+"Once" = "單次";
+"Weekly" = "每週";
 "Remove All" = "移除全部";
 "Remove" = "移除";
 "Delete" = "刪除";

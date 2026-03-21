@@ -209,6 +209,9 @@
 "Confirm" = "确认";
 "Rename" = "重命名";
 "Rename Event" = "重命名事件";
+"Repeat" = "重复";
+"Once" = "单次";
+"Weekly" = "每周";
 "Remove All" = "移除全部";
 "Remove" = "移除";
 "Delete" = "删除";
