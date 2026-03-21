@@ -182,14 +182,6 @@ struct CityTimeAdjustmentSheet: View {
                 }
                 
                 ToolbarItem(placement: .topBarLeading) {
-                    if showScrollTimeButtons || (continuousScrollMode && timeOffset != 0) {
-                        Button(action: resetTime) {
-                            Image(systemName: "arrow.counterclockwise")
-                        }
-                    }
-                }
-                
-                ToolbarItem(placement: .topBarTrailing) {
                     Button(action: {
                         showSheet = false
                         
@@ -200,6 +192,14 @@ struct CityTimeAdjustmentSheet: View {
                         }
                     }) {
                         Image(systemName: "xmark")
+                    }
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
+                    if showScrollTimeButtons || (continuousScrollMode && timeOffset != 0) {
+                        Button(action: resetTime) {
+                            Image(systemName: "arrow.counterclockwise")
+                        }
                     }
                 }
             }

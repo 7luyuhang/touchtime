@@ -921,7 +921,7 @@ struct SunriseSunsetSheet: View {
                     }
                 }
                 
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
