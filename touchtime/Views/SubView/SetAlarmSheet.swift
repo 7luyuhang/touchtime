@@ -168,7 +168,7 @@ struct SetAlarmSheet: View {
                                 .tint(.blue) // Toggle Colour
                             }
 
-                            if record.repeatRule == .weekly && record.isEnabled {
+                            if record.repeatRule == .weekly {
                                 repeatWeekdayRow(for: record)
                             }
                         }
