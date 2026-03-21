@@ -427,11 +427,27 @@ struct HomeView: View {
     // MARK: - Context Menus
     @ViewBuilder
     private func localTimeContextMenu() -> some View {
-        Button(action: {
-            let cityName = String(localized: "Local")
-            addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
-        }) {
-            Label("Schedule Event", systemImage: "plus.circle")
+        ControlGroup {
+            Button(action: {
+                cityTimeAdjustmentData = CityTimeAdjustmentData(
+                    cityName: String(localized: "Local"),
+                    timeZoneIdentifier: TimeZone.current.identifier
+                )
+                
+                if hapticEnabled {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
+                }
+            }) {
+                Label(String(localized: "Set Alarm"), systemImage: "alarm")
+            }
+            
+            Button(action: {
+                let cityName = String(localized: "Local")
+                addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
+            }) {
+                Label("Schedule Event", systemImage: "plus.circle")
+            }
         }
         
         Divider()
@@ -460,11 +476,27 @@ struct HomeView: View {
     
     @ViewBuilder
     private func cityContextMenu(for clock: WorldClock) -> some View {
-        // Schedule event
-        Button(action: {
-            addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: getLocalizedCityName(for: clock))
-        }) {
-            Label("Schedule Event", systemImage: "plus.circle")
+        ControlGroup {
+            Button(action: {
+                cityTimeAdjustmentData = CityTimeAdjustmentData(
+                    cityName: getLocalizedCityName(for: clock),
+                    timeZoneIdentifier: clock.timeZoneIdentifier
+                )
+                
+                if hapticEnabled {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
+                }
+            }) {
+                Label(String(localized: "Set Alarm"), systemImage: "alarm")
+            }
+            
+            // Schedule event
+            Button(action: {
+                addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: getLocalizedCityName(for: clock))
+            }) {
+                Label("Schedule Event", systemImage: "plus.circle")
+            }
         }
         
         Divider()
