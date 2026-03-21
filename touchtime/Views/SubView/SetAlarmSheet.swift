@@ -122,6 +122,7 @@ struct SetAlarmSheet: View {
     @ViewBuilder
     private var alarmsPage: some View {
         if sortedRecords.isEmpty {
+            // Blank State
             ContentUnavailableView {
                 Label("No Alarms", systemImage: "alarm")
             } description: {
@@ -213,7 +214,6 @@ struct SetAlarmSheet: View {
             }
             .listSectionSpacing(12)
             .scrollIndicators(.hidden)
-            .listStyle(.insetGrouped)
         }
     }
 
