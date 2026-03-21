@@ -198,7 +198,7 @@ struct SetAlarmSheet: View {
                             Button {
                                 beginRename(for: record)
                             } label: {
-                                Label(String(localized: "Rename Event"), systemImage: "pencil.tip.crop.circle")
+                                Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
                             }
                             
                             Divider()
