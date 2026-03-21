@@ -88,27 +88,30 @@ struct SetAlarmSheet: View {
                 if !alarmRecords.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
-                            Section(String(localized: "Sort by")) {
-                                Button {
-                                    alarmSortOrderBinding.wrappedValue = .newestFirst
-                                } label: {
-                                    if alarmSortOrder == .newestFirst {
-                                        Label(String(localized: "Newest First"), systemImage: "checkmark.circle")
-                                    } else {
-                                        Text(String(localized: "Newest First"))
+                            if alarmRecords.count > 1 {
+                                Section(String(localized: "Sort by")) {
+                                    Button {
+                                        alarmSortOrderBinding.wrappedValue = .newestFirst
+                                    } label: {
+                                        if alarmSortOrder == .newestFirst {
+                                            Label(String(localized: "Newest First"), systemImage: "checkmark.circle")
+                                        } else {
+                                            Text(String(localized: "Newest First"))
+                                        }
+                                    }
+                                    Button {
+                                        alarmSortOrderBinding.wrappedValue = .oldestFirst
+                                    } label: {
+                                        if alarmSortOrder == .oldestFirst {
+                                            Label(String(localized: "Oldest First"), systemImage: "checkmark.circle")
+                                        } else {
+                                            Text(String(localized: "Oldest First"))
+                                        }
                                     }
                                 }
-                                Button {
-                                    alarmSortOrderBinding.wrappedValue = .oldestFirst
-                                } label: {
-                                    if alarmSortOrder == .oldestFirst {
-                                        Label(String(localized: "Oldest First"), systemImage: "checkmark.circle")
-                                    } else {
-                                        Text(String(localized: "Oldest First"))
-                                    }
-                                }
+                                Divider()
                             }
-                            Divider()
+
                             Button(role: .destructive) {
                                 showRemoveAllConfirmationDialog = true
                             } label: {
