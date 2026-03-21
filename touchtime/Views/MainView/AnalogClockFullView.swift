@@ -294,7 +294,7 @@ struct AnalogClockFullView: View {
             triggerMenuHaptic()
             showSetAlarmSheet = true
         }) {
-            Label(String(localized: "Alarm"), systemImage: "alarm")
+            Label(String(localized: "Alarms"), systemImage: "alarm")
         }
 
         Divider()
