@@ -116,7 +116,7 @@ struct SetAlarmSheet: View {
         } message: {
             Text(String(localized: "Enter the event title for this alarm."))
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.medium, .large])
     }
 
     @ViewBuilder
