@@ -199,7 +199,11 @@ struct CityTimeAdjustmentSheet: View {
                     if showScrollTimeButtons || (continuousScrollMode && timeOffset != 0) {
                         Button(action: resetTime) {
                             Image(systemName: "arrow.counterclockwise")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.black)
                         }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.white)
                     }
                 }
             }
