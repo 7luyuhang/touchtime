@@ -10,6 +10,11 @@ import AlarmKit
 import UIKit
 
 struct SetAlarmSheet: View {
+    private enum AlarmSortOrder: String, CaseIterable {
+        case newestFirst
+        case oldestFirst
+    }
+
     @Environment(\.dismiss) private var dismiss
     @State private var alarmRecords: [AlarmRecord] = []
     @State private var authorizationState: AlarmManager.AuthorizationState = AlarmManager.shared.authorizationState
@@ -24,11 +29,33 @@ struct SetAlarmSheet: View {
 
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("alarmSortOrder") private var alarmSortOrderRawValue = AlarmSortOrder.newestFirst.rawValue
 
     private let alarmManager = AlarmManager.shared
 
     private var sortedRecords: [AlarmRecord] {
-        alarmRecords.sorted { $0.createdAt > $1.createdAt }
+        switch alarmSortOrder {
+        case .newestFirst:
+            return alarmRecords.sorted { $0.createdAt > $1.createdAt }
+        case .oldestFirst:
+            return alarmRecords.sorted { $0.createdAt < $1.createdAt }
+        }
+    }
+
+    private var alarmSortOrder: AlarmSortOrder {
+        AlarmSortOrder(rawValue: alarmSortOrderRawValue) ?? .newestFirst
+    }
+
+    private var alarmSortOrderBinding: Binding<AlarmSortOrder> {
+        Binding(
+            get: {
+                alarmSortOrder
+            },
+            set: { newValue in
+                alarmSortOrderRawValue = newValue.rawValue
+                triggerHaptic()
+            }
+        )
     }
 
     private var repeatWeekdayOptions: [(name: String, index: Int)] {
@@ -61,6 +88,27 @@ struct SetAlarmSheet: View {
                 if !alarmRecords.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
+                            Section(String(localized: "Sort by")) {
+                                Button {
+                                    alarmSortOrderBinding.wrappedValue = .newestFirst
+                                } label: {
+                                    if alarmSortOrder == .newestFirst {
+                                        Label(String(localized: "Newest First"), systemImage: "checkmark.circle")
+                                    } else {
+                                        Text(String(localized: "Newest First"))
+                                    }
+                                }
+                                Button {
+                                    alarmSortOrderBinding.wrappedValue = .oldestFirst
+                                } label: {
+                                    if alarmSortOrder == .oldestFirst {
+                                        Label(String(localized: "Oldest First"), systemImage: "checkmark.circle")
+                                    } else {
+                                        Text(String(localized: "Oldest First"))
+                                    }
+                                }
+                            }
+                            Divider()
                             Button(role: .destructive) {
                                 showRemoveAllConfirmationDialog = true
                             } label: {
@@ -134,7 +182,7 @@ struct SetAlarmSheet: View {
                 ForEach(sortedRecords) { record in
                     Section {
                         VStack(alignment: .leading, spacing: 8) {
-                            HStack(spacing: 12) {
+                            HStack(spacing: 8) {
                                 VStack(alignment: .leading, spacing: 4) {
                                     if let eventTitle = normalizedEventTitle(for: record) {
                                         Text(eventTitle)
@@ -212,7 +260,7 @@ struct SetAlarmSheet: View {
                     }
                 }
             }
-            .listSectionSpacing(12)
+            .listSectionSpacing(12) // List paddings
             .scrollIndicators(.hidden)
         }
     }

@@ -227,6 +227,8 @@
 "Arrive" = "Arrive";
 "No Cities" = "No Cities";
 "Sort by" = "Sort by";
+"Newest First" = "Newest First";
+"Oldest First" = "Oldest First";
 "West to East" = "West to East";
 "East to West" = "East to West";
 "%d city added." = "%d city added.";

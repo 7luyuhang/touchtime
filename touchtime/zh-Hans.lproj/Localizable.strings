@@ -230,6 +230,8 @@
 "Arrive" = "到达";
 "No Cities" = "暂无城市";
 "Sort by" = "排序方式";
+"Newest First" = "最新优先";
+"Oldest First" = "最早优先";
 "West to East" = "从西向东";
 "East to West" = "从东向西";
 "%d city added." = "已添加 %d 个城市。";

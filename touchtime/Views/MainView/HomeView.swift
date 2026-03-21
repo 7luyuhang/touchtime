@@ -431,7 +431,7 @@ struct HomeView: View {
             let cityName = String(localized: "Local")
             addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
         }) {
-            Label("Schedule Event", systemImage: "calendar.badge.plus")
+            Label("Schedule Event", systemImage: "plus.circle")
         }
         
         Divider()

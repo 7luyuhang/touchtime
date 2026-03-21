@@ -226,6 +226,8 @@
 "Arrive" = "抵達";
 "No Cities" = "暫無城市";
 "Sort by" = "排序方式";
+"Newest First" = "最新優先";
+"Oldest First" = "最早優先";
 "West to East" = "從西向東";
 "East to West" = "從東向西";
 "%d city added." = "已新增 %d 個城市。";
