@@ -343,6 +343,8 @@ struct CityTimeAdjustmentSheet: View {
                     hour: localTime.hour,
                     minute: localTime.minute,
                     eventTitle: eventTitle,
+                    repeatRule: updatedRecord.repeatRule,
+                    repeatWeekdays: updatedRecord.repeatWeekdays,
                     using: alarmManager
                 )
                 saveAlarmRecords(updatedRecords)

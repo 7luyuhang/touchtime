@@ -31,6 +31,18 @@ struct SetAlarmSheet: View {
         alarmRecords.sorted { $0.createdAt > $1.createdAt }
     }
 
+    private var repeatWeekdayOptions: [(name: String, index: Int)] {
+        [
+            (String(localized: "Mon"), 2),
+            (String(localized: "Tue"), 3),
+            (String(localized: "Wed"), 4),
+            (String(localized: "Thu"), 5),
+            (String(localized: "Fri"), 6),
+            (String(localized: "Sat"), 7),
+            (String(localized: "Sun"), 1)
+        ]
+    }
+
     var body: some View {
         NavigationStack {
             alarmsPage
@@ -62,7 +74,7 @@ struct SetAlarmSheet: View {
                             isPresented: $showRemoveAllConfirmationDialog,
                             titleVisibility: .visible
                         ) {
-                            Button(String(localized: "Confirm Remove"), role: .destructive) {
+                            Button(String(localized: "Remove"), role: .destructive) {
                                 deleteAllRecords()
                             }
                         }
@@ -119,62 +131,87 @@ struct SetAlarmSheet: View {
         } else {
             List {
                 ForEach(sortedRecords) { record in
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            if let eventTitle = normalizedEventTitle(for: record) {
-                                Text(eventTitle)
-                                    .font(.subheadline.weight(.medium))
-                                    .foregroundStyle(.secondary)
-                                    .lineLimit(1)
-                                    .contentTransition(.numericText())
-                                    .animation(.smooth(duration: 0.25), value: eventTitle)
-                                    .blendMode(.plusLighter)
+                    Section {
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 12) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    if let eventTitle = normalizedEventTitle(for: record) {
+                                        Text(eventTitle)
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                            .lineLimit(1)
+                                            .contentTransition(.numericText())
+                                            .animation(.smooth(duration: 0.25), value: eventTitle)
+                                            .blendMode(.plusLighter)
+                                    }
+                                    
+                                    Text(formattedTime(hour: record.hour, minute: record.minute))
+                                        .font(.headline)
+                                        .foregroundStyle(.primary)
+                                    
+                                    if let cityName = sourceCityDisplayName(for: record),
+                                       let cityHour = record.sourceCityHour,
+                                       let cityMinute = record.sourceCityMinute {
+                                        Text("\(cityName) · \(formattedTime(hour: cityHour, minute: cityMinute))")
+                                            .font(.subheadline)
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                    }
+                                }
+                                Spacer()
+                                Toggle(
+                                    "",
+                                    isOn: bindingForToggle(recordID: record.id)
+                                )
+                                .labelsHidden()
+                                .tint(.blue) // Toggle Colour
                             }
-                            
-                            Text(formattedTime(hour: record.hour, minute: record.minute))
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                            
-                            if let cityName = sourceCityDisplayName(for: record),
-                               let cityHour = record.sourceCityHour,
-                               let cityMinute = record.sourceCityMinute {
-                                Text("\(cityName) · \(formattedTime(hour: cityHour, minute: cityMinute))")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .blendMode(.plusLighter)
-                            }
-                        }
-                        Spacer()
-                        Toggle(
-                            "",
-                            isOn: bindingForToggle(recordID: record.id)
-                        )
-                        .labelsHidden()
-                        .tint(.blue) // Toggle Colour
-                    }
-                    .padding(.vertical, 4)
-                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                        Button(role: .destructive) {
-                            deleteRecord(record)
-                        } label: {
-                            Label(String(localized: "Remove"), systemImage: "minus.circle.fill")
-                        }
-                    }
-                    .contextMenu {
-                        Button {
-                            beginRename(for: record)
-                        } label: {
-                            Label(String(localized: "Rename Event"), systemImage: "pencil.tip.crop.circle")
-                        }
 
-                        Button(role: .destructive) {
-                            deleteRecord(record)
-                        } label: {
-                            Label(String(localized: "Remove"), systemImage: "minus.circle")
+                            if record.repeatRule == .weekly {
+                                repeatWeekdayRow(for: record)
+                            }
+                        }
+                        .padding(.vertical, 4)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                deleteRecord(record)
+                            } label: {
+                                Label(String(localized: "Remove"), systemImage: "minus.circle.fill")
+                            }
+                        }
+                        .contextMenu {
+                            Menu {
+                                Picker(
+                                    String(localized: "Repeat"),
+                                    selection: bindingForRepeatRule(recordID: record.id)
+                                ) {
+                                    Text(String(localized: "Once"))
+                                        .tag(AlarmRepeatRule.once)
+                                    Text(String(localized: "Weekly"))
+                                        .tag(AlarmRepeatRule.weekly)
+                                }
+                            } label: {
+                                Label(String(localized: "Repeat"), systemImage: "repeat")
+                            }
+
+                            Button {
+                                beginRename(for: record)
+                            } label: {
+                                Label(String(localized: "Rename Event"), systemImage: "pencil.tip.crop.circle")
+                            }
+                            
+                            Divider()
+
+                            Button(role: .destructive) {
+                                deleteRecord(record)
+                            } label: {
+                                Label(String(localized: "Remove"), systemImage: "minus.circle")
+                            }
                         }
                     }
                 }
             }
+            .listSectionSpacing(12)
             .scrollIndicators(.hidden)
             .listStyle(.insetGrouped)
         }
@@ -196,6 +233,19 @@ struct SetAlarmSheet: View {
             set: { newValue in
                 Task {
                     await updateRecordEnabled(recordID: recordID, isEnabled: newValue)
+                }
+            }
+        )
+    }
+
+    private func bindingForRepeatRule(recordID: UUID) -> Binding<AlarmRepeatRule> {
+        Binding(
+            get: {
+                alarmRecords.first(where: { $0.id == recordID })?.repeatRule ?? .once
+            },
+            set: { newValue in
+                Task {
+                    await updateRepeatRule(recordID: recordID, to: newValue)
                 }
             }
         )
@@ -242,6 +292,8 @@ struct SetAlarmSheet: View {
                 hour: record.hour,
                 minute: record.minute,
                 eventTitle: record.eventTitle,
+                repeatRule: record.repeatRule,
+                repeatWeekdays: record.repeatWeekdays,
                 using: alarmManager
             )
         } catch {
@@ -451,6 +503,8 @@ struct SetAlarmSheet: View {
                 hour: record.hour,
                 minute: record.minute,
                 eventTitle: updatedTitle,
+                repeatRule: record.repeatRule,
+                repeatWeekdays: record.repeatWeekdays,
                 using: alarmManager
             )
 
@@ -472,6 +526,8 @@ struct SetAlarmSheet: View {
                 hour: record.hour,
                 minute: record.minute,
                 eventTitle: previousTitle,
+                repeatRule: record.repeatRule,
+                repeatWeekdays: record.repeatWeekdays,
                 using: alarmManager
             )
             synchronizeWithSystemAlarms()
@@ -490,5 +546,151 @@ struct SetAlarmSheet: View {
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
+    }
+
+    @ViewBuilder
+    private func repeatWeekdayRow(for record: AlarmRecord) -> some View {
+        HStack(spacing: 0) {
+            ForEach(Array(repeatWeekdayOptions.enumerated()), id: \.element.index) { index, weekday in
+                if index > 0 {
+                    Spacer(minLength: 0)
+                }
+
+                Button {
+                    Task {
+                        await toggleWeeklyDay(for: record, weekday: weekday.index)
+                    }
+                } label: {
+                    let isSelected = record.repeatWeekdays.contains(weekday.index)
+                    Text(weekday.name)
+                        .font(.callout)
+                        .fontWeight(.semibold)
+                        .fontDesign(.rounded)
+                        .foregroundStyle(isSelected ? Color.black : Color.white)
+                        .frame(width: 36, height: 36)
+                        .background(
+                            Circle()
+                                .fill(isSelected ? Color.white : Color.black.opacity(0.20))
+                        )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.top, 8)
+        .frame(maxWidth: .infinity)
+    }
+
+    @MainActor
+    private func updateRepeatRule(recordID: UUID, to repeatRule: AlarmRepeatRule) async {
+        guard let record = alarmRecords.first(where: { $0.id == recordID }) else { return }
+
+        switch repeatRule {
+        case .once:
+            await applyRepeatConfiguration(
+                recordID: recordID,
+                repeatRule: .once,
+                repeatWeekdays: []
+            )
+        case .weekly:
+            let weekdays = normalizedRepeatWeekdays(record.repeatWeekdays)
+            await applyRepeatConfiguration(
+                recordID: recordID,
+                repeatRule: .weekly,
+                repeatWeekdays: weekdays.isEmpty ? [defaultRepeatWeekday()] : weekdays
+            )
+        }
+    }
+
+    @MainActor
+    private func toggleWeeklyDay(for record: AlarmRecord, weekday: Int) async {
+        guard let index = alarmRecords.firstIndex(where: { $0.id == record.id }) else { return }
+
+        var weekdays = Set(alarmRecords[index].repeatWeekdays)
+        if weekdays.contains(weekday) {
+            if weekdays.count == 1 {
+                return
+            }
+            weekdays.remove(weekday)
+        } else {
+            weekdays.insert(weekday)
+        }
+
+        await applyRepeatConfiguration(
+            recordID: record.id,
+            repeatRule: .weekly,
+            repeatWeekdays: Array(weekdays)
+        )
+    }
+
+    @MainActor
+    private func applyRepeatConfiguration(
+        recordID: UUID,
+        repeatRule: AlarmRepeatRule,
+        repeatWeekdays: [Int]
+    ) async {
+        guard let index = alarmRecords.firstIndex(where: { $0.id == recordID }) else { return }
+
+        let previousRule = alarmRecords[index].repeatRule
+        let previousWeekdays = alarmRecords[index].repeatWeekdays
+        let baseRecord = alarmRecords[index]
+        let normalizedWeekdays: [Int]
+        if repeatRule == .weekly {
+            let weekdays = normalizedRepeatWeekdays(repeatWeekdays)
+            normalizedWeekdays = weekdays.isEmpty ? [defaultRepeatWeekday()] : weekdays
+        } else {
+            normalizedWeekdays = []
+        }
+
+        alarmRecords[index].repeatRule = repeatRule
+        alarmRecords[index].repeatWeekdays = normalizedWeekdays
+        saveAlarmRecords()
+
+        guard baseRecord.isEnabled else {
+            triggerHaptic()
+            return
+        }
+
+        let updatedRecord = alarmRecords[index]
+
+        do {
+            try? alarmManager.cancel(id: updatedRecord.id)
+            try await AlarmSupport.scheduleAlarm(
+                id: updatedRecord.id,
+                hour: updatedRecord.hour,
+                minute: updatedRecord.minute,
+                eventTitle: updatedRecord.eventTitle,
+                repeatRule: updatedRecord.repeatRule,
+                repeatWeekdays: updatedRecord.repeatWeekdays,
+                using: alarmManager
+            )
+            synchronizeWithSystemAlarms()
+            triggerHaptic()
+        } catch {
+            if let restoreIndex = alarmRecords.firstIndex(where: { $0.id == recordID }) {
+                alarmRecords[restoreIndex].repeatRule = previousRule
+                alarmRecords[restoreIndex].repeatWeekdays = previousWeekdays
+                saveAlarmRecords()
+            }
+
+            try? await AlarmSupport.scheduleAlarm(
+                id: baseRecord.id,
+                hour: baseRecord.hour,
+                minute: baseRecord.minute,
+                eventTitle: baseRecord.eventTitle,
+                repeatRule: previousRule,
+                repeatWeekdays: previousWeekdays,
+                using: alarmManager
+            )
+            synchronizeWithSystemAlarms()
+            presentError(error)
+        }
+    }
+
+    private func normalizedRepeatWeekdays(_ weekdays: [Int]) -> [Int] {
+        Array(Set(weekdays.filter { (1...7).contains($0) })).sorted()
+    }
+
+    private func defaultRepeatWeekday() -> Int {
+        Calendar.current.component(.weekday, from: Date())
     }
 }
