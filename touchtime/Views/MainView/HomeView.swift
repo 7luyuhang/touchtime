@@ -433,11 +433,6 @@ struct HomeView: View {
                     cityName: String(localized: "Local"),
                     timeZoneIdentifier: TimeZone.current.identifier
                 )
-                
-                if hapticEnabled {
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                    impactFeedback.impactOccurred()
-                }
             }) {
                 Label(String(localized: "Set Alarm"), systemImage: "alarm")
             }
@@ -482,11 +477,6 @@ struct HomeView: View {
                     cityName: getLocalizedCityName(for: clock),
                     timeZoneIdentifier: clock.timeZoneIdentifier
                 )
-                
-                if hapticEnabled {
-                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                    impactFeedback.impactOccurred()
-                }
             }) {
                 Label(String(localized: "Set Alarm"), systemImage: "alarm")
             }
