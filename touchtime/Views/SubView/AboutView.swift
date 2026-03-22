@@ -94,6 +94,14 @@ struct AboutView: View {
                     }
                 }
                 .foregroundStyle(.primary)
+
+                Toggle(isOn: $hapticEnabled) {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
+                        Text("Haptics")
+                    }
+                }
+                .tint(.blue)
                 
                 // Onboarding
                 Button(action: {

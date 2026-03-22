@@ -465,17 +465,9 @@ struct SettingsView: View {
                     
                 }
                 
-                // Haptic & Local Time
+                // Local Time
                 Section(footer: Text("System time shows at the top of the list with ambient background.")) {
-                    
-                    Toggle(isOn: $hapticEnabled) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
-                            Text("Haptics")
-                        }
-                    }
-                    .tint(.blue)
-                    
+
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
