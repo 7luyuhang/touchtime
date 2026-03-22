@@ -236,7 +236,7 @@ struct CityTimeAdjustmentSheet: View {
                         }
                         .padding(.horizontal, 10)
                         .padding(.vertical, 8)
-                        .glassEffect(.regular.tint(.blue))
+                        .glassEffect(.regular.tint(.blue), in: .capsule(style: .continuous))
                         .foregroundStyle(.white)
                     }
                     .padding(.leading, 20)
@@ -250,7 +250,7 @@ struct CityTimeAdjustmentSheet: View {
                         .blendMode(.plusLighter)
                 )
                 .contentShape(Capsule(style: .continuous))
-                .glassEffect(.regular.interactive())
+                .glassEffect(.regular.interactive(), in: .capsule(style: .continuous))
                 .buttonStyle(.plain)
                 .disabled(isSchedulingAlarm)
                 .opacity(isSchedulingAlarm ? 0.50 : 1)
