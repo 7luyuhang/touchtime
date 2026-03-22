@@ -470,7 +470,7 @@ struct SettingsView: View {
 
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "location.fill", topColor: .blue, bottomColor: .blue)
                             Text("System Time")
                         }
                     }
