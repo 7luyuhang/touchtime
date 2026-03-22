@@ -705,6 +705,7 @@ struct AnalogClockFullView: View {
                     }
                 }
             }
+            .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 if shouldShowToolbarTitle {
