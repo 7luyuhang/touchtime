@@ -1034,7 +1034,7 @@ struct EarthView: View {
             stopTimer()
         }
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
                         if hapticEnabled {
                             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -1047,7 +1047,7 @@ struct EarthView: View {
                     }
                 }
                 
-                ToolbarItemGroup(placement: .topBarLeading) {
+                ToolbarItemGroup(placement: .topBarTrailing) {
                     // Flight Time button - Only show when no flight path is active and there are cities
                     if (selectedFlightCities.from == nil || selectedFlightCities.to == nil) && !worldClocks.isEmpty {
                         Button(action: {
