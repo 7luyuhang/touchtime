@@ -1098,6 +1098,8 @@ struct HomeView: View {
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
+            .ignoresSafeArea(.keyboard, edges: .bottom)
+            
             // Navigation Title
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
