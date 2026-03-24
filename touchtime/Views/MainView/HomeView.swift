@@ -12,6 +12,7 @@ import EventKit
 import EventKitUI
 import WeatherKit
 import UniformTypeIdentifiers
+import PhotosUI
 
 // Data struct for city time adjustment sheet
 struct CityTimeAdjustmentData: Identifiable {
@@ -61,6 +62,9 @@ struct HomeView: View {
     @State private var showEarthView = false
     @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
     @State private var showCalendarPermissionAlert = false
+    @State private var showPhotoPicker = false
+    @State private var selectedPhotoPickerItem: PhotosPickerItem?
+    @State private var selectedPhotoComplicationStorageKey = "local"
     
     // Collection management
     @State private var collections: [CityCollection] = []
@@ -101,6 +105,7 @@ struct HomeView: View {
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
+    @AppStorage("showPhotoComplication") private var showPhotoComplication = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
     @AppStorage("showUVIndex") private var showUVIndex = false
@@ -185,6 +190,7 @@ struct HomeView: View {
             showAnalogClock: showAnalogClock,
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,
+            showPhotoComplication: showPhotoComplication,
             showWeatherCondition: effectiveShowWeatherCondition,
             showTemperatureIndicator: effectiveShowTemperatureIndicator,
             showUVIndex: effectiveShowUVIndex,
@@ -200,6 +206,14 @@ struct HomeView: View {
 
     private var hasVisibleComplication: Bool {
         complicationOptions.hasVisibleComplication
+    }
+
+    private var localPhotoComplicationStorageKey: String {
+        "local"
+    }
+
+    private func photoComplicationStorageKey(for clock: WorldClock) -> String {
+        "clock.\(clock.id.uuidString)"
     }
     
     // Get local city name from timezone
@@ -423,6 +437,84 @@ struct HomeView: View {
             impactFeedback.impactOccurred()
         }
     }
+
+    private func hasPhotoComplicationImage(for storageKey: String) -> Bool {
+        guard let data = UserDefaults.standard.data(
+            forKey: PhotoComplicationView.userDefaultsKey(for: storageKey)
+        ) else {
+            return false
+        }
+        return !data.isEmpty
+    }
+
+    private func removePhotoComplicationImage(for storageKey: String) {
+        UserDefaults.standard.removeObject(
+            forKey: PhotoComplicationView.userDefaultsKey(for: storageKey)
+        )
+
+        if hapticEnabled {
+            let feedback = UINotificationFeedbackGenerator()
+            feedback.notificationOccurred(.success)
+        }
+    }
+
+    private func openPhotoComplicationPicker(for storageKey: String) {
+        selectedPhotoComplicationStorageKey = storageKey
+        selectedPhotoPickerItem = nil
+        showPhotoPicker = true
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func loadPhotoComplicationImage(from item: PhotosPickerItem?) {
+        guard let item else { return }
+        let storageKey = selectedPhotoComplicationStorageKey
+
+        Task {
+            guard let data = try? await item.loadTransferable(type: Data.self),
+                  let preparedData = preparedPhotoComplicationData(from: data) else {
+                await MainActor.run {
+                    selectedPhotoPickerItem = nil
+                }
+                return
+            }
+
+            await MainActor.run {
+                UserDefaults.standard.set(
+                    preparedData,
+                    forKey: PhotoComplicationView.userDefaultsKey(for: storageKey)
+                )
+                selectedPhotoPickerItem = nil
+
+                if hapticEnabled {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
+                }
+            }
+        }
+    }
+
+    private func preparedPhotoComplicationData(from data: Data) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+
+        let targetSize = CGSize(width: 512, height: 512)
+        let scale = max(targetSize.width / image.size.width, targetSize.height / image.size.height)
+        let drawSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+        let drawOrigin = CGPoint(
+            x: (targetSize.width - drawSize.width) / 2,
+            y: (targetSize.height - drawSize.height) / 2
+        )
+
+        let renderer = UIGraphicsImageRenderer(size: targetSize)
+        let renderedImage = renderer.image { _ in
+            image.draw(in: CGRect(origin: drawOrigin, size: drawSize))
+        }
+
+        return renderedImage.jpegData(compressionQuality: 0.85)
+    }
     
     // MARK: - Context Menus
     @ViewBuilder
@@ -451,7 +543,8 @@ struct HomeView: View {
             renderCardImage(
                 cityName: String(localized: "Local"),
                 timeZoneIdentifier: TimeZone.current.identifier,
-                weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
+                weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier),
+                photoComplicationStorageKey: localPhotoComplicationStorageKey
             ).uiImage
         }
         Menu {
@@ -495,7 +588,8 @@ struct HomeView: View {
             renderCardImage(
                 cityName: getLocalizedCityName(for: clock),
                 timeZoneIdentifier: clock.timeZoneIdentifier,
-                weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
+                weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier),
+                photoComplicationStorageKey: photoComplicationStorageKey(for: clock)
             ).uiImage
         }
         Menu {
@@ -568,7 +662,12 @@ struct HomeView: View {
     }
     
     // Render city card as image for sharing
-    func renderCardImage(cityName: String, timeZoneIdentifier: String, weatherCondition: WeatherCondition? = nil) -> CardImage {
+    func renderCardImage(
+        cityName: String,
+        timeZoneIdentifier: String,
+        weatherCondition: WeatherCondition? = nil,
+        photoComplicationStorageKey: String = "default"
+    ) -> CardImage {
         let adjustedDate = currentDate.addingTimeInterval(timeOffset)
         let effectiveWeatherCondition = showWeather ? weatherCondition : nil
         let weatherForSnapshot = showWeather ? weatherManager.weatherData[timeZoneIdentifier] : nil
@@ -607,7 +706,8 @@ struct HomeView: View {
             complications: complicationOptions,
             additionalTimeDisplay: additionalTimeDisplay,
             showSkyDot: showSkyDot,
-            additionalTimeText: additionalText
+            additionalTimeText: additionalText,
+            photoComplicationStorageKey: photoComplicationStorageKey
         )
         .environmentObject(weatherManager)
         .environment(\.colorScheme, .dark)
@@ -781,7 +881,18 @@ struct HomeView: View {
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZone: TimeZone.current,
                                         options: complicationOptions,
-                                        bottomPadding: (hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0
+                                        bottomPadding: (hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0,
+                                        photoStorageKey: localPhotoComplicationStorageKey,
+                                        hasPhotoComplicationImage: hasPhotoComplicationImage(for: localPhotoComplicationStorageKey),
+                                        onPhotoComplicationTap: {
+                                            openPhotoComplicationPicker(for: localPhotoComplicationStorageKey)
+                                        },
+                                        onPhotoComplicationPickNew: {
+                                            openPhotoComplicationPicker(for: localPhotoComplicationStorageKey)
+                                        },
+                                        onPhotoComplicationRemove: {
+                                            removePhotoComplicationImage(for: localPhotoComplicationStorageKey)
+                                        }
                                     )
                                     .environmentObject(weatherManager)
                                 }
@@ -956,7 +1067,18 @@ struct HomeView: View {
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
                                         options: complicationOptions,
-                                        bottomPadding: 0
+                                        bottomPadding: 0,
+                                        photoStorageKey: photoComplicationStorageKey(for: clock),
+                                        hasPhotoComplicationImage: hasPhotoComplicationImage(for: photoComplicationStorageKey(for: clock)),
+                                        onPhotoComplicationTap: {
+                                            openPhotoComplicationPicker(for: photoComplicationStorageKey(for: clock))
+                                        },
+                                        onPhotoComplicationPickNew: {
+                                            openPhotoComplicationPicker(for: photoComplicationStorageKey(for: clock))
+                                        },
+                                        onPhotoComplicationRemove: {
+                                            removePhotoComplicationImage(for: photoComplicationStorageKey(for: clock))
+                                        }
                                     )
                                     .environmentObject(weatherManager)
                                 }
@@ -1085,6 +1207,7 @@ struct HomeView: View {
             .animation(.spring(), value: hasLifetimeAccess && availableTimeEnabled)
             .animation(.spring(), value: showAnalogClock)
             .animation(.spring(), value: showSunPosition)
+            .animation(.spring(), value: showPhotoComplication)
             .animation(.spring(), value: effectiveShowWeatherCondition)
             .animation(.spring(), value: effectiveShowTemperatureIndicator)
             .animation(.spring(), value: effectiveShowUVIndex)
@@ -1268,6 +1391,15 @@ struct HomeView: View {
             
             .onAppear {
                 loadCollections()
+            }
+
+            .photosPicker(
+                isPresented: $showPhotoPicker,
+                selection: $selectedPhotoPickerItem,
+                matching: .images
+            )
+            .onChange(of: selectedPhotoPickerItem) { _, newItem in
+                loadPhotoComplicationImage(from: newItem)
             }
             
             // Listen for reset notification to reset scroll time

@@ -11,6 +11,7 @@ struct ComplicationDisplayOptions: Equatable {
     let showAnalogClock: Bool
     let analogClockShowScale: Bool
     let showSunPosition: Bool
+    let showPhotoComplication: Bool
     let showWeatherCondition: Bool
     let showTemperatureIndicator: Bool
     let showUVIndex: Bool
@@ -25,6 +26,7 @@ struct ComplicationDisplayOptions: Equatable {
     var hasVisibleComplication: Bool {
         showAnalogClock ||
         showSunPosition ||
+        showPhotoComplication ||
         showWeatherCondition ||
         showTemperatureIndicator ||
         showUVIndex ||
@@ -44,6 +46,11 @@ struct ComplicationOverlayView: View {
     let options: ComplicationDisplayOptions
     var size: CGFloat = 64
     var bottomPadding: CGFloat = 0
+    var photoStorageKey: String = "default"
+    var hasPhotoComplicationImage: Bool = false
+    var onPhotoComplicationTap: (() -> Void)? = nil
+    var onPhotoComplicationPickNew: (() -> Void)? = nil
+    var onPhotoComplicationRemove: (() -> Void)? = nil
 
     @EnvironmentObject private var weatherManager: WeatherManager
 
@@ -66,6 +73,36 @@ struct ComplicationOverlayView: View {
                     size: size
                 )
                 .complicationOverlayStyle(bottomPadding: bottomPadding)
+            }
+
+            if options.showPhotoComplication {
+                let photoComplication = PhotoComplicationView(size: size, photoStorageKey: photoStorageKey)
+                    .complicationOverlayStyle(bottomPadding: bottomPadding)
+
+                if hasPhotoComplicationImage,
+                   let onPhotoComplicationPickNew,
+                   let onPhotoComplicationRemove {
+                    Menu {
+                        Section(String(localized: "Photo Complication")) {
+                            Button(action: onPhotoComplicationPickNew) {
+                                Label(String(localized: "Gallery"), systemImage: "photo.badge.plus")
+                            }
+                            Button(role: .destructive, action: onPhotoComplicationRemove) {
+                                Label(String(localized: "Remove"), systemImage: "minus.circle")
+                            }
+                        }
+                    } label: {
+                        photoComplication
+                    }
+                    .buttonStyle(.plain)
+                } else if let onPhotoComplicationTap {
+                    Button(action: onPhotoComplicationTap) {
+                        photoComplication
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    photoComplication
+                }
             }
 
             if options.showWeatherCondition {

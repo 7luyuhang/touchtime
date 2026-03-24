@@ -27,6 +27,7 @@ struct SettingsView: View {
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
+    @AppStorage("showPhotoComplication") private var showPhotoComplication = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
     @AppStorage("showUVIndex") private var showUVIndex = false
@@ -74,6 +75,7 @@ struct SettingsView: View {
     private enum PreviewComplication: String {
         case analogClock
         case sunElevation
+        case photo
         case sunAzimuth
         case moonAzimuth
         case moonSunAzimuth
@@ -91,6 +93,8 @@ struct SettingsView: View {
                 return String(localized: "Analog Clock")
             case .sunElevation:
                 return String(localized: "Sun Elevation")
+            case .photo:
+                return String(localized: "Photo")
             case .sunAzimuth:
                 return String(localized: "Sun Azimuth")
             case .moonAzimuth:
@@ -153,6 +157,8 @@ struct SettingsView: View {
             return .analogClock
         } else if showSunPosition {
             return .sunElevation
+        } else if showPhotoComplication {
+            return .photo
         } else if showSunAzimuth {
             return .sunAzimuth
         } else if effectiveShowMoonAzimuth {
@@ -291,6 +297,11 @@ struct SettingsView: View {
             SunPositionIndicator(
                 date: currentDate,
                 timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .photo:
+            PhotoComplicationView(
                 size: 64,
                 useMaterialBackground: true
             )
@@ -1000,6 +1011,7 @@ struct SettingsView: View {
                     ComplicationsSettingsView(
                         showAnalogClock: $showAnalogClock,
                         showSunPosition: $showSunPosition,
+                        showPhotoComplication: $showPhotoComplication,
                         showSunAzimuth: $showSunAzimuth,
                         showMoonAzimuth: $showMoonAzimuth,
                         showMoonSunAzimuth: $showMoonSunAzimuth,

@@ -11,6 +11,7 @@ import Combine
 struct ComplicationsSettingsView: View {
     @Binding var showAnalogClock: Bool
     @Binding var showSunPosition: Bool
+    @Binding var showPhotoComplication: Bool
     @Binding var showSunAzimuth: Bool
     @Binding var showMoonAzimuth: Bool
     @Binding var showMoonSunAzimuth: Bool
@@ -38,6 +39,7 @@ struct ComplicationsSettingsView: View {
     private enum ComplicationType: CaseIterable {
         case analogClock
         case sunElevation
+        case photo
         case sunAzimuth
         case moonAzimuth
         case moonSunAzimuth
@@ -53,6 +55,7 @@ struct ComplicationsSettingsView: View {
             switch self {
             case .analogClock: return String(localized: "Analog Clock")
             case .sunElevation: return String(localized: "Sun Elevation")
+            case .photo: return String(localized: "Photo")
             case .sunAzimuth: return String(localized: "Sun Azimuth")
             case .moonAzimuth: return String(localized: "Moon Azimuth")
             case .moonSunAzimuth: return String(localized: "Moon & Sun Azimuth")
@@ -72,6 +75,7 @@ struct ComplicationsSettingsView: View {
         withAnimation(.spring()) {
             showAnalogClock = type == .analogClock
             showSunPosition = type == .sunElevation
+            showPhotoComplication = type == .photo
             showSunAzimuth = type == .sunAzimuth
             showMoonAzimuth = type == .moonAzimuth
             showMoonSunAzimuth = type == .moonSunAzimuth
@@ -214,6 +218,17 @@ struct ComplicationsSettingsView: View {
                         SunPositionIndicator(
                             date: currentDate,
                             timeZone: TimeZone.current,
+                            size: 64,
+                            useMaterialBackground: false
+                        )
+                    }
+
+                    // Photo
+                    complicationOption(
+                        type: .photo,
+                        isSelected: showPhotoComplication
+                    ) {
+                        PhotoComplicationView(
                             size: 64,
                             useMaterialBackground: false
                         )

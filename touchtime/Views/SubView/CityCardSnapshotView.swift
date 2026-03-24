@@ -113,6 +113,7 @@ struct CityCardSnapshotView: View {
     let additionalTimeDisplay: String
     let showSkyDot: Bool
     let additionalTimeText: String
+    var photoComplicationStorageKey: String = "default"
     
     private var hasComplication: Bool {
         complications.hasVisibleComplication
@@ -221,7 +222,8 @@ struct CityCardSnapshotView: View {
                     date: date,
                     timeZone: timeZone,
                     options: complications,
-                    bottomPadding: 0
+                    bottomPadding: 0,
+                    photoStorageKey: photoComplicationStorageKey
                 )
             }
             .padding(.horizontal, 16)

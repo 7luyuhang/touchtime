@@ -41,6 +41,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
+    @AppStorage("showPhotoComplication") private var showPhotoComplication = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
     @AppStorage("showUVIndex") private var showUVIndex = false
@@ -124,6 +125,7 @@ struct ShareCitiesSheet: View {
             showAnalogClock: showAnalogClock,
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,
+            showPhotoComplication: showPhotoComplication,
             showWeatherCondition: effectiveShowWeatherCondition,
             showTemperatureIndicator: effectiveShowTemperatureIndicator,
             showUVIndex: effectiveShowUVIndex,
