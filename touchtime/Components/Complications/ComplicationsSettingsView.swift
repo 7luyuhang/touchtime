@@ -461,10 +461,24 @@ struct ComplicationsSettingsView: View {
                 RoundedRectangle(cornerRadius: 20, style: .continuous)
                     .strokeBorder(isSelected ? Color.white : .clear, lineWidth: 2)
             )
+            .overlay(alignment: .topLeading) {
+                if type == .photo {
+                    Image(systemName: "hand.point.up.left.fill")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(.white.opacity(0.5))
+                        .blendMode(.plusLighter)
+                        .padding(6)
+                        .background(
+                            Circle()
+                                .fill(.ultraThinMaterial)
+                        )
+                        .padding(8)
+                }
+            }
             .overlay(alignment: .topTrailing) {
                 if isLocked(type) {
                     Image(systemName: "lock.fill")
-                        .font(.caption2.weight(.bold))
+                        .font(.caption.weight(.bold))
                         .foregroundStyle(.white.opacity(0.5))
                         .blendMode(.plusLighter)
                         .padding(6)

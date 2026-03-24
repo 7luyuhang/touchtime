@@ -83,7 +83,7 @@ struct ComplicationOverlayView: View {
                    let onPhotoComplicationPickNew,
                    let onPhotoComplicationRemove {
                     Menu {
-                        Section(String(localized: "Photo Complication")) {
+                        Section(String(localized: "Complication")) {
                             Button(action: onPhotoComplicationPickNew) {
                                 Label(String(localized: "Gallery"), systemImage: "photo.badge.plus")
                             }
