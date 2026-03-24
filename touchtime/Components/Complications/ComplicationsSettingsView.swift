@@ -300,6 +300,17 @@ struct ComplicationsSettingsView: View {
                             useMaterialBackground: false
                         )
                     }
+
+                    // Photo
+                    complicationOption(
+                        type: .photo,
+                        isSelected: showPhotoComplication
+                    ) {
+                        PhotoComplicationView(
+                            size: 64,
+                            useMaterialBackground: false
+                        )
+                    }
                     
                     // Weather Condition (only show if weather is enabled)
                     if showWeather {
@@ -350,17 +361,6 @@ struct ComplicationsSettingsView: View {
                             )
                             .environmentObject(weatherManager)
                         }
-                    }
-
-                    // Photo
-                    complicationOption(
-                        type: .photo,
-                        isSelected: showPhotoComplication
-                    ) {
-                        PhotoComplicationView(
-                            size: 64,
-                            useMaterialBackground: false
-                        )
                     }
 
                     if !showWeather {
