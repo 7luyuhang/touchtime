@@ -120,12 +120,16 @@ struct ShareCitiesSheet: View {
         hasLifetimeAccess && showDaylight
     }
 
+    private var effectiveShowPhotoComplication: Bool {
+        hasLifetimeAccess && showPhotoComplication
+    }
+
     private var complicationOptions: ComplicationDisplayOptions {
         ComplicationDisplayOptions(
             showAnalogClock: showAnalogClock,
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,
-            showPhotoComplication: showPhotoComplication,
+            showPhotoComplication: effectiveShowPhotoComplication,
             showWeatherCondition: effectiveShowWeatherCondition,
             showTemperatureIndicator: effectiveShowTemperatureIndicator,
             showUVIndex: effectiveShowUVIndex,

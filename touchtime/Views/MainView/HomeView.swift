@@ -185,12 +185,16 @@ struct HomeView: View {
         hasLifetimeAccess && showDaylight
     }
 
+    private var effectiveShowPhotoComplication: Bool {
+        hasLifetimeAccess && showPhotoComplication
+    }
+
     private var complicationOptions: ComplicationDisplayOptions {
         ComplicationDisplayOptions(
             showAnalogClock: showAnalogClock,
             analogClockShowScale: analogClockShowScale,
             showSunPosition: showSunPosition,
-            showPhotoComplication: showPhotoComplication,
+            showPhotoComplication: effectiveShowPhotoComplication,
             showWeatherCondition: effectiveShowWeatherCondition,
             showTemperatureIndicator: effectiveShowTemperatureIndicator,
             showUVIndex: effectiveShowUVIndex,
@@ -1207,7 +1211,7 @@ struct HomeView: View {
             .animation(.spring(), value: hasLifetimeAccess && availableTimeEnabled)
             .animation(.spring(), value: showAnalogClock)
             .animation(.spring(), value: showSunPosition)
-            .animation(.spring(), value: showPhotoComplication)
+            .animation(.spring(), value: effectiveShowPhotoComplication)
             .animation(.spring(), value: effectiveShowWeatherCondition)
             .animation(.spring(), value: effectiveShowTemperatureIndicator)
             .animation(.spring(), value: effectiveShowUVIndex)

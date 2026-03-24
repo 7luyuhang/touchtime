@@ -91,7 +91,7 @@ struct ComplicationsSettingsView: View {
 
     private func isLocked(_ type: ComplicationType) -> Bool {
         switch type {
-        case .moonAzimuth, .moonSunAzimuth, .weatherCondition, .temperatureIndicator, .uvIndex, .windDirection, .daylight:
+        case .photo, .moonAzimuth, .moonSunAzimuth, .weatherCondition, .temperatureIndicator, .uvIndex, .windDirection, .daylight:
             return !hasLifetimeAccess
         default:
             return false
@@ -101,7 +101,7 @@ struct ComplicationsSettingsView: View {
     private func enforceLifetimeAccess() {
         guard !hasLifetimeAccess else { return }
 
-        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight {
+        if showPhotoComplication || showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight {
             selectComplication(nil)
         }
     }
@@ -223,17 +223,6 @@ struct ComplicationsSettingsView: View {
                         )
                     }
 
-                    // Photo
-                    complicationOption(
-                        type: .photo,
-                        isSelected: showPhotoComplication
-                    ) {
-                        PhotoComplicationView(
-                            size: 64,
-                            useMaterialBackground: false
-                        )
-                    }
-                    
                     // Sun Azimuth
                     complicationOption(
                         type: .sunAzimuth,
@@ -361,6 +350,17 @@ struct ComplicationsSettingsView: View {
                             )
                             .environmentObject(weatherManager)
                         }
+                    }
+
+                    // Photo
+                    complicationOption(
+                        type: .photo,
+                        isSelected: showPhotoComplication
+                    ) {
+                        PhotoComplicationView(
+                            size: 64,
+                            useMaterialBackground: false
+                        )
                     }
 
                     if !showWeather {

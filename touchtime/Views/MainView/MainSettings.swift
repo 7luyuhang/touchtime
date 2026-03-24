@@ -157,7 +157,7 @@ struct SettingsView: View {
             return .analogClock
         } else if showSunPosition {
             return .sunElevation
-        } else if showPhotoComplication {
+        } else if effectiveShowPhotoComplication {
             return .photo
         } else if showSunAzimuth {
             return .sunAzimuth
@@ -214,6 +214,10 @@ struct SettingsView: View {
 
     private var effectiveShowDaylight: Bool {
         hasLifetimeAccess && showDaylight
+    }
+
+    private var effectiveShowPhotoComplication: Bool {
+        hasLifetimeAccess && showPhotoComplication
     }
 
     private var hasComplicationEnabled: Bool {
@@ -1057,6 +1061,7 @@ struct SettingsView: View {
             showSunriseSunsetLines = false
             showMinuteHand = false
             availableTimeEnabled = false
+            showPhotoComplication = false
         }
     }
 
