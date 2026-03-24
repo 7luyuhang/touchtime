@@ -942,7 +942,7 @@ struct SettingsView: View {
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(
                         item: URL(string: "https://apps.apple.com/us/app/touch-time-world-clock/id6753721487")!,
                         message: Text("Download Touch Time.")
@@ -951,7 +951,7 @@ struct SettingsView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
