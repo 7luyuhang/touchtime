@@ -23,6 +23,7 @@ struct AboutView: View {
     // UserDefaults keys
     private let worldClocksKey = "savedWorldClocks"
     private let collectionsKey = "savedCityCollections"
+    private let photoComplicationKeyPrefix = PhotoComplicationView.userDefaultsKey(for: "")
     
     // Get current language display name
     var currentLanguageName: String {
@@ -274,6 +275,9 @@ struct AboutView: View {
         
         // Clear selected collection
         UserDefaults.standard.removeObject(forKey: "selectedCollectionId")
+
+        // Clear all photo complication images (including local)
+        clearPhotoComplicationImages()
         
         // Post notification to reset scroll time
         NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
@@ -283,6 +287,17 @@ struct AboutView: View {
             let impactFeedback = UINotificationFeedbackGenerator()
             impactFeedback.prepare()
             impactFeedback.notificationOccurred(.success)
+        }
+    }
+
+    private func clearPhotoComplicationImages() {
+        let defaults = UserDefaults.standard
+        let photoKeys = defaults.dictionaryRepresentation().keys.filter {
+            $0.hasPrefix(photoComplicationKeyPrefix)
+        }
+
+        for key in photoKeys {
+            defaults.removeObject(forKey: key)
         }
     }
 }
