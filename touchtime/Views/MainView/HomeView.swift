@@ -65,6 +65,7 @@ struct HomeView: View {
     @State private var showPhotoPicker = false
     @State private var selectedPhotoPickerItem: PhotosPickerItem?
     @State private var selectedPhotoComplicationStorageKey = "local"
+    @State private var lastDeletedCityRecord: DeletedCityRecord? = nil
     
     // Collection management
     @State private var collections: [CityCollection] = []
@@ -1201,6 +1202,11 @@ struct HomeView: View {
                     }
                 }
             )
+            .shakeToRestoreDeletedCity(lastDeletedCityRecord: $lastDeletedCityRecord) {
+                withAnimation {
+                    restoreLastDeletedCity()
+                }
+            }
             
             // Animations
             .animation(.spring(), value: showingRenameAlert)
@@ -1576,16 +1582,66 @@ struct HomeView: View {
     func deleteCity(withId cityId: UUID) {
         // Remove from worldClocks
         if let index = worldClocks.firstIndex(where: { $0.id == cityId }) {
-            worldClocks.remove(at: index)
-            saveWorldClocks()
-        }
-        
-        // Remove from all collections
-        for collectionIndex in collections.indices {
-            if let cityIndex = collections[collectionIndex].cities.firstIndex(where: { $0.id == cityId }) {
-                collections[collectionIndex].cities.remove(at: cityIndex)
+            let deletedClock = worldClocks.remove(at: index)
+
+            var placements: [DeletedCityRecord.CollectionPlacement] = []
+            for collectionIndex in collections.indices {
+                if let cityIndex = collections[collectionIndex].cities.firstIndex(where: { $0.id == cityId }) {
+                    placements.append(
+                        DeletedCityRecord.CollectionPlacement(
+                            collectionId: collections[collectionIndex].id,
+                            cityIndex: cityIndex
+                        )
+                    )
+                    collections[collectionIndex].cities.remove(at: cityIndex)
+                }
             }
+
+            lastDeletedCityRecord = DeletedCityRecord(
+                clock: deletedClock,
+                worldClockIndex: index,
+                collectionPlacements: placements
+            )
+            saveWorldClocks()
+            saveCollections()
+            return
+        }
+
+        // If the city no longer exists in worldClocks, still make sure collections are clean.
+        for collectionIndex in collections.indices {
+            collections[collectionIndex].cities.removeAll { $0.id == cityId }
         }
         saveCollections()
+    }
+
+    func restoreLastDeletedCity() {
+        guard let record = lastDeletedCityRecord else { return }
+        guard !worldClocks.contains(where: { $0.id == record.clock.id }) else {
+            lastDeletedCityRecord = nil
+            return
+        }
+
+        let insertionIndex = min(max(record.worldClockIndex, 0), worldClocks.count)
+        worldClocks.insert(record.clock, at: insertionIndex)
+
+        for placement in record.collectionPlacements {
+            guard let collectionIndex = collections.firstIndex(where: { $0.id == placement.collectionId }) else { continue }
+            guard !collections[collectionIndex].cities.contains(where: { $0.id == record.clock.id }) else { continue }
+
+            let collectionInsertionIndex = min(
+                max(placement.cityIndex, 0),
+                collections[collectionIndex].cities.count
+            )
+            collections[collectionIndex].cities.insert(record.clock, at: collectionInsertionIndex)
+        }
+
+        saveWorldClocks()
+        saveCollections()
+        lastDeletedCityRecord = nil
+
+        if hapticEnabled {
+            let feedback = UINotificationFeedbackGenerator()
+            feedback.notificationOccurred(.success)
+        }
     }
 }
