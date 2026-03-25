@@ -16,7 +16,7 @@ struct SetAlarmSheet: View {
     }
 
     @Environment(\.dismiss) private var dismiss
-    @State private var alarmRecords: [AlarmRecord] = []
+    @State private var alarmRecords: [AlarmRecord] = AlarmSupport.loadRecords()
     @State private var authorizationState: AlarmManager.AuthorizationState = AlarmManager.shared.authorizationState
     @State private var errorMessage = ""
     @State private var showErrorAlert = false
