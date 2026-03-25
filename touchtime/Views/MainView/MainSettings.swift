@@ -43,11 +43,14 @@ struct SettingsView: View {
     @AppStorage("showGoldenHour") private var showGoldenHour = false
     @AppStorage("showMinuteHand") private var showMinuteHand = true
     @AppStorage("showUTCHand") private var showUTCHand = true
+    @AppStorage("alarmSnoozeEnabled") private var alarmSnoozeEnabled = false
+    @AppStorage("alarmSnoozeDuration") private var alarmSnoozeDuration = 5
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @State private var currentDate = Date()
     @State private var showLifetimeStore = false
     @State private var showSupportLove = false
     @State private var showComplicationsSheet = false
+    @State private var showAlarmSnoozeDurationSheet = false
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var weatherManager: WeatherManager
     
@@ -275,6 +278,17 @@ struct SettingsView: View {
         )
     }
 
+    private var alarmSnoozeDurationBinding: Binding<Int> {
+        Binding(
+            get: {
+                max(1, min(15, alarmSnoozeDuration))
+            },
+            set: { newValue in
+                alarmSnoozeDuration = max(1, min(15, newValue))
+            }
+        )
+    }
+
     @ViewBuilder
     private func previewComplication<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         content()
@@ -485,7 +499,7 @@ struct SettingsView: View {
 
                     Toggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "location.fill", topColor: .blue, bottomColor: .cyan)
+                            SystemIconImage(systemName: "location.fill", topColor: .blue, bottomColor: .blue)
                             Text("System Time")
                         }
                     }
@@ -848,6 +862,33 @@ struct SettingsView: View {
                         }
                     }
                 }
+
+                Section {
+                    Toggle(isOn: $alarmSnoozeEnabled) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "alarm.fill", topColor: .orange, bottomColor: .orange)
+                            Text("Alarm Snooze")
+                        }
+                    }
+                    .tint(.blue)
+
+                    if alarmSnoozeEnabled {
+                        Button {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            showAlarmSnoozeDurationSheet = true
+                        } label: {
+                            HStack {
+                                Text("Snooze Duration")
+                                Spacer()
+                                Text("\(alarmSnoozeDurationBinding.wrappedValue) min")
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .foregroundStyle(.primary)
+                    }
+                }
                 
                 
                 // Contact Sections
@@ -987,6 +1028,23 @@ struct SettingsView: View {
                 NavigationStack {
                     LifetimeStoreView()
                 }
+            }
+            .sheet(isPresented: $showAlarmSnoozeDurationSheet) {
+                NavigationStack {
+                    Picker("Snooze Duration", selection: alarmSnoozeDurationBinding) {
+                        ForEach(1...15, id: \.self) { minute in
+                            Text("\(minute) min")
+                                .tag(minute)
+                        }
+                    }
+                    .pickerStyle(.wheel)
+                    .padding(.horizontal)
+                    .labelsHidden()
+                    .navigationTitle("Snooze Duration")
+                    .navigationBarTitleDisplayMode(.inline)
+                }
+                .presentationDetents([.height(300)])
+                .presentationDragIndicator(.visible)
             }
             
             // Support & Love

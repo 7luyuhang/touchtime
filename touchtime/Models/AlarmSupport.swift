@@ -121,6 +121,18 @@ enum AlarmAuthorizationResult {
 
 enum AlarmSupport {
     private static let alarmRecordsKey = "savedAlarmRecords"
+    private static let alarmSnoozeEnabledKey = "alarmSnoozeEnabled"
+    private static let alarmSnoozeDurationKey = "alarmSnoozeDuration"
+    private static let defaultSnoozeDurationMinutes = 5
+
+    private struct SnoozeSettings {
+        let isEnabled: Bool
+        let durationMinutes: Int
+
+        var durationSeconds: TimeInterval {
+            TimeInterval(durationMinutes * 60)
+        }
+    }
 
     static func loadRecords() -> [AlarmRecord] {
         guard let data = UserDefaults.standard.data(forKey: alarmRecordsKey),
@@ -169,10 +181,24 @@ enum AlarmSupport {
         let resolvedTitle = (trimmedTitle?.isEmpty == false ? trimmedTitle : nil) ?? defaultAlarmTitle
         let alarmTitle = LocalizedStringResource(stringLiteral: resolvedTitle)
         let doneText = LocalizedStringResource("Done")
+        let snoozeText = LocalizedStringResource("Snooze")
+        let snoozeSettings = currentSnoozeSettings()
+        let secondaryButton = snoozeSettings.isEnabled
+            ? AlarmButton(
+                text: snoozeText,
+                textColor: .black,
+                systemImageName: "zzz"
+            )
+            : nil
+        let secondaryButtonBehavior: AlarmPresentation.Alert.SecondaryButtonBehavior? = snoozeSettings.isEnabled ? .countdown : nil
         let alert: AlarmPresentation.Alert
 
         if #available(iOS 26.1, *) {
-            alert = AlarmPresentation.Alert(title: alarmTitle)
+            alert = AlarmPresentation.Alert(
+                title: alarmTitle,
+                secondaryButton: secondaryButton,
+                secondaryButtonBehavior: secondaryButtonBehavior
+            )
         } else {
             alert = AlarmPresentation.Alert(
                 title: alarmTitle,
@@ -180,7 +206,9 @@ enum AlarmSupport {
                     text: doneText,
                     textColor: .white,
                     systemImageName: "checkmark"
-                )
+                ),
+                secondaryButton: secondaryButton,
+                secondaryButtonBehavior: secondaryButtonBehavior
             )
         }
 
@@ -207,9 +235,17 @@ enum AlarmSupport {
             )
         )
 
+        let countdownDuration = snoozeSettings.isEnabled
+            ? Alarm.CountdownDuration(preAlert: nil, postAlert: snoozeSettings.durationSeconds)
+            : nil
+
         _ = try await alarmManager.schedule(
             id: id,
-            configuration: .alarm(schedule: schedule, attributes: attributes)
+            configuration: AlarmManager.AlarmConfiguration<TouchtimeAlarmMetadata>(
+                countdownDuration: countdownDuration,
+                schedule: schedule,
+                attributes: attributes
+            )
         )
     }
 
@@ -242,5 +278,17 @@ enum AlarmSupport {
     private static func todayLocaleWeekday() -> Locale.Weekday {
         let currentWeekday = Calendar.current.component(.weekday, from: Date())
         return localeWeekday(from: currentWeekday) ?? .monday
+    }
+
+    private static func currentSnoozeSettings() -> SnoozeSettings {
+        let defaults = UserDefaults.standard
+        let isEnabled = defaults.bool(forKey: alarmSnoozeEnabledKey)
+        let storedDuration = defaults.object(forKey: alarmSnoozeDurationKey) as? Int ?? defaultSnoozeDurationMinutes
+        let clampedDuration = min(max(storedDuration, 1), 15)
+
+        return SnoozeSettings(
+            isEnabled: isEnabled,
+            durationMinutes: clampedDuration
+        )
     }
 }
