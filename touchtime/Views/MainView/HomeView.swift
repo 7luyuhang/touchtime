@@ -118,6 +118,8 @@ struct HomeView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
+    @AppStorage("showWhatsNewShakeResetCity") private var showWhatsNewShakeResetCity = false
+    @AppStorage("hasShownWhatsNewShakeResetCity") private var hasShownWhatsNewShakeResetCity = false
     
     // Namespace for zoom transition
     @Namespace private var earthViewNamespace
@@ -767,6 +769,47 @@ struct HomeView: View {
                     // Main List Content
                     List {
                         
+                        // Shake Restore Tip Section
+                        if showWhatsNewShakeResetCity {
+                            Section {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "iphone.gen3.radiowaves.left.and.right")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .frame(width: 24, height: 24)
+                                        .symbolEffect(.wiggle.counterClockwise.byLayer, options: .repeat(.periodic(delay: 1.0)))
+                                    
+                                    Text(String(localized: "Shake to reset the city"))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "xmark")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .frame(width: 24, height: 24)
+                                }
+                                .listRowBackground(
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                        .fill(Color.black.opacity(0.10))
+                                        .glassEffect(.clear.interactive(),
+                                                     in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    withAnimation(.spring()) {
+                                        showWhatsNewShakeResetCity = false
+                                    }
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                }
+                            }
+                        }
+                        
                         // What's New Section
                         if showWhatsNewSwipeAdjust {
                             Section {
@@ -1228,6 +1271,7 @@ struct HomeView: View {
             .animation(.spring(), value: showSunriseSunset)
             .animation(.spring(), value: effectiveShowDaylight)
             .animation(.spring(), value: showSolarCurve)
+            .animation(.spring(), value: showWhatsNewShakeResetCity)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
@@ -1602,6 +1646,12 @@ struct HomeView: View {
                 worldClockIndex: index,
                 collectionPlacements: placements
             )
+            if !hasShownWhatsNewShakeResetCity {
+                hasShownWhatsNewShakeResetCity = true
+                withAnimation(.spring()) {
+                    showWhatsNewShakeResetCity = true
+                }
+            }
             saveWorldClocks()
             saveCollections()
             return
