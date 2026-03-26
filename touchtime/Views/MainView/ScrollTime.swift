@@ -427,8 +427,8 @@ struct ScrollTimeView: View {
         // Increase reset count
         resetCount += 1
         
-        // Request app review after 3 resets
-        let reviewRequestThreshold = 3
+        // Request app review after 5 resets
+        let reviewRequestThreshold = 5
         if resetCount >= reviewRequestThreshold && !hasRequestedReviewAfterFirstReset {
             hasRequestedReviewAfterFirstReset = true
             // Delay the review request slightly to allow the UI animation to complete
