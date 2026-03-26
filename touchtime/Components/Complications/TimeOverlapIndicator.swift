@@ -142,8 +142,13 @@ struct TimeOverlapIndicator: View {
             )
 
             Circle()
-                .fill(.white)
-                .opacity(isCurrentOnArc ? 1.0 : 0.50)
+                .fill(isCurrentOnArc ? .white : .clear)
+                .overlay {
+                    if !isCurrentOnArc {
+                        Circle()
+                            .stroke(.white.opacity(0.5), lineWidth: 1.5)
+                    }
+                }
                 .frame(width: markerSize, height: markerSize)
                 .offset(y: -orbitRadius)
                 .rotationEffect(.degrees(currentAngle))
