@@ -19,7 +19,28 @@ struct AvailableTimePicker: View {
     @State private var startDate = Date()
     @State private var endDate = Date()
     @State private var selectedWeekdays: Set<Int> = []
+    @StateObject private var previewWeatherManager = WeatherManager()
     @Environment(\.dismiss) private var dismiss
+
+    private var timeOverlapPreviewOptions: ComplicationDisplayOptions {
+        ComplicationDisplayOptions(
+            showAnalogClock: false,
+            analogClockShowScale: false,
+            showSunPosition: false,
+            showPhotoComplication: false,
+            showWeatherCondition: false,
+            showTemperatureIndicator: false,
+            showUVIndex: false,
+            showWindDirection: false,
+            showSunAzimuth: false,
+            showMoonAzimuth: false,
+            showMoonSunAzimuth: false,
+            showSunriseSunset: false,
+            showDaylight: false,
+            showTimeOverlap: true,
+            showSolarCurve: false
+        )
+    }
     
     // Weekday names and indices (1 = Sunday, 2 = Monday, etc. in Calendar)
     private var weekdays: [(name: String, index: Int)] {
@@ -180,7 +201,7 @@ struct AvailableTimePicker: View {
             return String(format: String(localized: "%d hours %d minutes"), hours, minutes)
         }
     }
-    
+
     var body: some View {
         NavigationStack {
             List {
@@ -314,11 +335,43 @@ struct AvailableTimePicker: View {
                     }
  
                 }
+
+                if availableTimeEnabled {
+                    // Time Overlap Complication
+                    Section(header: Text("Complications")){
+                        HStack(alignment: .center, spacing: 16) {
+                            ComplicationOverlayView(
+                                date: Date(),
+                                timeZone: .current,
+                                options: timeOverlapPreviewOptions,
+                                size: 64
+                            )
+                            .frame(width: 64, height: 64)
+                            .environmentObject(previewWeatherManager)
+                            .allowsHitTesting(false)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(String(localized: "Time Overlap"))
+                                    .font(.subheadline.weight(.semibold))
+                                Text(String(localized: "Find a time that works across cities"))
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                .fill(Color.clear)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                        .stroke(Color.white.opacity(0.10), lineWidth: 3.5)
+                                )
+                        )
+                    }
+                }
             }
             // Title
             .navigationTitle("Available Time")
             .navigationBarTitleDisplayMode(.inline)
-            
             .onAppear {
                 // Initialize dates from stored values
                 startDate = timeStringToDate(availableStartTime)
