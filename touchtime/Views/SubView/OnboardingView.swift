@@ -88,6 +88,7 @@ struct OnboardingView: View {
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showTimeOverlap") private var showTimeOverlap = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
@@ -106,6 +107,7 @@ struct OnboardingView: View {
         case uvIndex
         case windDirection
         case daylight
+        case timeOverlap
         case solarCurve
         
         var localizedName: String {
@@ -121,6 +123,7 @@ struct OnboardingView: View {
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
             case .daylight: return String(localized: "Daylight Curve")
+            case .timeOverlap: return String(localized: "Time Overlap")
             case .solarCurve: return String(localized: "Solar Curve")
             }
         }
@@ -156,6 +159,10 @@ struct OnboardingView: View {
 
     private var effectiveShowDaylight: Bool {
         canShowLifetimeComplications && showDaylight
+    }
+
+    private var effectiveShowTimeOverlap: Bool {
+        canShowLifetimeComplications && showTimeOverlap
     }
     
     // Prepare haptic engine
@@ -221,6 +228,7 @@ struct OnboardingView: View {
             showUVIndex = type == .uvIndex
             showWindDirection = type == .windDirection
             showDaylight = type == .daylight
+            showTimeOverlap = type == .timeOverlap
             showSolarCurve = type == .solarCurve
         }
     }
@@ -228,7 +236,7 @@ struct OnboardingView: View {
     private func enforceLifetimeAccess() {
         guard !hasLifetimeAccess else { return }
 
-        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight {
+        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlap {
             selectComplication(nil)
         }
     }
@@ -546,6 +554,20 @@ struct OnboardingView: View {
                                             .blendMode(.plusLighter)
                                     )
                                 }
+
+                                if effectiveShowTimeOverlap {
+                                    TimeOverlapIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
                                 
                                 if showSolarCurve {
                                     SolarCurve(
@@ -711,6 +733,17 @@ struct OnboardingView: View {
                                     if canShowLifetimeComplications {
                                         complicationOption(type: .daylight, isSelected: effectiveShowDaylight) {
                                             DaylightIndicator(
+                                                date: currentDate,
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                        }
+                                    }
+
+                                    if canShowLifetimeComplications {
+                                        complicationOption(type: .timeOverlap, isSelected: effectiveShowTimeOverlap) {
+                                            TimeOverlapIndicator(
                                                 date: currentDate,
                                                 timeZone: TimeZone.current,
                                                 size: 64,

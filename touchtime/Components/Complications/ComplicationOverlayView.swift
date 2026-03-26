@@ -21,6 +21,7 @@ struct ComplicationDisplayOptions: Equatable {
     let showMoonSunAzimuth: Bool
     let showSunriseSunset: Bool
     let showDaylight: Bool
+    let showTimeOverlap: Bool
     let showSolarCurve: Bool
 
     var hasVisibleComplication: Bool {
@@ -36,6 +37,7 @@ struct ComplicationDisplayOptions: Equatable {
         showMoonSunAzimuth ||
         showSunriseSunset ||
         showDaylight ||
+        showTimeOverlap ||
         showSolarCurve
     }
 }
@@ -52,6 +54,7 @@ struct ComplicationOverlayView: View {
     var onPhotoComplicationPickNew: (() -> Void)? = nil
     var onPhotoComplicationRemove: (() -> Void)? = nil
 
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @EnvironmentObject private var weatherManager: WeatherManager
 
     var body: some View {
@@ -179,6 +182,15 @@ struct ComplicationOverlayView: View {
 
             if options.showDaylight {
                 DaylightIndicator(
+                    date: date,
+                    timeZone: timeZone,
+                    size: size
+                )
+                .complicationOverlayStyle(bottomPadding: bottomPadding)
+            }
+
+            if options.showTimeOverlap && availableTimeEnabled {
+                TimeOverlapIndicator(
                     date: date,
                     timeZone: timeZone,
                     size: size

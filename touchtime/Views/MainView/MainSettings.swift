@@ -37,6 +37,7 @@ struct SettingsView: View {
     @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showTimeOverlap") private var showTimeOverlap = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
@@ -88,6 +89,7 @@ struct SettingsView: View {
         case uvIndex
         case windDirection
         case daylight
+        case timeOverlap
         case solarCurve
 
         var localizedName: String {
@@ -116,6 +118,8 @@ struct SettingsView: View {
                 return String(localized: "Wind Direction")
             case .daylight:
                 return String(localized: "Daylight Curve")
+            case .timeOverlap:
+                return String(localized: "Time Overlap")
             case .solarCurve:
                 return String(localized: "Solar Curve")
             }
@@ -180,6 +184,8 @@ struct SettingsView: View {
             return .windDirection
         } else if effectiveShowDaylight {
             return .daylight
+        } else if effectiveShowTimeOverlap {
+            return .timeOverlap
         } else if showSolarCurve {
             return .solarCurve
         }
@@ -217,6 +223,10 @@ struct SettingsView: View {
 
     private var effectiveShowDaylight: Bool {
         hasLifetimeAccess && showDaylight
+    }
+
+    private var effectiveShowTimeOverlap: Bool {
+        hasLifetimeAccess && availableTimeEnabled && showTimeOverlap
     }
 
     private var effectiveShowPhotoComplication: Bool {
@@ -381,6 +391,13 @@ struct SettingsView: View {
             .environmentObject(weatherManager)
         case .daylight:
             DaylightIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .timeOverlap:
+            TimeOverlapIndicator(
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
@@ -1083,6 +1100,7 @@ struct SettingsView: View {
                         showUVIndex: $showUVIndex,
                         showWindDirection: $showWindDirection,
                         showDaylight: $showDaylight,
+                        showTimeOverlap: $showTimeOverlap,
                         showSolarCurve: $showSolarCurve,
                         showWeather: showWeather,
                         weatherManager: weatherManager

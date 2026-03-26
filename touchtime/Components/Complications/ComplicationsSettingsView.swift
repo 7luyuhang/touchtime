@@ -21,6 +21,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showUVIndex: Bool
     @Binding var showWindDirection: Bool
     @Binding var showDaylight: Bool
+    @Binding var showTimeOverlap: Bool
     @Binding var showSolarCurve: Bool
     var showWeather: Bool
     @ObservedObject var weatherManager: WeatherManager
@@ -29,6 +30,7 @@ struct ComplicationsSettingsView: View {
     @State private var showLifetimeStore = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
     @AppStorage("weatherConditionUseColoredIcon") private var weatherConditionUseColoredIcon = false
@@ -49,6 +51,7 @@ struct ComplicationsSettingsView: View {
         case uvIndex
         case windDirection
         case daylight
+        case timeOverlap
         case solarCurve
         
         var localizedName: String {
@@ -65,6 +68,7 @@ struct ComplicationsSettingsView: View {
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
             case .daylight: return String(localized: "Daylight Curve")
+            case .timeOverlap: return String(localized: "Time Overlap")
             case .solarCurve: return String(localized: "Solar Curve")
             }
         }
@@ -85,12 +89,15 @@ struct ComplicationsSettingsView: View {
             showUVIndex = type == .uvIndex
             showWindDirection = type == .windDirection
             showDaylight = type == .daylight
+            showTimeOverlap = type == .timeOverlap
             showSolarCurve = type == .solarCurve
         }
     }
 
     private func isLocked(_ type: ComplicationType) -> Bool {
         switch type {
+        case .timeOverlap:
+            return !hasLifetimeAccess || !availableTimeEnabled
         case .photo, .moonAzimuth, .moonSunAzimuth, .weatherCondition, .temperatureIndicator, .uvIndex, .windDirection, .daylight:
             return !hasLifetimeAccess
         default:
@@ -98,10 +105,15 @@ struct ComplicationsSettingsView: View {
         }
     }
 
-    private func enforceLifetimeAccess() {
-        guard !hasLifetimeAccess else { return }
+    private func enforceComplicationAvailability() {
+        if !hasLifetimeAccess {
+            if showPhotoComplication || showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlap {
+                selectComplication(nil)
+            }
+            return
+        }
 
-        if showPhotoComplication || showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight {
+        if !availableTimeEnabled && showTimeOverlap {
             selectComplication(nil)
         }
     }
@@ -113,7 +125,7 @@ struct ComplicationsSettingsView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding(.horizontal)
         .scrollIndicators(.hidden)
-        .navigationTitle("Complications")
+        .navigationTitle(String(localized: "Complications"))
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
@@ -173,10 +185,13 @@ struct ComplicationsSettingsView: View {
             currentDate = Date()
         }
         .onAppear {
-            enforceLifetimeAccess()
+            enforceComplicationAvailability()
         }
         .onChange(of: hasLifetimeAccess) { _, _ in
-            enforceLifetimeAccess()
+            enforceComplicationAvailability()
+        }
+        .onChange(of: availableTimeEnabled) { _, _ in
+            enforceComplicationAvailability()
         }
         .sheet(isPresented: $showLifetimeStore) {
             NavigationStack {
@@ -268,6 +283,19 @@ struct ComplicationsSettingsView: View {
                         isSelected: showDaylight
                     ) {
                         DaylightIndicator(
+                            date: currentDate,
+                            timeZone: TimeZone.current,
+                            size: 64,
+                            useMaterialBackground: false
+                        )
+                    }
+
+                    // Time Overlap
+                    complicationOption(
+                        type: .timeOverlap,
+                        isSelected: showTimeOverlap
+                    ) {
+                        TimeOverlapIndicator(
                             date: currentDate,
                             timeZone: TimeZone.current,
                             size: 64,

@@ -36,6 +36,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showSkyDot") private var showSkyDot = true
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showAnalogClock") private var showAnalogClock = false
@@ -51,6 +52,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showTimeOverlap") private var showTimeOverlap = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
@@ -120,6 +122,10 @@ struct ShareCitiesSheet: View {
         hasLifetimeAccess && showDaylight
     }
 
+    private var effectiveShowTimeOverlap: Bool {
+        hasLifetimeAccess && availableTimeEnabled && showTimeOverlap
+    }
+
     private var effectiveShowPhotoComplication: Bool {
         hasLifetimeAccess && showPhotoComplication
     }
@@ -139,6 +145,7 @@ struct ShareCitiesSheet: View {
             showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: effectiveShowDaylight,
+            showTimeOverlap: effectiveShowTimeOverlap,
             showSolarCurve: showSolarCurve
         )
     }

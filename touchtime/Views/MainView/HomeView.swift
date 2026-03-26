@@ -116,6 +116,7 @@ struct HomeView: View {
     @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showTimeOverlap") private var showTimeOverlap = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     @AppStorage("showWhatsNewShakeResetCity") private var showWhatsNewShakeResetCity = false
@@ -188,6 +189,10 @@ struct HomeView: View {
         hasLifetimeAccess && showDaylight
     }
 
+    private var effectiveShowTimeOverlap: Bool {
+        hasLifetimeAccess && availableTimeEnabled && showTimeOverlap
+    }
+
     private var effectiveShowPhotoComplication: Bool {
         hasLifetimeAccess && showPhotoComplication
     }
@@ -207,6 +212,7 @@ struct HomeView: View {
             showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: effectiveShowDaylight,
+            showTimeOverlap: effectiveShowTimeOverlap,
             showSolarCurve: showSolarCurve
         )
     }
