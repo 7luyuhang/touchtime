@@ -49,13 +49,44 @@ struct ComplicationOverlayView: View {
     var size: CGFloat = 64
     var bottomPadding: CGFloat = 0
     var photoStorageKey: String = "default"
-    var hasPhotoComplicationImage: Bool = false
     var onPhotoComplicationTap: (() -> Void)? = nil
     var onPhotoComplicationPickNew: (() -> Void)? = nil
     var onPhotoComplicationRemove: (() -> Void)? = nil
 
+    @AppStorage private var photoComplicationImageData: Data?
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @EnvironmentObject private var weatherManager: WeatherManager
+
+    init(
+        date: Date,
+        timeZone: TimeZone,
+        options: ComplicationDisplayOptions,
+        size: CGFloat = 64,
+        bottomPadding: CGFloat = 0,
+        photoStorageKey: String = "default",
+        onPhotoComplicationTap: (() -> Void)? = nil,
+        onPhotoComplicationPickNew: (() -> Void)? = nil,
+        onPhotoComplicationRemove: (() -> Void)? = nil
+    ) {
+        self.date = date
+        self.timeZone = timeZone
+        self.options = options
+        self.size = size
+        self.bottomPadding = bottomPadding
+        self.photoStorageKey = photoStorageKey
+        self.onPhotoComplicationTap = onPhotoComplicationTap
+        self.onPhotoComplicationPickNew = onPhotoComplicationPickNew
+        self.onPhotoComplicationRemove = onPhotoComplicationRemove
+        self._photoComplicationImageData = AppStorage(
+            PhotoComplicationView.userDefaultsKey(for: photoStorageKey),
+            store: .standard
+        )
+    }
+
+    private var hasStoredPhotoComplicationImage: Bool {
+        guard let photoComplicationImageData else { return false }
+        return !photoComplicationImageData.isEmpty
+    }
 
     var body: some View {
         Group {
@@ -82,7 +113,7 @@ struct ComplicationOverlayView: View {
                 let photoComplication = PhotoComplicationView(size: size, photoStorageKey: photoStorageKey)
                     .complicationOverlayStyle(bottomPadding: bottomPadding)
 
-                if hasPhotoComplicationImage,
+                if hasStoredPhotoComplicationImage,
                    let onPhotoComplicationPickNew,
                    let onPhotoComplicationRemove {
                     Menu {

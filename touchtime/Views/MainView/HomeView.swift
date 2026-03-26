@@ -451,15 +451,6 @@ struct HomeView: View {
         }
     }
 
-    private func hasPhotoComplicationImage(for storageKey: String) -> Bool {
-        guard let data = UserDefaults.standard.data(
-            forKey: PhotoComplicationView.userDefaultsKey(for: storageKey)
-        ) else {
-            return false
-        }
-        return !data.isEmpty
-    }
-
     private func removePhotoComplicationImage(for storageKey: String) {
         UserDefaults.standard.removeObject(
             forKey: PhotoComplicationView.userDefaultsKey(for: storageKey)
@@ -937,7 +928,6 @@ struct HomeView: View {
                                         options: complicationOptions,
                                         bottomPadding: (hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0,
                                         photoStorageKey: localPhotoComplicationStorageKey,
-                                        hasPhotoComplicationImage: hasPhotoComplicationImage(for: localPhotoComplicationStorageKey),
                                         onPhotoComplicationTap: {
                                             openPhotoComplicationPicker(for: localPhotoComplicationStorageKey)
                                         },
@@ -1123,7 +1113,6 @@ struct HomeView: View {
                                         options: complicationOptions,
                                         bottomPadding: 0,
                                         photoStorageKey: photoComplicationStorageKey(for: clock),
-                                        hasPhotoComplicationImage: hasPhotoComplicationImage(for: photoComplicationStorageKey(for: clock)),
                                         onPhotoComplicationTap: {
                                             openPhotoComplicationPicker(for: photoComplicationStorageKey(for: clock))
                                         },
