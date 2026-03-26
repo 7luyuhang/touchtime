@@ -96,9 +96,7 @@ struct ComplicationsSettingsView: View {
 
     private func isLocked(_ type: ComplicationType) -> Bool {
         switch type {
-        case .timeOverlap:
-            return !hasLifetimeAccess || !availableTimeEnabled
-        case .photo, .moonAzimuth, .moonSunAzimuth, .weatherCondition, .temperatureIndicator, .uvIndex, .windDirection, .daylight:
+        case .photo, .moonAzimuth, .moonSunAzimuth, .weatherCondition, .temperatureIndicator, .uvIndex, .windDirection, .daylight, .timeOverlap:
             return !hasLifetimeAccess
         default:
             return false
@@ -290,17 +288,19 @@ struct ComplicationsSettingsView: View {
                         )
                     }
 
-                    // Time Overlap
-                    complicationOption(
-                        type: .timeOverlap,
-                        isSelected: showTimeOverlap
-                    ) {
-                        TimeOverlapIndicator(
-                            date: currentDate,
-                            timeZone: TimeZone.current,
-                            size: 64,
-                            useMaterialBackground: false
-                        )
+                    if availableTimeEnabled {
+                        // Time Overlap
+                        complicationOption(
+                            type: .timeOverlap,
+                            isSelected: showTimeOverlap
+                        ) {
+                            TimeOverlapIndicator(
+                                date: currentDate,
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                        }
                     }
 
                     // Moon Azimuth
