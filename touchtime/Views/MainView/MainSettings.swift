@@ -299,6 +299,10 @@ struct SettingsView: View {
         )
     }
 
+    private func localizedSnoozeDurationText(minutes: Int) -> String {
+        String(format: String(localized: "%d min"), minutes)
+    }
+
     @ViewBuilder
     private func previewComplication<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
         content()
@@ -884,7 +888,7 @@ struct SettingsView: View {
                     Toggle(isOn: $alarmSnoozeEnabled) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "alarm.fill", topColor: .orange, bottomColor: .orange)
-                            Text("Alarm Snooze")
+                            Text(String(localized: "Alarm Snooze"))
                         }
                     }
                     .tint(.blue)
@@ -897,9 +901,9 @@ struct SettingsView: View {
                             showAlarmSnoozeDurationSheet = true
                         } label: {
                             HStack {
-                                Text("Snooze Duration")
+                                Text(String(localized: "Snooze Duration"))
                                 Spacer()
-                                Text("\(alarmSnoozeDurationBinding.wrappedValue) min")
+                                Text(localizedSnoozeDurationText(minutes: alarmSnoozeDurationBinding.wrappedValue))
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -1048,16 +1052,16 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showAlarmSnoozeDurationSheet) {
                 NavigationStack {
-                    Picker("Snooze Duration", selection: alarmSnoozeDurationBinding) {
+                    Picker(String(localized: "Snooze Duration"), selection: alarmSnoozeDurationBinding) {
                         ForEach(1...15, id: \.self) { minute in
-                            Text("\(minute) min")
+                            Text(localizedSnoozeDurationText(minutes: minute))
                                 .tag(minute)
                         }
                     }
                     .pickerStyle(.wheel)
                     .padding(.horizontal)
                     .labelsHidden()
-                    .navigationTitle("Snooze Duration")
+                    .navigationTitle(String(localized: "Snooze Duration"))
                     .navigationBarTitleDisplayMode(.inline)
                 }
                 .presentationDetents([.height(300)])

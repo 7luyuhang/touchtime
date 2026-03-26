@@ -85,6 +85,9 @@
 "Calendar" = "Calendar";
 "Default Calendar" = "Default Calendar";
 "Event Duration" = "Event Duration";
+"Alarm Snooze" = "Alarm Snooze";
+"Snooze Duration" = "Snooze Duration";
+"%d min" = "%d min";
 "15 min" = "15 min";
 "30 min" = "30 min";
 "45 min" = "45 min";
@@ -197,6 +200,7 @@
 "No Alarms" = "No Alarms";
 "Create alarms for your moments" = "Create alarms for your moments";
 "Alarm" = "Alarm";
+"Snooze" = "Snooze";
 "Alarm Error" = "Alarm Error";
 "Alarm Permission Needed" = "Alarm Permission Needed";
 "Please allow alarm access in Settings to create alarms." = "Please allow alarm access in Settings to create alarms.";

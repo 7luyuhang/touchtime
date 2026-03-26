@@ -88,6 +88,9 @@
 "Calendar" = "日历";
 "Default Calendar" = "默认日历";
 "Event Duration" = "活动时长";
+"Alarm Snooze" = "闹钟稍后提醒";
+"Snooze Duration" = "稍后提醒时长";
+"%d min" = "%d 分钟";
 "15 min" = "15 分钟";
 "30 min" = "30 分钟";
 "45 min" = "45 分钟";
@@ -200,6 +203,7 @@
 "No Alarms" = "暂无闹钟";
 "Create alarms for your moments" = "为你的每个时刻创建闹钟";
 "Alarm" = "闹钟";
+"Snooze" = "稍后提醒";
 "Alarm Error" = "闹钟错误";
 "Alarm Permission Needed" = "需要闹钟权限";
 "Please allow alarm access in Settings to create alarms." = "请在“设置”中允许闹钟权限以创建闹钟。";
