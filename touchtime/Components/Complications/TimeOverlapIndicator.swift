@@ -15,7 +15,6 @@ struct TimeOverlapIndicator: View {
 
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
-    @State private var displayedCurrentAngle: Double
 
     private static let timeFormatter: DateFormatter = {
         let formatter = DateFormatter()
@@ -30,7 +29,6 @@ struct TimeOverlapIndicator: View {
         self.timeZone = timeZone
         self.size = size
         self.useMaterialBackground = useMaterialBackground
-        _displayedCurrentAngle = State(initialValue: 0)
     }
 
     // 24-hour mapping: 0h at top, clockwise (15 degrees/hour)
@@ -153,25 +151,11 @@ struct TimeOverlapIndicator: View {
                 }
                 .frame(width: markerSize, height: markerSize)
                 .offset(y: -orbitRadius)
-                .rotationEffect(.degrees(displayedCurrentAngle))
+                .rotationEffect(.degrees(currentAngle))
                 .blendMode(.plusLighter)
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
-        .onAppear {
-            displayedCurrentAngle = currentAngle
-        }
-        .onChange(of: currentAngle) { _, newValue in
-            withAnimation(.spring()) {
-                displayedCurrentAngle = shortestRotationTarget(from: displayedCurrentAngle, to: newValue)
-            }
-        }
-    }
-
-    private func shortestRotationTarget(from current: Double, to target: Double) -> Double {
-        let delta = ((target - current).truncatingRemainder(dividingBy: 360) + 540)
-            .truncatingRemainder(dividingBy: 360) - 180
-        return current + delta
     }
 }
 
