@@ -128,6 +128,7 @@
 
 /* Home View */
 "Swipe right for precise time adjustment or set alarms" = "右滑城市以精确调整时间或设置闹钟";
+"Shake device to undo" = "摇晃设备以撤销";
 "Press and hold to view more about the city" = "长按查看城市更多信息";
 "Press and hold a collection for more actions" = "长按集合查看更多操作";
 "Add cities to track time." = "添加城市以追踪时间。";

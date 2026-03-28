@@ -124,6 +124,8 @@ struct HomeView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
+    @AppStorage("showShakeToResetTip") private var showShakeToResetTip = false
+    @AppStorage("hasTriggeredShakeToResetTip") private var hasTriggeredShakeToResetTip = false
     
     // Namespace for zoom transition
     @Namespace private var earthViewNamespace
@@ -681,6 +683,47 @@ struct HomeView: View {
                     // Main List Content
                     List {
                         
+                        // Shake to Reset Tip (shown after first city deletion)
+                        if showShakeToResetTip {
+                            Section {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "iphone.radiowaves.left.and.right")
+                                        .symbolEffect(.wiggle.clockwise.byLayer, options: .repeat(.periodic(delay: 1.0)))
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .frame(width: 24, height: 24)
+                                    
+                                    Text(String(localized: "Shake device to undo"))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "xmark")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .frame(width: 24, height: 24)
+                                }
+                                .listRowBackground(
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                        .fill(Color.black.opacity(0.10))
+                                        .glassEffect(.clear.interactive(),
+                                                     in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    withAnimation(.spring()) {
+                                        showShakeToResetTip = false
+                                    }
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                }
+                            }
+                        }
+                        
                         // What's New Section
                         if showWhatsNewSwipeAdjust {
                             Section {
@@ -1115,6 +1158,7 @@ struct HomeView: View {
             .animation(.spring(), value: effectiveShowDaylight)
             .animation(.spring(), value: showSolarCurve)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
+            .animation(.spring(), value: showShakeToResetTip)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
             .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -1517,6 +1561,11 @@ struct HomeView: View {
             worldClockIndex: worldClockIndex,
             collectionPositions: removedCollectionPositions
         )
+
+        if !hasTriggeredShakeToResetTip {
+            hasTriggeredShakeToResetTip = true
+            showShakeToResetTip = true
+        }
 
         saveWorldClocks()
         saveCollections()
