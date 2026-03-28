@@ -79,6 +79,7 @@ struct OnboardingView: View {
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("showSunPosition") private var showSunPosition = false
+    @AppStorage("showPhotoComplication") private var showPhotoComplication = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
     @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
@@ -98,6 +99,7 @@ struct OnboardingView: View {
     private enum OnboardingComplicationType: CaseIterable {
         case analogClock
         case sunElevation
+        case photo
         case sunAzimuth
         case moonAzimuth
         case moonSunAzimuth
@@ -114,6 +116,7 @@ struct OnboardingView: View {
             switch self {
             case .analogClock: return String(localized: "Analog Clock")
             case .sunElevation: return String(localized: "Sun Elevation")
+            case .photo: return String(localized: "Photo")
             case .sunAzimuth: return String(localized: "Sun Azimuth")
             case .moonAzimuth: return String(localized: "Moon Azimuth")
             case .moonSunAzimuth: return String(localized: "Moon & Sun Azimuth")
@@ -155,6 +158,10 @@ struct OnboardingView: View {
 
     private var effectiveShowMoonSunAzimuth: Bool {
         canShowLifetimeComplications && showMoonSunAzimuth
+    }
+
+    private var effectiveShowPhotoComplication: Bool {
+        canShowLifetimeComplications && showPhotoComplication
     }
 
     private var effectiveShowDaylight: Bool {
@@ -219,6 +226,7 @@ struct OnboardingView: View {
         withAnimation(.spring()) {
             showAnalogClock = type == .analogClock
             showSunPosition = type == .sunElevation
+            showPhotoComplication = type == .photo
             showSunAzimuth = type == .sunAzimuth
             showMoonAzimuth = type == .moonAzimuth
             showMoonSunAzimuth = type == .moonSunAzimuth
@@ -236,7 +244,7 @@ struct OnboardingView: View {
     private func enforceLifetimeAccess() {
         guard !hasLifetimeAccess else { return }
 
-        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlap {
+        if showPhotoComplication || showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlap {
             selectComplication(nil)
         }
     }
@@ -512,6 +520,18 @@ struct OnboardingView: View {
                                             .blendMode(.plusLighter)
                                     )
                                 }
+
+                                if effectiveShowPhotoComplication {
+                                    PhotoComplicationView(
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
                                 
                                 if showSunAzimuth {
                                     SunAzimuthIndicator(
@@ -728,6 +748,15 @@ struct OnboardingView: View {
                                             size: 64,
                                             useMaterialBackground: false
                                         )
+                                    }
+
+                                    if canShowLifetimeComplications {
+                                        complicationOption(type: .photo, isSelected: effectiveShowPhotoComplication) {
+                                            PhotoComplicationView(
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                        }
                                     }
 
                                     if canShowLifetimeComplications {
