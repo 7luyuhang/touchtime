@@ -36,6 +36,17 @@ struct LazyCardImage: Transferable {
 }
 
 struct HomeView: View {
+    private struct DeletedCitySnapshot {
+        struct CollectionPosition {
+            let collectionId: UUID
+            let cityIndex: Int
+        }
+
+        let clock: WorldClock
+        let worldClockIndex: Int
+        let collectionPositions: [CollectionPosition]
+    }
+
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
     @Binding var showScrollTimeButtons: Bool
@@ -65,6 +76,7 @@ struct HomeView: View {
     // Collection management
     @State private var collections: [CityCollection] = []
     @State private var selectedCollectionId: UUID? = nil
+    @State private var recentlyDeletedCity: DeletedCitySnapshot? = nil
     @AppStorage("selectedCollectionId") private var savedSelectedCollectionId: String = ""
     
     // Computed binding for picker
@@ -627,6 +639,13 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
+                ShakeDetectorView {
+                    withAnimation(.spring()) {
+                        restoreLastDeletedCity()
+                    }
+                }
+                .frame(width: 0, height: 0)
+                .allowsHitTesting(false)
                 
                 // Blank View
                 if displayedClocks.isEmpty && !showLocalTime {
@@ -1435,21 +1454,109 @@ struct HomeView: View {
             UserDefaults.standard.set(encoded, forKey: worldClocksKey)
         }
     }
+
+    // Restore the most recently deleted city (if any)
+    func restoreLastDeletedCity() {
+        guard let snapshot = recentlyDeletedCity else { return }
+
+        // If this city already exists again, clear stale snapshot and exit.
+        guard !worldClocks.contains(where: { $0.id == snapshot.clock.id }) else {
+            recentlyDeletedCity = nil
+            return
+        }
+
+        let worldInsertIndex = min(snapshot.worldClockIndex, worldClocks.count)
+        worldClocks.insert(snapshot.clock, at: worldInsertIndex)
+        saveWorldClocks()
+
+        for position in snapshot.collectionPositions {
+            guard let collectionIndex = collections.firstIndex(where: { $0.id == position.collectionId }) else {
+                continue
+            }
+            guard !collections[collectionIndex].cities.contains(where: { $0.id == snapshot.clock.id }) else {
+                continue
+            }
+
+            let cityInsertIndex = min(position.cityIndex, collections[collectionIndex].cities.count)
+            collections[collectionIndex].cities.insert(snapshot.clock, at: cityInsertIndex)
+        }
+        saveCollections()
+
+        recentlyDeletedCity = nil
+
+        if hapticEnabled {
+            let feedback = UINotificationFeedbackGenerator()
+            feedback.prepare()
+            feedback.notificationOccurred(.success)
+        }
+    }
     
     // Delete city from both worldClocks and all collections
     func deleteCity(withId cityId: UUID) {
-        // Remove from worldClocks
-        if let index = worldClocks.firstIndex(where: { $0.id == cityId }) {
-            worldClocks.remove(at: index)
-            saveWorldClocks()
+        guard let worldClockIndex = worldClocks.firstIndex(where: { $0.id == cityId }) else {
+            return
         }
-        
-        // Remove from all collections
+
+        let deletedClock = worldClocks.remove(at: worldClockIndex)
+        var removedCollectionPositions: [DeletedCitySnapshot.CollectionPosition] = []
+
         for collectionIndex in collections.indices {
             if let cityIndex = collections[collectionIndex].cities.firstIndex(where: { $0.id == cityId }) {
                 collections[collectionIndex].cities.remove(at: cityIndex)
+                removedCollectionPositions.append(
+                    .init(
+                        collectionId: collections[collectionIndex].id,
+                        cityIndex: cityIndex
+                    )
+                )
             }
         }
+
+        recentlyDeletedCity = DeletedCitySnapshot(
+            clock: deletedClock,
+            worldClockIndex: worldClockIndex,
+            collectionPositions: removedCollectionPositions
+        )
+
+        saveWorldClocks()
         saveCollections()
+    }
+}
+
+private struct ShakeDetectorView: UIViewControllerRepresentable {
+    let onShake: () -> Void
+
+    func makeUIViewController(context: Context) -> ShakeDetectorViewController {
+        let viewController = ShakeDetectorViewController()
+        viewController.onShake = onShake
+        return viewController
+    }
+
+    func updateUIViewController(_ uiViewController: ShakeDetectorViewController, context: Context) {
+        uiViewController.onShake = onShake
+    }
+}
+
+private final class ShakeDetectorViewController: UIViewController {
+    var onShake: (() -> Void)?
+
+    override var canBecomeFirstResponder: Bool { true }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        becomeFirstResponder()
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        resignFirstResponder()
+    }
+
+    override func motionEnded(_ motion: UIEvent.EventSubtype, with event: UIEvent?) {
+        guard motion == .motionShake else {
+            super.motionEnded(motion, with: event)
+            return
+        }
+        onShake?()
     }
 }
