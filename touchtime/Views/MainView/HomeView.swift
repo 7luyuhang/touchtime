@@ -69,6 +69,7 @@ struct HomeView: View {
     @State private var selectedCityName: String = ""
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
+    @State private var showSetTimerSheet = false
     @State private var showEarthView = false
     @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
     @State private var showCalendarPermissionAlert = false
@@ -126,6 +127,11 @@ struct HomeView: View {
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     @AppStorage("showShakeToResetTip") private var showShakeToResetTip = false
     @AppStorage("hasTriggeredShakeToResetTip") private var hasTriggeredShakeToResetTip = false
+    @AppStorage("homeTimerConfiguredSeconds") private var homeTimerConfiguredSeconds = 0
+    @AppStorage("homeTimerEndDateEpoch") private var homeTimerEndDateEpoch: Double = 0
+    @AppStorage("homeTimerCompletionHandled") private var homeTimerCompletionHandled = false
+    @AppStorage("homeTimerPaused") private var homeTimerPaused = false
+    @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
     
     // Namespace for zoom transition
     @Namespace private var earthViewNamespace
@@ -159,6 +165,153 @@ struct HomeView: View {
     private func formattedTime(for timeZone: TimeZone) -> String {
         let formatter = Self.timeFormatter(for: timeZone, use24Hour: use24HourFormat)
         return formatter.string(from: currentDate.addingTimeInterval(timeOffset))
+    }
+
+    private var hasConfiguredHomeTimer: Bool {
+        homeTimerConfiguredSeconds > 0
+    }
+
+    private var homeTimerEndDate: Date? {
+        guard homeTimerEndDateEpoch > 0 else { return nil }
+        return Date(timeIntervalSince1970: homeTimerEndDateEpoch)
+    }
+
+    private func homeTimerRemainingFromEndDate(at date: Date) -> Int {
+        guard let endDate = homeTimerEndDate else {
+            return 0
+        }
+
+        let remaining = Int(ceil(endDate.timeIntervalSince(date)))
+        return max(remaining, 0)
+    }
+
+    private func homeTimerRemainingSeconds(at date: Date) -> Int {
+        guard hasConfiguredHomeTimer else {
+            return 0
+        }
+
+        if homeTimerPaused {
+            return max(0, min(homeTimerPausedRemainingSeconds, 59 * 60 + 59))
+        }
+
+        return homeTimerRemainingFromEndDate(at: date)
+    }
+
+    private func startHomeTimer(durationSeconds: Int) {
+        let clampedDuration = min(max(durationSeconds, 1), 59 * 60 + 59)
+        homeTimerConfiguredSeconds = clampedDuration
+        homeTimerEndDateEpoch = Date().addingTimeInterval(TimeInterval(clampedDuration)).timeIntervalSince1970
+        homeTimerPaused = false
+        homeTimerPausedRemainingSeconds = 0
+        homeTimerCompletionHandled = false
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func handleHomeTimerTap() {
+        guard hasConfiguredHomeTimer else { return }
+
+        let remaining = homeTimerRemainingSeconds(at: Date())
+        if remaining == 0 {
+            startHomeTimer(durationSeconds: homeTimerConfiguredSeconds)
+            return
+        }
+
+        if homeTimerPaused {
+            let secondsToResume = max(1, min(homeTimerPausedRemainingSeconds, 59 * 60 + 59))
+            homeTimerEndDateEpoch = Date().addingTimeInterval(TimeInterval(secondsToResume)).timeIntervalSince1970
+            homeTimerPaused = false
+            homeTimerPausedRemainingSeconds = 0
+            homeTimerCompletionHandled = false
+        } else {
+            homeTimerPausedRemainingSeconds = remaining
+            homeTimerPaused = true
+            homeTimerEndDateEpoch = 0
+        }
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func resetHomeTimer() {
+        guard hasConfiguredHomeTimer else { return }
+        startHomeTimer(durationSeconds: homeTimerConfiguredSeconds)
+    }
+
+    private func clearHomeTimer() {
+        homeTimerConfiguredSeconds = 0
+        homeTimerEndDateEpoch = 0
+        homeTimerCompletionHandled = false
+        homeTimerPaused = false
+        homeTimerPausedRemainingSeconds = 0
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func restoreHomeTimerStateIfNeeded() {
+        let clampedConfiguredSeconds = min(max(homeTimerConfiguredSeconds, 0), 59 * 60 + 59)
+        if clampedConfiguredSeconds != homeTimerConfiguredSeconds {
+            homeTimerConfiguredSeconds = clampedConfiguredSeconds
+        }
+
+        guard clampedConfiguredSeconds > 0 else {
+            homeTimerEndDateEpoch = 0
+            homeTimerCompletionHandled = false
+            homeTimerPaused = false
+            homeTimerPausedRemainingSeconds = 0
+            return
+        }
+
+        if homeTimerPaused {
+            let clampedPausedRemaining = min(max(homeTimerPausedRemainingSeconds, 0), 59 * 60 + 59)
+            if clampedPausedRemaining != homeTimerPausedRemainingSeconds {
+                homeTimerPausedRemainingSeconds = clampedPausedRemaining
+            }
+            if homeTimerPausedRemainingSeconds == 0 {
+                homeTimerPausedRemainingSeconds = clampedConfiguredSeconds
+            }
+            homeTimerEndDateEpoch = 0
+            homeTimerCompletionHandled = homeTimerPausedRemainingSeconds == 0
+            return
+        }
+
+        if homeTimerEndDateEpoch <= 0 {
+            homeTimerEndDateEpoch = Date().addingTimeInterval(TimeInterval(clampedConfiguredSeconds)).timeIntervalSince1970
+            homeTimerCompletionHandled = false
+            return
+        }
+
+        let remaining = homeTimerRemainingFromEndDate(at: Date())
+        homeTimerCompletionHandled = remaining == 0
+    }
+
+    private func handleHomeTimerTick(at now: Date) {
+        guard hasConfiguredHomeTimer, !homeTimerPaused else { return }
+
+        let remaining = homeTimerRemainingSeconds(at: now)
+        if remaining == 0 {
+            guard !homeTimerCompletionHandled else { return }
+            homeTimerCompletionHandled = true
+
+            if hapticEnabled {
+                let notificationFeedback = UINotificationFeedbackGenerator()
+                notificationFeedback.prepare()
+                notificationFeedback.notificationOccurred(.success)
+            }
+        } else if homeTimerCompletionHandled {
+            homeTimerCompletionHandled = false
+        }
     }
 
     private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
@@ -650,7 +803,7 @@ struct HomeView: View {
                 .allowsHitTesting(false)
                 
                 // Blank View
-                if displayedClocks.isEmpty && !showLocalTime {
+                if displayedClocks.isEmpty && !showLocalTime && !hasConfiguredHomeTimer {
                     // Empty state view
                     ContentUnavailableView {
                         Label("Nothing here", systemImage: selectedCollectionId != nil ? "questionmark.folder" : "location.magnifyingglass")
@@ -762,6 +915,19 @@ struct HomeView: View {
                                     }
                                 }
                             }
+                        }
+                        
+                        // Home Timer Section
+                        if hasConfiguredHomeTimer {
+                            HomeTimerSection(
+                                configuredSeconds: homeTimerConfiguredSeconds,
+                                endDateEpoch: homeTimerEndDateEpoch,
+                                isPaused: homeTimerPaused,
+                                pausedRemainingSeconds: homeTimerPausedRemainingSeconds,
+                                onTap: handleHomeTimerTap,
+                                onReset: resetHomeTimer,
+                                onDelete: clearHomeTimer
+                            )
                         }
                         
                         // Local Time Section
@@ -1283,6 +1449,17 @@ struct HomeView: View {
                             Label(String(localized: "Alarms"), systemImage: "alarm")
                         }
 
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showSetTimerSheet = true
+                        }) {
+                            Label("Timer", systemImage: "timer")
+                        }
+
                         Divider()
                         
                         // Settings Section
@@ -1318,6 +1495,8 @@ struct HomeView: View {
             }
             
             .onReceive(timer) { now in
+                handleHomeTimerTick(at: now)
+
                 // Only update when the minute changes.
                 // The List displays "HH:mm" (no seconds) and all visual components
                 // (sky gradients, analog clock, etc.) are minute-level.
@@ -1331,6 +1510,7 @@ struct HomeView: View {
             
             .onAppear {
                 loadCollections()
+                restoreHomeTimerStateIfNeeded()
             }
             
             // Listen for reset notification to reset scroll time
@@ -1462,6 +1642,13 @@ struct HomeView: View {
             // Set Alarm Sheet
             .sheet(isPresented: $showSetAlarmSheet) {
                 SetAlarmSheet()
+            }
+
+            // Set Timer Sheet
+            .sheet(isPresented: $showSetTimerSheet) {
+                SetTimerSheet(initialDurationSeconds: homeTimerConfiguredSeconds) { durationSeconds in
+                    startHomeTimer(durationSeconds: durationSeconds)
+                }
             }
             
             // Earth View
