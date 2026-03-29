@@ -131,9 +131,12 @@ struct HomeTimerSection: View {
                 Button(role: .destructive, action: onDelete) {
                     Image(systemName: "xmark.circle")
                 }
+            }
+            .swipeActions(edge: .leading, allowsFullSwipe: true) {
                 Button(action: onReset) {
                     Image(systemName: "arrow.counterclockwise")
                 }
+                .tint(.orange)
             }
             .listRowBackground(
                 RoundedRectangle(cornerRadius: 26, style: .continuous)
