@@ -206,7 +206,7 @@ struct HomeView: View {
         homeTimerCompletionHandled = false
 
         if hapticEnabled {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
             impactFeedback.prepare()
             impactFeedback.impactOccurred()
         }
@@ -234,7 +234,7 @@ struct HomeView: View {
         }
 
         if hapticEnabled {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
             impactFeedback.prepare()
             impactFeedback.impactOccurred()
         }
