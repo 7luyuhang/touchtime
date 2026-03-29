@@ -197,12 +197,20 @@ struct HomeView: View {
         return homeTimerRemainingFromEndDate(at: date)
     }
 
-    private func startHomeTimer(durationSeconds: Int) {
+    private func startHomeTimer(durationSeconds: Int, startPaused: Bool = false) {
         let clampedDuration = min(max(durationSeconds, 1), 59 * 60 + 59)
         homeTimerConfiguredSeconds = clampedDuration
-        homeTimerEndDateEpoch = Date().addingTimeInterval(TimeInterval(clampedDuration)).timeIntervalSince1970
-        homeTimerPaused = false
-        homeTimerPausedRemainingSeconds = 0
+
+        if startPaused {
+            homeTimerEndDateEpoch = 0
+            homeTimerPaused = true
+            homeTimerPausedRemainingSeconds = clampedDuration
+        } else {
+            homeTimerEndDateEpoch = Date().addingTimeInterval(TimeInterval(clampedDuration)).timeIntervalSince1970
+            homeTimerPaused = false
+            homeTimerPausedRemainingSeconds = 0
+        }
+
         homeTimerCompletionHandled = false
 
         if hapticEnabled {
@@ -242,7 +250,7 @@ struct HomeView: View {
 
     private func resetHomeTimer() {
         guard hasConfiguredHomeTimer else { return }
-        startHomeTimer(durationSeconds: homeTimerConfiguredSeconds)
+        startHomeTimer(durationSeconds: homeTimerConfiguredSeconds, startPaused: homeTimerPaused)
     }
 
     private func clearHomeTimer() {
