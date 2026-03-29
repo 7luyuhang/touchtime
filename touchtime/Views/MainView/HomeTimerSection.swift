@@ -16,8 +16,15 @@ struct HomeTimerSection: View {
     let onReset: () -> Void
     let onDelete: () -> Void
 
+    private let complicationButtonSize: CGFloat = 64
+
     private var configuredDisplay: String {
         formattedConfiguredDuration(seconds: configuredSeconds)
+    }
+
+    private func centerButtonSymbol(at date: Date) -> String {
+        let remaining = remainingSeconds(at: date)
+        return (isPaused || remaining == 0) ? "play.fill" : "pause.fill"
     }
 
     private var endDate: Date? {
@@ -58,43 +65,61 @@ struct HomeTimerSection: View {
 
     var body: some View {
         Section {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Image(systemName: "timer")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.secondary)
-                        .blendMode(.plusLighter)
+            ZStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    HStack {
+                        Image(systemName: "timer")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .blendMode(.plusLighter)
 
-                    Spacer()
+                        Spacer()
 
-                    Text(configuredDisplay)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .blendMode(.plusLighter)
-                        .monospacedDigit()
-                }
-
-                HStack(alignment: .lastTextBaseline) {
-                    Text("Timer")
-                        .font(.headline)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-
-                    Spacer()
-
-                    TimelineView(.periodic(from: .now, by: 1)) { context in
-                        let remaining = remainingSeconds(at: context.date)
-                        Text(formattedTimer(seconds: remaining))
-                            .font(.system(size: 36))
-                            .fontWeight(.light)
-                            .fontDesign(.rounded)
+                        Text(configuredDisplay)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .blendMode(.plusLighter)
                             .monospacedDigit()
-                            .contentTransition(.numericText(countsDown: true))
-                            .animation(.smooth(duration: 0.20), value: remaining)
-                            .clipped()
+                    }
+
+                    HStack(alignment: .lastTextBaseline) {
+                        Text("Timer")
+                            .font(.headline)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(maxWidth: 120, alignment: .leading)
+
+                        Spacer()
+
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            let remaining = remainingSeconds(at: context.date)
+                            Text(formattedTimer(seconds: remaining))
+                                .font(.system(size: 36))
+                                .fontWeight(.light)
+                                .fontDesign(.rounded)
+                                .monospacedDigit()
+                                .contentTransition(.numericText(countsDown: true))
+                                .animation(.smooth(duration: 0.20), value: remaining)
+                                .clipped()
+                        }
+                    }
+                    .padding(.bottom, -4)
+                }
+                .frame(minHeight: 64)
+                
+                Button(action: {}) {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        let symbol = centerButtonSymbol(at: context.date)
+                        Image(systemName: symbol)
+                            .font(.title2.weight(.semibold))
+                            .foregroundStyle(.white)
+                            .contentTransition(.symbolEffect(.replace))
+                            .animation(.spring(duration: 0.25), value: symbol)
+                            .frame(width: complicationButtonSize, height: complicationButtonSize)
                     }
                 }
-                .padding(.bottom, -4)
+                .glassEffect(.clear)
+                .allowsHitTesting(false)
             }
             .contentShape(Rectangle())
             .onTapGesture(perform: onTap)
