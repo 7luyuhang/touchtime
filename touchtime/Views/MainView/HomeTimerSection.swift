@@ -118,7 +118,7 @@ struct HomeTimerSection: View {
                             .font(.title2.weight(.semibold))
                             .foregroundStyle(.white)
                             .contentTransition(.symbolEffect(.replace))
-                            .animation(.spring(duration: 0.25), value: symbol)
+                            .animation(.spring(), value: symbol)
                             .frame(width: complicationButtonSize, height: complicationButtonSize)
                     }
                 }
@@ -132,7 +132,7 @@ struct HomeTimerSection: View {
                     Image(systemName: "xmark.circle")
                 }
                 Button(action: onReset) {
-                    Image(systemName: "clock.arrow.trianglehead.counterclockwise.rotate.90")
+                    Image(systemName: "arrow.counterclockwise")
                 }
             }
             .listRowBackground(

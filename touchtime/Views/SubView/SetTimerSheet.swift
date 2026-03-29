@@ -131,6 +131,6 @@ struct SetTimerSheet: View {
                 }
             }
         }
-        .presentationDetents([.height(280)])
+        .presentationDetents([.height(300)])
     }
 }
