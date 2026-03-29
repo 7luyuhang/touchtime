@@ -128,9 +128,10 @@ struct HomeTimerSection: View {
             .contentShape(Rectangle())
             .onTapGesture(perform: onTap)
             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                Button(role: .destructive, action: onDelete) {
+                Button(action: onDelete) {
                     Image(systemName: "xmark.circle")
                 }
+                .tint(.red)
             }
             .swipeActions(edge: .leading, allowsFullSwipe: true) {
                 Button(action: onReset) {
