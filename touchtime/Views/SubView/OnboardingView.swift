@@ -965,6 +965,7 @@ struct FeatureRow: View {
     let icon: String
     let title: String
     let isAnimated: Bool
+    @State private var wiggleTrigger = 0
     
     var body: some View {
         HStack(spacing: 12) {
@@ -974,6 +975,11 @@ struct FeatureRow: View {
                 .foregroundStyle(.white.opacity(0.85))
                 .blendMode(.plusLighter)
                 .frame(width: 40, height: 40)
+                .symbolEffect(
+                    .wiggle.clockwise.byLayer,
+                    options: .nonRepeating,
+                    value: wiggleTrigger
+                )
             
             // Title
             Text(title)
@@ -985,11 +991,11 @@ struct FeatureRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
-        .background(
-            Capsule()
-                .fill(.black.opacity(0.25))
-                .glassEffect(.clear)
-        )
+        .glassEffect(.clear.interactive().tint(.black.opacity(0.25)), in: Capsule(style: .continuous))
+        .contentShape(Capsule(style: .continuous))
+        .onTapGesture {
+            wiggleTrigger += 1
+        }
     }
 }
 
