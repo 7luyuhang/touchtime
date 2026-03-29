@@ -390,6 +390,12 @@ struct OnboardingView: View {
                             title: String(localized: "Event plan across zones, effortlessly"),
                             isAnimated: animateFeatures
                         )
+
+                        FeatureRow(
+                            icon: "alarm",
+                            title: String(localized: "Smarter alarms and timers"),
+                            isAnimated: animateFeatures
+                        )
                         
                         Text("and much more...", comment: "Onboarding feature list ending")
                             .font(.subheadline.weight(.semibold))
