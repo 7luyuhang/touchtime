@@ -9,13 +9,16 @@ import SwiftUI
 
 struct SetTimerSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
 
     let onConfirm: (Int) -> Void
 
     @State private var selectedDuration: Int
 
     init(initialDurationSeconds: Int, onConfirm: @escaping (Int) -> Void) {
-        let clampedDuration = min(max(initialDurationSeconds, 0), 59 * 60 + 59)
+        let defaultDurationSeconds = 2 * 60
+        let effectiveDuration = initialDurationSeconds > 0 ? initialDurationSeconds : defaultDurationSeconds
+        let clampedDuration = min(max(effectiveDuration, 0), 59 * 60 + 59)
         self.onConfirm = onConfirm
         _selectedDuration = State(initialValue: clampedDuration)
     }
@@ -105,6 +108,9 @@ struct SetTimerSheet: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
                         dismiss()
                     } label: {
                         Image(systemName: "xmark")
@@ -116,8 +122,11 @@ struct SetTimerSheet: View {
                         onConfirm(totalSeconds)
                         dismiss()
                     } label: {
-                        Image(systemName: "checkmark")
+                        Image(systemName: "play.fill")
+                            .foregroundStyle(totalSeconds == 0 ? .white : .black)
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.white)
                     .disabled(totalSeconds == 0)
                 }
             }
