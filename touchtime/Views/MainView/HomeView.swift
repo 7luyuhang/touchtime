@@ -1457,7 +1457,7 @@ struct HomeView: View {
                             }
                             showSetTimerSheet = true
                         }) {
-                            Label("Timer", systemImage: "timer")
+                            Label(String(localized: "Timer"), systemImage: "timer")
                         }
 
                         Divider()

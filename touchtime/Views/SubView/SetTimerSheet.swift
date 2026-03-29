@@ -63,7 +63,7 @@ struct SetTimerSheet: View {
                 
                 ZStack {
                     HStack(spacing: 0) {
-                        Picker("Minutes", selection: selectedMinutesBinding) {
+                        Picker(String(localized: "Minutes"), selection: selectedMinutesBinding) {
                             ForEach(0..<60, id: \.self) { value in
                                 Text(String(format: "%02d", value))
                                     .monospacedDigit()
@@ -75,7 +75,7 @@ struct SetTimerSheet: View {
                         .labelsHidden()
                         .frame(maxWidth: .infinity)
 
-                        Picker("Seconds", selection: selectedSecondsBinding) {
+                        Picker(String(localized: "Seconds"), selection: selectedSecondsBinding) {
                             ForEach(0..<60, id: \.self) { value in
                                 Text(String(format: "%02d", value))
                                     .monospacedDigit()
@@ -89,11 +89,11 @@ struct SetTimerSheet: View {
                     }
 
                     HStack(spacing: 0) {
-                        Text("min")
+                        Text(String(localized: "min"))
                             .font(.headline)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                             .padding(.trailing, 24)
-                        Text("sec")
+                        Text(String(localized: "sec"))
                             .font(.headline)
                             .frame(maxWidth: .infinity, alignment: .trailing)
                             .padding(.trailing, 24)
@@ -103,7 +103,7 @@ struct SetTimerSheet: View {
                 .frame(height: 200)
             }
             .padding(.horizontal)
-            .navigationTitle("Timer")
+            .navigationTitle(String(localized: "Timer"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

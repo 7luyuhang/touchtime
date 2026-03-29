@@ -193,6 +193,14 @@
 "Arrange" = "整理";
 "Set Alarm" = "設定鬧鐘";
 "Alarms" = "鬧鐘";
+"Timer" = "計時器";
+"Minutes" = "分鐘";
+"Seconds" = "秒";
+"min" = "分";
+"sec" = "秒";
+"%d min %d sec" = "%d分 %d秒";
+"%d min" = "%d分";
+"%d sec" = "%d秒";
 "No Alarms" = "暫無鬧鐘";
 "Create alarms for your moments" = "為你的每個時刻建立鬧鐘";
 "Alarm" = "鬧鐘";

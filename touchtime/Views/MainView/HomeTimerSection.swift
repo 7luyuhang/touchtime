@@ -55,12 +55,16 @@ struct HomeTimerSection: View {
         let remainingSeconds = clampedSeconds % 60
 
         if minutes > 0 && remainingSeconds > 0 {
-            return "\(minutes) min \(remainingSeconds) sec"
+            return String.localizedStringWithFormat(
+                String(localized: "%d min %d sec"),
+                minutes,
+                remainingSeconds
+            )
         }
         if minutes > 0 {
-            return "\(minutes) min"
+            return String.localizedStringWithFormat(String(localized: "%d min"), minutes)
         }
-        return "\(remainingSeconds) sec"
+        return String.localizedStringWithFormat(String(localized: "%d sec"), remainingSeconds)
     }
 
     var body: some View {
@@ -83,7 +87,7 @@ struct HomeTimerSection: View {
                     }
 
                     HStack(alignment: .lastTextBaseline) {
-                        Text("Timer")
+                        Text(String(localized: "Timer"))
                             .font(.headline)
                             .lineLimit(1)
                             .truncationMode(.tail)

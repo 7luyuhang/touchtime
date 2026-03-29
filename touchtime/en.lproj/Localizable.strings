@@ -194,6 +194,14 @@
 "Arrange" = "Arrange";
 "Set Alarm" = "Set Alarm";
 "Alarms" = "Alarms";
+"Timer" = "Timer";
+"Minutes" = "Minutes";
+"Seconds" = "Seconds";
+"min" = "min";
+"sec" = "sec";
+"%d min %d sec" = "%d min %d sec";
+"%d min" = "%d min";
+"%d sec" = "%d sec";
 "No Alarms" = "No Alarms";
 "Create alarms for your moments" = "Create alarms for your moments";
 "Alarm" = "Alarm";
