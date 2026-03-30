@@ -8,6 +8,13 @@
 import SwiftUI
 
 struct SetTimerSheet: View {
+    private struct TimerPreset: Identifiable {
+        let seconds: Int
+        let label: String
+
+        var id: Int { seconds }
+    }
+
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
@@ -57,10 +64,67 @@ struct SetTimerSheet: View {
         )
     }
 
+    private let timerPresets: [TimerPreset] = [
+        .init(seconds: 5 * 60, label: "5m"),
+        .init(seconds: 10 * 60, label: "10m"),
+        .init(seconds: 30 * 60, label: "30m"),
+        .init(seconds: 45 * 60, label: "45m")
+    ]
+
+    private func selectPreset(_ preset: TimerPreset) {
+        selectedDuration = preset.seconds
+        if hapticEnabled {
+            let impact = UIImpactFeedbackGenerator(style: .light)
+            impact.prepare()
+            impact.impactOccurred()
+        }
+    }
+
+    @ViewBuilder
+    private func presetButton(_ preset: TimerPreset) -> some View {
+        let isSelected = selectedDuration == preset.seconds
+        let presetMinutes = preset.seconds / 60
+
+        Button {
+            selectPreset(preset)
+        } label: {
+            ZStack {
+                ForEach(0..<24, id: \.self) { index in
+                    let isMajorTick = index.isMultiple(of: 2)
+                    Capsule()
+                        .fill(
+                            isMajorTick
+                            ? (isSelected ? .white.opacity(0.50) : .white.opacity(0.10))
+                            : .white.opacity(0.10)
+                        )
+                        .frame(
+                            width: 1.5,
+                            height: 4.0
+                        )
+                        .offset(y: -30)
+                        .rotationEffect(.degrees(Double(index) * 15))
+                        .blendMode(.plusLighter)
+                }
+                VStack(spacing: 0) {
+                    Text("\(presetMinutes)")
+                        .font(.headline)
+                        .fontDesign(.rounded)
+                        .monospacedDigit()
+                    Text(String(localized: "min"))
+                        .font(.footnote.weight(.semibold))
+                }
+                .foregroundStyle(isSelected ? .white : .white.opacity(0.50))
+                .blendMode(.plusLighter)
+            }
+            .frame(width: 72, height: 72)
+        }
+        .glassEffect(.regular.tint(.black.opacity(0.20)), in: Circle())
+        .buttonStyle(.plain)
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                
+            VStack(spacing: 32) {
                 ZStack {
                     HStack(spacing: 0) {
                         Picker(String(localized: "Minutes"), selection: selectedMinutesBinding) {
@@ -101,6 +165,14 @@ struct SetTimerSheet: View {
                     .allowsHitTesting(false)
                 }
                 .frame(height: 200)
+
+                HStack(spacing: 0) {
+                    ForEach(timerPresets) { preset in
+                        presetButton(preset)
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .frame(maxWidth: .infinity)
             }
             .padding(.horizontal)
             .navigationTitle(String(localized: "Timer"))
@@ -131,6 +203,6 @@ struct SetTimerSheet: View {
                 }
             }
         }
-        .presentationDetents([.height(300)])
+        .presentationDetents([.height(400)])
     }
 }
