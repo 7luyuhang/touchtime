@@ -139,6 +139,14 @@ struct HomeTimerSection: View {
                 }
                 .tint(.orange)
             }
+            .contextMenu {
+                Button(action: onReset) {
+                    Label(String(localized: "Reset"), systemImage: "arrow.counterclockwise")
+                }
+                Button(role: .destructive, action: onDelete) {
+                    Label(String(localized: "Delete"), systemImage: "xmark.circle")
+                }
+            }
             .listRowBackground(
                 RoundedRectangle(cornerRadius: 26, style: .continuous)
                     .fill(Color.black.opacity(0.10))
