@@ -12,6 +12,7 @@ import EventKit
 import EventKitUI
 import WeatherKit
 import UniformTypeIdentifiers
+import AlarmKit
 
 // Data struct for city time adjustment sheet
 struct CityTimeAdjustmentData: Identifiable {
@@ -132,6 +133,7 @@ struct HomeView: View {
     @AppStorage("homeTimerCompletionHandled") private var homeTimerCompletionHandled = false
     @AppStorage("homeTimerPaused") private var homeTimerPaused = false
     @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
+    @AppStorage("homeTimerAlarmID") private var homeTimerAlarmIDRawValue = ""
     
     // Namespace for zoom transition
     @Namespace private var earthViewNamespace
@@ -141,6 +143,9 @@ struct HomeView: View {
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
     private let collectionsKey = "savedCityCollections"
+    private let alarmManager = AlarmManager.shared
+
+    @State private var homeTimerAlarmSyncVersion = 0
     
     // MARK: - Cached Time Formatting
     private static let timeFormatterCache: NSCache<NSString, DateFormatter> = {
@@ -171,6 +176,10 @@ struct HomeView: View {
         homeTimerConfiguredSeconds > 0
     }
 
+    private var homeTimerAlarmID: UUID? {
+        UUID(uuidString: homeTimerAlarmIDRawValue)
+    }
+
     private var homeTimerEndDate: Date? {
         guard homeTimerEndDateEpoch > 0 else { return nil }
         return Date(timeIntervalSince1970: homeTimerEndDateEpoch)
@@ -197,7 +206,11 @@ struct HomeView: View {
         return homeTimerRemainingFromEndDate(at: date)
     }
 
-    private func startHomeTimer(durationSeconds: Int, startPaused: Bool = false) {
+    private func startHomeTimer(
+        durationSeconds: Int,
+        startPaused: Bool = false,
+        requestAlarmAuthorization: Bool = true
+    ) {
         let clampedDuration = min(max(durationSeconds, 1), 59 * 60 + 59)
         homeTimerConfiguredSeconds = clampedDuration
 
@@ -218,6 +231,10 @@ struct HomeView: View {
             impactFeedback.prepare()
             impactFeedback.impactOccurred()
         }
+
+        refreshHomeTimerAlarm(
+            requestAuthorization: requestAlarmAuthorization
+        )
     }
 
     private func handleHomeTimerTap() {
@@ -235,10 +252,12 @@ struct HomeView: View {
             homeTimerPaused = false
             homeTimerPausedRemainingSeconds = 0
             homeTimerCompletionHandled = false
+            refreshHomeTimerAlarm(requestAuthorization: true)
         } else {
             homeTimerPausedRemainingSeconds = remaining
             homeTimerPaused = true
             homeTimerEndDateEpoch = 0
+            refreshHomeTimerAlarm(requestAuthorization: false)
         }
 
         if hapticEnabled {
@@ -250,7 +269,11 @@ struct HomeView: View {
 
     private func resetHomeTimer() {
         guard hasConfiguredHomeTimer else { return }
-        startHomeTimer(durationSeconds: homeTimerConfiguredSeconds, startPaused: homeTimerPaused)
+        startHomeTimer(
+            durationSeconds: homeTimerConfiguredSeconds,
+            startPaused: homeTimerPaused,
+            requestAlarmAuthorization: !homeTimerPaused
+        )
     }
 
     private func clearHomeTimer() {
@@ -259,6 +282,7 @@ struct HomeView: View {
         homeTimerCompletionHandled = false
         homeTimerPaused = false
         homeTimerPausedRemainingSeconds = 0
+        refreshHomeTimerAlarm(requestAuthorization: false)
 
         if hapticEnabled {
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -268,6 +292,14 @@ struct HomeView: View {
     }
 
     private func restoreHomeTimerStateIfNeeded() {
+        defer {
+            refreshHomeTimerAlarm(requestAuthorization: false)
+        }
+
+        if !homeTimerAlarmIDRawValue.isEmpty, homeTimerAlarmID == nil {
+            homeTimerAlarmIDRawValue = ""
+        }
+
         let clampedConfiguredSeconds = min(max(homeTimerConfiguredSeconds, 0), 59 * 60 + 59)
         if clampedConfiguredSeconds != homeTimerConfiguredSeconds {
             homeTimerConfiguredSeconds = clampedConfiguredSeconds
@@ -302,6 +334,87 @@ struct HomeView: View {
 
         let remaining = homeTimerRemainingFromEndDate(at: Date())
         homeTimerCompletionHandled = remaining == 0
+    }
+
+    private func refreshHomeTimerAlarm(
+        requestAuthorization: Bool
+    ) {
+        homeTimerAlarmSyncVersion += 1
+        let syncVersion = homeTimerAlarmSyncVersion
+        let shouldSchedule = hasConfiguredHomeTimer && !homeTimerPaused
+        let remainingSeconds = homeTimerRemainingSeconds(at: Date())
+        let existingAlarmID = homeTimerAlarmID
+
+        Task { @MainActor in
+            await synchronizeHomeTimerAlarm(
+                syncVersion: syncVersion,
+                existingAlarmID: existingAlarmID,
+                shouldSchedule: shouldSchedule,
+                remainingSeconds: remainingSeconds,
+                requestAuthorization: requestAuthorization
+            )
+        }
+    }
+
+    @MainActor
+    private func synchronizeHomeTimerAlarm(
+        syncVersion: Int,
+        existingAlarmID: UUID?,
+        shouldSchedule: Bool,
+        remainingSeconds: Int,
+        requestAuthorization: Bool
+    ) async {
+        let isStale = { syncVersion != homeTimerAlarmSyncVersion || Task.isCancelled }
+
+        if let existingAlarmID {
+            try? alarmManager.cancel(id: existingAlarmID)
+        }
+
+        guard !isStale() else { return }
+
+        guard shouldSchedule, remainingSeconds > 0 else {
+            homeTimerAlarmIDRawValue = ""
+            return
+        }
+
+        if requestAuthorization {
+            switch await AlarmSupport.ensureAuthorization(using: alarmManager) {
+            case .authorized:
+                break
+            case .denied:
+                homeTimerAlarmIDRawValue = ""
+                return
+            case .failed(let error):
+                homeTimerAlarmIDRawValue = ""
+                print("Failed to authorize AlarmKit for timer: \(error.localizedDescription)")
+                return
+            }
+        } else if alarmManager.authorizationState != .authorized {
+            homeTimerAlarmIDRawValue = ""
+            return
+        }
+
+        let newAlarmID = UUID()
+
+        do {
+            try await AlarmSupport.scheduleTimerAlarm(
+                id: newAlarmID,
+                durationSeconds: remainingSeconds,
+                eventTitle: String(localized: "Timer"),
+                using: alarmManager
+            )
+        } catch {
+            homeTimerAlarmIDRawValue = ""
+            print("Failed to schedule AlarmKit timer reminder: \(error.localizedDescription)")
+            return
+        }
+
+        guard !isStale() else {
+            try? alarmManager.cancel(id: newAlarmID)
+            return
+        }
+
+        homeTimerAlarmIDRawValue = newAlarmID.uuidString
     }
 
     private func handleHomeTimerTick(at now: Date) {
@@ -1572,7 +1685,7 @@ struct HomeView: View {
             } message: {
                 Text("Please allow calendar access in Settings to add events.")
             }
-            
+
             // Share Cities Sheet
             .sheet(isPresented: $showShareSheet) {
                 ShareCitiesSheet(

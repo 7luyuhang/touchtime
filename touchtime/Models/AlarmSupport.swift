@@ -213,6 +213,50 @@ enum AlarmSupport {
         )
     }
 
+    static func scheduleTimerAlarm(
+        id: UUID,
+        durationSeconds: Int,
+        eventTitle: String? = nil,
+        using alarmManager: AlarmManager = .shared
+    ) async throws {
+        let clampedDuration = max(durationSeconds, 1)
+        let defaultAlarmTitle = String(localized: "Timer")
+        let trimmedTitle = eventTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedTitle = (trimmedTitle?.isEmpty == false ? trimmedTitle : nil) ?? defaultAlarmTitle
+        let alarmTitle = LocalizedStringResource(stringLiteral: resolvedTitle)
+        let doneText = LocalizedStringResource("Done")
+        let alert: AlarmPresentation.Alert
+
+        if #available(iOS 26.1, *) {
+            alert = AlarmPresentation.Alert(title: alarmTitle)
+        } else {
+            alert = AlarmPresentation.Alert(
+                title: alarmTitle,
+                stopButton: AlarmButton(
+                    text: doneText,
+                    textColor: .white,
+                    systemImageName: "checkmark"
+                )
+            )
+        }
+
+        let attributes = AlarmAttributes<TouchtimeAlarmMetadata>(
+            presentation: AlarmPresentation(
+                alert: alert,
+                countdown: .init(title: alarmTitle)
+            ),
+            tintColor: .orange // Timer Orange
+        )
+
+        _ = try await alarmManager.schedule(
+            id: id,
+            configuration: .timer(
+                duration: TimeInterval(clampedDuration),
+                attributes: attributes
+            )
+        )
+    }
+
     static func openSystemSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
