@@ -123,7 +123,7 @@ struct SetTimerSheet: View {
                         dismiss()
                     } label: {
                         Image(systemName: "play.fill")
-                            .foregroundStyle(totalSeconds == 0 ? .white : .black)
+                            .foregroundStyle(totalSeconds == 0 ? .white.opacity(0.50) : .black)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.white)
