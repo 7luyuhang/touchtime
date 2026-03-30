@@ -137,7 +137,7 @@ struct HomeTimerSection: View {
                 Button(action: onReset) {
                     Image(systemName: "arrow.counterclockwise")
                 }
-                .tint(.orange)
+//                .tint(.orange)
             }
             .contextMenu {
                 Button(action: onReset) {
