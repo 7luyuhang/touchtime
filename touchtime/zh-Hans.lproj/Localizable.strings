@@ -43,6 +43,7 @@
 "Weekend" = "周末";
 "Selected: %@" = "已选择：%@";
 "Available Time" = "可用时间";
+"Complications Preview" = "复杂功能预览";
 "Compare available time across cities" = "比较不同城市的可用时间";
 
 /* Settings */

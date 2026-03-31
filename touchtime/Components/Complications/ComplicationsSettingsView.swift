@@ -29,6 +29,7 @@ struct ComplicationsSettingsView: View {
     @State private var showLifetimeStore = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
     @AppStorage("weatherConditionUseColoredIcon") private var weatherConditionUseColoredIcon = false
@@ -98,10 +99,15 @@ struct ComplicationsSettingsView: View {
         }
     }
 
-    private func enforceLifetimeAccess() {
-        guard !hasLifetimeAccess else { return }
+    private func enforceComplicationAvailability() {
+        if !hasLifetimeAccess {
+            if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
+                selectComplication(nil)
+            }
+            return
+        }
 
-        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
+        if !availableTimeEnabled && showTimeOverlay {
             selectComplication(nil)
         }
     }
@@ -173,10 +179,13 @@ struct ComplicationsSettingsView: View {
             currentDate = Date()
         }
         .onAppear {
-            enforceLifetimeAccess()
+            enforceComplicationAvailability()
         }
         .onChange(of: hasLifetimeAccess) { _, _ in
-            enforceLifetimeAccess()
+            enforceComplicationAvailability()
+        }
+        .onChange(of: availableTimeEnabled) { _, _ in
+            enforceComplicationAvailability()
         }
         .sheet(isPresented: $showLifetimeStore) {
             NavigationStack {
@@ -275,7 +284,7 @@ struct ComplicationsSettingsView: View {
                         )
                     }
 
-                    if hasLifetimeAccess {
+                    if hasLifetimeAccess && availableTimeEnabled {
                         // Time Overlay
                         complicationOption(
                             type: .timeOverlay,
