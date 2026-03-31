@@ -13,10 +13,10 @@ struct TimeOverlayIndicator: View {
     let size: CGFloat
     let useMaterialBackground: Bool
 
-    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
-    @AppStorage("availableStartTime") private var availableStartTime = "09:00"
-    @AppStorage("availableEndTime") private var availableEndTime = "17:00"
-    @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6"
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
+    @AppStorage("availableStartTime") private var availableStartTime = AvailableTimeDefaults.startTime
+    @AppStorage("availableEndTime") private var availableEndTime = AvailableTimeDefaults.endTime
+    @AppStorage("availableWeekdays") private var availableWeekdays = AvailableTimeDefaults.weekdays
 
     fileprivate struct TimeRangeSegment: Hashable {
         let startMinute: Int
@@ -44,23 +44,26 @@ struct TimeOverlayIndicator: View {
     }
 
     private var selectedWeekdaySet: Set<Int> {
-        Set(availableWeekdays.split(separator: ",").compactMap { Int($0) })
+        let parsed = parseWeekdaySet(availableWeekdays)
+        if parsed.isEmpty {
+            return parseWeekdaySet(AvailableTimeDefaults.weekdays)
+        }
+        return parsed
     }
 
-    private var parsedTimeRange: (startMinute: Int, endMinute: Int)? {
-        guard
-            let startMinute = parseTimeStringToMinute(availableStartTime),
-            let endMinute = parseTimeStringToMinute(availableEndTime)
-        else {
-            return nil
-        }
+    private var parsedTimeRange: (startMinute: Int, endMinute: Int) {
+        let defaultStartMinute = parseTimeStringToMinute(AvailableTimeDefaults.startTime) ?? (9 * 60)
+        let defaultEndMinute = parseTimeStringToMinute(AvailableTimeDefaults.endTime) ?? (17 * 60)
+        let startMinute = parseTimeStringToMinute(availableStartTime) ?? defaultStartMinute
+        let endMinute = parseTimeStringToMinute(availableEndTime) ?? defaultEndMinute
         return (startMinute, endMinute)
     }
 
     private var overlaySegments: [TimeRangeSegment] {
-        guard availableTimeEnabled, let range = parsedTimeRange, !selectedWeekdaySet.isEmpty else {
+        guard availableTimeEnabled, !selectedWeekdaySet.isEmpty else {
             return []
         }
+        let range = parsedTimeRange
 
         let cacheKey = makeCacheKey(
             startMinute: range.startMinute,
@@ -82,9 +85,10 @@ struct TimeOverlayIndicator: View {
     }
 
     private var isCurrentTimeInOverlay: Bool {
-        guard availableTimeEnabled, let range = parsedTimeRange, !selectedWeekdaySet.isEmpty else {
+        guard availableTimeEnabled, !selectedWeekdaySet.isEmpty else {
             return false
         }
+        let range = parsedTimeRange
         return isDateWithinLocalAvailability(
             at: date,
             startMinute: range.startMinute,
@@ -218,6 +222,10 @@ struct TimeOverlayIndicator: View {
             return nil
         }
         return hour * 60 + minute
+    }
+
+    private func parseWeekdaySet(_ weekdayString: String) -> Set<Int> {
+        Set(weekdayString.split(separator: ",").compactMap { Int($0) })
     }
 
     var body: some View {

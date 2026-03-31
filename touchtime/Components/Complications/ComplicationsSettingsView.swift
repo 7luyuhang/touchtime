@@ -275,17 +275,19 @@ struct ComplicationsSettingsView: View {
                         )
                     }
 
-                    // Time Overlay
-                    complicationOption(
-                        type: .timeOverlay,
-                        isSelected: showTimeOverlay
-                    ) {
-                        TimeOverlayIndicator(
-                            date: currentDate,
-                            timeZone: TimeZone.current,
-                            size: 64,
-                            useMaterialBackground: false
-                        )
+                    if hasLifetimeAccess {
+                        // Time Overlay
+                        complicationOption(
+                            type: .timeOverlay,
+                            isSelected: showTimeOverlay
+                        ) {
+                            TimeOverlayIndicator(
+                                date: currentDate,
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                        }
                     }
 
                     // Moon Azimuth

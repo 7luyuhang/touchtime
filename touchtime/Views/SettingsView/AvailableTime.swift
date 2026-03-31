@@ -9,11 +9,11 @@ import SwiftUI
 
 struct AvailableTimePicker: View {
     let worldClocks: [WorldClock]
-    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
-    @AppStorage("availableStartTime") private var availableStartTime = "09:00"
-    @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
+    @AppStorage("availableStartTime") private var availableStartTime = AvailableTimeDefaults.startTime
+    @AppStorage("availableEndTime") private var availableEndTime = AvailableTimeDefaults.endTime
     @AppStorage("use24HourFormat") private var use24HourFormat = false
-    @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6" // Default Mon-Fri
+    @AppStorage("availableWeekdays") private var availableWeekdays = AvailableTimeDefaults.weekdays // Default Mon-Fri
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     
     @State private var startDate = Date()
