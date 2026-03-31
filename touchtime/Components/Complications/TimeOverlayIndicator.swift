@@ -13,7 +13,6 @@ struct TimeOverlayIndicator: View {
     let size: CGFloat
     let useMaterialBackground: Bool
 
-    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
     @AppStorage("availableStartTime") private var availableStartTime = AvailableTimeDefaults.startTime
     @AppStorage("availableEndTime") private var availableEndTime = AvailableTimeDefaults.endTime
     @AppStorage("availableWeekdays") private var availableWeekdays = AvailableTimeDefaults.weekdays
@@ -60,7 +59,7 @@ struct TimeOverlayIndicator: View {
     }
 
     private var overlaySegments: [TimeRangeSegment] {
-        guard availableTimeEnabled, !selectedWeekdaySet.isEmpty else {
+        guard !selectedWeekdaySet.isEmpty else {
             return []
         }
         let range = parsedTimeRange
@@ -85,7 +84,7 @@ struct TimeOverlayIndicator: View {
     }
 
     private var isCurrentTimeInOverlay: Bool {
-        guard availableTimeEnabled, !selectedWeekdaySet.isEmpty else {
+        guard !selectedWeekdaySet.isEmpty else {
             return false
         }
         let range = parsedTimeRange
