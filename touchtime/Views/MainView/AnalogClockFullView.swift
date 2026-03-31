@@ -1551,7 +1551,7 @@ struct AnalogClockFaceView: View {
             
             // Sun/Weather icon
             Image(systemName: showWeather && weather != nil ? weather!.condition.icon : "sun.max.fill")
-                .font(.headline)
+                .font(.callout.weight(.semibold))
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
                 .frame(height: 24)
@@ -1569,7 +1569,7 @@ struct AnalogClockFaceView: View {
             
             // Moon phase icon
             Image(systemName: moonPhaseIcon)
-                .font(.headline)
+                .font(.callout.weight(.semibold))
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
                 .frame(height: 24)
