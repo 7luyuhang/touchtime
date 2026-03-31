@@ -287,7 +287,7 @@ private struct TimeOverlayArc: View {
                 )
             }
             .stroke(
-                Color.white.opacity(0.15),
+                Color.white.opacity(0.10),
                 style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
             )
             .blendMode(.plusLighter)
