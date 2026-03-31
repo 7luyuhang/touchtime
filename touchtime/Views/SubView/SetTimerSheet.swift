@@ -89,18 +89,18 @@ struct SetTimerSheet: View {
             selectPreset(preset)
         } label: {
             ZStack {
-                // Scales
-//                ForEach(0..<12, id: \.self) { index in
-//                    Capsule()
-//                        .fill(isSelected ? .white.opacity(0.50) : .white.opacity(0.10))
-//                        .frame(
-//                            width: 1.65,
-//                            height: 4.5
-//                        )
-//                        .offset(y: -30)
-//                        .rotationEffect(.degrees(Double(index) * 30))
-//                        .blendMode(.plusLighter)
-//                }
+                // Scale
+                ForEach(0..<24, id: \.self) { index in
+                    Capsule()
+                        .fill(isSelected && index.isMultiple(of: 2) ? .white.opacity(0.50) : .white.opacity(0.10))
+                        .frame(
+                            width: 1.65,
+                            height: 4.5
+                        )
+                        .offset(y: -30)
+                        .rotationEffect(.degrees(Double(index) * 15))
+                        .blendMode(.plusLighter)
+                }
                 VStack(spacing: 0) {
                     Text("\(presetMinutes)")
                         .font(.headline)
@@ -113,14 +113,6 @@ struct SetTimerSheet: View {
                 .blendMode(.plusLighter)
             }
             .frame(width: 72, height: 72)
-            .overlay(
-                Circle()
-                    .stroke(
-                        isSelected ? .white.opacity(1.0) : .white.opacity(0.025),
-                        lineWidth: 2.0
-                    )
-                    .blendMode(.plusLighter)
-            )
         }
         .glassEffect(.regular, in: Circle())
         .buttonStyle(.plain)
