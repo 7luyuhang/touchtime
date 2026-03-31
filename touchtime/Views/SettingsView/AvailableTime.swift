@@ -184,16 +184,6 @@ struct AvailableTimePicker: View {
     var body: some View {
         NavigationStack {
             List {
-                HStack(spacing: 16){
-                    Image(systemName: "info.circle.fill")
-                        .fontWeight(.semibold)
-                    
-                    Text("Set available time to compare and show availability across different cities.")
-                        .font(.subheadline)
-                }
-                .foregroundStyle(.secondary)
-                
-                
                 // Enable/Disable Toggle
                 Section {
                     Toggle(isOn: $availableTimeEnabled) {
@@ -217,6 +207,18 @@ struct AvailableTimePicker: View {
                             Text("indicator inside system time.")
                         }
                     }
+                }
+                
+                // Info Section
+                if !availableTimeEnabled {
+                    HStack(spacing: 16){
+                        Image(systemName: "info.circle.fill")
+                            .fontWeight(.semibold)
+                        
+                        Text("Set available time to compare and show availability across different cities.")
+                            .font(.subheadline)
+                    }
+                    .foregroundStyle(.secondary)
                 }
                 
                 
