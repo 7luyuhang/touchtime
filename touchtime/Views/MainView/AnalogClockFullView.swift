@@ -993,6 +993,7 @@ struct AnalogClockFaceView: View {
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    @AppStorage("availableWeekdays") private var availableWeekdays = AvailableTimeDefaults.weekdays
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
@@ -1522,7 +1523,7 @@ struct AnalogClockFaceView: View {
             }
             
             // Available time indicators
-            if hasLifetimeAccess, availableTimeEnabled {
+            if hasLifetimeAccess, availableTimeEnabled, !availableWeekdays.isEmpty {
                 let startTime = parseTimeString(availableStartTime)
                 let endTime = parseTimeString(availableEndTime)
                 let indicatorRadius = (size - 24) / 2 - 10
