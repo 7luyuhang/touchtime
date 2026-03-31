@@ -124,6 +124,7 @@ struct HomeView: View {
     @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     @AppStorage("showShakeToResetTip") private var showShakeToResetTip = false
@@ -468,6 +469,10 @@ struct HomeView: View {
         hasLifetimeAccess && showDaylight
     }
 
+    private var effectiveShowTimeOverlay: Bool {
+        hasLifetimeAccess && showTimeOverlay
+    }
+
     private var complicationOptions: ComplicationDisplayOptions {
         ComplicationDisplayOptions(
             showAnalogClock: showAnalogClock,
@@ -482,6 +487,7 @@ struct HomeView: View {
             showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: effectiveShowDaylight,
+            showTimeOverlay: effectiveShowTimeOverlay,
             showSolarCurve: showSolarCurve
         )
     }
@@ -1443,6 +1449,7 @@ struct HomeView: View {
             .animation(.spring(), value: effectiveShowMoonSunAzimuth)
             .animation(.spring(), value: showSunriseSunset)
             .animation(.spring(), value: effectiveShowDaylight)
+            .animation(.spring(), value: effectiveShowTimeOverlay)
             .animation(.spring(), value: showSolarCurve)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.spring(), value: showShakeToResetTip)

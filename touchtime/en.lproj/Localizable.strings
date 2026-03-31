@@ -43,6 +43,7 @@
 "Weekend" = "Weekend";
 "Selected: %@" = "Selected: %@";
 "Available Time" = "Available Time";
+"Compare available time across cities" = "Compare available time across cities";
 
 /* Settings */
 "Support & Love" = "Support & Love";
@@ -169,6 +170,7 @@
 "Solar Time" = "Solar Time";
 "Daylight" = "Daylight";
 "Daylight Curve" = "Daylight Curve";
+"Time Overlay" = "Time Overlay";
 "Solar Curve" = "Solar Curve";
 "Golden Hour" = "Golden Hour";
 "Moon Time" = "Moon Time";

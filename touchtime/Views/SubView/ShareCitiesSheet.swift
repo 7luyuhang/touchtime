@@ -50,6 +50,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
@@ -119,6 +120,10 @@ struct ShareCitiesSheet: View {
         hasLifetimeAccess && showDaylight
     }
 
+    private var effectiveShowTimeOverlay: Bool {
+        hasLifetimeAccess && showTimeOverlay
+    }
+
     private var complicationOptions: ComplicationDisplayOptions {
         ComplicationDisplayOptions(
             showAnalogClock: showAnalogClock,
@@ -133,6 +138,7 @@ struct ShareCitiesSheet: View {
             showMoonSunAzimuth: effectiveShowMoonSunAzimuth,
             showSunriseSunset: showSunriseSunset,
             showDaylight: effectiveShowDaylight,
+            showTimeOverlay: effectiveShowTimeOverlay,
             showSolarCurve: showSolarCurve
         )
     }

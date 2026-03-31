@@ -43,6 +43,7 @@
 "Weekend" = "週末";
 "Selected: %@" = "已選擇：%@";
 "Available Time" = "可用時間";
+"Compare available time across cities" = "比較不同城市的可用時間";
 
 /* Settings */
 "Support & Love" = "支持與喜愛";
@@ -841,6 +842,7 @@
 "Moon & Sun Azimuth" = "月亮與太陽方位角";
 "Daylight" = "日照";
 "Daylight Curve" = "日光曲線";
+"Time Overlay" = "時間重合";
 "Solar Curve" = "太陽曲線";
 
 /* Complications */

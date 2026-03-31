@@ -43,6 +43,7 @@
 "Weekend" = "周末";
 "Selected: %@" = "已选择：%@";
 "Available Time" = "可用时间";
+"Compare available time across cities" = "比较不同城市的可用时间";
 
 /* Settings */
 "Support & Love" = "支持与喜爱";
@@ -172,6 +173,7 @@
 "Solar Time" = "太阳时";
 "Daylight" = "日光";
 "Daylight Curve" = "日光曲线";
+"Time Overlay" = "时间重合";
 "Solar Curve" = "太阳曲线";
 "Golden Hour" = "黄金时刻";
 "Moon Time" = "月亮时";

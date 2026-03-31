@@ -314,11 +314,29 @@ struct AvailableTimePicker: View {
                     }
  
                 }
+
+                // Complications
+                Section(header: Text("Complication")) {
+                    HStack(spacing: 16) {
+                        TimeOverlayIndicator(
+                            date: Date(),
+                            timeZone: .current,
+                            size: 64,
+                            useMaterialBackground: false
+                        )
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Time Overlay")
+                                .font(.headline)
+                            Text("Compare available time across cities")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                }
             }
             // Title
             .navigationTitle("Available Time")
             .navigationBarTitleDisplayMode(.inline)
-            
             .onAppear {
                 // Initialize dates from stored values
                 startDate = timeStringToDate(availableStartTime)

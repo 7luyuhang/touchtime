@@ -20,6 +20,7 @@ struct ComplicationDisplayOptions: Equatable {
     let showMoonSunAzimuth: Bool
     let showSunriseSunset: Bool
     let showDaylight: Bool
+    let showTimeOverlay: Bool
     let showSolarCurve: Bool
 
     var hasVisibleComplication: Bool {
@@ -34,6 +35,7 @@ struct ComplicationDisplayOptions: Equatable {
         showMoonSunAzimuth ||
         showSunriseSunset ||
         showDaylight ||
+        showTimeOverlay ||
         showSolarCurve
     }
 }
@@ -142,6 +144,15 @@ struct ComplicationOverlayView: View {
 
             if options.showDaylight {
                 DaylightIndicator(
+                    date: date,
+                    timeZone: timeZone,
+                    size: size
+                )
+                .complicationOverlayStyle(bottomPadding: bottomPadding)
+            }
+
+            if options.showTimeOverlay {
+                TimeOverlayIndicator(
                     date: date,
                     timeZone: timeZone,
                     size: size

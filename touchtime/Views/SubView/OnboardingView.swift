@@ -88,6 +88,7 @@ struct OnboardingView: View {
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
@@ -106,6 +107,7 @@ struct OnboardingView: View {
         case uvIndex
         case windDirection
         case daylight
+        case timeOverlay
         case solarCurve
         
         var localizedName: String {
@@ -121,6 +123,7 @@ struct OnboardingView: View {
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
             case .daylight: return String(localized: "Daylight Curve")
+            case .timeOverlay: return String(localized: "Time Overlay")
             case .solarCurve: return String(localized: "Solar Curve")
             }
         }
@@ -156,6 +159,10 @@ struct OnboardingView: View {
 
     private var effectiveShowDaylight: Bool {
         canShowLifetimeComplications && showDaylight
+    }
+
+    private var effectiveShowTimeOverlay: Bool {
+        canShowLifetimeComplications && showTimeOverlay
     }
     
     // Prepare haptic engine
@@ -221,6 +228,7 @@ struct OnboardingView: View {
             showUVIndex = type == .uvIndex
             showWindDirection = type == .windDirection
             showDaylight = type == .daylight
+            showTimeOverlay = type == .timeOverlay
             showSolarCurve = type == .solarCurve
         }
     }
@@ -228,7 +236,7 @@ struct OnboardingView: View {
     private func enforceLifetimeAccess() {
         guard !hasLifetimeAccess else { return }
 
-        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight {
+        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
             selectComplication(nil)
         }
     }
@@ -552,6 +560,20 @@ struct OnboardingView: View {
                                             .blendMode(.plusLighter)
                                     )
                                 }
+
+                                if effectiveShowTimeOverlay {
+                                    TimeOverlayIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
                                 
                                 if showSolarCurve {
                                     SolarCurve(
@@ -712,6 +734,17 @@ struct OnboardingView: View {
                                             size: 64,
                                             useMaterialBackground: false
                                         )
+                                    }
+
+                                    if canShowLifetimeComplications {
+                                        complicationOption(type: .timeOverlay, isSelected: effectiveShowTimeOverlay) {
+                                            TimeOverlayIndicator(
+                                                date: currentDate,
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                        }
                                     }
 
                                     if canShowLifetimeComplications {
