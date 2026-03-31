@@ -470,7 +470,7 @@ struct HomeView: View {
     }
 
     private var effectiveShowTimeOverlay: Bool {
-        hasLifetimeAccess && showTimeOverlay
+        hasLifetimeAccess && showTimeOverlay && availableTimeEnabled
     }
 
     private var complicationOptions: ComplicationDisplayOptions {

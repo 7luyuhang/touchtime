@@ -52,6 +52,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     
@@ -121,7 +122,7 @@ struct ShareCitiesSheet: View {
     }
 
     private var effectiveShowTimeOverlay: Bool {
-        hasLifetimeAccess && showTimeOverlay
+        hasLifetimeAccess && showTimeOverlay && availableTimeEnabled
     }
 
     private var complicationOptions: ComplicationDisplayOptions {

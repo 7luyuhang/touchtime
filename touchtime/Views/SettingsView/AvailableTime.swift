@@ -315,21 +315,23 @@ struct AvailableTimePicker: View {
  
                 }
 
-                // Complications
-                Section(header: Text("Complication")) {
-                    HStack(spacing: 16) {
-                        TimeOverlayIndicator(
-                            date: Date(),
-                            timeZone: .current,
-                            size: 64,
-                            useMaterialBackground: false
-                        )
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Time Overlay")
-                                .font(.headline)
-                            Text("Compare available time across cities")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                if availableTimeEnabled {
+                    // Complications
+                    Section(header: Text("Complications Preview")) {
+                        HStack(spacing: 16) {
+                            TimeOverlayIndicator(
+                                date: Date(),
+                                timeZone: .current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Time Overlay")
+                                    .font(.headline)
+                                Text("Compare available time across cities")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                     }
                 }

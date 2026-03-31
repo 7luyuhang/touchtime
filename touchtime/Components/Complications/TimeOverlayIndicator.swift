@@ -13,6 +13,7 @@ struct TimeOverlayIndicator: View {
     let size: CGFloat
     let useMaterialBackground: Bool
 
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
     @AppStorage("availableStartTime") private var availableStartTime = AvailableTimeDefaults.startTime
     @AppStorage("availableEndTime") private var availableEndTime = AvailableTimeDefaults.endTime
     @AppStorage("availableWeekdays") private var availableWeekdays = AvailableTimeDefaults.weekdays
@@ -43,11 +44,7 @@ struct TimeOverlayIndicator: View {
     }
 
     private var selectedWeekdaySet: Set<Int> {
-        let parsed = parseWeekdaySet(availableWeekdays)
-        if parsed.isEmpty {
-            return parseWeekdaySet(AvailableTimeDefaults.weekdays)
-        }
-        return parsed
+        parseWeekdaySet(availableWeekdays)
     }
 
     private var parsedTimeRange: (startMinute: Int, endMinute: Int) {
@@ -59,7 +56,7 @@ struct TimeOverlayIndicator: View {
     }
 
     private var overlaySegments: [TimeRangeSegment] {
-        guard !selectedWeekdaySet.isEmpty else {
+        guard availableTimeEnabled, !selectedWeekdaySet.isEmpty else {
             return []
         }
         let range = parsedTimeRange
@@ -76,23 +73,21 @@ struct TimeOverlayIndicator: View {
 
         let segments = calculateOverlaySegments(
             startMinute: range.startMinute,
-            endMinute: range.endMinute,
-            weekdays: selectedWeekdaySet
+            endMinute: range.endMinute
         )
         Self.overlaySegmentsCache.setObject(SegmentsWrapper(segments), forKey: cacheKey)
         return segments
     }
 
     private var isCurrentTimeInOverlay: Bool {
-        guard !selectedWeekdaySet.isEmpty else {
+        guard availableTimeEnabled, !selectedWeekdaySet.isEmpty else {
             return false
         }
         let range = parsedTimeRange
         return isDateWithinLocalAvailability(
             at: date,
             startMinute: range.startMinute,
-            endMinute: range.endMinute,
-            weekdays: selectedWeekdaySet
+            endMinute: range.endMinute
         )
     }
 
@@ -113,7 +108,7 @@ struct TimeOverlayIndicator: View {
         return "\(timeZone.identifier)_\(TimeZone.current.identifier)_\(day.year ?? 0)_\(day.month ?? 0)_\(day.day ?? 0)_\(startMinute)_\(endMinute)_\(weekdaysString)" as NSString
     }
 
-    private func calculateOverlaySegments(startMinute: Int, endMinute: Int, weekdays: Set<Int>) -> [TimeRangeSegment] {
+    private func calculateOverlaySegments(startMinute: Int, endMinute: Int) -> [TimeRangeSegment] {
         var targetCalendar = Calendar.current
         targetCalendar.timeZone = timeZone
         let startOfDay = targetCalendar.startOfDay(for: date)
@@ -126,8 +121,7 @@ struct TimeOverlayIndicator: View {
             let isAvailable = isDateWithinLocalAvailability(
                 at: minuteDate,
                 startMinute: startMinute,
-                endMinute: endMinute,
-                weekdays: weekdays
+                endMinute: endMinute
             )
 
             if isAvailable {
@@ -169,13 +163,12 @@ struct TimeOverlayIndicator: View {
         return result
     }
 
-    private func isDateWithinLocalAvailability(at date: Date, startMinute: Int, endMinute: Int, weekdays: Set<Int>) -> Bool {
+    private func isDateWithinLocalAvailability(at date: Date, startMinute: Int, endMinute: Int) -> Bool {
         isDateWithinAvailability(
             at: date,
             in: .current,
             startMinute: startMinute,
-            endMinute: endMinute,
-            weekdays: weekdays
+            endMinute: endMinute
         )
     }
 
@@ -183,16 +176,10 @@ struct TimeOverlayIndicator: View {
         at date: Date,
         in timeZone: TimeZone,
         startMinute: Int,
-        endMinute: Int,
-        weekdays: Set<Int>
+        endMinute: Int
     ) -> Bool {
         var calendar = Calendar.current
         calendar.timeZone = timeZone
-
-        let weekday = calendar.component(.weekday, from: date)
-        guard weekdays.contains(weekday) else {
-            return false
-        }
 
         let components = calendar.dateComponents([.hour, .minute], from: date)
         let minuteOfDay = (components.hour ?? 0) * 60 + (components.minute ?? 0)
@@ -224,7 +211,12 @@ struct TimeOverlayIndicator: View {
     }
 
     private func parseWeekdaySet(_ weekdayString: String) -> Set<Int> {
-        Set(weekdayString.split(separator: ",").compactMap { Int($0) })
+        Set(
+            weekdayString
+                .split(separator: ",")
+                .compactMap { Int($0) }
+                .filter { (1...7).contains($0) }
+        )
     }
 
     var body: some View {

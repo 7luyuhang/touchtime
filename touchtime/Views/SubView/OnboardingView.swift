@@ -90,6 +90,7 @@ struct OnboardingView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     
@@ -162,7 +163,7 @@ struct OnboardingView: View {
     }
 
     private var effectiveShowTimeOverlay: Bool {
-        canShowLifetimeComplications && showTimeOverlay
+        canShowLifetimeComplications && showTimeOverlay && availableTimeEnabled
     }
     
     // Prepare haptic engine
