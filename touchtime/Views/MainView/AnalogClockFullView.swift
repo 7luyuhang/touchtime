@@ -42,7 +42,6 @@ struct AnalogClockFullView: View {
     @State private var showSetTimerSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
-    @State private var showAlarmTip = false
     @State private var collections: [CityCollection] = []
     @State private var selectedCollectionId: UUID? = nil
     @State private var showTimeInsteadOfCityName = false
@@ -69,7 +68,6 @@ struct AnalogClockFullView: View {
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
-    @AppStorage("hasShownSetAlarmTip") private var hasShownSetAlarmTip = false
     @AppStorage("selectedCollectionId") private var savedSelectedCollectionId: String = ""
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("homeTimerConfiguredSeconds") private var homeTimerConfiguredSeconds = 0
@@ -889,7 +887,6 @@ struct AnalogClockFullView: View {
                                     showWeather: showWeather,
                                     useCelsius: useCelsius,
                                     hapticEnabled: hapticEnabled,
-                                    showAlarmTip: $showAlarmTip,
                                     timerConfiguredSeconds: homeTimerConfiguredSeconds,
                                     timerEndDateEpoch: homeTimerEndDateEpoch,
                                     timerIsPaused: homeTimerPaused,
@@ -903,11 +900,6 @@ struct AnalogClockFullView: View {
                                     if hapticEnabled {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
                                         impactFeedback.impactOccurred()
-                                    }
-                                    if showAlarmTip {
-                                        withAnimation(.smooth) {
-                                            showAlarmTip = false
-                                        }
                                     }
                                     showTimeAdjustmentSheet = true
                                 }
@@ -1191,10 +1183,6 @@ struct AnalogClockFullView: View {
                 loadCollections()
                 ensureValidSelectedCity(in: displayedClocks)
                 restoreHomeTimerStateIfNeeded()
-                if !hasShownSetAlarmTip {
-                    showAlarmTip = true
-                    hasShownSetAlarmTip = true
-                }
 
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = Task {
@@ -2498,7 +2486,6 @@ struct DigitalTimeDisplayView: View {
     let showWeather: Bool
     let useCelsius: Bool
     let hapticEnabled: Bool
-    @Binding var showAlarmTip: Bool
     let timerConfiguredSeconds: Int
     let timerEndDateEpoch: Double
     let timerIsPaused: Bool
@@ -2519,7 +2506,6 @@ struct DigitalTimeDisplayView: View {
         showWeather: Bool,
         useCelsius: Bool,
         hapticEnabled: Bool,
-        showAlarmTip: Binding<Bool>,
         timerConfiguredSeconds: Int,
         timerEndDateEpoch: Double,
         timerIsPaused: Bool,
@@ -2536,7 +2522,6 @@ struct DigitalTimeDisplayView: View {
         self.showWeather = showWeather
         self.useCelsius = useCelsius
         self.hapticEnabled = hapticEnabled
-        self._showAlarmTip = showAlarmTip
         self.timerConfiguredSeconds = timerConfiguredSeconds
         self.timerEndDateEpoch = timerEndDateEpoch
         self.timerIsPaused = timerIsPaused
@@ -2561,7 +2546,7 @@ struct DigitalTimeDisplayView: View {
     }
 
     private var tabHeight: CGFloat {
-        selectedPage == .time && showAlarmTip ? 132 : 110
+        110
     }
 
     private func formattedCurrentTime() -> String {
@@ -2642,42 +2627,19 @@ struct DigitalTimeDisplayView: View {
             .buttonStyle(.plain)
             .contentShape(Rectangle())
 
-            if showAlarmTip {
-                Button {
-                    if hapticEnabled {
-                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                        impactFeedback.impactOccurred()
-                    }
-                    withAnimation(.smooth) {
-                        showAlarmTip = false
-                    }
-                } label: {
-                    HStack(spacing: 6) {
-                        Text(String(localized: "Tap time to set an alarm"))
-                            .lineLimit(1)
-                        Image(systemName: "xmark.circle.fill")
-                    }
+            HStack(spacing: 4) {
+                if showWeather {
+                    WeatherView(
+                        weather: weather,
+                        useCelsius: useCelsius
+                    )
+                }
+
+                Text(formattedDateText())
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)
-                }
-                .buttonStyle(.plain)
-                .transition(.blurReplace().combined(with: .opacity))
-            } else {
-                HStack(spacing: 4) {
-                    if showWeather {
-                        WeatherView(
-                            weather: weather,
-                            useCelsius: useCelsius
-                        )
-                    }
-
-                    Text(formattedDateText())
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.secondary)
-                        .blendMode(.plusLighter)
-                        .contentTransition(.numericText())
-                }
+                    .contentTransition(.numericText())
             }
         }
     }
