@@ -949,6 +949,7 @@ struct AnalogClockFullView: View {
                                             Text(additionalText)
                                                 .font(.subheadline.weight(.medium))
                                                 .contentTransition(.numericText())
+                                                .animation(.smooth(duration: 0.25), value: additionalText)
                                         }
                                     }
                                     .foregroundStyle(.secondary)
@@ -2672,6 +2673,7 @@ struct DigitalTimeDisplayView: View {
                             .contentTransition(.symbolEffect(.replace))
                         Text(formattedConfiguredDuration(seconds: timerConfiguredSeconds))
                             .monospacedDigit()
+                            .contentTransition(.numericText())
                     }
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
