@@ -15,6 +15,7 @@ import MoonKit
 import SunKit
 import CoreLocation
 import TipKit
+import AlarmKit
 
 struct AnalogClockFullView: View {
     private enum CameraPreviewFilter {
@@ -38,6 +39,7 @@ struct AnalogClockFullView: View {
     @State private var showShareSheet = false
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
+    @State private var showSetTimerSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
     @State private var showAlarmTip = false
@@ -69,8 +71,16 @@ struct AnalogClockFullView: View {
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("hasShownSetAlarmTip") private var hasShownSetAlarmTip = false
     @AppStorage("selectedCollectionId") private var savedSelectedCollectionId: String = ""
+    @AppStorage("homeTimerConfiguredSeconds") private var homeTimerConfiguredSeconds = 0
+    @AppStorage("homeTimerEndDateEpoch") private var homeTimerEndDateEpoch: Double = 0
+    @AppStorage("homeTimerCompletionHandled") private var homeTimerCompletionHandled = false
+    @AppStorage("homeTimerPaused") private var homeTimerPaused = false
+    @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
+    @AppStorage("homeTimerAlarmID") private var homeTimerAlarmIDRawValue = ""
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    private let alarmManager = AlarmManager.shared
+    @State private var homeTimerAlarmSyncVersion = 0
 
     // Get displayed clocks based on selected collection
     private var displayedClocks: [WorldClock] {
@@ -176,6 +186,253 @@ struct AnalogClockFullView: View {
     private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
         guard showWeather else { return nil }
         return weatherManager.weatherData[timeZoneIdentifier]?.condition
+    }
+
+    private var hasConfiguredHomeTimer: Bool {
+        homeTimerConfiguredSeconds > 0
+    }
+
+    private var homeTimerAlarmID: UUID? {
+        UUID(uuidString: homeTimerAlarmIDRawValue)
+    }
+
+    private var homeTimerEndDate: Date? {
+        guard homeTimerEndDateEpoch > 0 else { return nil }
+        return Date(timeIntervalSince1970: homeTimerEndDateEpoch)
+    }
+
+    private func homeTimerRemainingFromEndDate(at date: Date) -> Int {
+        guard let endDate = homeTimerEndDate else {
+            return 0
+        }
+
+        let remaining = Int(ceil(endDate.timeIntervalSince(date)))
+        return max(remaining, 0)
+    }
+
+    private func homeTimerRemainingSeconds(at date: Date) -> Int {
+        guard hasConfiguredHomeTimer else {
+            return 0
+        }
+
+        if homeTimerPaused {
+            return max(0, min(homeTimerPausedRemainingSeconds, 59 * 60 + 59))
+        }
+
+        return homeTimerRemainingFromEndDate(at: date)
+    }
+
+    private func startHomeTimer(
+        durationSeconds: Int,
+        startPaused: Bool = false,
+        requestAlarmAuthorization: Bool = true
+    ) {
+        let clampedDuration = min(max(durationSeconds, 1), 59 * 60 + 59)
+        homeTimerConfiguredSeconds = clampedDuration
+
+        if startPaused {
+            homeTimerEndDateEpoch = 0
+            homeTimerPaused = true
+            homeTimerPausedRemainingSeconds = clampedDuration
+        } else {
+            homeTimerEndDateEpoch = Date().addingTimeInterval(TimeInterval(clampedDuration)).timeIntervalSince1970
+            homeTimerPaused = false
+            homeTimerPausedRemainingSeconds = 0
+        }
+
+        homeTimerCompletionHandled = false
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+
+        refreshHomeTimerAlarm(
+            requestAuthorization: requestAlarmAuthorization
+        )
+    }
+
+    private func handleHomeTimerTap() {
+        guard hasConfiguredHomeTimer else {
+            if hapticEnabled {
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.prepare()
+                impactFeedback.impactOccurred()
+            }
+            showSetTimerSheet = true
+            return
+        }
+
+        let remaining = homeTimerRemainingSeconds(at: Date())
+        if remaining == 0 {
+            startHomeTimer(durationSeconds: homeTimerConfiguredSeconds)
+            return
+        }
+
+        if homeTimerPaused {
+            let secondsToResume = max(1, min(homeTimerPausedRemainingSeconds, 59 * 60 + 59))
+            homeTimerEndDateEpoch = Date().addingTimeInterval(TimeInterval(secondsToResume)).timeIntervalSince1970
+            homeTimerPaused = false
+            homeTimerPausedRemainingSeconds = 0
+            homeTimerCompletionHandled = false
+            refreshHomeTimerAlarm(requestAuthorization: true)
+        } else {
+            homeTimerPausedRemainingSeconds = remaining
+            homeTimerPaused = true
+            homeTimerEndDateEpoch = 0
+            refreshHomeTimerAlarm(requestAuthorization: false)
+        }
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func restoreHomeTimerStateIfNeeded() {
+        defer {
+            refreshHomeTimerAlarm(requestAuthorization: false)
+        }
+
+        if !homeTimerAlarmIDRawValue.isEmpty, homeTimerAlarmID == nil {
+            homeTimerAlarmIDRawValue = ""
+        }
+
+        let clampedConfiguredSeconds = min(max(homeTimerConfiguredSeconds, 0), 59 * 60 + 59)
+        if clampedConfiguredSeconds != homeTimerConfiguredSeconds {
+            homeTimerConfiguredSeconds = clampedConfiguredSeconds
+        }
+
+        guard clampedConfiguredSeconds > 0 else {
+            homeTimerEndDateEpoch = 0
+            homeTimerCompletionHandled = false
+            homeTimerPaused = false
+            homeTimerPausedRemainingSeconds = 0
+            return
+        }
+
+        if homeTimerPaused {
+            let clampedPausedRemaining = min(max(homeTimerPausedRemainingSeconds, 0), 59 * 60 + 59)
+            if clampedPausedRemaining != homeTimerPausedRemainingSeconds {
+                homeTimerPausedRemainingSeconds = clampedPausedRemaining
+            }
+            if homeTimerPausedRemainingSeconds == 0 {
+                homeTimerPausedRemainingSeconds = clampedConfiguredSeconds
+            }
+            homeTimerEndDateEpoch = 0
+            homeTimerCompletionHandled = homeTimerPausedRemainingSeconds == 0
+            return
+        }
+
+        if homeTimerEndDateEpoch <= 0 {
+            homeTimerEndDateEpoch = Date().addingTimeInterval(TimeInterval(clampedConfiguredSeconds)).timeIntervalSince1970
+            homeTimerCompletionHandled = false
+            return
+        }
+
+        let remaining = homeTimerRemainingFromEndDate(at: Date())
+        homeTimerCompletionHandled = remaining == 0
+    }
+
+    private func refreshHomeTimerAlarm(
+        requestAuthorization: Bool
+    ) {
+        homeTimerAlarmSyncVersion += 1
+        let syncVersion = homeTimerAlarmSyncVersion
+        let shouldSchedule = hasConfiguredHomeTimer && !homeTimerPaused
+        let remainingSeconds = homeTimerRemainingSeconds(at: Date())
+        let existingAlarmID = homeTimerAlarmID
+
+        Task { @MainActor in
+            await synchronizeHomeTimerAlarm(
+                syncVersion: syncVersion,
+                existingAlarmID: existingAlarmID,
+                shouldSchedule: shouldSchedule,
+                remainingSeconds: remainingSeconds,
+                requestAuthorization: requestAuthorization
+            )
+        }
+    }
+
+    @MainActor
+    private func synchronizeHomeTimerAlarm(
+        syncVersion: Int,
+        existingAlarmID: UUID?,
+        shouldSchedule: Bool,
+        remainingSeconds: Int,
+        requestAuthorization: Bool
+    ) async {
+        let isStale = { syncVersion != homeTimerAlarmSyncVersion || Task.isCancelled }
+
+        if let existingAlarmID {
+            try? alarmManager.cancel(id: existingAlarmID)
+        }
+
+        guard !isStale() else { return }
+
+        guard shouldSchedule, remainingSeconds > 0 else {
+            homeTimerAlarmIDRawValue = ""
+            return
+        }
+
+        if requestAuthorization {
+            switch await AlarmSupport.ensureAuthorization(using: alarmManager) {
+            case .authorized:
+                break
+            case .denied:
+                homeTimerAlarmIDRawValue = ""
+                return
+            case .failed(let error):
+                homeTimerAlarmIDRawValue = ""
+                print("Failed to authorize AlarmKit for timer: \(error.localizedDescription)")
+                return
+            }
+        } else if alarmManager.authorizationState != .authorized {
+            homeTimerAlarmIDRawValue = ""
+            return
+        }
+
+        let newAlarmID = UUID()
+
+        do {
+            try await AlarmSupport.scheduleTimerAlarm(
+                id: newAlarmID,
+                durationSeconds: remainingSeconds,
+                eventTitle: String(localized: "Timer"),
+                using: alarmManager
+            )
+        } catch {
+            homeTimerAlarmIDRawValue = ""
+            print("Failed to schedule AlarmKit timer reminder: \(error.localizedDescription)")
+            return
+        }
+
+        guard !isStale() else {
+            try? alarmManager.cancel(id: newAlarmID)
+            return
+        }
+
+        homeTimerAlarmIDRawValue = newAlarmID.uuidString
+    }
+
+    private func handleHomeTimerTick(at now: Date) {
+        guard hasConfiguredHomeTimer, !homeTimerPaused else { return }
+
+        let remaining = homeTimerRemainingSeconds(at: now)
+        if remaining == 0 {
+            guard !homeTimerCompletionHandled else { return }
+            homeTimerCompletionHandled = true
+
+            if hapticEnabled {
+                let notificationFeedback = UINotificationFeedbackGenerator()
+                notificationFeedback.prepare()
+                notificationFeedback.notificationOccurred(.success)
+            }
+        } else if homeTimerCompletionHandled {
+            homeTimerCompletionHandled = false
+        }
     }
 
     private func triggerLightHaptic() {
@@ -295,6 +552,13 @@ struct AnalogClockFullView: View {
             showSetAlarmSheet = true
         }) {
             Label(String(localized: "Alarms"), systemImage: "alarm")
+        }
+
+        Button(action: {
+            triggerMenuHaptic()
+            showSetTimerSheet = true
+        }) {
+            Label(String(localized: "Timer"), systemImage: "timer")
         }
 
         Divider()
@@ -595,7 +859,16 @@ struct AnalogClockFullView: View {
                                     showWeather: showWeather,
                                     useCelsius: useCelsius,
                                     hapticEnabled: hapticEnabled,
-                                    showAlarmTip: $showAlarmTip
+                                    showAlarmTip: $showAlarmTip,
+                                    timerConfiguredSeconds: homeTimerConfiguredSeconds,
+                                    timerEndDateEpoch: homeTimerEndDateEpoch,
+                                    timerIsPaused: homeTimerPaused,
+                                    timerPausedRemainingSeconds: homeTimerPausedRemainingSeconds,
+                                    onTimerTap: handleHomeTimerTap,
+                                    onTimerConfigureTap: {
+                                        triggerMenuHaptic()
+                                        showSetTimerSheet = true
+                                    }
                                 ) {
                                     if hapticEnabled {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
@@ -767,6 +1040,8 @@ struct AnalogClockFullView: View {
                 }
             }
             .onReceive(timer) { now in
+                handleHomeTimerTick(at: now)
+
                 let calendar = Calendar.current
                 if calendar.component(.minute, from: now) != calendar.component(.minute, from: currentDate) {
                     currentDate = now
@@ -824,6 +1099,11 @@ struct AnalogClockFullView: View {
             .sheet(isPresented: $showSetAlarmSheet) {
                 SetAlarmSheet()
             }
+            .sheet(isPresented: $showSetTimerSheet) {
+                SetTimerSheet(initialDurationSeconds: homeTimerConfiguredSeconds) { durationSeconds in
+                    startHomeTimer(durationSeconds: durationSeconds)
+                }
+            }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(
                     worldClocks: $worldClocks,
@@ -869,6 +1149,7 @@ struct AnalogClockFullView: View {
             .onAppear {
                 loadCollections()
                 ensureValidSelectedCity(in: displayedClocks)
+                restoreHomeTimerStateIfNeeded()
                 if !hasShownSetAlarmTip {
                     showAlarmTip = true
                     hasShownSetAlarmTip = true
@@ -2161,6 +2442,13 @@ struct GoldenHourLineView: View {
 
 // MARK: - Digital Time Display
 struct DigitalTimeDisplayView: View {
+    enum DisplayPage: Int, CaseIterable {
+        case time
+        case timer
+    }
+
+    nonisolated private static let tabCoordinateSpaceName = "digital-time-display-tabs"
+
     let currentDate: Date
     let timeOffset: TimeInterval
     let selectedTimeZone: TimeZone
@@ -2170,10 +2458,127 @@ struct DigitalTimeDisplayView: View {
     let useCelsius: Bool
     let hapticEnabled: Bool
     @Binding var showAlarmTip: Bool
+    let timerConfiguredSeconds: Int
+    let timerEndDateEpoch: Double
+    let timerIsPaused: Bool
+    let timerPausedRemainingSeconds: Int
+    let onTimerTap: () -> Void
+    let onTimerConfigureTap: () -> Void
     let onTimeTap: () -> Void
     
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
+    @State private var selectedPage: DisplayPage
+
+    init(
+        currentDate: Date,
+        timeOffset: TimeInterval,
+        selectedTimeZone: TimeZone,
+        use24HourFormat: Bool,
+        weather: CurrentWeather?,
+        showWeather: Bool,
+        useCelsius: Bool,
+        hapticEnabled: Bool,
+        showAlarmTip: Binding<Bool>,
+        timerConfiguredSeconds: Int,
+        timerEndDateEpoch: Double,
+        timerIsPaused: Bool,
+        timerPausedRemainingSeconds: Int,
+        onTimerTap: @escaping () -> Void,
+        onTimerConfigureTap: @escaping () -> Void,
+        onTimeTap: @escaping () -> Void
+    ) {
+        self.currentDate = currentDate
+        self.timeOffset = timeOffset
+        self.selectedTimeZone = selectedTimeZone
+        self.use24HourFormat = use24HourFormat
+        self.weather = weather
+        self.showWeather = showWeather
+        self.useCelsius = useCelsius
+        self.hapticEnabled = hapticEnabled
+        self._showAlarmTip = showAlarmTip
+        self.timerConfiguredSeconds = timerConfiguredSeconds
+        self.timerEndDateEpoch = timerEndDateEpoch
+        self.timerIsPaused = timerIsPaused
+        self.timerPausedRemainingSeconds = timerPausedRemainingSeconds
+        self.onTimerTap = onTimerTap
+        self.onTimerConfigureTap = onTimerConfigureTap
+        self.onTimeTap = onTimeTap
+        _selectedPage = State(initialValue: timerConfiguredSeconds > 0 ? .timer : .time)
+    }
+
+    private var adjustedDate: Date {
+        currentDate.addingTimeInterval(timeOffset)
+    }
+
+    private var hasConfiguredTimer: Bool {
+        timerConfiguredSeconds > 0
+    }
+
+    private var timerEndDate: Date? {
+        guard timerEndDateEpoch > 0 else { return nil }
+        return Date(timeIntervalSince1970: timerEndDateEpoch)
+    }
+
+    private var tabHeight: CGFloat {
+        selectedPage == .time && showAlarmTip ? 132 : 110
+    }
+
+    private func formattedCurrentTime() -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = selectedTimeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        if use24HourFormat {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "h:mm"
+        }
+        return formatter.string(from: adjustedDate)
+    }
+
+    private func formattedDateText() -> String {
+        adjustedDate.formattedDate(style: dateStyle, timeZone: selectedTimeZone)
+    }
+
+    private func timerRemainingSeconds(at date: Date) -> Int {
+        if timerIsPaused {
+            return max(0, min(timerPausedRemainingSeconds, 59 * 60 + 59))
+        }
+
+        guard let timerEndDate else { return 0 }
+        let remaining = Int(ceil(timerEndDate.timeIntervalSince(date)))
+        return max(remaining, 0)
+    }
+
+    private func timerControlSymbol(at date: Date) -> String {
+        let remaining = timerRemainingSeconds(at: date)
+        return (timerIsPaused || remaining == 0) ? "play.fill" : "pause.fill"
+    }
+
+    private func formattedTimer(seconds: Int) -> String {
+        let clampedSeconds = max(0, min(seconds, 59 * 60 + 59))
+        let minutes = clampedSeconds / 60
+        let remainingSeconds = clampedSeconds % 60
+        return String(format: "%02d:%02d", minutes, remainingSeconds)
+    }
+
+    private func formattedConfiguredDuration(seconds: Int) -> String {
+        let clampedSeconds = max(0, min(seconds, 59 * 60 + 59))
+        let minutes = clampedSeconds / 60
+        let remainingSeconds = clampedSeconds % 60
+
+        if minutes > 0 && remainingSeconds > 0 {
+            return String.localizedStringWithFormat(
+                String(localized: "%d min %d sec"),
+                minutes,
+                remainingSeconds
+            )
+        }
+        if minutes > 0 {
+            return String.localizedStringWithFormat(String(localized: "%d min"), minutes)
+        }
+        return String.localizedStringWithFormat(String(localized: "%d sec"), remainingSeconds)
+    }
     
     // Calculate additional time display text (follows WorldClock model pattern)
     private func additionalTimeText() -> String {
@@ -2204,10 +2609,37 @@ struct DigitalTimeDisplayView: View {
             return ""
         }
     }
-    
-    var body: some View {
+
+    private func triggerPageHapticIfNeeded() {
+        guard hapticEnabled else { return }
+        let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
+        impactFeedback.prepare()
+        impactFeedback.impactOccurred()
+    }
+
+    nonisolated private static func blurRadius(for proxy: GeometryProxy, viewportMidX: CGFloat) -> CGFloat {
+        let distanceToCenter = abs(
+            proxy.frame(in: .named(Self.tabCoordinateSpaceName)).midX - viewportMidX
+        )
+        let normalizedDistance = min(distanceToCenter / max(proxy.size.width, 1), 1)
+        return normalizedDistance * 5.0 // Blur Value
+    }
+
+    @ViewBuilder
+    private func pageWithSwipeBlur<Content: View>(
+        _ page: Content,
+        viewportMidX: CGFloat
+    ) -> some View {
+        page
+            .visualEffect { content, proxy in
+                content
+                    .blur(radius: Self.blurRadius(for: proxy, viewportMidX: viewportMidX))
+            }
+    }
+
+    @ViewBuilder
+    private var timePage: some View {
         VStack(spacing: 0) {
-            // Additional time display
             let additionalText = additionalTimeText()
             if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
                 Text(additionalText)
@@ -2217,30 +2649,19 @@ struct DigitalTimeDisplayView: View {
                     .transition(.blurReplace.combined(with: .move(edge: .bottom)))
                     .blendMode(.plusLighter)
             }
-            
+
             Button(action: onTimeTap) {
-                Text({
-                    let formatter = DateFormatter()
-                    formatter.timeZone = selectedTimeZone
-                    formatter.locale = Locale(identifier: "en_US_POSIX")
-                    if use24HourFormat {
-                        formatter.dateFormat = "HH:mm"
-                    } else {
-                        formatter.dateFormat = "h:mm"
-                    }
-                    let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                    return formatter.string(from: adjustedDate)
-                }())
-                .font(.system(size: 52))
-                .fontWeight(.light)
-                .fontDesign(.rounded)
-                .monospacedDigit()
-                .foregroundStyle(.white)
-                .contentTransition(.numericText())
+                Text(formattedCurrentTime())
+                    .font(.system(size: 52))
+                    .fontWeight(.light)
+                    .fontDesign(.rounded)
+                    .monospacedDigit()
+                    .foregroundStyle(.white)
+                    .contentTransition(.numericText())
             }
             .buttonStyle(.plain)
             .contentShape(Rectangle())
-            
+
             if showAlarmTip {
                 Button {
                     if hapticEnabled {
@@ -2271,16 +2692,114 @@ struct DigitalTimeDisplayView: View {
                         )
                     }
 
-                    Text({
-                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                        return adjustedDate.formattedDate(style: dateStyle, timeZone: selectedTimeZone)
-                    }())
+                    Text(formattedDateText())
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .blendMode(.plusLighter)
+                        .contentTransition(.numericText())
+                }
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var timerPage: some View {
+        VStack(spacing: 0) {
+            if hasConfiguredTimer {
+                // Timer Set
+                Button(action: onTimerTap) {
+                    TimelineView(.periodic(from: .now, by: 1)) { context in
+                        let remaining = timerRemainingSeconds(at: context.date)
+                        Text(formattedTimer(seconds: remaining))
+                            .font(.system(size: 52))
+                            .fontWeight(.light)
+                            .fontDesign(.rounded)
+                            .monospacedDigit()
+                            .foregroundStyle(.white)
+                            .contentTransition(.numericText(countsDown: true))
+                            .animation(.spring(duration: 0.25), value: remaining)
+                    }
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    HStack(spacing: 8) {
+                        Image(systemName: timerControlSymbol(at: context.date))
+                            .contentTransition(.symbolEffect(.replace))
+                        Text(formattedConfiguredDuration(seconds: timerConfiguredSeconds))
+                            .monospacedDigit()
+                    }
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)
-                    .contentTransition(.numericText())
+                    .animation(.spring(duration: 0.25), value: timerRemainingSeconds(at: context.date))
+                }
+            } else {
+                // No timer yet
+                Button(action: onTimerConfigureTap) {
+                    Text("00:00")
+                        .font(.system(size: 52))
+                        .fontWeight(.light)
+                        .fontDesign(.rounded)
+                        .monospacedDigit()
+                        .foregroundStyle(.primary)
+                        .blendMode(.plusLighter)
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+                
+                Text(String(localized: "Set Timer"))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+            }
+        }
+    }
+    
+    var body: some View {
+        VStack(spacing: 8) {
+            GeometryReader { tabGeometry in
+                let viewportMidX = tabGeometry.size.width / 2
+
+                TabView(selection: $selectedPage) {
+                    pageWithSwipeBlur(timePage, viewportMidX: viewportMidX)
+                        .tag(DisplayPage.time)
+
+                    pageWithSwipeBlur(timerPage, viewportMidX: viewportMidX)
+                        .tag(DisplayPage.timer)
+                }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .frame(width: tabGeometry.size.width, height: tabHeight)
+            }
+            .frame(height: tabHeight)
+            .coordinateSpace(name: Self.tabCoordinateSpaceName)
+
+            HStack(spacing: 8) {
+                ForEach(DisplayPage.allCases, id: \.self) { page in
+                    Circle()
+                        .fill(Color.white.opacity(page == selectedPage ? 1.0 : 0.25))
+                        .frame(width: 6, height: 6)
                 }
             }
+            .padding(.bottom)
+            .blendMode(.plusLighter)
+            .animation(.spring(duration: 0.25), value: selectedPage)
+        }
+        .onChange(of: hasConfiguredTimer) { oldValue, newValue in
+            if !oldValue && newValue {
+                withAnimation(.spring(duration: 0.25)) {
+                    selectedPage = .timer
+                }
+            } else if oldValue && !newValue && selectedPage == .timer {
+                withAnimation(.spring(duration: 0.25)) {
+                    selectedPage = .time
+                }
+            }
+        }
+        .onChange(of: selectedPage) { oldValue, newValue in
+            guard oldValue != newValue else { return }
+            triggerPageHapticIfNeeded()
         }
     }
 }
