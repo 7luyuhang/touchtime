@@ -71,6 +71,7 @@ struct AnalogClockFullView: View {
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("hasShownSetAlarmTip") private var hasShownSetAlarmTip = false
     @AppStorage("selectedCollectionId") private var savedSelectedCollectionId: String = ""
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("homeTimerConfiguredSeconds") private var homeTimerConfiguredSeconds = 0
     @AppStorage("homeTimerEndDateEpoch") private var homeTimerEndDateEpoch: Double = 0
     @AppStorage("homeTimerCompletionHandled") private var homeTimerCompletionHandled = false
@@ -186,6 +187,35 @@ struct AnalogClockFullView: View {
     private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
         guard showWeather else { return nil }
         return weatherManager.weatherData[timeZoneIdentifier]?.condition
+    }
+
+    private var selectedAdditionalTimeText: String {
+        switch additionalTimeDisplay {
+        case "Time Difference":
+            let selectedOffset = selectedTimeZone.secondsFromGMT()
+            let localOffset = TimeZone.current.secondsFromGMT()
+            let differenceSeconds = selectedOffset - localOffset
+            let differenceHours = differenceSeconds / 3600
+            if differenceHours == 0 {
+                return ""
+            } else if differenceHours > 0 {
+                return String(format: String(localized: "+%d hours"), differenceHours)
+            } else {
+                return String(format: String(localized: "%d hours"), differenceHours)
+            }
+        case "UTC":
+            let offsetSeconds = selectedTimeZone.secondsFromGMT()
+            let offsetHours = offsetSeconds / 3600
+            if offsetHours == 0 {
+                return "UTC +0"
+            } else if offsetHours > 0 {
+                return "UTC +\(offsetHours)"
+            } else {
+                return "UTC \(offsetHours)"
+            }
+        default:
+            return ""
+        }
     }
 
     private var hasConfiguredHomeTimer: Bool {
@@ -916,6 +946,17 @@ struct AnalogClockFullView: View {
                                             }
                                         }())
                                         .font(.subheadline.weight(.medium))
+
+                                        if !showTimeInsteadOfCityName {
+                                            let additionalText = selectedAdditionalTimeText
+                                            if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
+                                                Text("·")
+                                                    .font(.subheadline.weight(.medium))
+                                                Text(additionalText)
+                                                    .font(.subheadline.weight(.medium))
+                                                    .contentTransition(.numericText())
+                                            }
+                                        }
                                     }
                                     .foregroundStyle(.secondary)
                                     .blendMode(.plusLighter)
@@ -2467,7 +2508,6 @@ struct DigitalTimeDisplayView: View {
     let onTimeTap: () -> Void
     
     @AppStorage("dateStyle") private var dateStyle = "Relative"
-    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @State private var selectedPage: DisplayPage
 
     init(
@@ -2580,36 +2620,6 @@ struct DigitalTimeDisplayView: View {
         return String.localizedStringWithFormat(String(localized: "%d sec"), remainingSeconds)
     }
     
-    // Calculate additional time display text (follows WorldClock model pattern)
-    private func additionalTimeText() -> String {
-        switch additionalTimeDisplay {
-        case "Time Difference":
-            let selectedOffset = selectedTimeZone.secondsFromGMT()
-            let localOffset = TimeZone.current.secondsFromGMT()
-            let differenceSeconds = selectedOffset - localOffset
-            let differenceHours = differenceSeconds / 3600
-            if differenceHours == 0 {
-                return ""
-            } else if differenceHours > 0 {
-                return String(format: String(localized: "+%d hours"), differenceHours)
-            } else {
-                return String(format: String(localized: "%d hours"), differenceHours)
-            }
-        case "UTC":
-            let offsetSeconds = selectedTimeZone.secondsFromGMT()
-            let offsetHours = offsetSeconds / 3600
-            if offsetHours == 0 {
-                return "UTC +0"
-            } else if offsetHours > 0 {
-                return "UTC +\(offsetHours)"
-            } else {
-                return "UTC \(offsetHours)"
-            }
-        default:
-            return ""
-        }
-    }
-
     private func triggerPageHapticIfNeeded() {
         guard hapticEnabled else { return }
         let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
@@ -2620,16 +2630,6 @@ struct DigitalTimeDisplayView: View {
     @ViewBuilder
     private var timePage: some View {
         VStack(spacing: 0) {
-            let additionalText = additionalTimeText()
-            if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
-                Text(additionalText)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .contentTransition(.numericText())
-                    .transition(.blurReplace.combined(with: .move(edge: .bottom)))
-                    .blendMode(.plusLighter)
-            }
-
             Button(action: onTimeTap) {
                 Text(formattedCurrentTime())
                     .font(.system(size: 52))

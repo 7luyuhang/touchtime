@@ -74,7 +74,7 @@ half4 EdgeRGBSplit(
     // Stronger near each page edge, weaker near the page center.
     float edgeMask = pow(abs(uv.x * 2.0 - 1.0), 1.4);
     float strength = clamp(edgeProgress * edgeMask, 0.0, 1.0);
-    float shift = 5.0 * strength; //色差位移
+    float shift = 2.5 * strength; //色差位移
 
     float2 offset = float2(shift * direction, 0.0);
 
