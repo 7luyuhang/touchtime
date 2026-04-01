@@ -113,8 +113,9 @@ struct AboutView: View {
                     }
                 }
                 .foregroundStyle(.primary)
-                
-                
+            }
+
+            Section {
                 // Reset Cities
                 Button(action: {
                     if hapticEnabled {
