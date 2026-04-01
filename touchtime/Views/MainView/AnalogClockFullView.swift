@@ -939,15 +939,16 @@ struct AnalogClockFullView: View {
                                         }())
                                         .font(.subheadline.weight(.medium))
 
-                                        if !showTimeInsteadOfCityName {
-                                            let additionalText = selectedAdditionalTimeText
-                                            if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
-                                                Text("·")
-                                                    .font(.subheadline.weight(.medium))
-                                                Text(additionalText)
-                                                    .font(.subheadline.weight(.medium))
-                                                    .contentTransition(.numericText())
-                                            }
+                                        let additionalText = selectedAdditionalTimeText
+                                        let shouldShowAdditionalText = showTimeInsteadOfCityName
+                                            ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
+                                            : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
+                                        if shouldShowAdditionalText {
+                                            Text("·")
+                                                .font(.subheadline.weight(.medium))
+                                            Text(additionalText)
+                                                .font(.subheadline.weight(.medium))
+                                                .contentTransition(.numericText())
                                         }
                                     }
                                     .foregroundStyle(.secondary)
