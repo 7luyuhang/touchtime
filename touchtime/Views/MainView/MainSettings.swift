@@ -396,7 +396,7 @@ struct SettingsView: View {
                         showSupportLove = true
                     }) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "heart.fill", topColor: .pink, bottomColor: .red)
+                            SupportLoveIcon()
                             
                             VStack (alignment: .leading) {
                                 Text("Support & Love")
@@ -1091,4 +1091,28 @@ struct SettingsView: View {
         }
     }
     
+}
+
+private struct SupportLoveIcon: View {
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            .pink,.red
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+                .frame(width: 40, height: 40)
+            
+            Image(systemName: "heart.fill")
+                .font(.headline)
+                .fontWeight(.medium)
+                .foregroundStyle(.white)
+        }
+        .glassEffect(.clear.interactive(), in: Circle())
+    }
 }

@@ -114,6 +114,7 @@ struct AboutView: View {
                 }
                 .foregroundStyle(.primary)
                 
+                
                 // Reset Cities
                 Button(action: {
                     if hapticEnabled {
@@ -138,6 +139,7 @@ struct AboutView: View {
             } footer: {
                 Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
             }
+            
 
             if !hasLifetimeAccess {
                 // Redeem Code
