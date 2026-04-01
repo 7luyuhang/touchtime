@@ -2617,26 +2617,6 @@ struct DigitalTimeDisplayView: View {
         impactFeedback.impactOccurred()
     }
 
-    nonisolated private static func blurRadius(for proxy: GeometryProxy, viewportMidX: CGFloat) -> CGFloat {
-        let distanceToCenter = abs(
-            proxy.frame(in: .named(Self.tabCoordinateSpaceName)).midX - viewportMidX
-        )
-        let normalizedDistance = min(distanceToCenter / max(proxy.size.width, 1), 1)
-        return normalizedDistance * 5.0 // Blur Value
-    }
-
-    @ViewBuilder
-    private func pageWithSwipeBlur<Content: View>(
-        _ page: Content,
-        viewportMidX: CGFloat
-    ) -> some View {
-        page
-            .visualEffect { content, proxy in
-                content
-                    .blur(radius: Self.blurRadius(for: proxy, viewportMidX: viewportMidX))
-            }
-    }
-
     @ViewBuilder
     private var timePage: some View {
         VStack(spacing: 0) {
@@ -2763,10 +2743,18 @@ struct DigitalTimeDisplayView: View {
                 let viewportMidX = tabGeometry.size.width / 2
 
                 TabView(selection: $selectedPage) {
-                    pageWithSwipeBlur(timePage, viewportMidX: viewportMidX)
+                    timePage
+                        .edgeChromaticSwipeEffect(
+                            viewportMidX: viewportMidX,
+                            coordinateSpaceName: Self.tabCoordinateSpaceName
+                        )
                         .tag(DisplayPage.time)
 
-                    pageWithSwipeBlur(timerPage, viewportMidX: viewportMidX)
+                    timerPage
+                        .edgeChromaticSwipeEffect(
+                            viewportMidX: viewportMidX,
+                            coordinateSpaceName: Self.tabCoordinateSpaceName
+                        )
                         .tag(DisplayPage.timer)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
