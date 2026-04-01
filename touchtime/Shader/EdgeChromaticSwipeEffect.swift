@@ -13,6 +13,7 @@ struct EdgeChromaticSwipeEffect: ViewModifier {
     let blurStrength: CGFloat
     let edgeThreshold: CGFloat
     let maxSampleOffset: CGFloat
+    let minScaleAtEdge: CGFloat
 
     nonisolated private static func normalizedDistanceToCenter(
         for proxy: GeometryProxy,
@@ -40,6 +41,14 @@ struct EdgeChromaticSwipeEffect: ViewModifier {
         proxy.frame(in: .named(coordinateSpaceName)).midX >= viewportMidX ? 1 : -1
     }
 
+    nonisolated private static func scaleFactor(
+        normalizedDistance: CGFloat,
+        minScaleAtEdge: CGFloat
+    ) -> CGFloat {
+        let clampedMinScale = min(max(minScaleAtEdge, 0.5), 1.0)
+        return 1.0 - normalizedDistance * (1.0 - clampedMinScale)
+    }
+
     func body(content: Content) -> some View {
         content.visualEffect { content, proxy in
             let normalizedDistance = Self.normalizedDistanceToCenter(
@@ -61,6 +70,10 @@ struct EdgeChromaticSwipeEffect: ViewModifier {
                 .float(chromaticProgress),
                 .float(chromaticDirection)
             )
+            let scale = Self.scaleFactor(
+                normalizedDistance: normalizedDistance,
+                minScaleAtEdge: minScaleAtEdge
+            )
 
             return content
                 .layerEffect(
@@ -69,6 +82,7 @@ struct EdgeChromaticSwipeEffect: ViewModifier {
                     isEnabled: chromaticProgress > 0.001
                 )
                 .blur(radius: normalizedDistance * blurStrength)
+                .scaleEffect(scale)
         }
         .compositingGroup()
         .blendMode(.plusLighter)
@@ -81,7 +95,8 @@ extension View {
         coordinateSpaceName: String,
         blurStrength: CGFloat = 5.0,
         edgeThreshold: CGFloat = 0.28,
-        maxSampleOffset: CGFloat = 12.0
+        maxSampleOffset: CGFloat = 12.0,
+        minScaleAtEdge: CGFloat = 0.90
     ) -> some View {
         modifier(
             EdgeChromaticSwipeEffect(
@@ -89,7 +104,8 @@ extension View {
                 coordinateSpaceName: coordinateSpaceName,
                 blurStrength: blurStrength,
                 edgeThreshold: edgeThreshold,
-                maxSampleOffset: maxSampleOffset
+                maxSampleOffset: maxSampleOffset,
+                minScaleAtEdge: minScaleAtEdge
             )
         )
     }
