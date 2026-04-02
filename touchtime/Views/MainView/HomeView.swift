@@ -1399,7 +1399,17 @@ struct HomeView: View {
                 
                 // Scroll Time View - Hide when renaming or when there's no content to display
                 if !showingRenameAlert && !(displayedClocks.isEmpty && !showLocalTime) {
-                    ScrollTimeView(timeOffset: $timeOffset, showButtons: $showScrollTimeButtons, worldClocks: $worldClocks)
+                    ScrollTimeView(
+                        timeOffset: $timeOffset,
+                        showButtons: $showScrollTimeButtons,
+                        worldClocks: $worldClocks,
+                        onAlarmTap: {
+                            showSetAlarmSheet = true
+                        },
+                        onTimerTap: {
+                            showSetTimerSheet = true
+                        }
+                    )
                         .padding(.horizontal)
                         .padding(.bottom, 8)
                         .transition(.blurReplace())
@@ -1647,6 +1657,12 @@ struct HomeView: View {
                     timeOffset = 0
                     showScrollTimeButtons = false
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSetAlarmSheet"))) { _ in
+                showSetAlarmSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSetTimerSheet"))) { _ in
+                showSetTimerSheet = true
             }
             
             // Rename

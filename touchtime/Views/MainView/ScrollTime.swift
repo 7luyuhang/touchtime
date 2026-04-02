@@ -13,10 +13,13 @@ import StoreKit
 
 struct ScrollTimeView: View {
     private let minuteStep: TimeInterval = 60
+    private let controlHeight: CGFloat = 52
 
     @Binding var timeOffset: TimeInterval
     @Binding var showButtons: Bool
     @Binding var worldClocks: [WorldClock]
+    var onAlarmTap: (() -> Void)? = nil
+    var onTimerTap: (() -> Void)? = nil
     @State private var dragOffset: CGFloat = 0
     @State private var accumulatedOffset: TimeInterval = 0
     @State private var eventStore = EKEventStore()
@@ -491,6 +494,44 @@ struct ScrollTimeView: View {
             .blendMode(.plusLighter)
     }
     
+    private func triggerControlHaptic(style: UIImpactFeedbackGenerator.FeedbackStyle = .soft) {
+        guard hapticEnabled else { return }
+        let impactFeedback = UIImpactFeedbackGenerator(style: style)
+        impactFeedback.prepare()
+        impactFeedback.impactOccurred()
+    }
+
+    private func expandActionButtons() {
+        stopInertia()
+        withAnimation(.spring()) {
+            dragOffset = 0
+            showButtons = true
+        }
+        triggerControlHaptic(style: .rigid)
+    }
+
+    private func collapseActionButtons() {
+        withAnimation(.spring()) {
+            showButtons = false
+        }
+    }
+
+    private func handleAlarmAction() {
+        if let onAlarmTap {
+            onAlarmTap()
+        } else {
+            NotificationCenter.default.post(name: NSNotification.Name("ShowSetAlarmSheet"), object: nil)
+        }
+    }
+
+    private func handleTimerAction() {
+        if let onTimerTap {
+            onTimerTap()
+        } else {
+            NotificationCenter.default.post(name: NSNotification.Name("ShowSetTimerSheet"), object: nil)
+        }
+    }
+
     /// Main scrollable content area with time adjustment states
     @ViewBuilder
     private var mainContent: some View {
@@ -506,12 +547,85 @@ struct ScrollTimeView: View {
         .animation(.spring(duration: 0.25), value: dragOffset)
         .animation(.spring(duration: 0.25), value: timeOffset)
         .frame(maxWidth: .infinity)
-        .frame(height: 52)
+        .frame(height: controlHeight)
         .contentShape(Rectangle())
         .glassEffect(.regular.interactive())
-        .glassEffectID("mainContent", in: glassNamespace)
+        .glassEffectID("timerControl", in: glassNamespace)
+        .glassEffectTransition(.matchedGeometry)
+        .gesture(scrollDragGesture)
+        .onTapGesture(count: 2) {
+            guard timeOffset == 0 else { return }
+            expandActionButtons()
+        }
     }
-    
+
+    /// Double-tap expanded controls: Alarm, Timer, Close.
+    @ViewBuilder
+    private var splitActionButtons: some View {
+        HStack(spacing: 5) {
+            Button {
+                triggerControlHaptic(style: .soft)
+                handleAlarmAction()
+                collapseActionButtons()
+            } label: {
+                HStack {
+                    Image(systemName: "alarm")
+                        .font(.headline)
+                    Text("Alarm")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .frame(height: controlHeight)
+            .contentShape(Capsule(style: .continuous))
+            .glassEffect(.regular.interactive())
+            .glassEffectID("alarmControl", in: glassNamespace)
+            .glassEffectTransition(.matchedGeometry)
+
+            Button {
+                triggerControlHaptic(style: .soft)
+                handleTimerAction()
+                collapseActionButtons()
+            } label: {
+                HStack {
+                    Image(systemName: "timer")
+                        .font(.headline)
+                    Text("Timer")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .frame(height: controlHeight)
+            .contentShape(Capsule(style: .continuous))
+            .glassEffect(.regular.interactive())
+            .glassEffectID("timerControl", in: glassNamespace)
+            .glassEffectTransition(.matchedGeometry)
+
+            Button {
+                triggerControlHaptic(style: .soft)
+                collapseActionButtons()
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .frame(width: controlHeight, height: controlHeight)
+            }
+            .buttonStyle(.plain)
+            .frame(width: controlHeight, height: controlHeight)
+            .contentShape(Circle())
+            .glassEffect(.regular.interactive())
+            .glassEffectID("closeControl", in: glassNamespace)
+            .glassEffectTransition(.materialize)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
     /// Overlay buttons for continuous scroll mode (calendar + reset with time label)
     @ViewBuilder
     private var continuousScrollOverlayButtons: some View {
@@ -555,11 +669,6 @@ struct ScrollTimeView: View {
                     .padding(.horizontal, 15)
                     .contentShape(Capsule(style: .continuous))
                     .glassEffect(.regular.tint(.white))
-//                    .background(
-//                        Capsule(style: .continuous)
-//                            .fill(.primary.opacity(0.05))
-//                            .blendMode(.plusLighter)
-//                    )
                     .padding(.trailing, 5)
             }
             .buttonStyle(.plain)
@@ -570,7 +679,7 @@ struct ScrollTimeView: View {
         .glassEffect(.regular.interactive())
         .highPriorityGesture(DragGesture())
         .transition(.blurReplace.combined(with: .scale).combined(with: .move(edge: .bottom)).combined(with: .opacity))
-        .offset(y: -52)
+        .offset(y: -controlHeight)
     }
     
     /// Drag gesture for time adjustment scrolling
@@ -607,17 +716,21 @@ struct ScrollTimeView: View {
     // MARK: - Body
     
     var body: some View {
-        GlassEffectContainer(spacing: 8) {
-            mainContent
+        GlassEffectContainer(spacing: 5) {
+            if showButtons {
+                splitActionButtons
+            } else {
+                mainContent
+            }
         }
         .padding(.horizontal, 5)
         .overlay(alignment: .top) {
-            if timeOffset != 0 {
+            if !showButtons && timeOffset != 0 {
                 continuousScrollOverlayButtons
             }
         }
+        .animation(.spring(), value: showButtons)
         .animation(.spring(), value: timeOffset != 0)
-        .gesture(scrollDragGesture)
         .onAppear {
             if !continuousScrollMode {
                 continuousScrollMode = true
@@ -651,9 +764,10 @@ struct ScrollTimeView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StopScrollTimeInertia"))) { _ in
             stopInertia()
         }
-        .onChange(of: showButtons) { _, newValue in
-            if newValue {
-                showButtons = false
+        .onChange(of: showButtons) { _, isExpanded in
+            if isExpanded {
+                stopInertia()
+                dragOffset = 0
             }
         }
         .onChange(of: timeOffset) { _, newValue in

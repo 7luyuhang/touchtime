@@ -962,7 +962,13 @@ struct AnalogClockFullView: View {
                                 ScrollTimeView(
                                     timeOffset: $timeOffset,
                                     showButtons: $showScrollTimeButtons,
-                                    worldClocks: $worldClocks
+                                    worldClocks: $worldClocks,
+                                    onAlarmTap: {
+                                        showSetAlarmSheet = true
+                                    },
+                                    onTimerTap: {
+                                        showSetTimerSheet = true
+                                    }
                                 )
                                 .padding(.horizontal)
                                 .padding(.bottom, 8)
@@ -1087,6 +1093,12 @@ struct AnalogClockFullView: View {
                     timeOffset = 0
                     showScrollTimeButtons = false
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSetAlarmSheet"))) { _ in
+                showSetAlarmSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSetTimerSheet"))) { _ in
+                showSetTimerSheet = true
             }
             .sheet(isPresented: $showDetailsSheet) {
                 if let cityId = selectedCityId,
