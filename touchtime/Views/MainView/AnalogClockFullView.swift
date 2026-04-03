@@ -860,6 +860,7 @@ struct AnalogClockFullView: View {
                             AnalogClockFaceView(
                                 date: context.date.addingTimeInterval(timeOffset),
                                 timeOffset: $timeOffset,
+                                showScrollTimeButtons: $showScrollTimeButtons,
                                 selectedTimeZone: selectedTimeZone,
                                 size: size,
                                 worldClocks: displayedClocks,
@@ -1302,6 +1303,7 @@ struct DoubleTapClockFaceTip: Tip {
 struct AnalogClockFaceView: View {
     let date: Date
     @Binding var timeOffset: TimeInterval
+    @Binding var showScrollTimeButtons: Bool
     let selectedTimeZone: TimeZone
     let size: CGFloat
     let worldClocks: [WorldClock]
@@ -1737,6 +1739,13 @@ struct AnalogClockFaceView: View {
             return String(localized: "Moon")
         }
     }
+
+    private func collapseScrollButtonsIfNeeded() {
+        guard showScrollTimeButtons else { return }
+        withAnimation(.spring()) {
+            showScrollTimeButtons = false
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -1758,6 +1767,7 @@ struct AnalogClockFaceView: View {
                     DragGesture(minimumDistance: 0, coordinateSpace: .local)
                         .onChanged { value in
                             guard continuousScrollMode else { return }
+                            collapseScrollButtonsIfNeeded()
                             let angle = angleDegrees(at: value.location, in: size)
                             if let lastAngle = lastRotationAngle {
                                 let delta = normalizedAngleDelta(angle - lastAngle)
