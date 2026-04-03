@@ -143,7 +143,12 @@ struct SetAlarmSheet: View {
                         showLocalCityTimeAdjustmentSheet = true
                     } label: {
                         Image(systemName: "plus")
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                            .frame(width: 60, height: 40)
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.blue)
                 }
             }
         }

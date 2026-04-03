@@ -610,7 +610,7 @@ struct ScrollTimeView: View {
             .glassEffectTransition(.matchedGeometry)
 
             Button {
-                triggerControlHaptic(style: .soft)
+                triggerControlHaptic(style: .rigid)
                 collapseActionButtons()
             } label: {
                 Image(systemName: "xmark")
