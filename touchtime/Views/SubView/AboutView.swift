@@ -95,7 +95,7 @@ struct AboutView: View {
                 }
                 .foregroundStyle(.primary)
 
-                Toggle(isOn: $hapticEnabled) {
+                TouchTimeToggle(isOn: $hapticEnabled) {
                     HStack(spacing: 12) {
                         SystemIconImage(systemName: "water.waves", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                         Text("Haptics")

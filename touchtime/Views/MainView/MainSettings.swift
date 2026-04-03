@@ -484,7 +484,7 @@ struct SettingsView: View {
                 
                 // Local Time
                 Section(footer: Text("System time shows at the top of the list with ambient background.")) {
-                    Toggle(isOn: $showLocalTime) {
+                    TouchTimeToggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "location.fill", topColor: .blue, bottomColor: .cyan, style: .plain)
                             Text("System Time")
@@ -494,7 +494,7 @@ struct SettingsView: View {
                 
                 // Temperature/Weather Section
                 Section {
-                    Toggle(isOn: Binding(
+                    TouchTimeToggle(isOn: Binding(
                         get: { showWeather },
                         set: { newValue in
                             showWeather = newValue
@@ -647,7 +647,7 @@ struct SettingsView: View {
                     
                     
                     // Options in Settings
-                    Toggle(isOn: $showSkyDot) {
+                    TouchTimeToggle(isOn: $showSkyDot) {
                         HStack(spacing: 12) {
                             // Use SkyColorGradient colors for the background
                             let gradient = SkyColorGradient(date: currentDate, timeZoneIdentifier: TimeZone.current.identifier)
@@ -663,7 +663,7 @@ struct SettingsView: View {
                     }
                     
                     // 24 Hours Format
-                    Toggle(isOn: $use24HourFormat) {
+                    TouchTimeToggle(isOn: $use24HourFormat) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                             Text("24-Hour Format")
@@ -740,7 +740,7 @@ struct SettingsView: View {
                 
                 // Analog Time Section
                 Section {
-                    Toggle(isOn: goldenHourBinding) {
+                    TouchTimeToggle(isOn: goldenHourBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "angle", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black, style: .plain)
                             Text(String(localized: "Golden Hour Lines"))
@@ -753,7 +753,7 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Toggle(isOn: sunriseSunsetLinesBinding) {
+                    TouchTimeToggle(isOn: sunriseSunsetLinesBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                             Text(String(localized: "Sunrise & Sunset Lines"))
@@ -766,7 +766,7 @@ struct SettingsView: View {
                         }
                     }
 
-                    Toggle(isOn: minuteHandBinding) {
+                    TouchTimeToggle(isOn: minuteHandBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "hand.raised.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                             Text(String(localized: "Minute Hand"))
@@ -780,7 +780,7 @@ struct SettingsView: View {
                     }
 
                     if additionalTimeDisplay == "UTC" {
-                        Toggle(isOn: $showUTCHand) {
+                        TouchTimeToggle(isOn: $showUTCHand) {
                             HStack(spacing: 12) {
                                 SystemIconImage(systemName: "line.diagonal", topColor: .red, bottomColor: .red, style: .plain)
                                 Text(String(localized: "UTC Hand"))
@@ -788,7 +788,7 @@ struct SettingsView: View {
                         }
                     }
                     
-                    Toggle(isOn: $showArcIndicator) {
+                    TouchTimeToggle(isOn: $showArcIndicator) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "circle", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                             Text("Arc Indicator")

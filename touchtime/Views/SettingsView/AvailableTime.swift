@@ -186,7 +186,7 @@ struct AvailableTimePicker: View {
             List {
                 // Enable/Disable Toggle
                 Section {
-                    Toggle(isOn: $availableTimeEnabled) {
+                    TouchTimeToggle(isOn: $availableTimeEnabled) {
                             Text("Show Available Time")
                     }
                     .disabled(worldClocks.isEmpty)
