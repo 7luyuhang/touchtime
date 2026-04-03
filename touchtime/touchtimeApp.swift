@@ -9,19 +9,6 @@ import SwiftUI
 import TipKit
 import UIKit
 
-// Custom UIHostingController to force dark mode
-class DarkModeHostingController<Content: View>: UIHostingController<Content> {
-    override var preferredStatusBarStyle: UIStatusBarStyle {
-        return .lightContent
-    }
-    
-    override func viewDidLoad() {
-        super.viewDidLoad()
-        // Force dark mode for this view controller
-        overrideUserInterfaceStyle = .dark
-    }
-}
-
 @main
 struct touchtimeApp: App {
     init() {
