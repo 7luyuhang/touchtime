@@ -615,16 +615,21 @@ struct ScrollTimeView: View {
                 triggerControlHaptic(style: .rigid)
                 collapseActionButtons()
             } label: {
-                Image(systemName: "xmark")
-                    .font(.headline)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                ZStack {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+
+                    Image(systemName: "xmark")
+                        .font(.headline)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Capsule(style: .continuous))
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
             .frame(height: controlHeight)
-            .contentShape(Capsule(style: .continuous))
             .glassEffect(.regular.interactive())
             .glassEffectID("closeControl", in: glassNamespace)
             .glassEffectTransition(.matchedGeometry)

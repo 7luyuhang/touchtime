@@ -922,13 +922,11 @@ struct SettingsView: View {
                 ) {
                     NavigationLink(destination: AboutView(worldClocks: $worldClocks, weatherManager: weatherManager)) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "info.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "info.circle.fill", topColor: .blue, bottomColor: .cyan, style: .plain)
                             Text("About")
                         }
                     }
                 }
-                
-                
             }
             .scrollIndicators(.hidden)
             .navigationTitle("Settings")
