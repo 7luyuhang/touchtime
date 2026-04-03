@@ -614,16 +614,18 @@ struct ScrollTimeView: View {
                 collapseActionButtons()
             } label: {
                 Image(systemName: "xmark")
-                    .font(.headline.weight(.semibold))
+                    .font(.headline)
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary)
-                    .frame(width: controlHeight, height: controlHeight)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
             .buttonStyle(.plain)
-            .frame(width: controlHeight, height: controlHeight)
-            .contentShape(Circle())
+            .frame(maxWidth: .infinity)
+            .frame(height: controlHeight)
+            .contentShape(Capsule(style: .continuous))
             .glassEffect(.regular.interactive())
             .glassEffectID("closeControl", in: glassNamespace)
-            .glassEffectTransition(.materialize)
+            .glassEffectTransition(.matchedGeometry)
         }
         .frame(maxWidth: .infinity)
     }
