@@ -101,7 +101,6 @@ struct AboutView: View {
                         Text("Haptics")
                     }
                 }
-                .tint(.blue)
                 
                 // Onboarding
                 Button(action: {

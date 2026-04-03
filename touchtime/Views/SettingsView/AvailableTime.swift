@@ -189,7 +189,6 @@ struct AvailableTimePicker: View {
                     Toggle(isOn: $availableTimeEnabled) {
                             Text("Show Available Time")
                     }
-                    .tint(.blue)
                     .disabled(worldClocks.isEmpty)
                     
                 } footer: {

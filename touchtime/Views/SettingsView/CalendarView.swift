@@ -127,7 +127,7 @@ struct CalendarView: View {
                     )) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "pencil.tip", topColor: .orange, bottomColor: .yellow, style: .plain)
+                                SystemIconImage(systemName: "pencil.tip.crop.circle.fill", topColor: .orange, bottomColor: .yellow, style: .plain)
                                 Text("Time in Notes")
                             }
                             Spacer()

@@ -490,7 +490,6 @@ struct SettingsView: View {
                             Text("System Time")
                         }
                     }
-                    .tint(.blue)
                 }
                 
                 // Temperature/Weather Section
@@ -512,7 +511,6 @@ struct SettingsView: View {
                             Text("Weather")
                         }
                     }
-                    .tint(.blue)
                     
                     // Temperature Unit Picker - only show when weather is enabled
                     if showWeather {
@@ -663,7 +661,6 @@ struct SettingsView: View {
                             Text("Sky Colour")
                         }
                     }
-                    .tint(.blue)
                     
                     // 24 Hours Format
                     Toggle(isOn: $use24HourFormat) {
@@ -672,7 +669,6 @@ struct SettingsView: View {
                             Text("24-Hour Format")
                         }
                     }
-                    .tint(.blue)
                     
                     
                     // Additional Time
@@ -756,7 +752,6 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    .tint(.blue)
                     
                     Toggle(isOn: sunriseSunsetLinesBinding) {
                         HStack(spacing: 12) {
@@ -770,7 +765,6 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    .tint(.blue)
 
                     Toggle(isOn: minuteHandBinding) {
                         HStack(spacing: 12) {
@@ -784,7 +778,6 @@ struct SettingsView: View {
                             }
                         }
                     }
-                    .tint(.blue)
 
                     if additionalTimeDisplay == "UTC" {
                         Toggle(isOn: $showUTCHand) {
@@ -793,7 +786,6 @@ struct SettingsView: View {
                                 Text(String(localized: "UTC Hand"))
                             }
                         }
-                        .tint(.blue)
                     }
                     
                     Toggle(isOn: $showArcIndicator) {
@@ -802,7 +794,6 @@ struct SettingsView: View {
                             Text("Arc Indicator")
                         }
                     }
-                    .tint(.blue)
                 } footer: {
                     Text("Enable showing arc indicator for time offset.")
                 }
