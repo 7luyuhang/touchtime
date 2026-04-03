@@ -507,7 +507,7 @@ struct SettingsView: View {
                         }
                     )) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "sun.max.fill", topColor: .red, bottomColor: .orange, style: .plain)
+                            SystemIconImage(systemName: "sun.max.fill", topColor: .orange, bottomColor: .red, style: .plain)
                             Text("Weather")
                         }
                     }

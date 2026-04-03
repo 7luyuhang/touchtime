@@ -73,7 +73,7 @@ struct SystemIconImage: View {
                         startPoint: .top,
                         endPoint: .bottom
                     )
-                    .shadow(.inner(color: .white.opacity(0.50), radius: 0.5, x: 0, y: 0.25))
+                    .shadow(.inner(color: .white.opacity(0.50), radius: 0, x: 0, y: 0.50))
                 )
                 .frame(width: 28, height: 28)
         }
