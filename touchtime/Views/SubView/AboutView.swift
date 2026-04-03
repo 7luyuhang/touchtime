@@ -107,7 +107,7 @@ struct AboutView: View {
                     showOnboarding = true
                 }) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "sparkle.magnifyingglass", topColor: .blue, bottomColor: .pink, style: .plain)
+                        SystemIconImage(systemName: "sparkle", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                         Text("Show Onboarding")
                     }
                 }
@@ -123,7 +123,7 @@ struct AboutView: View {
                     showResetConfirmation = true
                 }) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .indigo, bottomColor: .orange, style: .plain)
+                        SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .pink, bottomColor: .red, style: .plain)
                         Text("Reset Cities")
                     }
                 }

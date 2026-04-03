@@ -682,7 +682,7 @@ struct SettingsView: View {
                             .tag("None")
                     } label: {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "plusminus", topColor: .indigo, bottomColor: .pink, style: .plain)
+                            SystemIconImage(systemName: "plusminus", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                             Text("Additional Time")
                         }
                     }
@@ -701,7 +701,7 @@ struct SettingsView: View {
                         }
                     } label: {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .orange, bottomColor: .blue, style: .plain)
+                            SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                             Text("Date Style")
                         }
                     }
@@ -724,7 +724,7 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .gray, style: .plain)
+                                SystemIconImage(systemName: "watch.analog", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                                 Text("Complications")
                             }
                             .layoutPriority(1)

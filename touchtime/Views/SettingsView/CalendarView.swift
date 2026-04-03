@@ -112,7 +112,7 @@ struct CalendarView: View {
                         Text("2 hrs", comment: "Event duration option").tag(7200.0)
                     } label: {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "clock.fill", topColor: .blue, bottomColor: .cyan, style: .plain)
+                            SystemIconImage(systemName: "clock.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                             Text("Event Duration")
                         }
                     }
@@ -127,7 +127,7 @@ struct CalendarView: View {
                     )) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "pencil.tip.crop.circle.fill", topColor: .orange, bottomColor: .yellow, style: .plain)
+                                SystemIconImage(systemName: "pencil.tip.crop.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                                 Text("Time in Notes")
                             }
                             Spacer()
