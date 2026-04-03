@@ -60,7 +60,7 @@ struct AnalogClockFullView: View {
     @StateObject private var cameraSessionController = CameraSessionController()
     @Environment(\.scenePhase) private var scenePhase
     
-    @AppStorage("use24HourFormat") private var use24HourFormat = true
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("showWeather") private var showWeather = false
