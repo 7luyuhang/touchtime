@@ -963,6 +963,7 @@ struct AnalogClockFullView: View {
                                     timeOffset: $timeOffset,
                                     showButtons: $showScrollTimeButtons,
                                     worldClocks: $worldClocks,
+                                    enableDoubleTapExpandedControls: true,
                                     onAlarmTap: {
                                         showSetAlarmSheet = true
                                     },

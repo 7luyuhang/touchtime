@@ -18,6 +18,7 @@ struct ScrollTimeView: View {
     @Binding var timeOffset: TimeInterval
     @Binding var showButtons: Bool
     @Binding var worldClocks: [WorldClock]
+    var enableDoubleTapExpandedControls: Bool = false
     var onAlarmTap: (() -> Void)? = nil
     var onTimerTap: (() -> Void)? = nil
     @State private var dragOffset: CGFloat = 0
@@ -502,6 +503,7 @@ struct ScrollTimeView: View {
     }
 
     private func expandActionButtons() {
+        guard enableDoubleTapExpandedControls else { return }
         stopInertia()
         withAnimation(.spring()) {
             dragOffset = 0
@@ -554,7 +556,7 @@ struct ScrollTimeView: View {
         .glassEffectTransition(.matchedGeometry)
         .gesture(scrollDragGesture)
         .onTapGesture(count: 2) {
-            guard timeOffset == 0 else { return }
+            guard enableDoubleTapExpandedControls, timeOffset == 0 else { return }
             expandActionButtons()
         }
     }
@@ -716,8 +718,10 @@ struct ScrollTimeView: View {
     // MARK: - Body
     
     var body: some View {
+        let isExpanded = enableDoubleTapExpandedControls && showButtons
+
         GlassEffectContainer(spacing: 5) {
-            if showButtons {
+            if isExpanded {
                 splitActionButtons
             } else {
                 mainContent
@@ -725,11 +729,11 @@ struct ScrollTimeView: View {
         }
         .padding(.horizontal, 5)
         .overlay(alignment: .top) {
-            if !showButtons && timeOffset != 0 {
+            if !isExpanded && timeOffset != 0 {
                 continuousScrollOverlayButtons
             }
         }
-        .animation(.spring(), value: showButtons)
+        .animation(.spring(), value: isExpanded)
         .animation(.spring(), value: timeOffset != 0)
         .onAppear {
             if !continuousScrollMode {
@@ -765,6 +769,11 @@ struct ScrollTimeView: View {
             stopInertia()
         }
         .onChange(of: showButtons) { _, isExpanded in
+            if !enableDoubleTapExpandedControls && isExpanded {
+                showButtons = false
+                return
+            }
+
             if isExpanded {
                 stopInertia()
                 dragOffset = 0
