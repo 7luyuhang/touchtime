@@ -26,6 +26,9 @@ struct SetAlarmSheet: View {
     @State private var renameEventTitleInput = ""
     @State private var renameTargetRecordID: UUID? = nil
     @State private var alarmUpdatesTask: Task<Void, Never>? = nil
+    @State private var showLocalCityTimeAdjustmentSheet = false
+    @State private var localCityTimeOffset: TimeInterval = 0
+    @State private var localShowScrollTimeButtons = false
 
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -131,6 +134,32 @@ struct SetAlarmSheet: View {
                         }
                     }
                 }
+
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        triggerHaptic()
+                        localCityTimeOffset = 0
+                        localShowScrollTimeButtons = false
+                        showLocalCityTimeAdjustmentSheet = true
+                    } label: {
+                        Image(systemName: "plus")
+                    }
+                }
+            }
+        }
+        .sheet(isPresented: $showLocalCityTimeAdjustmentSheet) {
+            CityTimeAdjustmentSheet(
+                cityName: String(localized: "Local"),
+                timeZoneIdentifier: TimeZone.current.identifier,
+                timeOffset: $localCityTimeOffset,
+                showSheet: $showLocalCityTimeAdjustmentSheet,
+                showScrollTimeButtons: $localShowScrollTimeButtons
+            )
+        }
+        .onChange(of: showLocalCityTimeAdjustmentSheet) { oldValue, newValue in
+            if oldValue && !newValue {
+                loadAlarmRecords()
+                synchronizeWithSystemAlarms()
             }
         }
         .task {
