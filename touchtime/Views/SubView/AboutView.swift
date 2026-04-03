@@ -84,7 +84,7 @@ struct AboutView: View {
                 }) {
                     HStack {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "character", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "character", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                             Text("Language")
                         }
                         .layoutPriority(1)
@@ -97,7 +97,7 @@ struct AboutView: View {
 
                 Toggle(isOn: $hapticEnabled) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "water.waves", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                        SystemIconImage(systemName: "water.waves", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                         Text("Haptics")
                     }
                 }
@@ -108,7 +108,7 @@ struct AboutView: View {
                     showOnboarding = true
                 }) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "sparkle.magnifyingglass", topColor: .blue, bottomColor: .pink)
+                        SystemIconImage(systemName: "sparkle.magnifyingglass", topColor: .blue, bottomColor: .pink, style: .plain)
                         Text("Show Onboarding")
                     }
                 }
@@ -124,7 +124,7 @@ struct AboutView: View {
                     showResetConfirmation = true
                 }) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .indigo, bottomColor: .orange)
+                        SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .indigo, bottomColor: .orange, style: .plain)
                         Text("Reset Cities")
                     }
                 }
@@ -163,7 +163,7 @@ struct AboutView: View {
                         }
                     }) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "infinity", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "infinity", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                             Text("Redeem Code")
                         }
                     }
