@@ -21,6 +21,7 @@ struct ScrollTimeView: View {
     var enableDoubleTapExpandedControls: Bool = false
     var onAlarmTap: (() -> Void)? = nil
     var onTimerTap: (() -> Void)? = nil
+    var onExpandControlsByDoubleTap: (() -> Void)? = nil
     @State private var dragOffset: CGFloat = 0
     @State private var accumulatedOffset: TimeInterval = 0
     @State private var eventStore = EKEventStore()
@@ -558,6 +559,7 @@ struct ScrollTimeView: View {
         .onTapGesture(count: 2) {
             guard enableDoubleTapExpandedControls, timeOffset == 0 else { return }
             expandActionButtons()
+            onExpandControlsByDoubleTap?()
         }
     }
 

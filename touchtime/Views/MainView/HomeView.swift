@@ -127,6 +127,7 @@ struct HomeView: View {
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
+    @AppStorage("showDoubleTapMoreActionTip") private var showDoubleTapMoreActionTip = true
     @AppStorage("showShakeToResetTip") private var showShakeToResetTip = false
     @AppStorage("hasTriggeredShakeToResetTip") private var hasTriggeredShakeToResetTip = false
     @AppStorage("homeTimerConfiguredSeconds") private var homeTimerConfiguredSeconds = 0
@@ -1376,6 +1377,22 @@ struct HomeView: View {
                                 }
                             }
                         }
+
+                        if showDoubleTapMoreActionTip {
+                            Section {
+                                VStack(spacing: 10) {
+                                    Text("Double-tap control bar for quick actions")
+                                        .font(.subheadline)
+                                    Image(systemName: "chevron.down")
+                                        .font(.subheadline.weight(.semibold))
+                                }
+                                .foregroundStyle(.secondary)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                            }
+                        }
                     }
                     .listSectionSpacing(12) // List Paddings
                     .scrollIndicators(.hidden)
@@ -1409,6 +1426,11 @@ struct HomeView: View {
                         },
                         onTimerTap: {
                             showSetTimerSheet = true
+                        },
+                        onExpandControlsByDoubleTap: {
+                            withAnimation(.spring()) {
+                                showDoubleTapMoreActionTip = false
+                            }
                         }
                     )
                         .padding(.horizontal)
