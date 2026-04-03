@@ -561,7 +561,7 @@ struct ScrollTimeView: View {
         }
     }
 
-    // Double-tap expanded controls: Alarm, Timer, Close.
+    // Double-tap Feature
     @ViewBuilder
     private var splitActionButtons: some View {
         HStack(spacing: 5) {
