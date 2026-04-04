@@ -468,7 +468,7 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "widget.small",  topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                                SystemIconImage(systemName: "plus.app.fill",  topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                                 Text("Widget")
                             }
                             .layoutPriority(1)
@@ -486,7 +486,7 @@ struct SettingsView: View {
                 Section(footer: Text("System time shows at the top of the list with ambient background.")) {
                     TouchTimeToggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "location.fill", topColor: .blue, bottomColor: .cyan, style: .plain)
+                            SystemIconImage(systemName: "location.circle.fill", topColor: .blue, bottomColor: .cyan, style: .plain)
                             Text("System Time")
                         }
                     }
@@ -922,7 +922,7 @@ struct SettingsView: View {
                 ) {
                     NavigationLink(destination: AboutView(worldClocks: $worldClocks, weatherManager: weatherManager)) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "info.circle.fill", topColor: .blue, bottomColor: .cyan, style: .plain)
+                            SystemIconImage(systemName: "info.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                             Text("About")
                         }
                     }
@@ -1083,24 +1083,18 @@ struct SettingsView: View {
 
 private struct SupportLoveIcon: View {
     var body: some View {
-        ZStack {
-            Circle()
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            .pink,.red
-                        ],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
+        Image(systemName: "heart.fill")
+            .font(.system(size: 22))
+            .fontWeight(.medium)
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [
+                        .pink,.red
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
                 )
-                .frame(width: 40, height: 40)
-            
-            Image(systemName: "heart.fill")
-                .font(.headline)
-                .fontWeight(.medium)
-                .foregroundStyle(.white)
-        }
-        .glassEffect(.clear.interactive(), in: Circle())
+                .shadow(.inner(color: .white.opacity(0.50), radius: 0, x: 0, y: 0.50))
+            )
     }
 }
