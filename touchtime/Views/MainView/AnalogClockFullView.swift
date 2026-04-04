@@ -1331,6 +1331,7 @@ struct AnalogClockFaceView: View {
     
     @State private var hideOtherHands = false
     @State private var lastRotationAngle: Double? = nil
+    @State private var arcCitySwitchRotationDegrees: Double = 0
     private let rotationSecondsPerDegree: Double = 180
     @State private var hapticEngine: CHHapticEngine?
     @State private var hapticPlayer: CHHapticPatternPlayer?
@@ -1353,6 +1354,23 @@ struct AnalogClockFaceView: View {
             value += 360
         }
         return value
+    }
+
+    private func animateArcSwitchIfNeeded(from oldTimeZoneId: String, to newTimeZoneId: String) {
+        guard showArcIndicator, timeOffset != 0, oldTimeZoneId != newTimeZoneId else { return }
+        guard let oldTimeZone = TimeZone(identifier: oldTimeZoneId),
+              let newTimeZone = TimeZone(identifier: newTimeZoneId) else { return }
+
+        let oldOffset = Double(oldTimeZone.secondsFromGMT(for: originalDate))
+        let newOffset = Double(newTimeZone.secondsFromGMT(for: originalDate))
+        let deltaDegrees = normalizedAngleDelta((newOffset - oldOffset) / 240.0)
+        guard deltaDegrees != 0 else { return }
+
+        // Draw with new timezone immediately, then animate from old arc position.
+        arcCitySwitchRotationDegrees = -deltaDegrees
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.85)) {
+            arcCitySwitchRotationDegrees = 0
+        }
     }
     
     
@@ -1799,6 +1817,7 @@ struct AnalogClockFaceView: View {
                     timeZone: selectedTimeZone,
                     size: size
                 )
+                .rotationEffect(.degrees(arcCitySwitchRotationDegrees))
                 .transition(.identity)
             }
             
@@ -2036,6 +2055,14 @@ struct AnalogClockFaceView: View {
             if !newValue {
                 lastRotationAngle = nil
                 lastRotationHapticOffset = timeOffset
+            }
+        }
+        .onChange(of: selectedTimeZone.identifier) { oldValue, newValue in
+            animateArcSwitchIfNeeded(from: oldValue, to: newValue)
+        }
+        .onChange(of: timeOffset) { _, newValue in
+            if newValue == 0 {
+                arcCitySwitchRotationDegrees = 0
             }
         }
         .onAppear {
