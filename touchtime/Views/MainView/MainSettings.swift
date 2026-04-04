@@ -468,7 +468,7 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "plus.app.fill",  topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                                SystemIconImage(systemName: "widget.small",  topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                                 Text("Widget")
                             }
                             .layoutPriority(1)
