@@ -123,7 +123,7 @@ struct AboutView: View {
                     showResetConfirmation = true
                 }) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .indigo, bottomColor: .red, style: .plain)
+                        SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
                         Text("Reset Cities")
                     }
                 }
