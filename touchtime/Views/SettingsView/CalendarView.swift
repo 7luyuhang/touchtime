@@ -87,7 +87,7 @@ struct CalendarView: View {
                     )) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "ellipsis.calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                                SystemIconImage(systemName: "ellipsis.calendar", topColor: .gray, bottomColor: .gray, style: .plain)
                                 Text("Default Calendar")
                             }
                             .layoutPriority(1)
@@ -112,7 +112,7 @@ struct CalendarView: View {
                         Text("2 hrs", comment: "Event duration option").tag(7200.0)
                     } label: {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "clock.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "clock.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Event Duration")
                         }
                     }
@@ -127,7 +127,7 @@ struct CalendarView: View {
                     )) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "pencil.tip.crop.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                                SystemIconImage(systemName: "pencil.tip.crop.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                                 Text("Time in Notes")
                             }
                             Spacer()
@@ -149,7 +149,7 @@ struct CalendarView: View {
                     }
                 }) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "gear", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                        SystemIconImage(systemName: "gear", topColor: .gray, bottomColor: .gray, style: .plain)
                         Text("Go to Settings")
                     }
                 }

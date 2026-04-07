@@ -468,7 +468,7 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "widget.small",  topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                                SystemIconImage(systemName: "widget.small",  topColor: .gray, bottomColor: .gray, style: .plain)
                                 Text("Widget")
                             }
                             .layoutPriority(1)
@@ -486,7 +486,7 @@ struct SettingsView: View {
                 Section(footer: Text("System time shows at the top of the list with ambient background.")) {
                     TouchTimeToggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "location.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "location.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("System Time")
                         }
                     }
@@ -507,7 +507,7 @@ struct SettingsView: View {
                         }
                     )) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "sun.max.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "sun.max.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Weather")
                         }
                     }
@@ -665,7 +665,7 @@ struct SettingsView: View {
                     // 24 Hours Format
                     TouchTimeToggle(isOn: $use24HourFormat) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("24-Hour Format")
                         }
                     }
@@ -682,7 +682,7 @@ struct SettingsView: View {
                             .tag("None")
                     } label: {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "plusminus", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "plusminus", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Additional Time")
                         }
                     }
@@ -701,7 +701,7 @@ struct SettingsView: View {
                         }
                     } label: {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Date Style")
                         }
                     }
@@ -724,7 +724,7 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "watch.analog", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                                SystemIconImage(systemName: "watch.analog", topColor: .gray, bottomColor: .gray, style: .plain)
                                 Text("Complications")
                             }
                             .layoutPriority(1)
@@ -742,7 +742,7 @@ struct SettingsView: View {
                 Section {
                     TouchTimeToggle(isOn: goldenHourBinding) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "angle", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "angle", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text(String(localized: "Golden Hour Lines"))
                             Spacer()
                             if !hasLifetimeAccess {
@@ -755,7 +755,7 @@ struct SettingsView: View {
                     
                     TouchTimeToggle(isOn: sunriseSunsetLinesBinding) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text(String(localized: "Sunrise & Sunset Lines"))
                             Spacer()
                             if !hasLifetimeAccess {
@@ -768,7 +768,7 @@ struct SettingsView: View {
 
                     TouchTimeToggle(isOn: minuteHandBinding) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "hand.raised.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "hand.raised.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text(String(localized: "Minute Hand"))
                             Spacer()
                             if !hasLifetimeAccess {
@@ -790,7 +790,7 @@ struct SettingsView: View {
                     
                     TouchTimeToggle(isOn: $showArcIndicator) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "circle", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "circle", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Arc Indicator")
                         }
                     }
@@ -806,7 +806,7 @@ struct SettingsView: View {
                         if hasLifetimeAccess {
                             NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
                                 HStack(spacing: 12) {
-                                    SystemIconImage(systemName: "checkmark.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                                    SystemIconImage(systemName: "checkmark.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                                     Text("Available Time")
                                 }
                             }
@@ -818,7 +818,7 @@ struct SettingsView: View {
                                 showLifetimeStore = true
                             }) {
                                 HStack(spacing: 12) {
-                                    SystemIconImage(systemName: "checkmark.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                                    SystemIconImage(systemName: "checkmark.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                                     Text("Available Time")
                                     
                                     Spacer()
@@ -835,7 +835,7 @@ struct SettingsView: View {
                     // Calendar Section
                     NavigationLink(destination: CalendarView(worldClocks: worldClocks)) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Calendar")
                         }
                     }
@@ -922,7 +922,7 @@ struct SettingsView: View {
                 ) {
                     NavigationLink(destination: AboutView(worldClocks: $worldClocks, weatherManager: weatherManager)) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "info.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3), style: .plain)
+                            SystemIconImage(systemName: "info.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("About")
                         }
                     }
