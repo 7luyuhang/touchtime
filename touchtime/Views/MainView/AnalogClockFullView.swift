@@ -575,18 +575,20 @@ struct AnalogClockFullView: View {
             }
         }
 
-        Button(action: {
-            triggerMenuHaptic()
-            showSetAlarmSheet = true
-        }) {
-            Label(String(localized: "Alarms"), systemImage: "alarm")
-        }
+        Section(String(localized: "Features")) {
+            Button(action: {
+                triggerMenuHaptic()
+                showSetAlarmSheet = true
+            }) {
+                Label(String(localized: "Alarms"), systemImage: "alarm")
+            }
 
-        Button(action: {
-            triggerMenuHaptic()
-            showSetTimerSheet = true
-        }) {
-            Label(String(localized: "Timer"), systemImage: "timer")
+            Button(action: {
+                triggerMenuHaptic()
+                showSetTimerSheet = true
+            }) {
+                Label(String(localized: "Timer"), systemImage: "timer")
+            }
         }
 
         Divider()

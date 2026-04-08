@@ -1599,26 +1599,28 @@ struct HomeView: View {
                             }
                         }
 
-                        Button(action: {
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
+                        Section(String(localized: "Features")) {
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showSetAlarmSheet = true
+                            }) {
+                                Label(String(localized: "Alarms"), systemImage: "alarm")
                             }
-                            showSetAlarmSheet = true
-                        }) {
-                            Label(String(localized: "Alarms"), systemImage: "alarm")
-                        }
 
-                        Button(action: {
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showSetTimerSheet = true
+                            }) {
+                                Label(String(localized: "Timer"), systemImage: "timer")
                             }
-                            showSetTimerSheet = true
-                        }) {
-                            Label(String(localized: "Timer"), systemImage: "timer")
                         }
 
                         Divider()
