@@ -33,6 +33,7 @@ struct SetAlarmSheet: View {
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("alarmSortOrder") private var alarmSortOrderRawValue = AlarmSortOrder.newestFirst.rawValue
+    @AppStorage("showWhatsNewLongpressAlarm") private var showWhatsNewLongpressAlarm = true
 
     private let alarmManager = AlarmManager.shared
 
@@ -216,6 +217,44 @@ struct SetAlarmSheet: View {
             .frame(maxHeight: .infinity)
         } else {
             List {
+                if showWhatsNewLongpressAlarm {
+                    Section {
+                        HStack(spacing: 16) {
+                            Image(systemName: "hand.tap.fill")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                                .frame(width: 24, height: 24)
+
+                            Text(String(localized: "Press and hold for more options"))
+                                .font(.subheadline)
+                                .foregroundStyle(.primary)
+
+                            Spacer()
+
+                            Image(systemName: "xmark")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .frame(width: 24, height: 24)
+                        }
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                .fill(Color.black.opacity(0.10))
+                                .glassEffect(
+                                    .regular.interactive(),
+                                    in: RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                )
+                        )
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring()) {
+                                showWhatsNewLongpressAlarm = false
+                            }
+                            triggerHaptic()
+                        }
+                    }
+                }
+
                 ForEach(sortedRecords) { record in
                     Section {
                         VStack(alignment: .leading, spacing: 8) {
