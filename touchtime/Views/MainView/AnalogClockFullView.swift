@@ -46,6 +46,7 @@ struct AnalogClockFullView: View {
     @State private var selectedCollectionId: UUID? = nil
     @State private var showTimeInsteadOfCityName = false
     @State private var showTimeAdjustmentSheet = false
+    @State private var selectedDisplayPage: DigitalTimeDisplayView.DisplayPage = .time
     @State private var isCameraBackgroundEnabled = false
     @State private var isCameraPreparing = false
     @State private var activeCameraRequestId = UUID()
@@ -859,21 +860,28 @@ struct AnalogClockFullView: View {
                     } else {
                         // Analog Clock - always centered
                         TimelineView(.periodic(from: .now, by: 1)) { context in
-                            AnalogClockFaceView(
-                                date: context.date.addingTimeInterval(timeOffset),
-                                timeOffset: $timeOffset,
-                                showScrollTimeButtons: $showScrollTimeButtons,
-                                selectedTimeZone: selectedTimeZone,
-                                size: size,
-                                worldClocks: displayedClocks,
-                                showLocalTime: showLocalTime,
-                                selectedCityId: $selectedCityId,
-                                hapticEnabled: hapticEnabled,
-                                showDetailsSheet: $showDetailsSheet,
-                                weather: weatherManager.weatherData[selectedTimeZone.identifier],
-                                showWeather: showWeather,
-                                showTimeInsteadOfCityName: showTimeInsteadOfCityName
-                            )
+                            if selectedDisplayPage == .timer {
+                                TimerClockFaceView(
+                                    size: size,
+                                    remainingSeconds: homeTimerRemainingSeconds(at: context.date)
+                                )
+                            } else {
+                                AnalogClockFaceView(
+                                    date: context.date.addingTimeInterval(timeOffset),
+                                    timeOffset: $timeOffset,
+                                    showScrollTimeButtons: $showScrollTimeButtons,
+                                    selectedTimeZone: selectedTimeZone,
+                                    size: size,
+                                    worldClocks: displayedClocks,
+                                    showLocalTime: showLocalTime,
+                                    selectedCityId: $selectedCityId,
+                                    hapticEnabled: hapticEnabled,
+                                    showDetailsSheet: $showDetailsSheet,
+                                    weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                                    showWeather: showWeather,
+                                    showTimeInsteadOfCityName: showTimeInsteadOfCityName
+                                )
+                            }
                         }
                         
                         // Digital time and scroll controls overlay
@@ -898,6 +906,9 @@ struct AnalogClockFullView: View {
                                     onTimerConfigureTap: {
                                         triggerMenuHaptic()
                                         showSetTimerSheet = true
+                                    },
+                                    onDisplayPageChange: { page in
+                                        selectedDisplayPage = page
                                     }
                                 ) {
                                     if hapticEnabled {
@@ -2307,12 +2318,111 @@ struct UTCClockHandView: View {
     }
 }
 
+// MARK: - Timer Clock Face
+struct TimerClockFaceView: View {
+    let size: CGFloat
+    let remainingSeconds: Int
+
+    private var clampedRemainingSeconds: Int {
+        max(0, min(remainingSeconds, 59 * 60 + 59))
+    }
+
+    private var remainingMinutes: Int {
+        clampedRemainingSeconds / 60
+    }
+
+    private var remainingSecondsInMinute: Int {
+        clampedRemainingSeconds % 60
+    }
+
+    private var numberRingRadius: CGFloat {
+        size / 2 - 36
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.black.opacity(0.25))
+                .glassEffect(.clear.interactive())
+                .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+
+            ForEach(0..<12, id: \.self) { index in
+                let angle = Double(index) * 30.0 - 90
+                let x = numberRingRadius * cos(angle * .pi / 180)
+                let y = numberRingRadius * sin(angle * .pi / 180)
+                let markValue = (index * 5) % 60
+
+                Text(String(format: "%02d", markValue))
+                    .font(.headline)
+                    .fontDesign(.rounded)
+                    .foregroundColor(.white)
+                    .position(x: size / 2 + x, y: size / 2 + y)
+            }
+
+            TimerMinuteTickMarksView(
+                size: size,
+                ringRadius: numberRingRadius
+            )
+                .allowsHitTesting(false)
+
+            MinuteHandView(
+                minute: remainingMinutes,
+                second: remainingSecondsInMinute,
+                size: size,
+                color: .orange
+            )
+            .allowsHitTesting(false)
+
+            Circle()
+                .fill(.orange)
+                .frame(width: 8, height: 8)
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+// MARK: - Timer Minute Tick Marks
+struct TimerMinuteTickMarksView: View {
+    let size: CGFloat
+    let ringRadius: CGFloat
+
+    private let tickLength: CGFloat = 6
+    private let tickWidth: CGFloat = 2
+
+    private var tickRadius: CGFloat {
+        max(ringRadius, 0)
+    }
+
+    var body: some View {
+        ZStack {
+            ForEach(0..<60, id: \.self) { index in
+                if index % 5 != 0 {
+                    RoundedRectangle(cornerRadius: tickWidth / 2, style: .continuous)
+                        .fill(.white.opacity(0.25))
+                        .frame(width: tickWidth, height: tickLength)
+                        .offset(y: -tickRadius)
+                        .rotationEffect(.degrees(Double(index) * 6.0))
+                        .blendMode(.plusLighter)
+                }
+            }
+        }
+    }
+}
+
 // MARK: - Minute Hand
 struct MinuteHandView: View {
     let minute: Int
     let second: Int
     let size: CGFloat
+    let color: Color
     private let tailLength: CGFloat = 24
+
+    init(minute: Int, second: Int, size: CGFloat, color: Color = .white) {
+        self.minute = minute
+        self.second = second
+        self.size = size
+        self.color = color
+    }
     
     private var angle: Double {
         Double(minute) * 6.0 + Double(second) * 0.1
@@ -2325,12 +2435,12 @@ struct MinuteHandView: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(.white)
+                .fill(color)
                 .frame(width: 2, height: forwardLength + tailLength)
                 .offset(y: -(forwardLength - tailLength) / 2)
             
             Circle()
-                .fill(.white)
+                .fill(color)
                 .frame(width: 8, height: 8)
                 .offset(y: -forwardLength)
         }
@@ -2546,6 +2656,7 @@ struct DigitalTimeDisplayView: View {
     let timerPausedRemainingSeconds: Int
     let onTimerTap: () -> Void
     let onTimerConfigureTap: () -> Void
+    let onDisplayPageChange: (DisplayPage) -> Void
     let onTimeTap: () -> Void
     
     @AppStorage("dateStyle") private var dateStyle = "Relative"
@@ -2566,6 +2677,7 @@ struct DigitalTimeDisplayView: View {
         timerPausedRemainingSeconds: Int,
         onTimerTap: @escaping () -> Void,
         onTimerConfigureTap: @escaping () -> Void,
+        onDisplayPageChange: @escaping (DisplayPage) -> Void,
         onTimeTap: @escaping () -> Void
     ) {
         self.currentDate = currentDate
@@ -2582,6 +2694,7 @@ struct DigitalTimeDisplayView: View {
         self.timerPausedRemainingSeconds = timerPausedRemainingSeconds
         self.onTimerTap = onTimerTap
         self.onTimerConfigureTap = onTimerConfigureTap
+        self.onDisplayPageChange = onDisplayPageChange
         self.onTimeTap = onTimeTap
         _selectedPage = State(initialValue: timerConfiguredSeconds > 0 ? .timer : .time)
     }
@@ -2805,6 +2918,10 @@ struct DigitalTimeDisplayView: View {
         .onChange(of: selectedPage) { oldValue, newValue in
             guard oldValue != newValue else { return }
             triggerPageHapticIfNeeded()
+            onDisplayPageChange(newValue)
+        }
+        .onAppear {
+            onDisplayPageChange(selectedPage)
         }
     }
 }
