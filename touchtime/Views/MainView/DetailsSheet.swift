@@ -520,10 +520,7 @@ struct SunriseSunsetSheet: View {
                                             .animation(.spring(), value: isWeatherExpanded)
                                     }
                                 }
-                                .padding(16)
-                                .background(.white.opacity(0.05))
-                                .blendMode(.plusLighter)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .detailsSheetCard()
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     if hapticEnabled {
@@ -576,9 +573,7 @@ struct SunriseSunsetSheet: View {
                                                 }
                                                 .frame(width: 64)
                                                 .padding(.vertical, 12)
-                                                .background(.white.opacity(0.05))
-                                                .blendMode(.plusLighter)
-                                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                                .detailsSheetCardChrome()
                                             }
                                         }
                                         .padding(.horizontal, 16)
@@ -598,11 +593,7 @@ struct SunriseSunsetSheet: View {
                                     .blendMode(.plusLighter)
                                 Spacer()
                             }
-                            .padding(16)
-                            .background(.white.opacity(0.05))
-                            .blendMode(.plusLighter)
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                            .padding(.horizontal, 16)
+                            .detailsSheetCardRow()
                             .padding(.top, 16) // Row top padding
                         }
                     }
@@ -636,10 +627,7 @@ struct SunriseSunsetSheet: View {
                                         .animation(.spring(), value: times.sunrise)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(16)
-                                .background(.white.opacity(0.05))
-                                .blendMode(.plusLighter)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .detailsSheetCard()
                                 
                                 // Sunset Section
                                 HStack{
@@ -658,10 +646,7 @@ struct SunriseSunsetSheet: View {
                                     
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(16)
-                                .background(.white.opacity(0.05))
-                                .blendMode(.plusLighter)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .detailsSheetCard()
                             }
                             .padding(.horizontal, 16)
                             
@@ -685,11 +670,7 @@ struct SunriseSunsetSheet: View {
                                     .contentTransition(.numericText(countsDown: false))
                                     .animation(.spring(), value: "\(times.sunrise?.description ?? "")\(times.sunset?.description ?? "")")
                             }
-                            .padding(16)
-                            .background(.white.opacity(0.05))
-                            .blendMode(.plusLighter)
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                            .padding(.horizontal, 16)
+                            .detailsSheetCardRow()
                             
                             // Evening Golden Hour Section
                             if let goldenHour = eveningGoldenHour, goldenHour.start != nil && goldenHour.end != nil {
@@ -732,11 +713,7 @@ struct SunriseSunsetSheet: View {
                                     .lineLimit(1)
                                     .layoutPriority(1)
                                 }
-                                .padding(16)
-                                .background(.white.opacity(0.05))
-                                .blendMode(.plusLighter)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                .padding(.horizontal, 16)
+                                .detailsSheetCardRow()
                                 .transition(.blurReplace().combined(with: .opacity))
                             }
                         }
@@ -769,10 +746,7 @@ struct SunriseSunsetSheet: View {
                                             .animation(.spring(), value: moon.moonrise)
                                     }
                                     .frame(maxWidth: .infinity)
-                                    .padding(16)
-                                    .background(.white.opacity(0.05))
-                                    .blendMode(.plusLighter)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .detailsSheetCard()
                                     
                                     // Moonset Section
                                     HStack{
@@ -791,10 +765,7 @@ struct SunriseSunsetSheet: View {
                                         
                                     }
                                     .frame(maxWidth: .infinity)
-                                    .padding(16)
-                                    .background(.white.opacity(0.05))
-                                    .blendMode(.plusLighter)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .detailsSheetCard()
                                 }
                                 .padding(.horizontal, 16)
                                 
@@ -830,10 +801,7 @@ struct SunriseSunsetSheet: View {
                                             .foregroundStyle(.tertiary)
                                             .blendMode(.plusLighter)
                                     }
-                                    .padding(16)
-                                    .background(.white.opacity(0.05))
-                                    .blendMode(.plusLighter)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .detailsSheetCard()
                                 }
                                 .buttonStyle(.plain)
                                 .padding(.horizontal, 16)
@@ -861,11 +829,7 @@ struct SunriseSunsetSheet: View {
                                             .contentTransition(.numericText())
                                             .animation(.spring(), value: nextFullMoon)
                                     }
-                                    .padding(16)
-                                    .background(.white.opacity(0.05))
-                                    .blendMode(.plusLighter)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                    .padding(.horizontal, 16)
+                                    .detailsSheetCardRow()
                                 }
                             }
                         }
@@ -992,5 +956,26 @@ struct SunriseSunsetSheet: View {
                 )
             }
         }
+    }
+}
+
+private extension View {
+    func detailsSheetCardChrome(cornerRadius: CGFloat = 20) -> some View {
+        self
+            .background(.white.opacity(0.05))
+            .blendMode(.plusLighter)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    func detailsSheetCard(innerPadding: CGFloat = 16, cornerRadius: CGFloat = 20) -> some View {
+        self
+            .padding(innerPadding)
+            .detailsSheetCardChrome(cornerRadius: cornerRadius)
+    }
+
+    func detailsSheetCardRow(horizontalPadding: CGFloat = 16, innerPadding: CGFloat = 16, cornerRadius: CGFloat = 20) -> some View {
+        self
+            .detailsSheetCard(innerPadding: innerPadding, cornerRadius: cornerRadius)
+            .padding(.horizontal, horizontalPadding)
     }
 }
