@@ -863,7 +863,8 @@ struct AnalogClockFullView: View {
                             if selectedDisplayPage == .timer {
                                 TimerClockFaceView(
                                     size: size,
-                                    remainingSeconds: homeTimerRemainingSeconds(at: context.date)
+                                    remainingSeconds: homeTimerRemainingSeconds(at: context.date),
+                                    configuredSeconds: homeTimerConfiguredSeconds
                                 )
                             } else {
                                 AnalogClockFaceView(
@@ -2322,9 +2323,14 @@ struct UTCClockHandView: View {
 struct TimerClockFaceView: View {
     let size: CGFloat
     let remainingSeconds: Int
+    let configuredSeconds: Int
 
     private var clampedRemainingSeconds: Int {
         max(0, min(remainingSeconds, 59 * 60 + 59))
+    }
+
+    private var clampedConfiguredSeconds: Int {
+        max(0, min(configuredSeconds, 59 * 60 + 59))
     }
 
     private var remainingMinutes: Int {
@@ -2339,12 +2345,36 @@ struct TimerClockFaceView: View {
         size / 2 - 36
     }
 
+    private var configuredAngle: Double {
+        let minute = clampedConfiguredSeconds / 60
+        let second = clampedConfiguredSeconds % 60
+        return Double(minute) * 6.0 + Double(second) * 0.1
+    }
+
     var body: some View {
         ZStack {
             Circle()
                 .fill(Color.black.opacity(0.25))
                 .glassEffect(.clear.interactive())
                 .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+
+            if clampedConfiguredSeconds > 0 {
+                TimerRangeFillView(
+                    startAngle: 0,
+                    endAngle: configuredAngle,
+                    size: size
+                )
+
+                TimerBoundaryLineView(
+                    angle: 0,
+                    size: size
+                )
+
+                TimerBoundaryLineView(
+                    angle: configuredAngle,
+                    size: size
+                )
+            }
 
             ForEach(0..<12, id: \.self) { index in
                 let angle = Double(index) * 30.0 - 90
@@ -2378,6 +2408,82 @@ struct TimerClockFaceView: View {
                 .frame(width: 8, height: 8)
         }
         .frame(width: size, height: size)
+    }
+}
+
+// MARK: - Timer Range Fill View
+struct TimerRangeFillView: View {
+    let startAngle: Double
+    let endAngle: Double
+    let size: CGFloat
+
+    var body: some View {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let radius = (size - 24) / 2
+        let startRadians = (startAngle - 90) * .pi / 180
+        let endRadians = (endAngle - 90) * .pi / 180
+
+        Path { path in
+            path.move(to: center)
+            path.addArc(
+                center: center,
+                radius: radius,
+                startAngle: Angle(radians: startRadians),
+                endAngle: Angle(radians: endRadians),
+                clockwise: false
+            )
+            path.closeSubpath()
+        }
+        .fill(
+            RadialGradient(
+                colors: [
+                    Color.orange.opacity(0.20),
+                    Color.clear
+                ],
+                center: .center,
+                startRadius: 0,
+                endRadius: radius
+            )
+        )
+        .blendMode(.plusLighter)
+        .allowsHitTesting(false)
+    }
+}
+
+// MARK: - Timer Boundary Line View
+struct TimerBoundaryLineView: View {
+    let angle: Double
+    let size: CGFloat
+
+    var body: some View {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let radius = (size - 24) / 2 - 50
+        let angleRadians = (angle - 90) * .pi / 180
+        let endPoint = CGPoint(
+            x: center.x + radius * CGFloat(cos(angleRadians)),
+            y: center.y + radius * CGFloat(sin(angleRadians))
+        )
+
+        Path { path in
+            path.move(to: center)
+            path.addLine(to: endPoint)
+        }
+        .stroke(
+            LinearGradient(
+                colors: [Color.orange.opacity(0.25), Color.clear],
+                startPoint: UnitPoint(x: 0.5, y: 0.5),
+                endPoint: UnitPoint(
+                    x: 0.5 + (radius / size) * CGFloat(cos(angleRadians)),
+                    y: 0.5 + (radius / size) * CGFloat(sin(angleRadians))
+                )
+            ),
+            style: StrokeStyle(
+                lineWidth: 1.25,
+                lineCap: .round
+            )
+        )
+        .blendMode(.plusLighter)
+        .allowsHitTesting(false)
     }
 }
 
