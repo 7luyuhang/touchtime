@@ -931,47 +931,55 @@ struct AnalogClockFullView: View {
                             VStack {
                                 Spacer()
                                 // Local time display (hidden when continuous scroll reset button is showing)
-                                if selectedCityId != nil && !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "location.fill")
-                                            .font(.footnote.weight(.medium))
-                                        Text({
-                                            if showTimeInsteadOfCityName {
-                                                // Show "Local" when hands show time
-                                                return String(localized: "Local")
-                                            } else {
-                                                // Show local time when hands show city names
-                                                let formatter = DateFormatter()
-                                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                formatter.timeZone = TimeZone.current
-                                                if use24HourFormat {
-                                                    formatter.dateFormat = "HH:mm"
+                                if !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
+                                    if selectedDisplayPage == .timer {
+                                        Text(String(localized: "Timer"))
+                                            .font(.subheadline.weight(.medium))
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                            .padding(.bottom, 16)
+                                    } else if selectedCityId != nil {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "location.fill")
+                                                .font(.footnote.weight(.medium))
+                                            Text({
+                                                if showTimeInsteadOfCityName {
+                                                    // Show "Local" when hands show time
+                                                    return String(localized: "Local")
                                                 } else {
-                                                    formatter.dateFormat = "h:mm"
+                                                    // Show local time when hands show city names
+                                                    let formatter = DateFormatter()
+                                                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                    formatter.timeZone = TimeZone.current
+                                                    if use24HourFormat {
+                                                        formatter.dateFormat = "HH:mm"
+                                                    } else {
+                                                        formatter.dateFormat = "h:mm"
+                                                    }
+                                                    return formatter.string(from: displayDate)
                                                 }
-                                                return formatter.string(from: displayDate)
-                                            }
-                                        }())
-                                        .font(.subheadline.weight(.medium))
+                                            }())
+                                            .font(.subheadline.weight(.medium))
 
-                                        let additionalText = selectedAdditionalTimeText
-                                        let shouldShowAdditionalText = showTimeInsteadOfCityName
-                                            ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
-                                            : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
-                                        if shouldShowAdditionalText {
-                                            Text("·")
-                                                .font(.subheadline.weight(.medium))
-                                            Text(additionalText)
-                                                .font(.subheadline.weight(.medium))
-                                                .contentTransition(.numericText())
-                                                .animation(.smooth(duration: 0.25), value: additionalText)
+                                            let additionalText = selectedAdditionalTimeText
+                                            let shouldShowAdditionalText = showTimeInsteadOfCityName
+                                                ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
+                                                : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
+                                            if shouldShowAdditionalText {
+                                                Text("·")
+                                                    .font(.subheadline.weight(.medium))
+                                                Text(additionalText)
+                                                    .font(.subheadline.weight(.medium))
+                                                    .contentTransition(.numericText())
+                                                    .animation(.smooth(duration: 0.25), value: additionalText)
+                                            }
                                         }
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                        .padding(.bottom, 16)
                                     }
-                                    .foregroundStyle(.secondary)
-                                    .blendMode(.plusLighter)
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText())
-                                    .padding(.bottom, 16)
                                 }
                                 Spacer()
                                 ScrollTimeView(
@@ -2382,7 +2390,7 @@ struct TimerClockFaceView: View {
                 let y = numberRingRadius * sin(angle * .pi / 180)
                 let markValue = (index * 5) % 60
 
-                Text(String(format: "%02d", markValue))
+                Text("\(markValue)")
                     .font(.headline)
                     .fontDesign(.rounded)
                     .foregroundColor(.white)
