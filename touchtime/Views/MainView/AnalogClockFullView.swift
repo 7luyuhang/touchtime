@@ -3140,6 +3140,7 @@ struct DigitalTimeDisplayView: View {
             .frame(height: tabHeight)
             .coordinateSpace(name: Self.tabCoordinateSpaceName)
 
+            // Top Dots
             HStack(spacing: 8) {
                 ForEach(DisplayPage.allCases, id: \.self) { page in
                     Circle()
