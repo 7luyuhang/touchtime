@@ -1040,8 +1040,13 @@ struct AnalogClockFullView: View {
                                     if selectedDisplayPage == .timer {
                                         // Timer Close Button
                                         Button(action: handleBottomTimerLabelTap) {
+                                            let timerLabelText = showBottomTimerDeleteIcon && hasConfiguredHomeTimer
+                                                ? String(localized: "Delete Timer")
+                                                : String(localized: "Timer")
                                             HStack(spacing: 5) {
-                                                Text(String(localized: "Timer"))
+                                                Text(timerLabelText)
+                                                    .contentTransition(.numericText())
+                                                    .animation(.smooth(duration: 0.25), value: timerLabelText)
 
                                                 if showBottomTimerDeleteIcon && hasConfiguredHomeTimer {
                                                     Image(systemName: "xmark.circle.fill")
