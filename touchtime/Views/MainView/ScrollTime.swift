@@ -563,7 +563,7 @@ struct ScrollTimeView: View {
         }
         return timerPlayPauseSymbol.contains("pause")
             ? String(localized: "Pause")
-            : String(localized: "Play")
+            : String(localized: "Start")
     }
 
     /// Main scrollable content area with time adjustment states

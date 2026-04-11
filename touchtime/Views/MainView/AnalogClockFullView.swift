@@ -46,7 +46,8 @@ struct AnalogClockFullView: View {
     @State private var selectedCollectionId: UUID? = nil
     @State private var showTimeInsteadOfCityName = false
     @State private var showTimeAdjustmentSheet = false
-    @State private var selectedDisplayPage: DigitalTimeDisplayView.DisplayPage = .time
+    @State private var selectedDisplayPage: DigitalTimeDisplayView.DisplayPage =
+        UserDefaults.standard.integer(forKey: "homeTimerConfiguredSeconds") > 0 ? .timer : .time
     @State private var isCameraBackgroundEnabled = false
     @State private var isCameraPreparing = false
     @State private var activeCameraRequestId = UUID()
@@ -341,7 +342,7 @@ struct AnalogClockFullView: View {
     private func timerPlayPauseTitle(at date: Date) -> String {
         timerPlayPauseSymbol(at: date) == "pause.fill"
             ? String(localized: "Pause")
-            : String(localized: "Play")
+            : String(localized: "Start")
     }
 
     private func restoreHomeTimerStateIfNeeded() {
