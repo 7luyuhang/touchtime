@@ -2616,7 +2616,7 @@ struct TimerMinuteTickMarksView: View {
     let size: CGFloat
     let ringRadius: CGFloat
 
-    private let tickLength: CGFloat = 6
+    private let tickLength: CGFloat = 6 // Timer Scale Length
     private let tickWidth: CGFloat = 2
 
     private var tickRadius: CGFloat {
