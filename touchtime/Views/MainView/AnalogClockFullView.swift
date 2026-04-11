@@ -320,6 +320,26 @@ struct AnalogClockFullView: View {
         }
     }
 
+    private func resetHomeTimer() {
+        guard hasConfiguredHomeTimer else { return }
+        startHomeTimer(
+            durationSeconds: homeTimerConfiguredSeconds,
+            startPaused: homeTimerPaused,
+            requestAlarmAuthorization: !homeTimerPaused
+        )
+    }
+
+    private func timerPlayPauseSymbol(at date: Date) -> String {
+        let remaining = homeTimerRemainingSeconds(at: date)
+        return (homeTimerPaused || remaining == 0) ? "play.fill" : "pause.fill"
+    }
+
+    private func timerPlayPauseTitle(at date: Date) -> String {
+        timerPlayPauseSymbol(at: date) == "pause.fill"
+            ? String(localized: "Pause")
+            : String(localized: "Play")
+    }
+
     private func restoreHomeTimerStateIfNeeded() {
         defer {
             refreshHomeTimerAlarm(requestAuthorization: false)
@@ -987,12 +1007,21 @@ struct AnalogClockFullView: View {
                                     showButtons: $showScrollTimeButtons,
                                     worldClocks: $worldClocks,
                                     enableDoubleTapExpandedControls: true,
+                                    expandedControlsMode: selectedDisplayPage == .timer ? .timerControls : .alarmTimerClose,
                                     onAlarmTap: {
                                         showSetAlarmSheet = true
                                     },
                                     onTimerTap: {
                                         showSetTimerSheet = true
-                                    }
+                                    },
+                                    onTimerResetTap: {
+                                        resetHomeTimer()
+                                    },
+                                    onTimerPlayPauseTap: {
+                                        handleHomeTimerTap()
+                                    },
+                                    timerPlayPauseSymbol: timerPlayPauseSymbol(at: Date()),
+                                    timerPlayPauseTitle: timerPlayPauseTitle(at: Date())
                                 )
                                 .padding(.horizontal)
                                 .padding(.bottom, 8)
@@ -2856,11 +2885,6 @@ struct DigitalTimeDisplayView: View {
         return max(remaining, 0)
     }
 
-    private func timerControlSymbol(at date: Date) -> String {
-        let remaining = timerRemainingSeconds(at: date)
-        return (timerIsPaused || remaining == 0) ? "play.fill" : "pause.fill"
-    }
-
     private func formattedTimer(seconds: Int) -> String {
         let clampedSeconds = max(0, min(seconds, 59 * 60 + 59))
         let minutes = clampedSeconds / 60
@@ -2930,35 +2954,24 @@ struct DigitalTimeDisplayView: View {
         VStack(spacing: 0) {
             if hasConfiguredTimer {
                 // Timer Set
-                Button(action: onTimerTap) {
-                    TimelineView(.periodic(from: .now, by: 1)) { context in
-                        let remaining = timerRemainingSeconds(at: context.date)
-                        Text(formattedTimer(seconds: remaining))
-                            .font(.system(size: 52))
-                            .fontWeight(.light)
-                            .fontDesign(.rounded)
-                            .monospacedDigit()
-                            .foregroundStyle(.white)
-                            .contentTransition(.numericText(countsDown: true))
-                            .animation(.spring(duration: 0.25), value: remaining)
-                    }
-                }
-                .buttonStyle(.plain)
-                .contentShape(Rectangle())
-
                 TimelineView(.periodic(from: .now, by: 1)) { context in
-                    HStack(spacing: 8) {
-                        Image(systemName: timerControlSymbol(at: context.date))
-                            .contentTransition(.symbolEffect(.replace))
-                        Text(formattedConfiguredDuration(seconds: timerConfiguredSeconds))
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                    }
+                    let remaining = timerRemainingSeconds(at: context.date)
+                    Text(formattedTimer(seconds: remaining))
+                        .font(.system(size: 52))
+                        .fontWeight(.light)
+                        .fontDesign(.rounded)
+                        .monospacedDigit()
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText(countsDown: true))
+                        .animation(.spring(duration: 0.25), value: remaining)
+                }
+
+                Text(formattedConfiguredDuration(seconds: timerConfiguredSeconds))
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)
-                    .animation(.spring(duration: 0.25), value: timerRemainingSeconds(at: context.date))
-                }
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
             } else {
                 // No timer yet
                 Button(action: onTimerConfigureTap) {
