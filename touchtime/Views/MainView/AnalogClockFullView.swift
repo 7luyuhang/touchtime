@@ -84,6 +84,8 @@ struct AnalogClockFullView: View {
     @State private var homeTimerAlarmSyncVersion = 0
     @State private var homeTimerResetAnimationTrigger = 0
     @State private var homeTimerResetAnimationFromSeconds = 0
+    @State private var showBottomTimerDeleteIcon = false
+    @State private var bottomTimerDeleteIconTask: Task<Void, Never>? = nil
 
     // Get displayed clocks based on selected collection
     private var displayedClocks: [WorldClock] {
@@ -332,6 +334,75 @@ struct AnalogClockFullView: View {
             startPaused: homeTimerPaused,
             requestAlarmAuthorization: !homeTimerPaused
         )
+    }
+
+    private func hideBottomTimerDeleteIcon(animate: Bool = true) {
+        bottomTimerDeleteIconTask?.cancel()
+        bottomTimerDeleteIconTask = nil
+
+        guard showBottomTimerDeleteIcon else { return }
+
+        if animate {
+            withAnimation(.smooth(duration: 0.25)) {
+                showBottomTimerDeleteIcon = false
+            }
+        } else {
+            showBottomTimerDeleteIcon = false
+        }
+    }
+
+    private func showBottomTimerDeleteIconTemporarily() {
+        guard hasConfiguredHomeTimer else { return }
+
+        bottomTimerDeleteIconTask?.cancel()
+        withAnimation(.smooth(duration: 0.25)) {
+            showBottomTimerDeleteIcon = true
+        }
+
+        bottomTimerDeleteIconTask = Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation(.smooth(duration: 0.25)) {
+                    showBottomTimerDeleteIcon = false
+                }
+                bottomTimerDeleteIconTask = nil
+            }
+        }
+    }
+
+    private func clearHomeTimer() {
+        homeTimerConfiguredSeconds = 0
+        homeTimerEndDateEpoch = 0
+        homeTimerCompletionHandled = false
+        homeTimerPaused = false
+        homeTimerPausedRemainingSeconds = 0
+        hideBottomTimerDeleteIcon(animate: false)
+        refreshHomeTimerAlarm(requestAuthorization: false)
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func handleBottomTimerLabelTap() {
+        guard selectedDisplayPage == .timer, hasConfiguredHomeTimer else { return }
+
+        if showBottomTimerDeleteIcon {
+            clearHomeTimer()
+            return
+        }
+
+        showBottomTimerDeleteIconTemporarily()
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
     }
 
     private func timerPlayPauseSymbol(at date: Date) -> String {
@@ -960,11 +1031,23 @@ struct AnalogClockFullView: View {
                                 // Local time display (hidden when continuous scroll reset button is showing)
                                 if !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
                                     if selectedDisplayPage == .timer {
-                                        Text(String(localized: "Timer"))
+                                        // Timer Close Button
+                                        Button(action: handleBottomTimerLabelTap) {
+                                            HStack(spacing: 5) {
+                                                Text(String(localized: "Timer"))
+
+                                                if showBottomTimerDeleteIcon && hasConfiguredHomeTimer {
+                                                    Image(systemName: "xmark.circle.fill")
+                                                        .font(.subheadline.weight(.semibold))
+                                                        .transition(.blurReplace.combined(with: .scale))
+                                                }
+                                            }
                                             .font(.subheadline.weight(.medium))
                                             .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
-                                            .padding(.bottom, 16)
+                                        }
+                                        .buttonStyle(.plain)
+                                        .padding(.bottom, 16)
                                     } else if selectedCityId != nil {
                                         HStack(spacing: 4) {
                                             Image(systemName: "location.fill")
@@ -1049,7 +1132,7 @@ struct AnalogClockFullView: View {
                                             .contentShape(Circle())
                                             .padding(.trailing, 20)
                                             .padding(.bottom, 12)
-                                            .offset(y: -70)
+                                            .offset(y: -75)
                                             .transition(.blurReplace().combined(with: .opacity).combined(with: .scale(0.95)))
                                         }
                                     }
@@ -1068,7 +1151,7 @@ struct AnalogClockFullView: View {
                                             .contentShape(Circle())
                                             .padding(.leading, 20)
                                             .padding(.bottom, 12)
-                                            .offset(y: -70)
+                                            .offset(y: -75)
                                             .transition(.blurReplace().combined(with: .opacity).combined(with: .scale(0.95)))
                                         }
                                     }
@@ -1270,6 +1353,8 @@ struct AnalogClockFullView: View {
             .onDisappear {
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = nil
+                bottomTimerDeleteIconTask?.cancel()
+                bottomTimerDeleteIconTask = nil
             }
             .onChange(of: scenePhase) { oldValue, newValue in
                 if newValue == .active {
@@ -1289,6 +1374,16 @@ struct AnalogClockFullView: View {
             }
             .onChange(of: worldClocks) { oldValue, newValue in
                 ensureValidSelectedCity(in: displayedClocks)
+            }
+            .onChange(of: selectedDisplayPage) { oldValue, newValue in
+                if oldValue != newValue && newValue != .timer {
+                    hideBottomTimerDeleteIcon()
+                }
+            }
+            .onChange(of: hasConfiguredHomeTimer) { oldValue, newValue in
+                if oldValue != newValue && !newValue {
+                    hideBottomTimerDeleteIcon(animate: false)
+                }
             }
         }
         .preferredColorScheme(.dark)
