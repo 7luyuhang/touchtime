@@ -210,6 +210,7 @@
 "%d sec" = "%d秒";
 "Start" = "開始";
 "Pause" = "暫停";
+"Resume" = "繼續";
 "No Alarms" = "暫無鬧鐘";
 "Create alarms for your moments" = "為你的每個時刻建立鬧鐘";
 "Alarm" = "鬧鐘";

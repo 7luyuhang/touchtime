@@ -411,9 +411,16 @@ struct AnalogClockFullView: View {
     }
 
     private func timerPlayPauseTitle(at date: Date) -> String {
-        timerPlayPauseSymbol(at: date) == "pause.fill"
-            ? String(localized: "Pause")
-            : String(localized: "Start")
+        if timerPlayPauseSymbol(at: date) == "pause.fill" {
+            return String(localized: "Pause")
+        }
+        let clampedConfigured = min(max(homeTimerConfiguredSeconds, 0), 59 * 60 + 59)
+        let clampedPausedRemaining = min(max(homeTimerPausedRemainingSeconds, 0), 59 * 60 + 59)
+        let canResumeProgress = homeTimerPaused
+            && clampedConfigured > 0
+            && clampedPausedRemaining > 0
+            && clampedPausedRemaining < clampedConfigured
+        return canResumeProgress ? String(localized: "Resume") : String(localized: "Start")
     }
 
     private func restoreHomeTimerStateIfNeeded() {

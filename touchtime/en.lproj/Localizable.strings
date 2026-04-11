@@ -212,6 +212,7 @@
 "%d sec" = "%d sec";
 "Start" = "Start";
 "Pause" = "Pause";
+"Resume" = "Resume";
 "No Alarms" = "No Alarms";
 "Create alarms for your moments" = "Create alarms for your moments";
 "Alarm" = "Alarm";
