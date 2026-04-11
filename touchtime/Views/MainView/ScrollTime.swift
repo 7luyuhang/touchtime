@@ -677,19 +677,24 @@ struct ScrollTimeView: View {
                 handleTimerResetAction()
                 collapseActionButtons()
             } label: {
-                HStack {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.headline)
-                    Text("Reset")
+                ZStack {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+
+                    HStack {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.headline)
+                        Text("Reset")
+                    }
                 }
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Capsule(style: .continuous))
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
             .frame(height: controlHeight)
-            .contentShape(Capsule(style: .continuous))
             .glassEffect(.regular.interactive())
             .glassEffectID("timerResetControl", in: glassNamespace)
             .glassEffectTransition(.matchedGeometry)
@@ -700,6 +705,9 @@ struct ScrollTimeView: View {
                 collapseActionButtons()
             } label: {
                 ZStack {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+
                     if timerPlayPauseSymbol.contains("pause") {
                         HStack {
                             Image(systemName: timerPlayPauseSymbol)
@@ -719,12 +727,12 @@ struct ScrollTimeView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.primary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Capsule(style: .continuous))
                 .animation(.spring(duration: 0.25), value: timerPlayPauseSymbol)
             }
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
             .frame(height: controlHeight)
-            .contentShape(Capsule(style: .continuous))
             .glassEffect(.regular.interactive())
             .glassEffectID("timerPlayPauseControl", in: glassNamespace)
             .glassEffectTransition(.matchedGeometry)
