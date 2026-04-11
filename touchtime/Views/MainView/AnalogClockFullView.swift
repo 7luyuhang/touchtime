@@ -81,6 +81,8 @@ struct AnalogClockFullView: View {
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let alarmManager = AlarmManager.shared
     @State private var homeTimerAlarmSyncVersion = 0
+    @State private var homeTimerResetAnimationTrigger = 0
+    @State private var homeTimerResetAnimationFromSeconds = 0
 
     // Get displayed clocks based on selected collection
     private var displayedClocks: [WorldClock] {
@@ -322,6 +324,8 @@ struct AnalogClockFullView: View {
 
     private func resetHomeTimer() {
         guard hasConfiguredHomeTimer else { return }
+        homeTimerResetAnimationFromSeconds = homeTimerRemainingSeconds(at: Date())
+        homeTimerResetAnimationTrigger += 1
         startHomeTimer(
             durationSeconds: homeTimerConfiguredSeconds,
             startPaused: homeTimerPaused,
@@ -884,7 +888,9 @@ struct AnalogClockFullView: View {
                                 TimerClockFaceView(
                                     size: size,
                                     remainingSeconds: homeTimerRemainingSeconds(at: context.date),
-                                    configuredSeconds: homeTimerConfiguredSeconds
+                                    configuredSeconds: homeTimerConfiguredSeconds,
+                                    resetAnimationTrigger: homeTimerResetAnimationTrigger,
+                                    resetAnimationFromSeconds: homeTimerResetAnimationFromSeconds
                                 )
                             } else {
                                 AnalogClockFaceView(
@@ -2361,6 +2367,41 @@ struct TimerClockFaceView: View {
     let size: CGFloat
     let remainingSeconds: Int
     let configuredSeconds: Int
+    let resetAnimationTrigger: Int
+    let resetAnimationFromSeconds: Int
+
+    @State private var resetAnimationHandAngle: Double
+    @State private var isResetAnimating = false
+    @State private var resetAnimationTask: Task<Void, Never>? = nil
+
+    private let resetAnimationDuration: TimeInterval = 0.25
+
+    init(
+        size: CGFloat,
+        remainingSeconds: Int,
+        configuredSeconds: Int,
+        resetAnimationTrigger: Int = 0,
+        resetAnimationFromSeconds: Int = 0
+    ) {
+        self.size = size
+        self.remainingSeconds = remainingSeconds
+        self.configuredSeconds = configuredSeconds
+        self.resetAnimationTrigger = resetAnimationTrigger
+        self.resetAnimationFromSeconds = resetAnimationFromSeconds
+        _resetAnimationHandAngle = State(initialValue: Self.angle(for: remainingSeconds))
+    }
+
+    private static func angle(for seconds: Int) -> Double {
+        let clampedSeconds = max(0, min(seconds, 59 * 60 + 59))
+        let minute = clampedSeconds / 60
+        let second = clampedSeconds % 60
+        return Double(minute) * 6.0 + Double(second) * 0.1
+    }
+
+    private static func normalizedAngle(_ angle: Double) -> Double {
+        let normalized = angle.truncatingRemainder(dividingBy: 360)
+        return normalized >= 0 ? normalized : normalized + 360
+    }
 
     private var clampedRemainingSeconds: Int {
         max(0, min(remainingSeconds, 59 * 60 + 59))
@@ -2370,12 +2411,8 @@ struct TimerClockFaceView: View {
         max(0, min(configuredSeconds, 59 * 60 + 59))
     }
 
-    private var remainingMinutes: Int {
-        clampedRemainingSeconds / 60
-    }
-
-    private var remainingSecondsInMinute: Int {
-        clampedRemainingSeconds % 60
+    private var remainingAngle: Double {
+        Self.angle(for: clampedRemainingSeconds)
     }
 
     private var numberRingRadius: CGFloat {
@@ -2386,6 +2423,50 @@ struct TimerClockFaceView: View {
         let minute = clampedConfiguredSeconds / 60
         let second = clampedConfiguredSeconds % 60
         return Double(minute) * 6.0 + Double(second) * 0.1
+    }
+
+    private var displayedHandAngle: Double {
+        isResetAnimating ? resetAnimationHandAngle : remainingAngle
+    }
+
+    private func animateTimerResetHand() {
+        guard clampedConfiguredSeconds > 0 else { return }
+
+        let fromAngle = Self.angle(for: resetAnimationFromSeconds)
+        let targetAngle = configuredAngle
+
+        guard abs(fromAngle - targetAngle) > 0.0001 else {
+            resetAnimationTask?.cancel()
+            resetAnimationHandAngle = targetAngle
+            isResetAnimating = false
+            return
+        }
+
+        resetAnimationTask?.cancel()
+
+        var animatedTargetAngle = targetAngle
+        if animatedTargetAngle <= fromAngle {
+            animatedTargetAngle += 360
+        }
+
+        isResetAnimating = true
+        resetAnimationHandAngle = fromAngle
+
+        withAnimation(.easeInOut(duration: resetAnimationDuration)) {
+            resetAnimationHandAngle = animatedTargetAngle
+        }
+
+        let animationDurationInNanoseconds = UInt64(resetAnimationDuration * 1_000_000_000)
+        resetAnimationTask = Task {
+            try? await Task.sleep(nanoseconds: animationDurationInNanoseconds)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                resetAnimationHandAngle = Self.normalizedAngle(targetAngle)
+                isResetAnimating = false
+                resetAnimationTask = nil
+            }
+        }
     }
 
     var body: some View {
@@ -2432,19 +2513,25 @@ struct TimerClockFaceView: View {
             )
                 .allowsHitTesting(false)
 
-            MinuteHandView(
-                minute: remainingMinutes,
-                second: remainingSecondsInMinute,
+            TimerAnimatedHandView(
+                angle: displayedHandAngle,
                 size: size,
-                color: .orange
+                color: .white
             )
             .allowsHitTesting(false)
 
             Circle()
-                .fill(.orange)
+                .fill(.white)
                 .frame(width: 8, height: 8)
         }
         .frame(width: size, height: size)
+        .onChange(of: resetAnimationTrigger) { _, _ in
+            animateTimerResetHand()
+        }
+        .onDisappear {
+            resetAnimationTask?.cancel()
+            resetAnimationTask = nil
+        }
     }
 }
 
@@ -2474,8 +2561,8 @@ struct TimerRangeFillView: View {
         .fill(
             RadialGradient(
                 colors: [
-                    Color.orange.opacity(0.20),
-                    Color.clear
+                    Color.white.opacity(0.10),
+                    Color.white.opacity(0)
                 ],
                 center: .center,
                 startRadius: 0,
@@ -2507,7 +2594,7 @@ struct TimerBoundaryLineView: View {
         }
         .stroke(
             LinearGradient(
-                colors: [Color.orange.opacity(0.25), Color.clear],
+                colors: [Color.white.opacity(0.25), Color.white.opacity(0)],
                 startPoint: UnitPoint(x: 0.5, y: 0.5),
                 endPoint: UnitPoint(
                     x: 0.5 + (radius / size) * CGFloat(cos(angleRadians)),
@@ -2549,6 +2636,39 @@ struct TimerMinuteTickMarksView: View {
                 }
             }
         }
+    }
+}
+
+// MARK: - Timer Animated Hand
+struct TimerAnimatedHandView: View {
+    let angle: Double
+    let size: CGFloat
+    let color: Color
+    private let tailLength: CGFloat = 24
+
+    init(angle: Double, size: CGFloat, color: Color = .white) {
+        self.angle = angle
+        self.size = size
+        self.color = color
+    }
+
+    private var forwardLength: CGFloat {
+        max(size / 2 - 20, 0)
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(color)
+                .frame(width: 2, height: forwardLength + tailLength)
+                .offset(y: -(forwardLength - tailLength) / 2)
+
+            Circle()
+                .fill(color)
+                .frame(width: 8, height: 8)
+                .offset(y: -forwardLength)
+        }
+        .rotationEffect(.degrees(angle))
     }
 }
 
