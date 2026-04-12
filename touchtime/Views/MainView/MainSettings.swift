@@ -650,7 +650,11 @@ struct SettingsView: View {
                     TouchTimeToggle(isOn: $showSkyDot) {
                         HStack(spacing: 12) {
                             // Use SkyColorGradient colors for the background
-                            let gradient = SkyColorGradient(date: currentDate, timeZoneIdentifier: TimeZone.current.identifier)
+                            let gradient = SkyColorGradient(
+                                date: currentDate,
+                                timeZoneIdentifier: TimeZone.current.identifier,
+                                weatherCondition: weatherConditionForSky
+                            )
                             let colors = gradient.colors
                             SystemIconImage(
                                 systemName: "cloud.fill",
