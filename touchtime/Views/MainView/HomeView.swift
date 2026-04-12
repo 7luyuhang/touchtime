@@ -13,6 +13,7 @@ import EventKitUI
 import WeatherKit
 import UniformTypeIdentifiers
 import AlarmKit
+import Shimmer
 
 // Data struct for city time adjustment sheet
 struct CityTimeAdjustmentData: Identifiable {
@@ -1380,16 +1381,48 @@ struct HomeView: View {
 
                         if showDoubleTapMoreActionTip {
                             Section {
-                                VStack(spacing: 10) {
-                                    Text("Double-tap control bar for quick actions")
-                                        .font(.subheadline)
-                                    Image(systemName: "chevron.down")
-                                        .font(.subheadline.weight(.semibold))
+                                VStack(spacing: 16) {
+                                    // Button Group
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "alarm")
+                                            .font(.headline)
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 40)
+                                            .glassEffect(.regular, in: Capsule(style: .continuous))
+                                        Image(systemName: "timer")
+                                            .font(.headline)
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 40)
+                                            .glassEffect(.regular, in: Capsule(style: .continuous))
+                                        Image(systemName: "xmark")
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 40)
+                                            .glassEffect(.regular, in: Capsule(style: .continuous))
+                                    }
+                                    .padding(.horizontal, 8)
+                                    
+                                    VStack(spacing: 10) {
+                                        Text(String(localized: "Double-tap for quick actions"))
+                                            .font(.subheadline.weight(.medium))
+                                            .shimmering(
+                                                animation: .easeInOut(duration: 2.0).repeatForever(autoreverses: false)
+                                            )
+                                        Image(systemName: "chevron.down")
+                                            .font(.subheadline.weight(.semibold))
+                                            .foregroundStyle(.tertiary)
+                                    }
                                 }
-                                .foregroundStyle(.secondary)
                                 .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                                .listRowBackground(Color.clear)
+                                .listRowBackground(
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                        .fill(Color(UIColor.secondarySystemGroupedBackground))
+                                )
                                 .listRowSeparator(.hidden)
                             }
                         }

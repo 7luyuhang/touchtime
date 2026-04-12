@@ -131,7 +131,7 @@
 
 /* Home View */
 "Swipe right for precise time adjustment or set alarms" = "右滑城市以精确调整时间或设置闹钟";
-"Double-tap control bar for quick actions" = "双击底部滚动条可快速操作";
+"Double-tap for quick actions" = "双击以打开可快速操作";
 "Shake device to undo" = "摇晃设备以撤销";
 "Press and hold to view more about the city" = "长按查看城市更多信息";
 "Press and hold for more options" = "长按查看更多选项";
