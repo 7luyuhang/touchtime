@@ -76,6 +76,7 @@
 "Additional Time" = "Additional Time";
 "Time Shift" = "Time Shift";
 "UTC" = "UTC";
+"Weekday" = "Weekday";
 "None" = "None";
 "Date Style" = "Date Style";
 "Relative" = "Relative";
@@ -204,6 +205,7 @@
 "Timer" = "Timer";
 "Delete Timer" = "Delete Timer";
 "Set Timer" = "Set Timer";
+"New Timer" = "New Timer";
 "Minutes" = "Minutes";
 "Seconds" = "Seconds";
 "min" = "min";

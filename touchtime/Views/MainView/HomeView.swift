@@ -49,6 +49,12 @@ struct HomeView: View {
         let collectionPositions: [CollectionPosition]
     }
 
+    private struct WeekdayDisplay {
+        let previous: String
+        let current: String
+        let next: String
+    }
+
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
     @Binding var showScrollTimeButtons: Bool
@@ -693,6 +699,127 @@ struct HomeView: View {
             relativeTo: baseDate
         )
     }
+
+    private func additionalText(for clock: WorldClock) -> String {
+        switch additionalTimeDisplay {
+        case "Time Difference":
+            return clock.timeDifference
+        case "UTC":
+            return clock.utcOffset
+        case "Weekday":
+            guard let weekday = weekdayDisplay(
+                for: clock.timeZoneIdentifier,
+                baseDate: currentDate,
+                offset: timeOffset
+            ) else {
+                return ""
+            }
+            return weekdayInlineText(for: weekday)
+        default:
+            return ""
+        }
+    }
+
+    private func weekdayDisplay(
+        for timeZoneIdentifier: String,
+        baseDate: Date,
+        offset: TimeInterval
+    ) -> WeekdayDisplay? {
+        guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
+            return nil
+        }
+
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+
+        let displayDate = baseDate.addingTimeInterval(offset)
+        let previousDate = calendar.date(byAdding: .day, value: -1, to: displayDate) ?? displayDate.addingTimeInterval(-86_400)
+        let nextDate = calendar.date(byAdding: .day, value: 1, to: displayDate) ?? displayDate.addingTimeInterval(86_400)
+
+        let previous = weekdaySymbol(for: calendar.component(.weekday, from: previousDate))
+        let current = weekdaySymbol(for: calendar.component(.weekday, from: displayDate))
+        let next = weekdaySymbol(for: calendar.component(.weekday, from: nextDate))
+
+        return WeekdayDisplay(previous: previous, current: current, next: next)
+    }
+
+    private func weekdaySymbol(for weekday: Int) -> String {
+        switch weekday {
+        case 1:
+            return String(localized: "Sun")
+        case 2:
+            return String(localized: "Mon")
+        case 3:
+            return String(localized: "Tue")
+        case 4:
+            return String(localized: "Wed")
+        case 5:
+            return String(localized: "Thu")
+        case 6:
+            return String(localized: "Fri")
+        case 7:
+            return String(localized: "Sat")
+        default:
+            return ""
+        }
+    }
+
+    private func weekdayInlineText(for weekday: WeekdayDisplay) -> String {
+        "\(weekday.previous) [\(weekday.current)] \(weekday.next)"
+    }
+
+    @ViewBuilder
+    private func additionalTimeView(for clock: WorldClock) -> some View {
+        if additionalTimeDisplay == "Weekday" {
+            if let weekday = weekdayDisplay(
+                for: clock.timeZoneIdentifier,
+                baseDate: currentDate,
+                offset: timeOffset
+            ) {
+                HStack(spacing: 5) {
+                    Text(weekday.previous)
+                        .font(.caption.weight(.semibold))
+                        .fontDesign(.rounded)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20, height: 16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                        )
+                        .blendMode(.plusLighter)
+                        .contentTransition(.numericText())
+
+                    Text(weekday.current)
+                        .font(.caption.weight(.bold))
+                        .fontDesign(.rounded)
+                        .foregroundStyle(Color.white)
+                        .frame(width: 20, height: 16)
+                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                        .contentTransition(.numericText())
+
+                    Text(weekday.next)
+                        .font(.caption.weight(.semibold))
+                        .fontDesign(.rounded)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20, height: 16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                        )
+                        .blendMode(.plusLighter)
+                        .contentTransition(.numericText())
+                }
+            }
+        } else {
+            let additionalText = additionalText(for: clock)
+            if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
+                Text(additionalText)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+            }
+        }
+    }
     
     // Copy time as text
     func copyTimeAsText(cityName: String, timeZoneIdentifier: String) {
@@ -888,7 +1015,7 @@ struct HomeView: View {
         let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
         
         let clock = WorldClock(cityName: cityName, timeZoneIdentifier: timeZoneIdentifier)
-        let additionalText = additionalTimeDisplay == "Time Difference" ? clock.timeDifference : clock.utcOffset
+        let additionalText = additionalText(for: clock)
         
         let snapshotView = CityCardSnapshotView(
             cityName: cityName,
@@ -1229,14 +1356,7 @@ struct HomeView: View {
                                         // Top row: Additional time display and Date
                                         if additionalTimeDisplay != "None" {
                                             HStack {
-                                                // Display based on selected option
-                                                let additionalText = additionalTimeDisplay == "Time Difference" ? clock.timeDifference : clock.utcOffset
-                                                if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
-                                                    Text(additionalText)
-                                                        .font(.subheadline)
-                                                        .foregroundStyle(.secondary)
-                                                        .blendMode(.plusLighter)
-                                                }
+                                                additionalTimeView(for: clock)
                                                 
                                                 Spacer()
                                                 

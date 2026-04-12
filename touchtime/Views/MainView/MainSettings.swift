@@ -532,99 +532,26 @@ struct SettingsView: View {
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
                         
-                        ZStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                // Top row: Time difference and Date with Weather
-                                HStack {
-                                    if showSkyDot && additionalTimeDisplay == "None" {
-                                        SkyDotView(
-                                            date: currentDate,
-                                            timeZoneIdentifier: TimeZone.current.identifier,
-                                            weatherCondition: weatherConditionForSky
-                                        )
-                                        .overlay(
-                                            Capsule(style: .continuous)
-                                                .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                .blendMode(.plusLighter)
-                                        )
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    if additionalTimeDisplay != "None" {
-                                        Text(additionalTimeText())
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    // Weather for local time (left of date)
-                                    if showWeather {
-                                        WeatherView(
-                                            weather: weatherManager.currentWeather,
-                                            useCelsius: useCelsius
-                                        )
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    // Date
-                                    Text(formatDate())
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .contentTransition(.numericText())
-                                        .animation(.spring(), value: currentDate)
-                                        .animation(.spring(), value: dateStyle)
-                                    
-                                }
-                                .animation(.spring(), value: showSkyDot)
-                                .animation(.spring(), value: showWeather)
-                                .animation(.spring(), value: weatherManager.currentWeather)
-                                
-                                // Bottom row: City name and Time
-                                HStack(alignment: .lastTextBaseline) {
-                                    Text("City")
-                                        .font(.headline)
-                                    
-                                    Spacer()
-                                    
-                                    Text(formatTime(use24Hour: use24HourFormat))
-                                        .font(.system(size: 36))
-                                        .fontWeight(.light)
-                                        .fontDesign(.rounded)
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                        .animation(.spring(), value: currentDate)
-                                        .animation(.spring(), value: use24HourFormat)
-                                }
-                            }
-                            .padding()
-                            .padding(.bottom, -4)
-                            
+                        TimePreviewCard(
+                            date: currentDate,
+                            timeZoneIdentifier: TimeZone.current.identifier,
+                            weatherCondition: weatherConditionForSky,
+                            showSkyDot: showSkyDot,
+                            additionalTimeDisplay: additionalTimeDisplay,
+                            additionalTimeText: additionalTimeText(),
+                            showWeather: showWeather,
+                            weather: weatherManager.currentWeather,
+                            useCelsius: useCelsius,
+                            dateText: formatDate(),
+                            cityText: String(localized: "City"),
+                            timeText: formatTime(use24Hour: use24HourFormat)
+                        ) {
                             if let complication = selectedPreviewComplication {
                                 previewComplication {
                                     previewComplicationContent(for: complication)
                                 }
                             }
                         }
-                        .background(
-                            showSkyDot ?
-                            ZStack {
-                                Color.black
-                                SkyBackgroundView(
-                                    date: currentDate,
-                                    timeZoneIdentifier: TimeZone.current.identifier,
-                                    weatherCondition: weatherConditionForSky
-                                )
-                            } : nil
-                        )
-                        .clipShape(
-                            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        )
-                        .glassEffect(.clear.interactive(), in:
-                                        RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        )
                         .animation(.spring(), value: showSkyDot)
                         .animation(.spring(), value: selectedPreviewComplication?.rawValue)
                         .id("\(showSkyDot)-\(dateStyle)-\(selectedPreviewComplication?.rawValue ?? "none")")
@@ -681,6 +608,8 @@ struct SettingsView: View {
                             .tag("Time Difference")
                         Text("UTC")
                             .tag("UTC")
+                        Text("Weekday")
+                            .tag("Weekday")
                         Divider()
                         Text("None")
                             .tag("None")

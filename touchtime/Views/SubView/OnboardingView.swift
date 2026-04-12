@@ -436,60 +436,20 @@ struct OnboardingView: View {
                                 .padding(.horizontal, 32)
                             
                             // City Card + Complications
-                            ZStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        if showSkyDot && additionalTimeDisplay == "None" {
-                                            SkyDotView(
-                                                date: currentDate,
-                                                timeZoneIdentifier: TimeZone.current.identifier,
-                                                weatherCondition: weatherConditionForSky
-                                            )
-                                            .overlay(
-                                                Capsule(style: .continuous)
-                                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                    .blendMode(.plusLighter)
-                                            )
-                                        }
-                                        
-                                        if additionalTimeDisplay != "None" {
-                                            Text(additionalTimeText())
-                                                .font(.subheadline)
-                                                .foregroundStyle(.secondary)
-                                                .blendMode(.plusLighter)
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        if showWeather {
-                                            WeatherView(
-                                                weather: weatherManager.currentWeather,
-                                                useCelsius: useCelsius
-                                            )
-                                        }
-                                        
-                                        Text(formatDate())
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                    }
-                                    
-                                    HStack(alignment: .lastTextBaseline) {
-                                        Text(localCityName)
-                                            .font(.headline)
-                                        
-                                        Spacer()
-                                        
-                                        Text(formatTime(use24Hour: use24HourFormat))
-                                            .font(.system(size: 36))
-                                            .fontWeight(.light)
-                                            .fontDesign(.rounded)
-                                            .monospacedDigit()
-                                    }
-                                }
-                                .padding()
-                                .padding(.bottom, -4)
-                                
+                            TimePreviewCard(
+                                date: currentDate,
+                                timeZoneIdentifier: TimeZone.current.identifier,
+                                weatherCondition: weatherConditionForSky,
+                                showSkyDot: showSkyDot,
+                                additionalTimeDisplay: additionalTimeDisplay,
+                                additionalTimeText: additionalTimeText(),
+                                showWeather: showWeather,
+                                weather: weatherManager.currentWeather,
+                                useCelsius: useCelsius,
+                                dateText: formatDate(),
+                                cityText: localCityName,
+                                timeText: formatTime(use24Hour: use24HourFormat)
+                            ) {
                                 // Complications
                                 if showAnalogClock {
                                     AnalogClockView(
@@ -674,19 +634,6 @@ struct OnboardingView: View {
                                     )
                                 }
                             }
-                            .background(
-                                showSkyDot ?
-                                ZStack {
-                                    Color.black
-                                    SkyBackgroundView(
-                                        date: currentDate,
-                                        timeZoneIdentifier: TimeZone.current.identifier,
-                                        weatherCondition: weatherConditionForSky
-                                    )
-                                } : nil
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                            .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                             .padding(.horizontal, 16)
                             
                             ScrollView(.horizontal, showsIndicators: false) {

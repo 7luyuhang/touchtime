@@ -102,7 +102,7 @@ struct SetTimerSheet: View {
                 .frame(height: 200)
             }
             .padding(.horizontal)
-            .navigationTitle(String(localized: "Timer"))
+            .navigationTitle(String(localized: "New Timer"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

@@ -100,6 +100,12 @@ struct CardImage: Transferable {
 
 // MARK: - City Card Snapshot View for Sharing
 struct CityCardSnapshotView: View {
+    private struct WeekdayDisplay {
+        let previous: String
+        let current: String
+        let next: String
+    }
+
     let cityName: String
     let timeString: String
     let dateString: String
@@ -127,6 +133,86 @@ struct CityCardSnapshotView: View {
         let zoneComponent = UInt64(abs(timeZoneIdentifier.unicodeScalars.reduce(0) { $0 + Int($1.value) }))
         return timeComponent ^ (zoneComponent << 1)
     }
+
+    private var weekdayDisplay: WeekdayDisplay {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+
+        let previousDate = calendar.date(byAdding: .day, value: -1, to: date) ?? date.addingTimeInterval(-86_400)
+        let nextDate = calendar.date(byAdding: .day, value: 1, to: date) ?? date.addingTimeInterval(86_400)
+
+        return WeekdayDisplay(
+            previous: weekdaySymbol(for: calendar.component(.weekday, from: previousDate)),
+            current: weekdaySymbol(for: calendar.component(.weekday, from: date)),
+            next: weekdaySymbol(for: calendar.component(.weekday, from: nextDate))
+        )
+    }
+
+    private func weekdaySymbol(for weekday: Int) -> String {
+        switch weekday {
+        case 1:
+            return String(localized: "Sun")
+        case 2:
+            return String(localized: "Mon")
+        case 3:
+            return String(localized: "Tue")
+        case 4:
+            return String(localized: "Wed")
+        case 5:
+            return String(localized: "Thu")
+        case 6:
+            return String(localized: "Fri")
+        case 7:
+            return String(localized: "Sat")
+        default:
+            return ""
+        }
+    }
+
+    @ViewBuilder
+    private var additionalTimeView: some View {
+        if additionalTimeDisplay == "Weekday" {
+            let weekday = weekdayDisplay
+            HStack(spacing: 5) {
+                Text(weekday.previous)
+                    .font(.caption.weight(.semibold))
+                    .fontDesign(.rounded)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20, height: 16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                    )
+                    .blendMode(.plusLighter)
+                    .contentTransition(.numericText())
+
+                Text(weekday.current)
+                    .font(.caption.weight(.bold))
+                    .fontDesign(.rounded)
+                    .foregroundStyle(Color.white)
+                    .frame(width: 20, height: 16)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    .contentTransition(.numericText())
+
+                Text(weekday.next)
+                    .font(.caption.weight(.semibold))
+                    .fontDesign(.rounded)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20, height: 16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                    )
+                    .blendMode(.plusLighter)
+                    .contentTransition(.numericText())
+            }
+        } else if !additionalTimeText.isEmpty || additionalTimeDisplay == "UTC" {
+            Text(additionalTimeText)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
+        }
+    }
     
     var body: some View {
         ZStack {
@@ -151,12 +237,7 @@ struct CityCardSnapshotView: View {
                     // Top row: Time difference / SkyDot and Date
                     HStack {
                         if additionalTimeDisplay != "None" {
-                            if !additionalTimeText.isEmpty || additionalTimeDisplay == "UTC" {
-                                Text(additionalTimeText)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .blendMode(.plusLighter)
-                            }
+                            additionalTimeView
                         } else if showSkyDot {
                             SkyDotView(
                                 date: date,

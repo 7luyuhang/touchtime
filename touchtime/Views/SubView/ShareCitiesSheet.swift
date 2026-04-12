@@ -231,7 +231,15 @@ struct ShareCitiesSheet: View {
         let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
         
         let clock = WorldClock(cityName: cityName, timeZoneIdentifier: timeZoneIdentifier)
-        let additionalText = additionalTimeDisplay == "Time Difference" ? clock.timeDifference : clock.utcOffset
+        let additionalText: String
+        switch additionalTimeDisplay {
+        case "Time Difference":
+            additionalText = clock.timeDifference
+        case "UTC":
+            additionalText = clock.utcOffset
+        default:
+            additionalText = ""
+        }
         
         let snapshotView = CityCardSnapshotView(
             cityName: cityName,

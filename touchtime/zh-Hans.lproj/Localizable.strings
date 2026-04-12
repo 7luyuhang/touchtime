@@ -79,6 +79,7 @@
 "Additional Time" = "附加时间";
 "Time Shift" = "时差";
 "UTC" = "UTC";
+"Weekday" = "星期";
 "None" = "无";
 "Date Style" = "日期样式";
 "Relative" = "相对日期";
@@ -207,6 +208,7 @@
 "Timer" = "计时器";
 "Delete Timer" = "删除计时器";
 "Set Timer" = "设置计时器";
+"New Timer" = "新计时器";
 "Minutes" = "分钟";
 "Seconds" = "秒钟";
 "min" = "分";
