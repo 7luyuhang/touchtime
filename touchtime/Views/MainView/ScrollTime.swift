@@ -566,6 +566,11 @@ struct ScrollTimeView: View {
             : String(localized: "Start")
     }
 
+    private var isStartTimerPlayPauseAction: Bool {
+        !timerPlayPauseSymbol.contains("pause")
+            && resolvedTimerPlayPauseTitle == String(localized: "Start")
+    }
+
     /// Main scrollable content area with time adjustment states
     @ViewBuilder
     private var mainContent: some View {
@@ -671,7 +676,7 @@ struct ScrollTimeView: View {
     // Timer Controls
     @ViewBuilder
     private var timerControlButtons: some View {
-        HStack(spacing: 5) {
+        HStack(spacing: 8) {
             Button {
                 triggerControlHaptic(style: .soft)
                 handleTimerResetAction()
@@ -725,7 +730,7 @@ struct ScrollTimeView: View {
                     }
                 }
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
+                .foregroundStyle(isStartTimerPlayPauseAction ? .black : .primary)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Capsule(style: .continuous))
                 .animation(.spring(duration: 0.25), value: timerPlayPauseSymbol)
@@ -733,7 +738,11 @@ struct ScrollTimeView: View {
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
             .frame(height: controlHeight)
-            .glassEffect(.regular.interactive())
+            .glassEffect(
+                isStartTimerPlayPauseAction
+                    ? .regular.tint(.white).interactive()
+                    : .regular.interactive()
+            )
             .glassEffectID("timerPlayPauseControl", in: glassNamespace)
             .glassEffectTransition(.matchedGeometry)
         }

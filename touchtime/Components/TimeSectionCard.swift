@@ -1,6 +1,6 @@
 //
 //  TimePreviewCard.swift
-//  touchtime
+//  MainSettings Preview, OnboardingView
 //
 //  Created on 12/04/2026.
 //
