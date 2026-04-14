@@ -744,7 +744,7 @@ struct ScrollTimeView: View {
                     : .regular.interactive()
             )
             .glassEffectID("timerPlayPauseControl", in: glassNamespace)
-            .glassEffectTransition(.matchedGeometry)
+            .glassEffectTransition(.materialize)
         }
         .frame(maxWidth: .infinity)
     }
