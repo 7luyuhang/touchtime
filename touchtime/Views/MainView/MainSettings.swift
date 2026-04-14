@@ -715,7 +715,7 @@ struct SettingsView: View {
                     if additionalTimeDisplay == "UTC" {
                         TouchTimeToggle(isOn: $showUTCHand) {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "line.diagonal", topColor: .red, bottomColor: .red, style: .plain)
+                                SystemIconImage(systemName: "line.diagonal", topColor: .gray, bottomColor: .gray, style: .plain)
                                 Text(String(localized: "UTC Hand"))
                             }
                         }
