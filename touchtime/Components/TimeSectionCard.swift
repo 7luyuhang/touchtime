@@ -148,7 +148,7 @@ struct TimePreviewCard<OverlayContent: View>: View {
                     .fontDesign(.rounded)
                     .foregroundStyle(Color.white)
                     .frame(width: 20, height: 16)
-                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    .background(.black.opacity(0.20), in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                     .contentTransition(.numericText())
 
                 Text(weekdayDisplay.next)
