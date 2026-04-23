@@ -128,6 +128,12 @@ struct TimerClockFaceView: View {
                     size: size
                 )
 
+                TimerRangeArcView(
+                    startAngle: 0,
+                    endAngle: configuredAngle,
+                    size: size
+                )
+
                 TimerBoundaryLineView(
                     angle: 0,
                     size: size
@@ -177,6 +183,32 @@ struct TimerClockFaceView: View {
             resetAnimationTask?.cancel()
             resetAnimationTask = nil
         }
+    }
+}
+
+// MARK: - Timer Range Arc View
+struct TimerRangeArcView: View {
+    let startAngle: Double
+    let endAngle: Double
+    let size: CGFloat
+
+    var body: some View {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let radius = (size - 24) / 2
+        let startRadians = (startAngle - 90) * .pi / 180
+        let endRadians = (endAngle - 90) * .pi / 180
+
+        Path { path in
+            path.addArc(
+                center: center,
+                radius: radius,
+                startAngle: Angle(radians: startRadians),
+                endAngle: Angle(radians: endRadians),
+                clockwise: false
+            )
+        }
+        .stroke(Color.white, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+        .drawingGroup()
     }
 }
 
