@@ -146,7 +146,7 @@ struct SetAlarmSheet: View {
                         Image(systemName: "plus")
                             .font(.headline)
                             .foregroundStyle(.white)
-                            .frame(width: 40, height: 40)
+                            .frame(width: 60, height: 40)
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.blue)

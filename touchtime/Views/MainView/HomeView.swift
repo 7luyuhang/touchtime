@@ -1378,14 +1378,6 @@ struct HomeView: View {
                                             }
                                         } else {
                                             HStack {
-                                                if showSkyDot {
-                                                    SkyDotView(
-                                                        date: currentDate.addingTimeInterval(timeOffset),
-                                                        timeZoneIdentifier: clock.timeZoneIdentifier,
-                                                        weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
-                                                    )
-                                                }
-                                                
                                                 Spacer()
                                                 
                                                 // Weather display for world clock (when time difference is hidden)

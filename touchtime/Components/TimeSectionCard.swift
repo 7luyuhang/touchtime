@@ -19,6 +19,7 @@ struct TimePreviewCard<OverlayContent: View>: View {
     let timeZoneIdentifier: String
     let weatherCondition: WeatherCondition?
     let showSkyDot: Bool
+    let showSkyDotBadge: Bool
     let additionalTimeDisplay: String
     let additionalTimeText: String
     let showWeather: Bool
@@ -51,7 +52,7 @@ struct TimePreviewCard<OverlayContent: View>: View {
         ZStack {
             VStack(alignment: .leading, spacing: 4) {
                 HStack {
-                    if showSkyDot && additionalTimeDisplay == "None" {
+                    if showSkyDotBadge && showSkyDot && additionalTimeDisplay == "None" {
                         SkyDotView(
                             date: date,
                             timeZoneIdentifier: timeZoneIdentifier,

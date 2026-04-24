@@ -441,6 +441,7 @@ struct OnboardingView: View {
                                 timeZoneIdentifier: TimeZone.current.identifier,
                                 weatherCondition: weatherConditionForSky,
                                 showSkyDot: showSkyDot,
+                                showSkyDotBadge: true,
                                 additionalTimeDisplay: additionalTimeDisplay,
                                 additionalTimeText: additionalTimeText(),
                                 showWeather: showWeather,

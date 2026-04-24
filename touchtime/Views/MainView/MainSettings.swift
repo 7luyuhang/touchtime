@@ -537,6 +537,7 @@ struct SettingsView: View {
                             timeZoneIdentifier: TimeZone.current.identifier,
                             weatherCondition: weatherConditionForSky,
                             showSkyDot: showSkyDot,
+                            showSkyDotBadge: false,
                             additionalTimeDisplay: additionalTimeDisplay,
                             additionalTimeText: additionalTimeText(),
                             showWeather: showWeather,

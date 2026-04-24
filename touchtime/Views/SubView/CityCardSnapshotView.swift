@@ -238,17 +238,6 @@ struct CityCardSnapshotView: View {
                     HStack {
                         if additionalTimeDisplay != "None" {
                             additionalTimeView
-                        } else if showSkyDot {
-                            SkyDotView(
-                                date: date,
-                                timeZoneIdentifier: timeZoneIdentifier,
-                                weatherCondition: weatherCondition
-                            )
-                            .overlay(
-                                Capsule(style: .continuous)
-                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                    .blendMode(.plusLighter)
-                            )
                         }
                         
                         Spacer()
