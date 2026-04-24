@@ -1261,8 +1261,7 @@ struct AnalogClockFullView: View {
             .onDisappear {
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = nil
-                bottomTimerDeleteIconTask?.cancel()
-                bottomTimerDeleteIconTask = nil
+                hideBottomTimerDeleteIcon(animate: false)
             }
             .onChange(of: scenePhase) { oldValue, newValue in
                 if newValue == .active {
