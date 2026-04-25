@@ -87,6 +87,7 @@ struct AnalogClockFullView: View {
     @State private var homeTimerResetAnimationFromSeconds = 0
     @State private var showBottomTimerDeleteIcon = false
     @State private var bottomTimerDeleteIconTask: Task<Void, Never>? = nil
+    @State private var isTimerCircleAdjusting = false
 
     // Get displayed clocks based on selected collection
     private var displayedClocks: [WorldClock] {
@@ -428,6 +429,33 @@ struct AnalogClockFullView: View {
             && clampedPausedRemaining > 0
             && clampedPausedRemaining < clampedConfigured
         return canResumeProgress ? String(localized: "Resume") : String(localized: "Start")
+    }
+
+    private func isTimerInStartState(at date: Date) -> Bool {
+        guard hasConfiguredHomeTimer else { return false }
+        guard timerPlayPauseSymbol(at: date) == "play.fill" else { return false }
+        let clampedConfigured = min(max(homeTimerConfiguredSeconds, 0), 59 * 60 + 59)
+        let clampedPausedRemaining = min(max(homeTimerPausedRemainingSeconds, 0), 59 * 60 + 59)
+        let canResumeProgress = homeTimerPaused
+            && clampedConfigured > 0
+            && clampedPausedRemaining > 0
+            && clampedPausedRemaining < clampedConfigured
+        return !canResumeProgress
+    }
+
+    @discardableResult
+    private func adjustHomeTimerConfiguredSeconds(by deltaSeconds: Int) -> Bool {
+        let minSeconds = 60
+        let maxSeconds = 59 * 60
+        let newConfigured = min(max(homeTimerConfiguredSeconds + deltaSeconds, minSeconds), maxSeconds)
+        guard newConfigured != homeTimerConfiguredSeconds else { return false }
+        homeTimerConfiguredSeconds = newConfigured
+        homeTimerPaused = true
+        homeTimerPausedRemainingSeconds = newConfigured
+        homeTimerEndDateEpoch = 0
+        homeTimerCompletionHandled = false
+        refreshHomeTimerAlarm(requestAuthorization: false)
+        return true
     }
 
     private func restoreHomeTimerStateIfNeeded() {
@@ -928,7 +956,15 @@ struct AnalogClockFullView: View {
                                     remainingSeconds: homeTimerRemainingSeconds(at: context.date),
                                     configuredSeconds: homeTimerConfiguredSeconds,
                                     resetAnimationTrigger: homeTimerResetAnimationTrigger,
-                                    resetAnimationFromSeconds: homeTimerResetAnimationFromSeconds
+                                    resetAnimationFromSeconds: homeTimerResetAnimationFromSeconds,
+                                    isAdjustable: isTimerInStartState(at: context.date),
+                                    hapticEnabled: hapticEnabled,
+                                    onAdjustSeconds: { delta in
+                                        adjustHomeTimerConfiguredSeconds(by: delta)
+                                    },
+                                    onAdjustingChanged: { adjusting in
+                                        isTimerCircleAdjusting = adjusting
+                                    }
                                 )
                             } else {
                                 AnalogClockFaceView(
@@ -967,6 +1003,7 @@ struct AnalogClockFullView: View {
                                     timerEndDateEpoch: homeTimerEndDateEpoch,
                                     timerIsPaused: homeTimerPaused,
                                     timerPausedRemainingSeconds: homeTimerPausedRemainingSeconds,
+                                    timerIsAdjusting: isTimerCircleAdjusting,
                                     onTimerTap: handleHomeTimerTap,
                                     onTimerConfigureTap: {
                                         triggerMenuHaptic()
@@ -2620,6 +2657,7 @@ struct DigitalTimeDisplayView: View {
     let timerEndDateEpoch: Double
     let timerIsPaused: Bool
     let timerPausedRemainingSeconds: Int
+    let timerIsAdjusting: Bool
     let onTimerTap: () -> Void
     let onTimerConfigureTap: () -> Void
     @Binding var selectedPage: DisplayPage
@@ -2641,6 +2679,7 @@ struct DigitalTimeDisplayView: View {
         timerEndDateEpoch: Double,
         timerIsPaused: Bool,
         timerPausedRemainingSeconds: Int,
+        timerIsAdjusting: Bool,
         onTimerTap: @escaping () -> Void,
         onTimerConfigureTap: @escaping () -> Void,
         selectedPage: Binding<DisplayPage>,
@@ -2659,6 +2698,7 @@ struct DigitalTimeDisplayView: View {
         self.timerEndDateEpoch = timerEndDateEpoch
         self.timerIsPaused = timerIsPaused
         self.timerPausedRemainingSeconds = timerPausedRemainingSeconds
+        self.timerIsAdjusting = timerIsAdjusting
         self.onTimerTap = onTimerTap
         self.onTimerConfigureTap = onTimerConfigureTap
         _selectedPage = selectedPage
@@ -2786,8 +2826,8 @@ struct DigitalTimeDisplayView: View {
                         .fontDesign(.rounded)
                         .monospacedDigit()
                         .foregroundStyle(.white)
-                        .contentTransition(.numericText(countsDown: true))
-                        .animation(.spring(duration: 0.25), value: remaining)
+                        .contentTransition(timerIsAdjusting ? .identity : .numericText(countsDown: true))
+                        .animation(timerIsAdjusting ? nil : .spring(duration: 0.25), value: remaining)
                 }
 
                 Text(formattedConfiguredDuration(seconds: timerConfiguredSeconds))
@@ -2795,7 +2835,7 @@ struct DigitalTimeDisplayView: View {
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)
                     .monospacedDigit()
-                    .contentTransition(.numericText())
+                    .contentTransition(timerIsAdjusting ? .identity : .numericText())
             } else {
                 // No timer yet
                 Button(action: onTimerConfigureTap) {
