@@ -138,9 +138,16 @@ half4 rainFall(float2 pos,
     float cy = rain::Drops(uv + e.yx, t, staticDrops, layer1, layer2).x;
     float2 nrm = float2(cx - c.x, cy - c.x);
 
-    // Convert the normalized-uv displacement to pixels and clamp so we never
-    // exceed the layerEffect's maxSampleOffset.
-    float2 pixelOffset = clamp(nrm * h, -30.0, 30.0);
+    // ---- Lens-style refraction ----
+    // A real droplet on glass behaves like a tiny convex lens: it inverts and
+    // magnifies the background. We push the sample along the gradient
+    // (refraction at the surface) and add a small inverted term inside the
+    // body so what's "under" the drop reads as flipped/zoomed, not just
+    // shifted.
+    float bodyMask = clamp(c.x, 0.0, 1.0);
+    float2 refract = nrm * h * 1.4;
+    float2 lensFlip = -nrm * h * 6.0 * bodyMask;
+    float2 pixelOffset = clamp(refract + lensFlip, -40.0, 40.0);
 
     // Safety clamp: keep the sample inside the layer bounds so a drop near
     // the edge can never sample transparent pixels (which would show up as a
@@ -148,39 +155,69 @@ half4 rainFall(float2 pos,
     float2 sampleP = clamp(pos + pixelOffset, float2(0.5), size - float2(0.5));
     half4 col = layer.sample(sampleP);
 
+    // Subtle chromatic aberration along the silhouette - real water lenses
+    // disperse light, so R and B fringes split slightly at the drop edge.
+    half edgeMag = clamp(half(length(nrm)) * 25.0h, 0.0h, 1.0h);
+    if (edgeMag > 0.02h) {
+        float2 caOffset = nrm * h * 0.6;
+        float2 spR = clamp(pos + pixelOffset + caOffset, float2(0.5), size - float2(0.5));
+        float2 spB = clamp(pos + pixelOffset - caOffset, float2(0.5), size - float2(0.5));
+        half rCh = layer.sample(spR).r;
+        half bCh = layer.sample(spB).b;
+        col.r = mix(col.r, rCh, edgeMag * 0.5h);
+        col.b = mix(col.b, bCh, edgeMag * 0.5h);
+    }
+
     // ---- Realistic drop shading ----
-    // c.x is the drop body intensity (0..~1), c.y is the trail intensity.
     half cx_h = clamp(half(c.x), 0.0h, 1.0h);
     half cy_h = clamp(half(c.y), 0.0h, 1.0h);
 
-    // 1. Wet-glass shine: a bit brighter so the drop body reads as clear
-    //    water instead of a flat refraction.
-    half body = cx_h * 0.10h;
+    // Approximate hemispherical surface normal of the drop from the gradient.
+    half2 nh = half2(nrm) * 200.0h;
+    half nLen2 = clamp(dot(nh, nh), 0.0h, 1.0h);
+    half3 N = normalize(half3(nh, sqrt(max(1.0h - nLen2, 0.0001h))));
 
-    // 2. Two-tier specular highlight for a luminous, translucent look:
-    //      - Soft, wider halo around the drop
-    //      - Concentrated bright pinpoint at the rounded top
-    half specularSoft  = pow(cx_h, 2.0h) * 0.10h;
-    half specularSharp = pow(cx_h, 8.0h) * 0.20h; // Highlight Colour
-    half specular      = specularSoft + specularSharp;
+    // Light from upper-left (the eye expects this from photographs).
+    const half3 L  = normalize(half3(-0.45h,  0.55h, 0.70h));
+    const half3 V  = half3(0.0h, 0.0h, 1.0h);
+    const half3 H  = normalize(L + V);
 
-    // Tint the highlight only partly toward white, so it still carries the
-    // sky color and doesn't look like pure white paint on top of the drops.
-    half3 highlightTint = mix(col.rgb, half3(1.0h), 0.45h);
+    half NdotL = max(dot(N, L), 0.0h);
+    half NdotH = max(dot(N, H), 0.0h);
+    half NdotV = max(dot(N, V), 0.0h);
 
-    // 3. Fresnel-style rim: the gradient magnitude is largest at the drop's
-    //    silhouette edge, so we use it for a faint dark rim that sells depth.
-    half rim = clamp(half(length(nrm)) * 30.0h, 0.0h, 1.0h);
-    rim *= cx_h;             // only on actual drops
-    half rimDark = rim * 0.15h;
+    // 1. Body brightening so the drop reads as clear water, not just a smear.
+    half body = cx_h * 0.08h;
 
-    // 4. Slight darkening along trails, like a wet streak on glass.
-    half trailDark = cy_h * 0.08h;
+    // 2. Directional specular - sharp pinpoint biased to the upper-left,
+    //    softened by a wider halo.
+    half specSharp = pow(NdotH, 64.0h) * cx_h * 0.55h;
+    half specSoft  = pow(NdotH,  6.0h) * cx_h * 0.12h;
+    half3 highlightTint = mix(col.rgb, half3(1.0h), 0.55h);
+
+    // 3. Caustic / focused light at the side opposite the highlight - the
+    //    lens concentrates light there, giving the drop its luminous bottom.
+    half causticMask = pow(max(-dot(N, L), 0.0h), 3.0h) * cx_h;
+    half caustic = causticMask * 0.18h;
+
+    // 4. Fresnel rim: brighter on the silhouette where viewing is grazing.
+    half fres = pow(1.0h - NdotV, 3.0h) * cx_h;
+    half rimLight = fres * 0.20h;
+
+    // 5. Soft contact shadow opposite the highlight - sells the bump.
+    half shadow = (1.0h - NdotL) * cx_h * 0.10h;
+
+    // 6. Wet-streak darkening along trails, like water film on glass.
+    half trailDark = cy_h * 0.06h;
 
     col.rgb = clamp(col.rgb
-                        + body * col.a
-                        + specular * highlightTint * col.a
-                        - (rimDark + trailDark) * col.a,
+                        + body            * col.a
+                        + specSharp       * highlightTint * col.a
+                        + specSoft        * highlightTint * col.a
+                        + caustic         * highlightTint * col.a
+                        + rimLight        * highlightTint * col.a
+                        - shadow          * col.a
+                        - trailDark       * col.a,
                     0.0h, 1.0h);
 
     return col;
