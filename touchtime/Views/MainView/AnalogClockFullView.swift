@@ -432,7 +432,8 @@ struct AnalogClockFullView: View {
     }
 
     private func isTimerInStartState(at date: Date) -> Bool {
-        guard hasConfiguredHomeTimer else { return false }
+        // Allow scroll-to-configure when starting from empty state (00:00).
+        if homeTimerConfiguredSeconds == 0 { return true }
         guard timerPlayPauseSymbol(at: date) == "play.fill" else { return false }
         let clampedConfigured = min(max(homeTimerConfiguredSeconds, 0), 59 * 60 + 59)
         let clampedPausedRemaining = min(max(homeTimerPausedRemainingSeconds, 0), 59 * 60 + 59)
@@ -447,6 +448,8 @@ struct AnalogClockFullView: View {
     private func adjustHomeTimerConfiguredSeconds(by deltaSeconds: Int) -> Bool {
         let minSeconds = 60
         let maxSeconds = 59 * 60
+        // From the empty state, only forward scrolls should engage the timer.
+        if homeTimerConfiguredSeconds == 0 && deltaSeconds <= 0 { return false }
         let newConfigured = min(max(homeTimerConfiguredSeconds + deltaSeconds, minSeconds), maxSeconds)
         guard newConfigured != homeTimerConfiguredSeconds else { return false }
         homeTimerConfiguredSeconds = newConfigured
@@ -2900,10 +2903,6 @@ struct DigitalTimeDisplayView: View {
             if !oldValue && newValue {
                 withAnimation(.spring(duration: 0.25)) {
                     selectedPage = .timer
-                }
-            } else if oldValue && !newValue && selectedPage == .timer {
-                withAnimation(.spring(duration: 0.25)) {
-                    selectedPage = .time
                 }
             }
         }
