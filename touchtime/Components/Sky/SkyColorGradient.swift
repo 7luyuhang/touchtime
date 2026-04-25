@@ -52,23 +52,10 @@ struct SkyColorGradient {
         self.date = date
         self.timeZoneIdentifier = timeZoneIdentifier
         self.weatherCondition = weatherCondition
-        self.isRainy = SkyColorGradient.isRainyCondition(weatherCondition)
+        self.isRainy = weatherCondition?.isRainy ?? false
         self.normalizedTime = SkyColorGradient.calculateNormalizedTimeWithCache(date: date, timeZoneIdentifier: timeZoneIdentifier)
     }
-    
-    // Check if the weather condition is a rainy/stormy condition
-    private static func isRainyCondition(_ condition: WeatherCondition?) -> Bool {
-        guard let condition = condition else { return false }
-        switch condition {
-        case .drizzle, .rain, .heavyRain, .sunShowers,
-                .isolatedThunderstorms, .scatteredThunderstorms,
-                .strongStorms, .thunderstorms,
-                .freezingDrizzle, .freezingRain:
-            return true
-        default:
-            return false
-        }
-    }
+
     
     // Keep derived time values stable to prevent invalid RGB calculations.
     private static func wrapTo24Hours(_ value: Double) -> Double {
