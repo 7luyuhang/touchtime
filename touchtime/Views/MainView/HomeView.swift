@@ -65,6 +65,8 @@ struct HomeView: View {
     @State private var renamingLocalTime = false
     @State private var newClockName = ""
     @State private var originalClockName = ""
+    @State private var showingTimerRenameAlert = false
+    @State private var newTimerName = ""
     @State private var showShareSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
@@ -143,6 +145,7 @@ struct HomeView: View {
     @AppStorage("homeTimerPaused") private var homeTimerPaused = false
     @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
     @AppStorage("homeTimerAlarmID") private var homeTimerAlarmIDRawValue = ""
+    @AppStorage("homeTimerName") private var homeTimerName = ""
     
     // Namespace for zoom transition
     @Namespace private var earthViewNamespace
@@ -183,6 +186,11 @@ struct HomeView: View {
 
     private var hasConfiguredHomeTimer: Bool {
         homeTimerConfiguredSeconds > 0
+    }
+
+    private var homeTimerDisplayName: String {
+        let trimmedName = homeTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedName.isEmpty ? String(localized: "Timer") : trimmedName
     }
 
     private var homeTimerAlarmID: UUID? {
@@ -285,12 +293,33 @@ struct HomeView: View {
         )
     }
 
+    private func renameHomeTimer() {
+        newTimerName = homeTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        showingTimerRenameAlert = true
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func saveHomeTimerName() {
+        let trimmedName = newTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        withAnimation(.smooth(duration: 0.25)) {
+            homeTimerName = trimmedName
+        }
+        newTimerName = ""
+        refreshHomeTimerAlarm(requestAuthorization: false)
+    }
+
     private func clearHomeTimer() {
         homeTimerConfiguredSeconds = 0
         homeTimerEndDateEpoch = 0
         homeTimerCompletionHandled = false
         homeTimerPaused = false
         homeTimerPausedRemainingSeconds = 0
+        homeTimerName = ""
         refreshHomeTimerAlarm(requestAuthorization: false)
 
         if hapticEnabled {
@@ -409,7 +438,7 @@ struct HomeView: View {
             try await AlarmSupport.scheduleTimerAlarm(
                 id: newAlarmID,
                 durationSeconds: remainingSeconds,
-                eventTitle: String(localized: "Timer"),
+                eventTitle: homeTimerDisplayName,
                 using: alarmManager
             )
         } catch {
@@ -1176,10 +1205,12 @@ struct HomeView: View {
                         // Home Timer Section
                         if hasConfiguredHomeTimer {
                             HomeTimerSection(
+                                timerName: homeTimerDisplayName,
                                 configuredSeconds: homeTimerConfiguredSeconds,
                                 endDateEpoch: homeTimerEndDateEpoch,
                                 isPaused: homeTimerPaused,
                                 pausedRemainingSeconds: homeTimerPausedRemainingSeconds,
+                                onRename: renameHomeTimer,
                                 onTap: handleHomeTimerTap,
                                 onReset: resetHomeTimer,
                                 onDelete: clearHomeTimer
@@ -1865,6 +1896,19 @@ struct HomeView: View {
                 }
             } message: {
                 Text("Customize the name of this city")
+            }
+
+            // Rename Timer
+            .alert(String(localized: "Rename Timer"), isPresented: $showingTimerRenameAlert) {
+                TextField(homeTimerDisplayName, text: $newTimerName)
+                Button(String(localized: "Cancel"), role: .cancel) {
+                    newTimerName = ""
+                }
+                Button(String(localized: "Save")) {
+                    saveHomeTimerName()
+                }
+            } message: {
+                Text(String(localized: "Customize the name of this timer"))
             }
             
             // Calendar Permission Alert

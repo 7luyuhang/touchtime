@@ -8,10 +8,12 @@
 import SwiftUI
 
 struct HomeTimerSection: View {
+    let timerName: String
     let configuredSeconds: Int
     let endDateEpoch: Double
     let isPaused: Bool
     let pausedRemainingSeconds: Int
+    let onRename: () -> Void
     let onTap: () -> Void
     let onReset: () -> Void
     let onDelete: () -> Void
@@ -87,11 +89,13 @@ struct HomeTimerSection: View {
                     }
 
                     HStack(alignment: .lastTextBaseline) {
-                        Text(String(localized: "Timer"))
+                        Text(timerName)
                             .font(.headline)
                             .lineLimit(1)
                             .truncationMode(.tail)
                             .frame(maxWidth: 120, alignment: .leading)
+                            .contentTransition(.numericText())
+                            .animation(.smooth(duration: 0.25), value: timerName)
 
                         Spacer()
 
@@ -140,6 +144,10 @@ struct HomeTimerSection: View {
 //                .tint(.orange)
             }
             .contextMenu {
+                Button(action: onRename) {
+                    Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
+                }
+                Divider()
                 Button(action: onReset) {
                     Label(String(localized: "Reset"), systemImage: "arrow.counterclockwise")
                 }

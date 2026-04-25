@@ -204,6 +204,8 @@
 "Delete Timer" = "刪除計時器";
 "Set Timer" = "設定計時器";
 "New Timer" = "新計時器";
+"Rename Timer" = "重新命名計時器";
+"Customize the name of this timer" = "自訂計時器名稱";
 "Minutes" = "分鐘";
 "Seconds" = "秒";
 "min" = "分";

@@ -78,6 +78,7 @@ struct AnalogClockFullView: View {
     @AppStorage("homeTimerPaused") private var homeTimerPaused = false
     @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
     @AppStorage("homeTimerAlarmID") private var homeTimerAlarmIDRawValue = ""
+    @AppStorage("homeTimerName") private var homeTimerName = ""
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let alarmManager = AlarmManager.shared
@@ -224,6 +225,11 @@ struct AnalogClockFullView: View {
 
     private var hasConfiguredHomeTimer: Bool {
         homeTimerConfiguredSeconds > 0
+    }
+
+    private var homeTimerDisplayName: String {
+        let trimmedName = homeTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedName.isEmpty ? String(localized: "Timer") : trimmedName
     }
 
     private var homeTimerAlarmID: UUID? {
@@ -378,6 +384,7 @@ struct AnalogClockFullView: View {
         homeTimerCompletionHandled = false
         homeTimerPaused = false
         homeTimerPausedRemainingSeconds = 0
+        homeTimerName = ""
         hideBottomTimerDeleteIcon(animate: false)
         refreshHomeTimerAlarm(requestAuthorization: false)
 
@@ -532,7 +539,7 @@ struct AnalogClockFullView: View {
             try await AlarmSupport.scheduleTimerAlarm(
                 id: newAlarmID,
                 durationSeconds: remainingSeconds,
-                eventTitle: String(localized: "Timer"),
+                eventTitle: homeTimerDisplayName,
                 using: alarmManager
             )
         } catch {
@@ -996,9 +1003,11 @@ struct AnalogClockFullView: View {
                                         Button(action: handleBottomTimerLabelTap) {
                                             let timerLabelText = showBottomTimerDeleteIcon && hasConfiguredHomeTimer
                                                 ? String(localized: "Delete Timer")
-                                                : String(localized: "Timer")
+                                                : homeTimerDisplayName
                                             HStack(spacing: 5) {
                                                 Text(timerLabelText)
+                                                    .lineLimit(1)
+                                                    .truncationMode(.tail)
                                                     .contentTransition(.numericText())
                                                     .animation(.smooth(duration: 0.25), value: timerLabelText)
 
@@ -1011,6 +1020,8 @@ struct AnalogClockFullView: View {
                                             .font(.subheadline.weight(.medium))
                                             .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
+                                            .padding(.horizontal, 24)
+                                            .frame(maxWidth: .infinity)
                                         }
                                         .buttonStyle(.plain)
                                         .padding(.bottom, 16)

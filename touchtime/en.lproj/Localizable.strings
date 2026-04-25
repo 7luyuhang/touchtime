@@ -206,6 +206,8 @@
 "Delete Timer" = "Delete Timer";
 "Set Timer" = "Set Timer";
 "New Timer" = "New Timer";
+"Rename Timer" = "Rename Timer";
+"Customize the name of this timer" = "Customize the name of this timer";
 "Minutes" = "Minutes";
 "Seconds" = "Seconds";
 "min" = "min";
