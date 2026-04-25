@@ -1307,7 +1307,8 @@ struct HomeView: View {
                                     showSkyDot ? SkyBackgroundView(
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZoneIdentifier: TimeZone.current.identifier,
-                                        weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
+                                        weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier),
+                                        showRainEffect: true
                                     ) : nil
                                 )
                                 .id("local-\(showSkyDot)")
@@ -1467,7 +1468,8 @@ struct HomeView: View {
                                     showSkyDot ? SkyBackgroundView(
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZoneIdentifier: clock.timeZoneIdentifier,
-                                        weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
+                                        weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier),
+                                        showRainEffect: true
                                     ) : nil
                                 )
                                 .id("\(clock.id)-\(showSkyDot)")
