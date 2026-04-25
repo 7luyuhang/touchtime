@@ -43,4 +43,3 @@ struct HourNumbersView: View {
         }
     }
 }
-

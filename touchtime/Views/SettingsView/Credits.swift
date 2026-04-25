@@ -35,6 +35,11 @@ struct CreditsView: View {
                    Text("VariableBlur")
                         .tint(.primary)
                 }
+                
+                Link(destination: URL(string: "https://harshil.net/blog/swiftui-rotationeffect-is-kinda-funky")!) {
+                   Text("Adventures in Orienting Views")
+                        .tint(.primary)
+                }
             } header: {
                 Text("Open Source Library", comment: "Credits section header")
             } footer: {

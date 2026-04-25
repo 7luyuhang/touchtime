@@ -4,8 +4,9 @@
 //
 //  Created on 14/01/2026.
 //
-//  Daylight length: arc represents 24 hours. White = daylight (sunrise → sunset),
-//  dark gray = night. Arc length of the white segment = hours of sunlight in the day.
+//  Daylight Gradient complication:
+//  - uses the same 24-hour circular mapping as SunriseSunsetIndicator
+//  - only shows daylight arc (sunrise -> sunset) and the sun marker
 //
 
 import SwiftUI
@@ -17,50 +18,41 @@ struct DaylightIndicator: View {
     let timeZone: TimeZone
     let size: CGFloat
     let useMaterialBackground: Bool
-    
-    @State private var cachedSegment: (start: Double, end: Double) = (0.25, 0.75)
-    @State private var cachedDayKey: String = ""
-    
+    @State private var displayedSunDaylightBlend: Double = 0
+
     private struct SunTimes {
         let sunrise: Date?
         let sunset: Date?
     }
-    
+
     private class SunTimesWrapper {
         let times: SunTimes
         init(_ times: SunTimes) { self.times = times }
     }
-    
+
     private static let sunTimesCache: NSCache<NSString, SunTimesWrapper> = {
         let cache = NSCache<NSString, SunTimesWrapper>()
         cache.countLimit = 60
         return cache
     }()
-    
+
     init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false) {
         self.date = date
         self.timeZone = timeZone
         self.size = size
         self.useMaterialBackground = useMaterialBackground
     }
-    
-    private func dayKey(for date: Date) -> String {
+
+    private var sunTimes: SunTimes {
         var calendar = Calendar.current
         calendar.timeZone = timeZone
         let components = calendar.dateComponents([.year, .month, .day], from: date)
-        return "\(timeZone.identifier)_daylight_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
-    }
-    
-    private func cachedSunTimes(for date: Date) -> SunTimes {
-        let cacheKey = dayKey(for: date) as NSString
-        
-        if let cached = DaylightIndicator.sunTimesCache.object(forKey: cacheKey) {
+        let cacheKey = "\(timeZone.identifier)_daylight_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
+
+        if let cached = Self.sunTimesCache.object(forKey: cacheKey) {
             return cached.times
         }
-        
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        
+
         let times: SunTimes
         if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
             let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
@@ -74,48 +66,63 @@ struct DaylightIndicator: View {
                 sunset: calendar.date(byAdding: .hour, value: 18, to: startOfDay)
             )
         }
-        
-        DaylightIndicator.sunTimesCache.setObject(SunTimesWrapper(times), forKey: cacheKey)
+
+        Self.sunTimesCache.setObject(SunTimesWrapper(times), forKey: cacheKey)
         return times
     }
-    
-    private func computeSegment(for date: Date) -> (start: Double, end: Double) {
+
+    // 24-hour mapping: 0h at top, clockwise (15 degrees/hour)
+    private func angleForDate(_ date: Date?) -> Double? {
+        guard let date else { return nil }
         var calendar = Calendar.current
         calendar.timeZone = timeZone
-        let startOfDay = calendar.startOfDay(for: date)
-        let dayInSeconds: Double = 24 * 60 * 60
-        
-        let sunTimes = cachedSunTimes(for: date)
-        guard let sunrise = sunTimes.sunrise, let sunset = sunTimes.sunset, sunset > sunrise else {
-            return (0.25, 0.75)
-        }
-        
-        let sunriseProgress = max(0, min(1, sunrise.timeIntervalSince(startOfDay) / dayInSeconds))
-        let sunsetProgress = max(0, min(1, sunset.timeIntervalSince(startOfDay) / dayInSeconds))
-        return (sunriseProgress, sunsetProgress)
+        let components = calendar.dateComponents([.hour, .minute], from: date)
+        guard let hour = components.hour, let minute = components.minute else { return nil }
+        return Double(hour) * 15.0 + Double(minute) * 0.25
     }
-    
-    private func topArcPath() -> Path {
-        let w = size
-        let h = size
-        let centerY = h * 0.56
-        let horizontalInset = w * 0.24
-        let arcLift = h * 0.18
-        
-        let start = CGPoint(x: horizontalInset, y: centerY)
-        let end = CGPoint(x: w - horizontalInset, y: centerY)
-        let control = CGPoint(x: w / 2, y: centerY - arcLift)
-        
-        return Path { path in
-            path.move(to: start)
-            path.addQuadCurve(to: end, control: control)
+
+    private func daylightBlend(sunrise: Date?, sunset: Date?) -> Double {
+        guard let sunrise, let sunset, sunset > sunrise else { return 1 }
+
+        // Cross-fade window around sunrise/sunset to avoid abrupt fill/stroke switching.
+        let transitionWindow: TimeInterval = 20 * 60
+        let sunriseStart = sunrise - transitionWindow
+        let sunriseEnd = sunrise + transitionWindow
+        let sunsetStart = sunset - transitionWindow
+        let sunsetEnd = sunset + transitionWindow
+
+        if date < sunriseStart { return 0 }
+        if date <= sunriseEnd {
+            let progress = date.timeIntervalSince(sunriseStart) / (transitionWindow * 2)
+            return min(max(progress, 0), 1)
         }
+        if date < sunsetStart { return 1 }
+        if date <= sunsetEnd {
+            let progress = date.timeIntervalSince(sunsetStart) / (transitionWindow * 2)
+            return min(max(1 - progress, 0), 1)
+        }
+        return 0
     }
-    
+
+    // Only animate near sunrise/sunset when blend is transitioning.
+    private func shouldAnimateBlend(sunrise: Date?, sunset: Date?) -> Bool {
+        guard let sunrise, let sunset else { return false }
+        let transitionWindow: TimeInterval = 20 * 60
+        return abs(date.timeIntervalSince(sunrise)) <= transitionWindow
+            || abs(date.timeIntervalSince(sunset)) <= transitionWindow
+    }
+
     var body: some View {
-        let lineWidth: CGFloat = size * 0.04
-        let fullArc = topArcPath()
-        
+        let times = sunTimes
+        let sunriseAngle = angleForDate(times.sunrise)
+        let sunsetAngle = angleForDate(times.sunset)
+        let sunAngle = angleForDate(date)
+        let sunDaylightBlend = daylightBlend(sunrise: times.sunrise, sunset: times.sunset)
+
+        let orbitRadius: CGFloat = size * 0.375
+        let lineWidth: CGFloat = size * 0.125
+        let sunSize: CGFloat = size * 0.125
+
         ZStack {
             if useMaterialBackground {
                 Circle()
@@ -130,69 +137,109 @@ struct DaylightIndicator: View {
                             .glassEffect(.clear)
                     )
             }
-            
-            // Arc represents 24 hours. White = daylight, gray = night.
-            ZStack {
-                // Full arc background (gray - night)
-                fullArc
-                    .trimmedPath(from: 0, to: 1)
-                    .stroke(
-                        Color.white.opacity(0.20),
-                        style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
-                    )
-                    .blendMode(.plusLighter)
-                
-                // Daylight segment (white - sunrise to sunset)
-                if cachedSegment.end - cachedSegment.start > 0 {
-                    fullArc
-                        .trimmedPath(from: cachedSegment.start, to: cachedSegment.end)
-                        .stroke(
-                            Color.white,
-                            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
-                        )
-                        .blendMode(.plusLighter)
-                }
+
+            if let sunriseAngle, let sunsetAngle {
+                DaylightOrbitArc(
+                    sunriseAngle: sunriseAngle,
+                    sunsetAngle: sunsetAngle,
+                    size: size,
+                    orbitRadius: orbitRadius,
+                    lineWidth: lineWidth
+                )
+                .opacity(0.50)
+                .blur(radius: 1.5)
+                .blendMode(.plusLighter)
+                .drawingGroup()
             }
-            .offset(y: -(size * 0.02))
-            .frame(width: size, height: size)
-            .drawingGroup()
+
+            if let sunAngle {
+                ZStack {
+                    Circle()
+                        .fill(.white)
+                        .opacity(displayedSunDaylightBlend)
+
+                    Circle()
+                        .stroke(.white, lineWidth: 1.5)
+                        .opacity((1 - displayedSunDaylightBlend) * 0.5)
+                }
+                .frame(width: sunSize, height: sunSize)
+                .offset(y: -orbitRadius)
+                .rotationEffect(.degrees(sunAngle))
+                .blendMode(.plusLighter)
+            }
         }
         .frame(width: size, height: size)
-        .onChange(of: date) { oldDate, newDate in
-            let oldKey = dayKey(for: oldDate)
-            let newKey = dayKey(for: newDate)
-            if oldKey != newKey {
-                cachedSegment = computeSegment(for: newDate)
-                cachedDayKey = newKey
-            }
-        }
+        .clipShape(Circle())
         .onAppear {
-            let currentKey = dayKey(for: date)
-            if cachedDayKey != currentKey {
-                cachedSegment = computeSegment(for: date)
-                cachedDayKey = currentKey
+            displayedSunDaylightBlend = sunDaylightBlend
+        }
+        .onChange(of: sunDaylightBlend) { _, newValue in
+            guard newValue != displayedSunDaylightBlend else { return }
+            if shouldAnimateBlend(sunrise: times.sunrise, sunset: times.sunset) {
+                withAnimation(.spring()) {
+                    displayedSunDaylightBlend = newValue
+                }
+            } else {
+                displayedSunDaylightBlend = newValue
             }
         }
     }
 }
 
+private struct DaylightOrbitArc: View {
+    let sunriseAngle: Double
+    let sunsetAngle: Double
+    let size: CGFloat
+    let orbitRadius: CGFloat
+    let lineWidth: CGFloat
+
+    var body: some View {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let startRadians = (sunriseAngle - 90) * .pi / 180
+        let endRadians = (sunsetAngle - 90) * .pi / 180
+
+        Path { path in
+            path.addArc(
+                center: center,
+                radius: orbitRadius,
+                startAngle: Angle(radians: startRadians),
+                endAngle: Angle(radians: endRadians),
+                clockwise: false
+            )
+        }
+        .stroke(
+            AngularGradient(
+                gradient: Gradient(stops: [
+                    .init(color: Color.white.opacity(1.0), location: 0.0),
+                    .init(color: Color.white.opacity(0.50), location: 0.33),
+                    .init(color: Color.white.opacity(0.25), location: 0.66),
+                    .init(color: Color.white.opacity(0.0), location: 1.0)
+                ]),
+                center: .center,
+                startAngle: Angle(radians: startRadians),
+                endAngle: Angle(radians: endRadians)
+            ),
+            style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
+        )
+        .frame(width: size, height: size)
+    }
+}
+
 #Preview {
     ZStack {
-        Color.black
-            .ignoresSafeArea()
-        
+        Color.black.ignoresSafeArea()
+
         HStack(spacing: 24) {
             DaylightIndicator(
                 date: Date(),
                 timeZone: .current,
-                size: 100
+                size: 64
             )
-            
-            // Same day - daylight length is identical (arc segment size doesn't change with time)
+
             DaylightIndicator(
-                date: Calendar.current.date(bySettingHour: 14, minute: 0, second: 0, of: Date()) ?? Date(),
+                date: Calendar.current.date(bySettingHour: 10, minute: 0, second: 0, of: Date()) ?? Date(),
                 timeZone: .current,
-                size: 100
+                size: 64
             )
         }
     }

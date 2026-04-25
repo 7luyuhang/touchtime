@@ -9,11 +9,11 @@ import SwiftUI
 
 struct AvailableTimePicker: View {
     let worldClocks: [WorldClock]
-    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
-    @AppStorage("availableStartTime") private var availableStartTime = "09:00"
-    @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
+    @AppStorage("availableStartTime") private var availableStartTime = AvailableTimeDefaults.startTime
+    @AppStorage("availableEndTime") private var availableEndTime = AvailableTimeDefaults.endTime
     @AppStorage("use24HourFormat") private var use24HourFormat = false
-    @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6" // Default Mon-Fri
+    @AppStorage("availableWeekdays") private var availableWeekdays = AvailableTimeDefaults.weekdays // Default Mon-Fri
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     
     @State private var startDate = Date()
@@ -184,22 +184,11 @@ struct AvailableTimePicker: View {
     var body: some View {
         NavigationStack {
             List {
-                HStack(spacing: 16){
-                    Image(systemName: "info.circle.fill")
-                        .fontWeight(.semibold)
-                    
-                    Text("Set available time to compare and show availability across different cities.")
-                        .font(.subheadline)
-                }
-                .foregroundStyle(.secondary)
-                
-                
                 // Enable/Disable Toggle
                 Section {
-                    Toggle(isOn: $availableTimeEnabled) {
+                    TouchTimeToggle(isOn: $availableTimeEnabled) {
                             Text("Show Available Time")
                     }
-                    .tint(.blue)
                     .disabled(worldClocks.isEmpty)
                     
                 } footer: {
@@ -217,6 +206,18 @@ struct AvailableTimePicker: View {
                             Text("indicator inside system time.")
                         }
                     }
+                }
+                
+                // Info Section
+                if !availableTimeEnabled {
+                    HStack(spacing: 16){
+                        Image(systemName: "info.circle.fill")
+                            .fontWeight(.semibold)
+                        
+                        Text("Set available time to compare and show availability across different cities.")
+                            .font(.subheadline)
+                    }
+                    .foregroundStyle(.secondary)
                 }
                 
                 
@@ -314,11 +315,31 @@ struct AvailableTimePicker: View {
                     }
  
                 }
+
+                if availableTimeEnabled {
+                    // Complications
+                    Section(header: Text("Complications Preview")) {
+                        HStack(spacing: 16) {
+                            TimeOverlayIndicator(
+                                date: Date(),
+                                timeZone: .current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Time Overlay")
+                                    .font(.headline)
+                                Text("Compare available time across cities")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                            }
+                        }
+                    }
+                }
             }
             // Title
             .navigationTitle("Available Time")
             .navigationBarTitleDisplayMode(.inline)
-            
             .onAppear {
                 // Initialize dates from stored values
                 startDate = timeStringToDate(availableStartTime)

@@ -28,16 +28,24 @@ struct SettingsView: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
+    @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
+    @AppStorage("showMinuteHand") private var showMinuteHand = true
+    @AppStorage("showUTCHand") private var showUTCHand = true
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @State private var currentDate = Date()
+    @State private var showLifetimeStore = false
     @State private var showSupportLove = false
     @State private var showComplicationsSheet = false
     @Environment(\.dismiss) private var dismiss
@@ -45,30 +53,76 @@ struct SettingsView: View {
     
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    private static let preview24HourFormatter: DateFormatter = makeFormatter("HH:mm")
+    private static let preview12HourFormatter: DateFormatter = makeFormatter("h:mm")
+    private static let settingInputTimeFormatter: DateFormatter = makeFormatter("HH:mm")
+    private static let settingDisplayTimeFormatter: DateFormatter = {
+        let formatter = makeFormatter("h:mm a")
+        formatter.amSymbol = "am"
+        formatter.pmSymbol = "pm"
+        return formatter
+    }()
+
+    private static func makeFormatter(_ dateFormat: String) -> DateFormatter {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = dateFormat
+        return formatter
+    }
+
+    private enum PreviewComplication: String {
+        case analogClock
+        case sunElevation
+        case sunAzimuth
+        case moonAzimuth
+        case moonSunAzimuth
+        case sunriseSunset
+        case weatherCondition
+        case temperatureIndicator
+        case uvIndex
+        case windDirection
+        case daylight
+        case timeOverlay
+        case solarCurve
+
+        var localizedName: String {
+            switch self {
+            case .analogClock:
+                return String(localized: "Analog Clock")
+            case .sunElevation:
+                return String(localized: "Sun Elevation")
+            case .sunAzimuth:
+                return String(localized: "Sun Azimuth")
+            case .moonAzimuth:
+                return String(localized: "Moon Azimuth")
+            case .moonSunAzimuth:
+                return String(localized: "Moon & Sun Azimuth")
+            case .sunriseSunset:
+                return String(localized: "Sunrise & Sunset")
+            case .weatherCondition:
+                return String(localized: "Weather Condition")
+            case .temperatureIndicator:
+                return String(localized: "Temperature Indicator")
+            case .uvIndex:
+                return String(localized: "UV Index")
+            case .windDirection:
+                return String(localized: "Wind Direction")
+            case .daylight:
+                return String(localized: "Daylight Curve")
+            case .timeOverlay:
+                return String(localized: "Time Overlay")
+            case .solarCurve:
+                return String(localized: "Solar Curve")
+            }
+        }
+    }
     
     // Format time for preview (time part only)
     func formatTime(use24Hour: Bool) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
+        let formatter = use24Hour ? Self.preview24HourFormatter : Self.preview12HourFormatter
         formatter.timeZone = TimeZone.current
-        
-        if use24Hour {
-            formatter.dateFormat = "HH:mm"
-        } else {
-            formatter.dateFormat = "h:mm"
-        }
-        
-        return formatter.string(from: currentDate)
-    }
-    
-    // Format AM/PM for preview
-    func formatAMPM() -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        formatter.dateFormat = "a"
-        formatter.amSymbol = "am"
-        formatter.pmSymbol = "pm"
         return formatter.string(from: currentDate)
     }
     
@@ -98,26 +152,33 @@ struct SettingsView: View {
         }
     }
     
-    // Get current complication name
-    var currentComplicationName: String? {
+    private var selectedPreviewComplication: PreviewComplication? {
         if showAnalogClock {
-            return String(localized: "Analog Clock")
+            return .analogClock
         } else if showSunPosition {
-            return String(localized: "Sun Elevation")
+            return .sunElevation
         } else if showSunAzimuth {
-            return String(localized: "Sun Azimuth")
+            return .sunAzimuth
+        } else if effectiveShowMoonAzimuth {
+            return .moonAzimuth
+        } else if effectiveShowMoonSunAzimuth {
+            return .moonSunAzimuth
         } else if showSunriseSunset {
-            return String(localized: "Sunrise & Sunset")
-        } else if showWeather && showWeatherCondition {
-            return String(localized: "Weather Condition")
-        } else if showWeather && showUVIndex {
-            return String(localized: "UV Index")
-        } else if showWeather && showWindDirection {
-            return String(localized: "Wind Direction")
-        } else if showDaylight {
-            return String(localized: "Daylight Curve")
+            return .sunriseSunset
+        } else if effectiveShowWeatherCondition {
+            return .weatherCondition
+        } else if effectiveShowTemperatureIndicator {
+            return .temperatureIndicator
+        } else if effectiveShowUVIndex {
+            return .uvIndex
+        } else if effectiveShowWindDirection {
+            return .windDirection
+        } else if effectiveShowDaylight {
+            return .daylight
+        } else if effectiveShowTimeOverlay {
+            return .timeOverlay
         } else if showSolarCurve {
-            return String(localized: "Solar Curve")
+            return .solarCurve
         }
         return nil
     }
@@ -126,67 +187,265 @@ struct SettingsView: View {
         guard showWeather else { return nil }
         return weatherManager.weatherData[TimeZone.current.identifier]?.condition
     }
+
+    private var effectiveShowWeatherCondition: Bool {
+        hasLifetimeAccess && showWeather && showWeatherCondition
+    }
+
+    private var effectiveShowTemperatureIndicator: Bool {
+        hasLifetimeAccess && showWeather && showTemperatureIndicator
+    }
+
+    private var effectiveShowUVIndex: Bool {
+        hasLifetimeAccess && showWeather && showUVIndex
+    }
+
+    private var effectiveShowWindDirection: Bool {
+        hasLifetimeAccess && showWeather && showWindDirection
+    }
+
+    private var effectiveShowMoonAzimuth: Bool {
+        hasLifetimeAccess && showMoonAzimuth
+    }
+
+    private var effectiveShowMoonSunAzimuth: Bool {
+        hasLifetimeAccess && showMoonSunAzimuth
+    }
+
+    private var effectiveShowDaylight: Bool {
+        hasLifetimeAccess && showDaylight
+    }
+
+    private var effectiveShowTimeOverlay: Bool {
+        hasLifetimeAccess && showTimeOverlay && availableTimeEnabled
+    }
+
+    private var hasComplicationEnabled: Bool {
+        selectedPreviewComplication != nil
+    }
+
+    private var goldenHourBinding: Binding<Bool> {
+        Binding(
+            get: { hasLifetimeAccess && showGoldenHour },
+            set: { newValue in
+                if newValue {
+                    if hasLifetimeAccess {
+                        showGoldenHour = true
+                    } else {
+                        showLifetimeStore = true
+                    }
+                } else {
+                    showGoldenHour = false
+                }
+            }
+        )
+    }
+
+    private var sunriseSunsetLinesBinding: Binding<Bool> {
+        Binding(
+            get: { hasLifetimeAccess && showSunriseSunsetLines },
+            set: { newValue in
+                if newValue {
+                    if hasLifetimeAccess {
+                        showSunriseSunsetLines = true
+                    } else {
+                        showLifetimeStore = true
+                    }
+                } else {
+                    showSunriseSunsetLines = false
+                }
+            }
+        )
+    }
+
+    private var minuteHandBinding: Binding<Bool> {
+        Binding(
+            get: { hasLifetimeAccess && showMinuteHand },
+            set: { newValue in
+                if newValue {
+                    if hasLifetimeAccess {
+                        showMinuteHand = true
+                    } else {
+                        showLifetimeStore = true
+                    }
+                } else {
+                    showMinuteHand = false
+                }
+            }
+        )
+    }
+
+    @ViewBuilder
+    private func previewComplication<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+        content()
+            .overlay(
+                Circle()
+                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                    .blendMode(.plusLighter)
+            )
+            .transition(.identity)
+    }
+
+    @ViewBuilder
+    private func previewComplicationContent(for complication: PreviewComplication) -> some View {
+        switch complication {
+        case .analogClock:
+            AnalogClockView(
+                date: currentDate,
+                size: 64,
+                timeZone: TimeZone.current,
+                useMaterialBackground: true,
+                showScale: analogClockShowScale
+            )
+        case .sunElevation:
+            SunPositionIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .sunAzimuth:
+            SunAzimuthIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .moonAzimuth:
+            MoonAzimuthIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .moonSunAzimuth:
+            MoonSunAzimuthIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .sunriseSunset:
+            SunriseSunsetIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .weatherCondition:
+            WeatherConditionView(
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+            .environmentObject(weatherManager)
+        case .temperatureIndicator:
+            TemperatureIndicator(
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+            .environmentObject(weatherManager)
+        case .uvIndex:
+            UVIndexIndicator(
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+            .environmentObject(weatherManager)
+        case .windDirection:
+            WindDirectionIndicator(
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+            .environmentObject(weatherManager)
+        case .daylight:
+            DaylightIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .timeOverlay:
+            TimeOverlayIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        case .solarCurve:
+            SolarCurve(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
+        }
+    }
     
     var body: some View {
         NavigationStack {
             List {
-                
                 // Support & Love
-                Button(action: {
-                    if hapticEnabled {
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    }
-                    showSupportLove = true
-                }) {
-                    HStack(spacing: 12) {
-                        SystemIconImage(systemName: "heart.fill", topColor: .pink, bottomColor: .red)
-                        
-                        VStack (alignment: .leading) {
-                            Text("Support & Love")
-                                .font(.headline)
-                            Text("Your support means the world")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
-                                .blendMode(.plusLighter)
+                Section {
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                         }
-                        
-                        Spacer()
-                        
-                        Image(systemName: "arrow.right")
-                            .font(.subheadline.weight(.bold))
-                            .padding(.vertical, 8)
-                            .padding(.horizontal, 12)
-                            .glassEffect(.clear.tint(.pink), in: .capsule(style: .continuous))
+                        showSupportLove = true
+                    }) {
+                        HStack(spacing: 12) {
+                            SupportLoveIcon()
+                            
+                            VStack (alignment: .leading) {
+                                Text("Support & Love")
+                                    .font(.headline)
+                                Text("Your support means the world")
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
+                            }
+                            
+                            Spacer()
+                            
+                            Image(systemName: "arrow.right")
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(.vertical, 8)
+                                .padding(.horizontal, 12)
+                                .glassEffect(.regular.interactive().tint(.pink), in: .capsule(style: .continuous))
+                        }
                     }
+                    .foregroundStyle(.primary)
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(
+                        ZStack {
+                            // Particle effect
+                            ParticleView(color: .white)
+                                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                            
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            //                          .fill(Color.black.opacity(0.25))
+                                .fill(LinearGradient(
+                                    colors: [
+                                        .pink,
+                                        .red
+                                    ],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                ).opacity(0.15))
+                            //                            .fill(
+                            //                                SkyColorGradient(
+                            //                                    date: currentDate,
+                            //                                    timeZoneIdentifier: TimeZone.current.identifier
+                            //                                ).linearGradient(opacity: 0.50)
+                            //                            )
+                                .glassEffect(.clear.interactive(),
+                                             in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        }
+                    )
                 }
-                .foregroundStyle(.primary)
-                .listRowBackground(
-                    ZStack {
-                        // Particle effect
-                        ParticleView(color: .white)
-                            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                        
-                        RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        //                          .fill(Color.black.opacity(0.25))
-                            .fill(LinearGradient(
-                                colors: [
-                                    .pink,
-                                    .red
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            ).opacity(0.15))
-                        //                            .fill(
-                        //                                SkyColorGradient(
-                        //                                    date: currentDate,
-                        //                                    timeZoneIdentifier: TimeZone.current.identifier
-                        //                                ).linearGradient(opacity: 0.50)
-                        //                            )
-                            .glassEffect(.clear.interactive(),
-                                         in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-                    }
-                )
-                
                 
                 // General Section
                 Section(header: Text("General"), footer: Text("Powered by Hands Time.")) {
@@ -209,13 +468,13 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "widget.small",  topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                                SystemIconImage(systemName: "widget.small",  topColor: .gray, bottomColor: .gray, style: .plain)
                                 Text("Widget")
                             }
                             .layoutPriority(1)
                             Spacer(minLength: 8)
-                            Image(systemName: "arrow.up.forward")
-                                .font(.subheadline.weight(.semibold))
+                            Image(systemName: "arrow.up.forward.app.fill")
+                                .font(.title3.weight(.semibold))
                                 .foregroundStyle(.tertiary)
                         }
                     }
@@ -223,46 +482,35 @@ struct SettingsView: View {
                     
                 }
                 
-                // Haptic & Local Time
+                // Local Time
                 Section(footer: Text("System time shows at the top of the list with ambient background.")) {
-                    
-                    Toggle(isOn: $hapticEnabled) {
+                    TouchTimeToggle(isOn: $showLocalTime) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "water.waves", topColor: .blue, bottomColor: .cyan)
-                            Text("Haptics")
-                        }
-                    }
-                    .tint(.blue)
-                    
-                    Toggle(isOn: $showLocalTime) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "location.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "location.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("System Time")
                         }
                     }
-                    .tint(.blue)
                 }
-                
                 
                 // Temperature/Weather Section
                 Section {
-                    Toggle(isOn: Binding(
+                    TouchTimeToggle(isOn: Binding(
                         get: { showWeather },
                         set: { newValue in
                             showWeather = newValue
                             if !newValue {
                                 showWeatherCondition = false
+                                showTemperatureIndicator = false
                                 showUVIndex = false
                                 showWindDirection = false
                             }
                         }
                     )) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "sun.max.fill", topColor: .red, bottomColor: .orange)
+                            SystemIconImage(systemName: "sun.max.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Weather")
                         }
                     }
-                    .tint(.blue)
                     
                     // Temperature Unit Picker - only show when weather is enabled
                     if showWeather {
@@ -284,249 +532,30 @@ struct SettingsView: View {
                     // Preview Section
                     VStack(alignment: .center, spacing: 10) {
                         
-                        ZStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                // Top row: Time difference and Date with Weather
-                                HStack {
-                                    if showSkyDot && additionalTimeDisplay == "None" {
-                                        SkyDotView(
-                                            date: currentDate,
-                                            timeZoneIdentifier: TimeZone.current.identifier,
-                                            weatherCondition: weatherConditionForSky
-                                        )
-                                        .overlay(
-                                            Capsule(style: .continuous)
-                                                .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                .blendMode(.plusLighter)
-                                        )
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    if additionalTimeDisplay != "None" {
-                                        Text(additionalTimeText())
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    // Weather for local time (left of date)
-                                    if showWeather {
-                                        WeatherView(
-                                            weather: weatherManager.currentWeather,
-                                            useCelsius: useCelsius
-                                        )
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    // Date
-                                    Text(formatDate())
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .contentTransition(.numericText())
-                                        .animation(.spring(), value: currentDate)
-                                        .animation(.spring(), value: dateStyle)
-                                    
+                        TimePreviewCard(
+                            date: currentDate,
+                            timeZoneIdentifier: TimeZone.current.identifier,
+                            weatherCondition: weatherConditionForSky,
+                            showSkyDot: showSkyDot,
+                            showSkyDotBadge: false,
+                            additionalTimeDisplay: additionalTimeDisplay,
+                            additionalTimeText: additionalTimeText(),
+                            showWeather: showWeather,
+                            weather: weatherManager.currentWeather,
+                            useCelsius: useCelsius,
+                            dateText: formatDate(),
+                            cityText: String(localized: "City"),
+                            timeText: formatTime(use24Hour: use24HourFormat)
+                        ) {
+                            if let complication = selectedPreviewComplication {
+                                previewComplication {
+                                    previewComplicationContent(for: complication)
                                 }
-                                .animation(.spring(), value: showSkyDot)
-                                .animation(.spring(), value: showWeather)
-                                .animation(.spring(), value: weatherManager.currentWeather)
-                                
-                                // Bottom row: City name and Time
-                                HStack(alignment: .lastTextBaseline) {
-                                    Text("City")
-                                        .font(.headline)
-                                    
-                                    Spacer()
-                                    
-                                    Text(formatTime(use24Hour: use24HourFormat))
-                                        .font(.system(size: 36))
-                                        .fontWeight(.light)
-                                        .fontDesign(.rounded)
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                        .animation(.spring(), value: currentDate)
-                                        .animation(.spring(), value: use24HourFormat)
-                                }
-                            }
-                            .padding()
-                            .padding(.bottom, -4)
-                            
-                            // Analog Clock Overlay - Centered
-                            if showAnalogClock {
-                                AnalogClockView(
-                                    date: currentDate,
-                                    size: 64,
-                                    timeZone: TimeZone.current,
-                                    useMaterialBackground: true,
-                                    showScale: analogClockShowScale
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
-                            }
-                            
-                            // Sun Position Overlay - Centered
-                            if showSunPosition {
-                                SunPositionIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
-                            }
-                            
-                            // Weather Condition Overlay - Centered
-                            if showWeather && showWeatherCondition {
-                                WeatherConditionView(
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .environmentObject(weatherManager)
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
-                            }
-
-                            // UV Index Overlay - Centered
-                            if showWeather && showUVIndex {
-                                UVIndexIndicator(
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .environmentObject(weatherManager)
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
-                            }
-
-                            // Wind Direction Overlay - Centered
-                            if showWeather && showWindDirection {
-                                WindDirectionIndicator(
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .environmentObject(weatherManager)
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
-                            }
-                            
-                            // Sun Azimuth Overlay - Centered
-                            if showSunAzimuth {
-                                SunAzimuthIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
-                            }
-                            
-                            // Sunrise & Sunset Overlay - Centered
-                            if showSunriseSunset {
-                                SunriseSunsetIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
-                            }
-                            
-                            // Daylight Overlay - Centered
-                            if showDaylight {
-                                DaylightIndicator(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
-                            }
-                            
-                            // Solar Curve Overlay - Centered
-                            if showSolarCurve {
-                                SolarCurve(
-                                    date: currentDate,
-                                    timeZone: TimeZone.current,
-                                    size: 64,
-                                    useMaterialBackground: true
-                                )
-                                .overlay(
-                                    Circle()
-                                        .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                        .blendMode(.plusLighter)
-                                )
-                                .transition(.identity)
                             }
                         }
-                        .background(
-                            showSkyDot ?
-                            ZStack {
-                                Color.black
-                                SkyBackgroundView(
-                                    date: currentDate,
-                                    timeZoneIdentifier: TimeZone.current.identifier,
-                                    weatherCondition: weatherConditionForSky
-                                )
-                            } : nil
-                        )
-                        .clipShape(
-                            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        )
-                        .glassEffect(.clear.interactive(), in:
-                                        RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        )
                         .animation(.spring(), value: showSkyDot)
-                        .animation(.spring(), value: showAnalogClock)
-                        .animation(.spring(), value: showSunPosition)
-                        .animation(.spring(), value: showWeatherCondition)
-                        .animation(.spring(), value: showUVIndex)
-                        .animation(.spring(), value: showWindDirection)
-                        .animation(.spring(), value: showSunAzimuth)
-                        .animation(.spring(), value: showSunriseSunset)
-                        .animation(.spring(), value: showDaylight)
-                        .animation(.spring(), value: showSolarCurve)
-                        .id("\(showSkyDot)-\(dateStyle)")
+                        .animation(.spring(), value: selectedPreviewComplication?.rawValue)
+                        .id("\(showSkyDot)-\(dateStyle)-\(selectedPreviewComplication?.rawValue ?? "none")")
                         .onTapGesture {
                             if hapticEnabled {
                                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
@@ -546,29 +575,32 @@ struct SettingsView: View {
                     
                     
                     // Options in Settings
-                    Toggle(isOn: $showSkyDot) {
+                    TouchTimeToggle(isOn: $showSkyDot) {
                         HStack(spacing: 12) {
                             // Use SkyColorGradient colors for the background
-                            let gradient = SkyColorGradient(date: currentDate, timeZoneIdentifier: TimeZone.current.identifier)
+                            let gradient = SkyColorGradient(
+                                date: currentDate,
+                                timeZoneIdentifier: TimeZone.current.identifier,
+                                weatherCondition: weatherConditionForSky
+                            )
                             let colors = gradient.colors
                             SystemIconImage(
                                 systemName: "cloud.fill",
                                 topColor: colors.first ?? .blue,
-                                bottomColor: colors.last ?? .white
+                                bottomColor: colors.last ?? .white,
+                                style: .plain
                             )
                             Text("Sky Colour")
                         }
                     }
-                    .tint(.blue)
                     
                     // 24 Hours Format
-                    Toggle(isOn: $use24HourFormat) {
+                    TouchTimeToggle(isOn: $use24HourFormat) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("24-Hour Format")
                         }
                     }
-                    .tint(.blue)
                     
                     
                     // Additional Time
@@ -577,12 +609,14 @@ struct SettingsView: View {
                             .tag("Time Difference")
                         Text("UTC")
                             .tag("UTC")
+                        Text("Weekday")
+                            .tag("Weekday")
                         Divider()
                         Text("None")
                             .tag("None")
                     } label: {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "plusminus", topColor: .indigo, bottomColor: .pink)
+                            SystemIconImage(systemName: "plusminus", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Additional Time")
                         }
                     }
@@ -595,61 +629,21 @@ struct SettingsView: View {
                         Text("Relative")
                             .tag("Relative")
                         
-                        if !showAnalogClock && !showSunPosition && !showWeatherCondition && !showUVIndex && !showWindDirection && !showSunAzimuth && !showSunriseSunset && !showDaylight && !showSolarCurve {
+                        if !hasComplicationEnabled {
                             Text("Absolute")
                                 .tag("Absolute")
                         }
                     } label: {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .orange, bottomColor: .blue)
+                            SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Date Style")
                         }
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showWindDirection || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve)
-                    .onChange(of: showAnalogClock) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showSunPosition) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showWeatherCondition) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showUVIndex) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showWindDirection) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showSunAzimuth) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showSunriseSunset) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showDaylight) { oldValue, newValue in
-                        if newValue {
-                            dateStyle = "Relative"
-                        }
-                    }
-                    .onChange(of: showSolarCurve) { oldValue, newValue in
-                        if newValue {
+                    .disabled(hasComplicationEnabled)
+                    .onChange(of: selectedPreviewComplication?.rawValue) { _, newValue in
+                        if newValue != nil {
                             dateStyle = "Relative"
                         }
                     }
@@ -664,12 +658,12 @@ struct SettingsView: View {
                     }) {
                         HStack {
                             HStack(spacing: 12) {
-                                SystemIconImage(systemName: "watch.analog", topColor: .white, bottomColor: .white, foregroundColor: .black)
+                                SystemIconImage(systemName: "watch.analog", topColor: .gray, bottomColor: .gray, style: .plain)
                                 Text("Complications")
                             }
                             .layoutPriority(1)
                             Spacer(minLength: 8)
-                            Text(currentComplicationName ?? String(localized: "None"))
+                            Text(selectedPreviewComplication?.localizedName ?? String(localized: "None"))
                                 .foregroundStyle(.secondary)
                         }
                     }
@@ -680,29 +674,60 @@ struct SettingsView: View {
                 
                 // Analog Time Section
                 Section {
-                    Toggle(isOn: $showGoldenHour) {
+                    TouchTimeToggle(isOn: goldenHourBinding) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "angle", topColor: .yellow, bottomColor: .yellow, foregroundColor: .black)
+                            SystemIconImage(systemName: "angle", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text(String(localized: "Golden Hour Lines"))
+                            Spacer()
+                            if !hasLifetimeAccess {
+                                Image(systemName: "lock.fill")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
-                    .tint(.blue)
                     
-                    Toggle(isOn: $showSunriseSunsetLines) {
+                    TouchTimeToggle(isOn: sunriseSunsetLinesBinding) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text(String(localized: "Sunrise & Sunset Lines"))
+                            Spacer()
+                            if !hasLifetimeAccess {
+                                Image(systemName: "lock.fill")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
-                    .tint(.blue)
-                    
-                    Toggle(isOn: $showArcIndicator) {
+
+                    TouchTimeToggle(isOn: minuteHandBinding) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "circle", topColor: .black, bottomColor: .black)
+                            SystemIconImage(systemName: "hand.raised.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text(String(localized: "Minute Hand"))
+                            Spacer()
+                            if !hasLifetimeAccess {
+                                Image(systemName: "lock.fill")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                        }
+                    }
+
+                    if additionalTimeDisplay == "UTC" {
+                        TouchTimeToggle(isOn: $showUTCHand) {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "line.diagonal", topColor: .gray, bottomColor: .gray, style: .plain)
+                                Text(String(localized: "UTC Hand"))
+                            }
+                        }
+                    }
+                    
+                    TouchTimeToggle(isOn: $showArcIndicator) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "circle", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Arc Indicator")
                         }
                     }
-                    .tint(.blue)
                 } footer: {
                     Text("Enable showing arc indicator for time offset.")
                 }
@@ -712,18 +737,39 @@ struct SettingsView: View {
                     
                     // Available Time Section - only show when System Time is enabled
                     if showLocalTime {
-                        NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
-                            HStack(spacing: 12) {
-                                SystemIconImage(systemName: "checkmark.circle.fill", topColor: .green, bottomColor: .green)
-                                Text("Available Time")
+                        if hasLifetimeAccess {
+                            NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
+                                HStack(spacing: 12) {
+                                    SystemIconImage(systemName: "checkmark.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                                    Text("Available Time")
+                                }
                             }
+                        } else {
+                            Button(action: {
+                                if hapticEnabled {
+                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                }
+                                showLifetimeStore = true
+                            }) {
+                                HStack(spacing: 12) {
+                                    SystemIconImage(systemName: "checkmark.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                                    Text("Available Time")
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "lock.fill")
+                                        .font(.footnote.weight(.semibold))
+                                        .foregroundStyle(.tertiary)
+                                }
+                            }
+                            .foregroundStyle(.primary)
                         }
                     }
                     
                     // Calendar Section
                     NavigationLink(destination: CalendarView(worldClocks: worldClocks)) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "calendar", topColor: .red, bottomColor: .red)
+                            SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Calendar")
                         }
                     }
@@ -810,19 +856,17 @@ struct SettingsView: View {
                 ) {
                     NavigationLink(destination: AboutView(worldClocks: $worldClocks, weatherManager: weatherManager)) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "info.circle.fill", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "info.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("About")
                         }
                     }
                 }
-                
-                
             }
             .scrollIndicators(.hidden)
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(
                         item: URL(string: "https://apps.apple.com/us/app/touch-time-world-clock/id6753721487")!,
                         message: Text("Download Touch Time.")
@@ -831,7 +875,7 @@ struct SettingsView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -843,13 +887,29 @@ struct SettingsView: View {
                 }
             }
             .onReceive(timer) { _ in
-                currentDate = Date()
+                let now = Date()
+                if !Calendar.current.isDate(now, equalTo: currentDate, toGranularity: .minute) {
+                    currentDate = now
+                }
             }
             .onAppear {
                 // Fetch weather for local timezone
                 Task {
                     guard showWeather else { return }
                     await weatherManager.getWeather(for: TimeZone.current.identifier)
+                }
+            }
+            .task {
+                await refreshLifetimeStatus()
+            }
+            .task {
+                for await _ in Transaction.updates {
+                    await refreshLifetimeStatus()
+                }
+            }
+            .sheet(isPresented: $showLifetimeStore) {
+                NavigationStack {
+                    LifetimeStoreView()
                 }
             }
             
@@ -880,51 +940,95 @@ struct SettingsView: View {
                         showAnalogClock: $showAnalogClock,
                         showSunPosition: $showSunPosition,
                         showSunAzimuth: $showSunAzimuth,
+                        showMoonAzimuth: $showMoonAzimuth,
+                        showMoonSunAzimuth: $showMoonSunAzimuth,
                         showSunriseSunset: $showSunriseSunset,
                         showWeatherCondition: $showWeatherCondition,
+                        showTemperatureIndicator: $showTemperatureIndicator,
                         showUVIndex: $showUVIndex,
                         showWindDirection: $showWindDirection,
                         showDaylight: $showDaylight,
+                        showTimeOverlay: $showTimeOverlay,
                         showSolarCurve: $showSolarCurve,
                         showWeather: showWeather,
                         weatherManager: weatherManager
                     )
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button(action: {
-                                if hapticEnabled {
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                }
-                                showComplicationsSheet = false
-                            }) {
-                                Image(systemName: "xmark")
-                                    .fontWeight(.semibold)
-                            }
-                        }
-                    }
                 }
-                .presentationDetents([.height(280)])
+                .presentationDetents([.medium]) // Complication Sheet Height
+                .presentationDragIndicator(.visible)
             }
+        }
+    }
+
+    @MainActor
+    private func refreshLifetimeStatus() async {
+        var isUnlocked = false
+
+        for await result in Transaction.currentEntitlements {
+            do {
+                let transaction = try checkVerified(result)
+                guard transaction.revocationDate == nil else { continue }
+
+                if transaction.productID == "com.time.lifetime" {
+                    isUnlocked = true
+                    break
+                }
+            } catch {
+                print("Failed to verify lifetime entitlement: \(error)")
+            }
+        }
+
+        hasLifetimeAccess = isUnlocked
+
+        if !isUnlocked {
+            showGoldenHour = false
+            showSunriseSunsetLines = false
+            showMinuteHand = false
+            availableTimeEnabled = false
+        }
+    }
+
+    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+        switch result {
+        case .unverified(_, let error):
+            throw error
+        case .verified(let safe):
+            return safe
         }
     }
     
     // Format time for settings display
     func formatTimeForSetting(_ timeString: String) -> String {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.timeZone = TimeZone.current
-        
-        guard let date = formatter.date(from: timeString) else {
+        Self.settingInputTimeFormatter.timeZone = TimeZone.current
+        Self.settingDisplayTimeFormatter.timeZone = TimeZone.current
+
+        guard let date = Self.settingInputTimeFormatter.date(from: timeString) else {
             return timeString
         }
         
         if use24HourFormat {
             return timeString
         } else {
-            formatter.dateFormat = "h:mm a"
-            return formatter.string(from: date).lowercased()
+            return Self.settingDisplayTimeFormatter.string(from: date).lowercased()
         }
     }
     
+}
+
+private struct SupportLoveIcon: View {
+    var body: some View {
+        Image(systemName: "heart.fill")
+            .font(.system(size: 22))
+            .fontWeight(.medium)
+            .foregroundStyle(
+                LinearGradient(
+                    colors: [
+                        .pink,.red
+                    ],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .shadow(.inner(color: .white.opacity(0.50), radius: 0, x: 0, y: 0.50))
+            )
+    }
 }

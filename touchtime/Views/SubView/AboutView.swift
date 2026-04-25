@@ -7,6 +7,7 @@
 
 import SwiftUI
 import SafariServices
+import StoreKit
 
 struct AboutView: View {
     @Binding var worldClocks: [WorldClock]
@@ -14,7 +15,7 @@ struct AboutView: View {
     @State private var showOnboarding = false
     @State private var showResetConfirmation = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
-    @AppStorage("continuousScrollMode") private var continuousScrollMode = true
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @State private var rippleCounter: Int = 0
     @State private var rippleOrigin: CGPoint = .init(x: 50, y: 50)
     @State private var safariURL: URL?
@@ -83,7 +84,7 @@ struct AboutView: View {
                 }) {
                     HStack {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "character", topColor: .gray, bottomColor: Color(UIColor.systemGray3))
+                            SystemIconImage(systemName: "character", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("Language")
                         }
                         .layoutPriority(1)
@@ -93,18 +94,27 @@ struct AboutView: View {
                     }
                 }
                 .foregroundStyle(.primary)
+
+                TouchTimeToggle(isOn: $hapticEnabled) {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "water.waves", topColor: .gray, bottomColor: .gray, style: .plain)
+                        Text("Haptics")
+                    }
+                }
                 
                 // Onboarding
                 Button(action: {
                     showOnboarding = true
                 }) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "sparkle.magnifyingglass", topColor: .blue, bottomColor: .pink)
+                        SystemIconImage(systemName: "sparkle", topColor: .gray, bottomColor: .gray, style: .plain)
                         Text("Show Onboarding")
                     }
                 }
                 .foregroundStyle(.primary)
-                
+            }
+
+            Section {
                 // Reset Cities
                 Button(action: {
                     if hapticEnabled {
@@ -113,7 +123,7 @@ struct AboutView: View {
                     showResetConfirmation = true
                 }) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .indigo, bottomColor: .orange)
+                        SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                         Text("Reset Cities")
                     }
                 }
@@ -129,21 +139,35 @@ struct AboutView: View {
             } footer: {
                 Text("This will reset all cities to the default list, clear any custom city names, and reset your collections.")
             }
+            
 
-            // Continuous Scroll
-            Section {
-                Toggle(isOn: $continuousScrollMode) {
-                    HStack(spacing: 12) {
-                        SystemIconImage(systemName: "lines.measurement.horizontal.aligned.bottom", topColor: .white, bottomColor: .white, foregroundColor: .black)
-                        Text("Continuous Scroll")
+            if !hasLifetimeAccess {
+                // Redeem Code
+                Section {
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                        }
+                        Task { @MainActor in
+                            guard let windowScene = activeWindowScene else {
+                                print("Unable to find active window scene for offer code redemption.")
+                                return
+                            }
+
+                            do {
+                                try await AppStore.presentOfferCodeRedeemSheet(in: windowScene)
+                            } catch {
+                                print("Failed to present offer code redemption sheet: \(error)")
+                            }
+                        }
+                    }) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "infinity", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Redeem Code")
+                        }
                     }
+                    .foregroundStyle(.primary)
                 }
-                .tint(.blue)
-                .onChange(of: continuousScrollMode) { _, _ in
-                    NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
-                }
-            } footer: {
-                Text("Enable continuous scroll for slide to adjust.")
             }
             
             // Credits Section
@@ -227,6 +251,14 @@ struct AboutView: View {
         let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0.0"
         let build = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
         return "\(version) (\(build))"
+    }
+
+    @MainActor
+    var activeWindowScene: UIWindowScene? {
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+
+        return scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
     }
     
     // Reset to default clocks

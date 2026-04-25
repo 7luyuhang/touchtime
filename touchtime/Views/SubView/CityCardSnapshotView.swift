@@ -10,6 +10,80 @@ import UIKit
 import UniformTypeIdentifiers
 import WeatherKit
 
+private struct SnapshotStar: Identifiable {
+    let id: Int
+    let x: CGFloat
+    let y: CGFloat
+    let size: CGFloat
+}
+
+private struct SnapshotSeededGenerator: RandomNumberGenerator {
+    private var state: UInt64
+    
+    init(seed: UInt64) {
+        // Keep generator non-zero for stable sequence
+        self.state = seed == 0 ? 0x9E3779B97F4A7C15 : seed
+    }
+    
+    mutating func next() -> UInt64 {
+        state = 6364136223846793005 &* state &+ 1442695040888963407
+        return state
+    }
+}
+
+private struct SnapshotStarsView: View {
+    let starCount: Int
+    let seed: UInt64
+    
+    var body: some View {
+        GeometryReader { geometry in
+            let stars = generateStars(in: geometry.size)
+            
+            ZStack {
+                ForEach(stars) { star in
+                    Circle()
+                        .fill(
+                            star.size > 1.5 ?
+                            Color(white: 1.0) :
+                            Color(white: 0.95, opacity: 1.0)
+                        )
+                        .frame(width: star.size, height: star.size)
+                        .blur(radius: star.size > 1.5 ? 0.3 : 0)
+                        .shadow(color: Color(white: 0.9).opacity(0.9), radius: star.size > 1.2 ? 3 : 1)
+                        .position(x: star.x, y: star.y)
+                }
+            }
+            .drawingGroup()
+        }
+    }
+    
+    private func generateStars(in size: CGSize) -> [SnapshotStar] {
+        guard size.width > 0, size.height > 0 else { return [] }
+        
+        var generator = SnapshotSeededGenerator(seed: seed)
+        
+        return (0..<starCount).map { index in
+            let starType = Double.random(in: 0...1, using: &generator)
+            let starSize: CGFloat
+            
+            if starType < 0.75 {
+                starSize = CGFloat.random(in: 0.4...0.8, using: &generator)
+            } else if starType < 0.97 {
+                starSize = CGFloat.random(in: 0.8...1.4, using: &generator)
+            } else {
+                starSize = CGFloat.random(in: 1.5...2.5, using: &generator)
+            }
+            
+            return SnapshotStar(
+                id: index,
+                x: CGFloat.random(in: 0...size.width, using: &generator),
+                y: CGFloat.random(in: 0...size.height, using: &generator),
+                size: starSize
+            )
+        }
+    }
+}
+
 // Transferable image for sharing via ShareLink
 struct CardImage: Transferable {
     let uiImage: UIImage
@@ -26,33 +100,118 @@ struct CardImage: Transferable {
 
 // MARK: - City Card Snapshot View for Sharing
 struct CityCardSnapshotView: View {
+    private struct WeekdayDisplay {
+        let previous: String
+        let current: String
+        let next: String
+    }
+
     let cityName: String
     let timeString: String
     let dateString: String
     let date: Date
     let timeZone: TimeZone
     let timeZoneIdentifier: String
+    let weather: CurrentWeather?
     let weatherCondition: WeatherCondition?
-    let showAnalogClock: Bool
-    let analogClockShowScale: Bool
-    let showSunPosition: Bool
-    let showWeatherCondition: Bool
-    let showUVIndex: Bool
-    let showWindDirection: Bool
-    let showSunAzimuth: Bool
-    let showSunriseSunset: Bool
-    let showDaylight: Bool
-    let showSolarCurve: Bool
+    let useCelsius: Bool
+    let complications: ComplicationDisplayOptions
     let additionalTimeDisplay: String
     let showSkyDot: Bool
     let additionalTimeText: String
     
     private var hasComplication: Bool {
-        showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showWindDirection || showSunAzimuth || showSunriseSunset || showDaylight || showSolarCurve
+        complications.hasVisibleComplication
     }
     
     private var skyColorGradient: SkyColorGradient {
         SkyColorGradient(date: date, timeZoneIdentifier: timeZoneIdentifier, weatherCondition: weatherCondition)
+    }
+    
+    private var snapshotStarSeed: UInt64 {
+        let timeComponent = UInt64(abs(Int64(date.timeIntervalSince1970.rounded())))
+        let zoneComponent = UInt64(abs(timeZoneIdentifier.unicodeScalars.reduce(0) { $0 + Int($1.value) }))
+        return timeComponent ^ (zoneComponent << 1)
+    }
+
+    private var weekdayDisplay: WeekdayDisplay {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+
+        let previousDate = calendar.date(byAdding: .day, value: -1, to: date) ?? date.addingTimeInterval(-86_400)
+        let nextDate = calendar.date(byAdding: .day, value: 1, to: date) ?? date.addingTimeInterval(86_400)
+
+        return WeekdayDisplay(
+            previous: weekdaySymbol(for: calendar.component(.weekday, from: previousDate)),
+            current: weekdaySymbol(for: calendar.component(.weekday, from: date)),
+            next: weekdaySymbol(for: calendar.component(.weekday, from: nextDate))
+        )
+    }
+
+    private func weekdaySymbol(for weekday: Int) -> String {
+        switch weekday {
+        case 1:
+            return String(localized: "Sun")
+        case 2:
+            return String(localized: "Mon")
+        case 3:
+            return String(localized: "Tue")
+        case 4:
+            return String(localized: "Wed")
+        case 5:
+            return String(localized: "Thu")
+        case 6:
+            return String(localized: "Fri")
+        case 7:
+            return String(localized: "Sat")
+        default:
+            return ""
+        }
+    }
+
+    @ViewBuilder
+    private var additionalTimeView: some View {
+        if additionalTimeDisplay == "Weekday" {
+            let weekday = weekdayDisplay
+            HStack(spacing: 5) {
+                Text(weekday.previous)
+                    .font(.caption.weight(.semibold))
+                    .fontDesign(.rounded)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20, height: 16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                    )
+                    .blendMode(.plusLighter)
+                    .contentTransition(.numericText())
+
+                Text(weekday.current)
+                    .font(.caption.weight(.bold))
+                    .fontDesign(.rounded)
+                    .foregroundStyle(Color.white)
+                    .frame(width: 20, height: 16)
+                    .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                    .contentTransition(.numericText())
+
+                Text(weekday.next)
+                    .font(.caption.weight(.semibold))
+                    .fontDesign(.rounded)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 20, height: 16)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 5, style: .continuous)
+                            .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                    )
+                    .blendMode(.plusLighter)
+                    .contentTransition(.numericText())
+            }
+        } else if !additionalTimeText.isEmpty || additionalTimeDisplay == "UTC" {
+            Text(additionalTimeText)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
+        }
     }
     
     var body: some View {
@@ -62,6 +221,12 @@ struct CityCardSnapshotView: View {
             if showSkyDot {
                 Rectangle()
                     .fill(skyColorGradient.linearGradient(opacity: 0.65))
+                if skyColorGradient.starOpacity > 0 {
+                    SnapshotStarsView(starCount: 50, seed: snapshotStarSeed)
+                        .opacity(skyColorGradient.starOpacity)
+                        .blendMode(.plusLighter)
+                        .allowsHitTesting(false)
+                }
                 Color.black.opacity(0.015)
                     .blendMode(.plusDarker)
             }
@@ -72,26 +237,18 @@ struct CityCardSnapshotView: View {
                     // Top row: Time difference / SkyDot and Date
                     HStack {
                         if additionalTimeDisplay != "None" {
-                            if !additionalTimeText.isEmpty || additionalTimeDisplay == "UTC" {
-                                Text(additionalTimeText)
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
-                                    .blendMode(.plusLighter)
-                            }
-                        } else if showSkyDot {
-                            SkyDotView(
-                                date: date,
-                                timeZoneIdentifier: timeZoneIdentifier,
-                                weatherCondition: weatherCondition
-                            )
-                            .overlay(
-                                Capsule(style: .continuous)
-                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                    .blendMode(.plusLighter)
-                            )
+                            additionalTimeView
                         }
                         
                         Spacer()
+
+                        if weather != nil {
+                            WeatherView(
+                                weather: weather,
+                                useCelsius: useCelsius
+                            )
+                            .contentTransition(.numericText())
+                        }
                         
                         Text(dateString)
                             .font(.subheadline)
@@ -116,6 +273,16 @@ struct CityCardSnapshotView: View {
                             .monospacedDigit()
                     }
                     .padding(.bottom, -4)
+                    .background {
+                        if showSkyDot {
+                                if skyColorGradient.starOpacity > 0 {
+                                    SnapshotStarsView(starCount: 30, seed: snapshotStarSeed ^ 0xA5A5A5A5)
+                                        .opacity(min(1.0, skyColorGradient.starOpacity * 1.15))
+                                        .blendMode(.plusLighter)
+                                        .allowsHitTesting(false)
+                                }
+                        }
+                    }
                 }
                 .frame(minHeight: 64)
                 
@@ -123,16 +290,7 @@ struct CityCardSnapshotView: View {
                 ComplicationOverlayView(
                     date: date,
                     timeZone: timeZone,
-                    showAnalogClock: showAnalogClock,
-                    analogClockShowScale: analogClockShowScale,
-                    showSunPosition: showSunPosition,
-                    showWeatherCondition: showWeatherCondition,
-                    showUVIndex: showUVIndex,
-                    showWindDirection: showWindDirection,
-                    showSunAzimuth: showSunAzimuth,
-                    showSunriseSunset: showSunriseSunset,
-                    showDaylight: showDaylight,
-                    showSolarCurve: showSolarCurve,
+                    options: complications,
                     bottomPadding: 0
                 )
             }

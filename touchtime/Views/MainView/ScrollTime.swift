@@ -12,15 +12,29 @@ import CoreHaptics
 import StoreKit
 
 struct ScrollTimeView: View {
+    enum ExpandedControlsMode {
+        case alarmTimerClose
+        case timerControls
+    }
+
     private let minuteStep: TimeInterval = 60
+    private let controlHeight: CGFloat = 52
 
     @Binding var timeOffset: TimeInterval
     @Binding var showButtons: Bool
     @Binding var worldClocks: [WorldClock]
+    var enableDoubleTapExpandedControls: Bool = false
+    var expandedControlsMode: ExpandedControlsMode = .alarmTimerClose
+    var onAlarmTap: (() -> Void)? = nil
+    var onTimerTap: (() -> Void)? = nil
+    var onTimerResetTap: (() -> Void)? = nil
+    var onTimerPlayPauseTap: (() -> Void)? = nil
+    var timerPlayPauseSymbol: String = "play.fill"
+    var timerPlayPauseTitle: String? = nil
+    var onExpandControlsByDoubleTap: (() -> Void)? = nil
     @State private var dragOffset: CGFloat = 0
-    @State private var accumulatedOffset: TimeInterval = 0 // For continuous scroll mode
+    @State private var accumulatedOffset: TimeInterval = 0
     @State private var eventStore = EKEventStore()
-    @State private var showTimePicker = false
     @State private var showEventEditor = false
     @State private var eventToEdit: EKEvent?
     @State private var hapticEngine: CHHapticEngine?
@@ -60,32 +74,26 @@ struct ScrollTimeView: View {
     
     // Format time offset into a human-readable string (e.g., "+1h 30m", "-2d 3h")
     func formattedTimeOffset(_ offset: TimeInterval) -> String {
-        let totalHours = offset / 3600
-        let isPositive = totalHours >= 0
-        let absoluteHours = abs(totalHours)
-        let days = Int(absoluteHours / 24)
-        let hours = Int(absoluteHours) % 24
-        let minutes = Int((absoluteHours - Double(Int(absoluteHours))) * 60)
+        let totalMinutes = Int(abs(offset).rounded() / 60)
+        let days = totalMinutes / (24 * 60)
+        let hours = (totalMinutes % (24 * 60)) / 60
+        let minutes = totalMinutes % 60
         
-        let sign = isPositive ? "+" : "-"
-        var result = ""
+        let sign = offset >= 0 ? "+" : "-"
+        let result: String
+        
         if days > 0 {
-            result = String(format: String(localized: "%dd"), days)
             if hours > 0 {
-                result += " " + String(format: String(localized: "%dh"), hours)
+                result = String(format: String(localized: "%dd %dh %02dm"), days, hours, minutes)
+            } else {
+                result = String(format: String(localized: "%dd %02dm"), days, minutes)
             }
-            if minutes > 0 {
-                result += " " + String(format: String(localized: "%02dm"), minutes)
-            }
-        } else if hours > 0 && minutes > 0 {
-            result = String(format: String(localized: "%dh %02dm"), hours, minutes)
         } else if hours > 0 {
-            result = String(format: String(localized: "%dh"), hours)
-        } else if minutes > 0 {
-            result = String(format: String(localized: "%02dm"), minutes)
+            result = String(format: String(localized: "%dh %02dm"), hours, minutes)
         } else {
-            result = String(localized: "00m")
+            result = String(format: String(localized: "%02dm"), minutes)
         }
+        
         return sign + result
     }
     
@@ -447,46 +455,6 @@ struct ScrollTimeView: View {
     
     // MARK: - Sub Views
     
-    /// Add to Calendar button (left side)
-    @ViewBuilder
-    private var calendarButton: some View {
-        Button(action: addToCalendar) {
-            Image(systemName: "plus")
-                .font(.system(size: 20))
-                .fontWeight(.medium)
-                .foregroundColor(.white)
-                .frame(width: 52, height: 52)
-        }
-        .buttonStyle(.plain)
-        .clipShape(Circle())
-        .contentShape(Circle())
-        .glassEffect(.regular.interactive().tint(.blue.opacity(0.85)))
-        .glassEffectID("calendarButton", in: glassNamespace)
-        .glassEffectTransition(.matchedGeometry)
-    }
-    
-    /// Reset button (right side)
-    @ViewBuilder
-    private var resetButton: some View {
-        Button(action: {
-            DispatchQueue.main.async {
-                resetTimeOffset()
-            }
-        }) {
-            Image(systemName: "arrow.counterclockwise")
-                .font(.system(size: 20))
-                .fontWeight(.medium)
-                .foregroundStyle(.primary)
-                .frame(width: 52, height: 52)
-        }
-        .buttonStyle(.plain)
-        .clipShape(Circle())
-        .contentShape(Circle())
-        .glassEffect(.regular.interactive())
-        .glassEffectID("resetButton", in: glassNamespace)
-        .glassEffectTransition(.matchedGeometry)
-    }
-    
     /// Dragging indicator with dots and chevrons
     @ViewBuilder
     private var draggingIndicator: some View {
@@ -510,26 +478,6 @@ struct ScrollTimeView: View {
         }
     }
     
-    /// Time offset text button (non-continuous mode)
-    @ViewBuilder
-    private var timeOffsetTextButton: some View {
-        Button(action: {
-            showTimePicker = true
-        }) {
-            Text(formattedTimeOffset(timeOffset))
-                .font(.subheadline)
-                .fontWeight(.medium)
-                .foregroundColor(.primary)
-                .monospacedDigit()
-                .frame(maxWidth: .infinity, alignment: .center)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .frame(maxWidth: .infinity)
-        .contentShape(Rectangle())
-        .transition(.blurReplace())
-    }
-    
     /// Default "Slide to Adjust" indicator
     @ViewBuilder
     private var defaultSlideIndicator: some View {
@@ -542,19 +490,11 @@ struct ScrollTimeView: View {
         
         Spacer()
         
-        if continuousScrollMode {
-            Text("Slide to Adjust")
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-                .transition(.blurReplace().combined(with: .move(edge: .top)))
-                .blendMode(.plusLighter)
-        } else {
-            Text("Slide to Adjust")
-                .fontWeight(.medium)
-                .foregroundColor(.secondary)
-                .transition(.blurReplace())
-                .blendMode(.plusLighter)
-        }
+        Text("Slide to Adjust")
+            .foregroundStyle(.secondary)
+            .fontWeight(.medium)
+            .transition(.blurReplace().combined(with: .move(edge: .top)))
+            .blendMode(.plusLighter)
         
         Spacer()
         
@@ -566,34 +506,263 @@ struct ScrollTimeView: View {
             .blendMode(.plusLighter)
     }
     
+    private func triggerControlHaptic(style: UIImpactFeedbackGenerator.FeedbackStyle = .soft) {
+        guard hapticEnabled else { return }
+        let impactFeedback = UIImpactFeedbackGenerator(style: style)
+        impactFeedback.prepare()
+        impactFeedback.impactOccurred()
+    }
+
+    private func expandActionButtons() {
+        guard enableDoubleTapExpandedControls else { return }
+        stopInertia()
+        withAnimation(.spring()) {
+            dragOffset = 0
+            showButtons = true
+        }
+        triggerControlHaptic(style: .rigid)
+    }
+
+    private func collapseActionButtons() {
+        withAnimation(.spring()) {
+            showButtons = false
+        }
+    }
+
+    private func handleAlarmAction() {
+        if let onAlarmTap {
+            onAlarmTap()
+        } else {
+            NotificationCenter.default.post(name: NSNotification.Name("ShowSetAlarmSheet"), object: nil)
+        }
+    }
+
+    private func handleTimerAction() {
+        if let onTimerTap {
+            onTimerTap()
+        } else {
+            NotificationCenter.default.post(name: NSNotification.Name("ShowSetTimerSheet"), object: nil)
+        }
+    }
+
+    private func handleTimerResetAction() {
+        onTimerResetTap?()
+    }
+
+    private func handleTimerPlayPauseAction() {
+        if let onTimerPlayPauseTap {
+            onTimerPlayPauseTap()
+        } else {
+            handleTimerAction()
+        }
+    }
+
+    private var resolvedTimerPlayPauseTitle: String {
+        if let timerPlayPauseTitle {
+            return timerPlayPauseTitle
+        }
+        return timerPlayPauseSymbol.contains("pause")
+            ? String(localized: "Pause")
+            : String(localized: "Start")
+    }
+
+    private var isStartTimerPlayPauseAction: Bool {
+        !timerPlayPauseSymbol.contains("pause")
+            && resolvedTimerPlayPauseTitle == String(localized: "Start")
+    }
+
     /// Main scrollable content area with time adjustment states
     @ViewBuilder
     private var mainContent: some View {
         HStack {
-            if dragOffset != 0 || (continuousScrollMode && timeOffset != 0) {
+            if dragOffset != 0 || timeOffset != 0 {
                 draggingIndicator
-            } else if timeOffset != 0 && !continuousScrollMode {
-                timeOffsetTextButton
             } else {
                 defaultSlideIndicator
             }
         }
-        .padding(.horizontal, (timeOffset == 0 || dragOffset != 0 || continuousScrollMode) ? 16 : 0)
+        .padding(.horizontal, 16)
         .font(.subheadline)
         .animation(.spring(duration: 0.25), value: dragOffset)
         .animation(.spring(duration: 0.25), value: timeOffset)
-        .frame(maxWidth: showButtons ? nil : .infinity)
-        .frame(height: 52)
-        .padding(.horizontal, showButtons ? 24 : 0)
+        .frame(maxWidth: .infinity)
+        .frame(height: controlHeight)
         .contentShape(Rectangle())
         .glassEffect(.regular.interactive())
-        .glassEffectID("mainContent", in: glassNamespace)
+        .glassEffectID("timerControl", in: glassNamespace)
+        .glassEffectTransition(.matchedGeometry)
+        .gesture(scrollDragGesture)
+        .onTapGesture(count: 2) {
+            guard enableDoubleTapExpandedControls, timeOffset == 0 else { return }
+            expandActionButtons()
+            onExpandControlsByDoubleTap?()
+        }
     }
-    
+
+    // Double-tap Feature
+    @ViewBuilder
+    private var alarmTimerCloseButtons: some View {
+        HStack(spacing: 5) {
+            Button {
+                triggerControlHaptic(style: .soft)
+                handleAlarmAction()
+                collapseActionButtons()
+            } label: {
+                HStack {
+                    Image(systemName: "alarm")
+                        .font(.headline)
+                    Text("Alarm")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .frame(height: controlHeight)
+            .contentShape(Capsule(style: .continuous))
+            .glassEffect(.regular.interactive())
+            .glassEffectID("alarmControl", in: glassNamespace)
+            .glassEffectTransition(.matchedGeometry)
+
+            Button {
+                triggerControlHaptic(style: .soft)
+                handleTimerAction()
+                collapseActionButtons()
+            } label: {
+                HStack {
+                    Image(systemName: "timer")
+                        .font(.headline)
+                    Text("Timer")
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .frame(height: controlHeight)
+            .contentShape(Capsule(style: .continuous))
+            .glassEffect(.regular.interactive())
+            .glassEffectID("timerControl", in: glassNamespace)
+            .glassEffectTransition(.matchedGeometry)
+
+            Button {
+                triggerControlHaptic(style: .rigid)
+                collapseActionButtons()
+            } label: {
+                ZStack {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+
+                    Image(systemName: "xmark")
+                        .font(.headline)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.primary)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Capsule(style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .frame(height: controlHeight)
+            .glassEffect(.regular.interactive())
+            .glassEffectID("closeControl", in: glassNamespace)
+            .glassEffectTransition(.matchedGeometry)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    // Timer Controls
+    @ViewBuilder
+    private var timerControlButtons: some View {
+        HStack(spacing: 8) {
+            Button {
+                triggerControlHaptic(style: .soft)
+                handleTimerResetAction()
+                collapseActionButtons()
+            } label: {
+                ZStack {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+
+                    HStack {
+                        Image(systemName: "arrow.counterclockwise")
+                            .font(.headline)
+                        Text("Reset")
+                    }
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Capsule(style: .continuous))
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .frame(height: controlHeight)
+            .glassEffect(.regular.interactive())
+            .glassEffectID("timerResetControl", in: glassNamespace)
+            .glassEffectTransition(.matchedGeometry)
+
+            Button {
+                triggerControlHaptic(style: .soft)
+                handleTimerPlayPauseAction()
+                collapseActionButtons()
+            } label: {
+                ZStack {
+                    Capsule(style: .continuous)
+                        .fill(.clear)
+
+                    if timerPlayPauseSymbol.contains("pause") {
+                        HStack {
+                            Image(systemName: timerPlayPauseSymbol)
+                                .font(.headline)
+                            Text(resolvedTimerPlayPauseTitle)
+                        }
+                        .transition(.blurReplace.combined(with: .opacity))
+                    } else {
+                        HStack {
+                            Image(systemName: timerPlayPauseSymbol)
+                                .font(.headline)
+                            Text(resolvedTimerPlayPauseTitle)
+                        }
+                        .transition(.blurReplace.combined(with: .opacity))
+                    }
+                }
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(isStartTimerPlayPauseAction ? .black : .primary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Capsule(style: .continuous))
+                .animation(.spring(duration: 0.25), value: timerPlayPauseSymbol)
+            }
+            .buttonStyle(.plain)
+            .frame(maxWidth: .infinity)
+            .frame(height: controlHeight)
+            .glassEffect(
+                isStartTimerPlayPauseAction
+                    ? .regular.tint(.white).interactive()
+                    : .regular.interactive()
+            )
+            .glassEffectID("timerPlayPauseControl", in: glassNamespace)
+            .glassEffectTransition(.materialize)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var splitActionButtons: some View {
+        switch expandedControlsMode {
+        case .alarmTimerClose:
+            alarmTimerCloseButtons
+        case .timerControls:
+            timerControlButtons
+        }
+    }
+
     /// Overlay buttons for continuous scroll mode (calendar + reset with time label)
     @ViewBuilder
     private var continuousScrollOverlayButtons: some View {
-        HStack(spacing: 0) {
+        HStack(spacing: 12.5) {
             // Add to Calendar button
             Button(action: {
                 if hapticEnabled {
@@ -605,64 +774,55 @@ struct ScrollTimeView: View {
             }) {
                 Image(systemName: "plus")
                     .font(.subheadline.weight(.semibold))
-                    .padding(.vertical, 8)
-                    .padding(.horizontal, 16)
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(.white)
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 15)
                     .contentShape(Capsule(style: .continuous))
                     .glassEffect(.regular.tint(.blue))
-//                    .background(
-//                        Capsule(style: .continuous)
-//                            .fill(.blue)
-//                    )
                     .padding(.leading, 5)
             }
             .buttonStyle(.plain)
-            
-            // Reset button with time offset
+
+            Text(formattedTimeOffset(timeOffset))
+                .font(.footnote.weight(.semibold))
+                .monospacedDigit()
+
+            // Reset button
             Button(action: {
                 DispatchQueue.main.async {
                     resetTimeOffset()
                 }
             }) {
-                HStack(spacing: 8) {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.footnote.weight(.semibold))
-                    
-                    Text(formattedTimeOffset(timeOffset))
-                        .font(.footnote.weight(.semibold))
-                        .monospacedDigit()
-                }
-                .padding(.leading, 12)
-                .padding(.trailing, 16)
-                .padding(.vertical, 12)
-                .contentShape(Capsule())
+                Image(systemName: "arrow.counterclockwise")
+                    .font(.subheadline.weight(.semibold))
+                    .frame(width: 20, height: 20)
+                    .foregroundStyle(.black)
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 15)
+                    .contentShape(Capsule(style: .continuous))
+                    .glassEffect(.regular.tint(.white))
+                    .padding(.trailing, 5)
             }
             .buttonStyle(.plain)
         }
+        .padding(.vertical, 5)
         .clipShape(Capsule(style: .continuous))
         .contentShape(Capsule(style: .continuous))
         .glassEffect(.regular.interactive())
         .highPriorityGesture(DragGesture())
         .transition(.blurReplace.combined(with: .scale).combined(with: .move(edge: .bottom)).combined(with: .opacity))
-        .offset(y: -52)
+        .offset(y: -controlHeight)
     }
     
     /// Drag gesture for time adjustment scrolling
     private var scrollDragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
-                if continuousScrollMode {
-                    stopInertia()
-                }
-                
+                stopInertia()
                 dragOffset = value.translation.width
                 let hours = hoursFromOffset(dragOffset)
-                
-                if continuousScrollMode {
-                    commitTimeOffset(accumulatedOffset + hours * 3600)
-                } else {
-                    commitTimeOffset(hours * 3600)
-                }
-                
+                commitTimeOffset(accumulatedOffset + hours * 3600)
                 checkAndPlayHapticTick()
             }
             .onEnded { value in
@@ -673,47 +833,45 @@ struct ScrollTimeView: View {
                     impactFeedback.prepare()
                     impactFeedback.impactOccurred()
                 }
-                
-                if continuousScrollMode {
-                    let hours = hoursFromOffset(dragOffset)
-                    accumulatedOffset += hours * 3600
-                    let velocity = value.velocity.width
-                    
-                    withAnimation(.spring()) {
-                        dragOffset = 0
-                    }
-                    
-                    startInertiaScroll(velocity: velocity)
-                } else {
-                    withAnimation(.spring()) {
-                        showButtons = true
-                        dragOffset = 0
-                    }
+
+                let hours = hoursFromOffset(dragOffset)
+                accumulatedOffset += hours * 3600
+                let velocity = value.velocity.width
+
+                withAnimation(.spring()) {
+                    dragOffset = 0
                 }
+
+                startInertiaScroll(velocity: velocity)
             }
     }
     
     // MARK: - Body
     
     var body: some View {
-        GlassEffectContainer(spacing: 8) {
-            HStack(spacing: 8) {
-                if showButtons { calendarButton }
+        let isTimerControlsMode = expandedControlsMode == .timerControls
+        let isExpanded = enableDoubleTapExpandedControls && (isTimerControlsMode || showButtons)
+
+        GlassEffectContainer(spacing: 5) {
+            if isExpanded {
+                splitActionButtons
+            } else {
                 mainContent
-                if showButtons { resetButton }
             }
-            .animation(.spring(), value: showButtons)
         }
         .padding(.horizontal, 5)
         .overlay(alignment: .top) {
-            if continuousScrollMode && timeOffset != 0 && !showButtons {
+            if !isExpanded && timeOffset != 0 {
                 continuousScrollOverlayButtons
             }
         }
-        .animation(.spring(), value: continuousScrollMode)
+        .animation(.spring(), value: isExpanded)
         .animation(.spring(), value: timeOffset != 0)
-        .gesture(showButtons ? nil : scrollDragGesture)
         .onAppear {
+            if !continuousScrollMode {
+                continuousScrollMode = true
+            }
+            showButtons = false
             prepareHaptics()
         }
         .onDisappear {
@@ -736,25 +894,36 @@ struct ScrollTimeView: View {
                 lastHapticOffset = 0
                 lastInertiaHapticOffset = 0
                 accumulatedOffset = 0
+                showButtons = false
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("StopScrollTimeInertia"))) { _ in
             stopInertia()
         }
-        .onChange(of: timeOffset) { oldValue, newValue in
-            if continuousScrollMode,
-               dragOffset == 0,
+        .onChange(of: showButtons) { _, isExpanded in
+            if !enableDoubleTapExpandedControls && isExpanded {
+                showButtons = false
+                return
+            }
+
+            if isExpanded {
+                stopInertia()
+                dragOffset = 0
+            }
+        }
+        .onChange(of: expandedControlsMode) { _, newMode in
+            if newMode == .timerControls {
+                stopInertia()
+                dragOffset = 0
+            }
+            showButtons = false
+        }
+        .onChange(of: timeOffset) { _, newValue in
+            if dragOffset == 0,
                inertiaTimer == nil,
                newValue != snappedToWholeMinute(accumulatedOffset) {
                 accumulatedOffset = newValue
             }
-        }
-        .sheet(isPresented: $showTimePicker) {
-            TimeOffsetPickerView(
-                timeOffset: $timeOffset,
-                showTimePicker: $showTimePicker,
-                showButtons: $showButtons
-            )
         }
         .sheet(isPresented: $showEventEditor) {
             EventEditView(

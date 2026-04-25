@@ -18,6 +18,7 @@ struct DotMatrixOverlay: View {
     let spacing: CGFloat = 10
     
     @State private var animatedDots = Set<Int>()
+    private let timer = Timer.publish(every: 0.75, on: .main, in: .common).autoconnect()
     
     var body: some View {
         GeometryReader { geometry in
@@ -40,21 +41,19 @@ struct DotMatrixOverlay: View {
                         .blendMode(.plusLighter)
                 }
             }
-            .onAppear {
-                animateRandomDots()
+            .onReceive(timer) { _ in
+                animateRandomDotsStep()
             }
         }
     }
     
-    private func animateRandomDots() {
-        Timer.scheduledTimer(withTimeInterval: 0.75, repeats: true) { _ in
-            withAnimation(.spring()) {
-                // Remove some dots
-                animatedDots = animatedDots.filter { _ in Bool.random() }
-                // Add new random dots
-                for _ in 0..<50 {
-                    animatedDots.insert(Int.random(in: 0..<(rows * columns)))
-                }
+    private func animateRandomDotsStep() {
+        withAnimation(.spring()) {
+            // Remove some dots
+            animatedDots = animatedDots.filter { _ in Bool.random() }
+            // Add new random dots
+            for _ in 0..<50 {
+                animatedDots.insert(Int.random(in: 0..<(rows * columns)))
             }
         }
     }
@@ -81,13 +80,19 @@ struct OnboardingView: View {
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
+    @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -95,11 +100,15 @@ struct OnboardingView: View {
         case analogClock
         case sunElevation
         case sunAzimuth
+        case moonAzimuth
+        case moonSunAzimuth
         case sunriseSunset
         case weatherCondition
+        case temperatureIndicator
         case uvIndex
         case windDirection
         case daylight
+        case timeOverlay
         case solarCurve
         
         var localizedName: String {
@@ -107,11 +116,15 @@ struct OnboardingView: View {
             case .analogClock: return String(localized: "Analog Clock")
             case .sunElevation: return String(localized: "Sun Elevation")
             case .sunAzimuth: return String(localized: "Sun Azimuth")
+            case .moonAzimuth: return String(localized: "Moon Azimuth")
+            case .moonSunAzimuth: return String(localized: "Moon & Sun Azimuth")
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
+            case .temperatureIndicator: return String(localized: "Temperature Indicator")
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
             case .daylight: return String(localized: "Daylight Curve")
+            case .timeOverlay: return String(localized: "Time Overlay")
             case .solarCurve: return String(localized: "Solar Curve")
             }
         }
@@ -127,6 +140,30 @@ struct OnboardingView: View {
     private var weatherConditionForSky: WeatherCondition? {
         guard showWeather else { return nil }
         return weatherManager.weatherData[TimeZone.current.identifier]?.condition
+    }
+
+    private var canShowLifetimeWeatherComplications: Bool {
+        showWeather && hasLifetimeAccess
+    }
+
+    private var canShowLifetimeComplications: Bool {
+        hasLifetimeAccess
+    }
+
+    private var effectiveShowMoonAzimuth: Bool {
+        canShowLifetimeComplications && showMoonAzimuth
+    }
+
+    private var effectiveShowMoonSunAzimuth: Bool {
+        canShowLifetimeComplications && showMoonSunAzimuth
+    }
+
+    private var effectiveShowDaylight: Bool {
+        canShowLifetimeComplications && showDaylight
+    }
+
+    private var effectiveShowTimeOverlay: Bool {
+        canShowLifetimeComplications && showTimeOverlay && availableTimeEnabled
     }
     
     // Prepare haptic engine
@@ -184,12 +221,24 @@ struct OnboardingView: View {
             showAnalogClock = type == .analogClock
             showSunPosition = type == .sunElevation
             showSunAzimuth = type == .sunAzimuth
+            showMoonAzimuth = type == .moonAzimuth
+            showMoonSunAzimuth = type == .moonSunAzimuth
             showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
+            showTemperatureIndicator = type == .temperatureIndicator
             showUVIndex = type == .uvIndex
             showWindDirection = type == .windDirection
             showDaylight = type == .daylight
+            showTimeOverlay = type == .timeOverlay
             showSolarCurve = type == .solarCurve
+        }
+    }
+
+    private func enforceLifetimeAccess() {
+        guard !hasLifetimeAccess else { return }
+
+        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
+            selectComplication(nil)
         }
     }
     
@@ -350,6 +399,12 @@ struct OnboardingView: View {
                             title: String(localized: "Event plan across zones, effortlessly"),
                             isAnimated: animateFeatures
                         )
+
+                        FeatureRow(
+                            icon: "alarm",
+                            title: String(localized: "Smarter alarms and timers"),
+                            isAnimated: animateFeatures
+                        )
                         
                         Text("and much more...", comment: "Onboarding feature list ending")
                             .font(.subheadline.weight(.semibold))
@@ -381,60 +436,21 @@ struct OnboardingView: View {
                                 .padding(.horizontal, 32)
                             
                             // City Card + Complications
-                            ZStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        if showSkyDot && additionalTimeDisplay == "None" {
-                                            SkyDotView(
-                                                date: currentDate,
-                                                timeZoneIdentifier: TimeZone.current.identifier,
-                                                weatherCondition: weatherConditionForSky
-                                            )
-                                            .overlay(
-                                                Capsule(style: .continuous)
-                                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                    .blendMode(.plusLighter)
-                                            )
-                                        }
-                                        
-                                        if additionalTimeDisplay != "None" {
-                                            Text(additionalTimeText())
-                                                .font(.subheadline)
-                                                .foregroundStyle(.secondary)
-                                                .blendMode(.plusLighter)
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        if showWeather {
-                                            WeatherView(
-                                                weather: weatherManager.currentWeather,
-                                                useCelsius: useCelsius
-                                            )
-                                        }
-                                        
-                                        Text(formatDate())
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                    }
-                                    
-                                    HStack(alignment: .lastTextBaseline) {
-                                        Text(localCityName)
-                                            .font(.headline)
-                                        
-                                        Spacer()
-                                        
-                                        Text(formatTime(use24Hour: use24HourFormat))
-                                            .font(.system(size: 36))
-                                            .fontWeight(.light)
-                                            .fontDesign(.rounded)
-                                            .monospacedDigit()
-                                    }
-                                }
-                                .padding()
-                                .padding(.bottom, -4)
-                                
+                            TimePreviewCard(
+                                date: currentDate,
+                                timeZoneIdentifier: TimeZone.current.identifier,
+                                weatherCondition: weatherConditionForSky,
+                                showSkyDot: showSkyDot,
+                                showSkyDotBadge: true,
+                                additionalTimeDisplay: additionalTimeDisplay,
+                                additionalTimeText: additionalTimeText(),
+                                showWeather: showWeather,
+                                weather: weatherManager.currentWeather,
+                                useCelsius: useCelsius,
+                                dateText: formatDate(),
+                                cityText: localCityName,
+                                timeText: formatTime(use24Hour: use24HourFormat)
+                            ) {
                                 // Complications
                                 if showAnalogClock {
                                     AnalogClockView(
@@ -478,7 +494,7 @@ struct OnboardingView: View {
                                             .blendMode(.plusLighter)
                                     )
                                 }
-                                
+
                                 if showSunriseSunset {
                                     SunriseSunsetIndicator(
                                         date: currentDate,
@@ -493,8 +509,22 @@ struct OnboardingView: View {
                                     )
                                 }
                                 
-                                if showDaylight {
+                                if effectiveShowDaylight {
                                     DaylightIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
+
+                                if effectiveShowTimeOverlay {
+                                    TimeOverlayIndicator(
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
@@ -520,8 +550,36 @@ struct OnboardingView: View {
                                             .blendMode(.plusLighter)
                                     )
                                 }
+
+                                if effectiveShowMoonAzimuth {
+                                    MoonAzimuthIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
+
+                                if effectiveShowMoonSunAzimuth {
+                                    MoonSunAzimuthIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
                                 
-                                if showWeather && showWeatherCondition {
+                                if canShowLifetimeWeatherComplications && showWeatherCondition {
                                     WeatherConditionView(
                                         timeZone: TimeZone.current,
                                         size: 64,
@@ -535,7 +593,21 @@ struct OnboardingView: View {
                                     )
                                 }
 
-                                if showWeather && showUVIndex {
+                                if canShowLifetimeWeatherComplications && showTemperatureIndicator {
+                                    TemperatureIndicator(
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .environmentObject(weatherManager)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
+
+                                if canShowLifetimeWeatherComplications && showUVIndex {
                                     UVIndexIndicator(
                                         timeZone: TimeZone.current,
                                         size: 64,
@@ -549,7 +621,7 @@ struct OnboardingView: View {
                                     )
                                 }
 
-                                if showWeather && showWindDirection {
+                                if canShowLifetimeWeatherComplications && showWindDirection {
                                     WindDirectionIndicator(
                                         timeZone: TimeZone.current,
                                         size: 64,
@@ -563,19 +635,6 @@ struct OnboardingView: View {
                                     )
                                 }
                             }
-                            .background(
-                                showSkyDot ?
-                                ZStack {
-                                    Color.black
-                                    SkyBackgroundView(
-                                        date: currentDate,
-                                        timeZoneIdentifier: TimeZone.current.identifier,
-                                        weatherCondition: weatherConditionForSky
-                                    )
-                                } : nil
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                            .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
                             .padding(.horizontal, 16)
                             
                             ScrollView(.horizontal, showsIndicators: false) {
@@ -607,18 +666,9 @@ struct OnboardingView: View {
                                             useMaterialBackground: false
                                         )
                                     }
-                                    
+
                                     complicationOption(type: .sunriseSunset, isSelected: showSunriseSunset) {
                                         SunriseSunsetIndicator(
-                                            date: currentDate,
-                                            timeZone: TimeZone.current,
-                                            size: 64,
-                                            useMaterialBackground: false
-                                        )
-                                    }
-                                    
-                                    complicationOption(type: .daylight, isSelected: showDaylight) {
-                                        DaylightIndicator(
                                             date: currentDate,
                                             timeZone: TimeZone.current,
                                             size: 64,
@@ -634,10 +684,63 @@ struct OnboardingView: View {
                                             useMaterialBackground: false
                                         )
                                     }
+
+                                    if canShowLifetimeComplications {
+                                        complicationOption(type: .timeOverlay, isSelected: effectiveShowTimeOverlay) {
+                                            TimeOverlayIndicator(
+                                                date: currentDate,
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                        }
+                                    }
+
+                                    if canShowLifetimeComplications {
+                                        complicationOption(type: .daylight, isSelected: effectiveShowDaylight) {
+                                            DaylightIndicator(
+                                                date: currentDate,
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                        }
+                                    }
+
+                                    if canShowLifetimeComplications {
+                                        complicationOption(type: .moonAzimuth, isSelected: showMoonAzimuth) {
+                                            MoonAzimuthIndicator(
+                                                date: currentDate,
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                        }
+                                    }
+
+                                    if canShowLifetimeComplications {
+                                        complicationOption(type: .moonSunAzimuth, isSelected: showMoonSunAzimuth) {
+                                            MoonSunAzimuthIndicator(
+                                                date: currentDate,
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                        }
+                                    }
                                     
-                                    if showWeather {
+                                    if canShowLifetimeWeatherComplications {
                                         complicationOption(type: .weatherCondition, isSelected: showWeatherCondition) {
                                             WeatherConditionView(
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                            .environmentObject(weatherManager)
+                                        }
+
+                                        complicationOption(type: .temperatureIndicator, isSelected: showTemperatureIndicator) {
+                                            TemperatureIndicator(
                                                 timeZone: TimeZone.current,
                                                 size: 64,
                                                 useMaterialBackground: false
@@ -762,6 +865,7 @@ struct OnboardingView: View {
         }
         .onAppear {
             prepareHaptics()
+            enforceLifetimeAccess()
             
             animateIcon = true
             animateText = true
@@ -778,9 +882,13 @@ struct OnboardingView: View {
         .onChange(of: showWeather) { _, newValue in
             if !newValue {
                 showWeatherCondition = false
+                showTemperatureIndicator = false
                 showUVIndex = false
                 showWindDirection = false
             }
+        }
+        .onChange(of: hasLifetimeAccess) { _, _ in
+            enforceLifetimeAccess()
         }
         .onDisappear {
             hapticEngine?.stop()
@@ -839,6 +947,7 @@ struct FeatureRow: View {
     let icon: String
     let title: String
     let isAnimated: Bool
+    @State private var wiggleTrigger = 0
     
     var body: some View {
         HStack(spacing: 12) {
@@ -848,6 +957,11 @@ struct FeatureRow: View {
                 .foregroundStyle(.white.opacity(0.85))
                 .blendMode(.plusLighter)
                 .frame(width: 40, height: 40)
+                .symbolEffect(
+                    .wiggle.clockwise.byLayer,
+                    options: .nonRepeating,
+                    value: wiggleTrigger
+                )
             
             // Title
             Text(title)
@@ -859,11 +973,11 @@ struct FeatureRow: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 16)
-        .background(
-            Capsule()
-                .fill(.black.opacity(0.25))
-                .glassEffect(.clear)
-        )
+        .glassEffect(.clear.interactive().tint(.black.opacity(0.25)), in: Capsule(style: .continuous))
+        .contentShape(Capsule(style: .continuous))
+        .onTapGesture {
+            wiggleTrigger += 1
+        }
     }
 }
 

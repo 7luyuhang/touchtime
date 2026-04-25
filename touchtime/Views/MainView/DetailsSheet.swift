@@ -25,15 +25,6 @@ struct SunriseSunsetSheet: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
-    @AppStorage("showAnalogClock") private var showAnalogClock = false
-    @AppStorage("analogClockShowScale") private var analogClockShowScale = false
-    @AppStorage("showSunPosition") private var showSunPosition = false
-    @AppStorage("showWeatherCondition") private var showWeatherCondition = false
-    @AppStorage("showUVIndex") private var showUVIndex = false
-    @AppStorage("showWindDirection") private var showWindDirection = false
-    @AppStorage("showSunAzimuth") private var showSunAzimuth = false
-    @AppStorage("showSunriseSunset") private var showSunriseSunset = false
-    @AppStorage("showDaylight") private var showDaylight = false
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
     @EnvironmentObject private var weatherManager: WeatherManager
@@ -41,6 +32,11 @@ struct SunriseSunsetSheet: View {
     @State private var isWeatherExpanded = false // Track weather section expansion
     @State private var currentDetent: PresentationDetent = .medium // Track current sheet size
     @State private var showMoonPhaseView = false // Track moon phase view navigation
+    @State private var sunTimes: (sunrise: Date?, sunset: Date?)?
+    @State private var eveningGoldenHour: (start: Date?, end: Date?)?
+    @State private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)?
+    @State private var nextFullMoonDate: Date?
+    @State private var astronomyDayCacheKey: String = ""
     
     // Computed properties to get weather data directly from weatherManager
     private var currentWeather: CurrentWeather? {
@@ -63,46 +59,6 @@ struct SunriseSunsetSheet: View {
     // Timer to update the current date
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    // Calculate sunrise and sunset times
-    private var sunTimes: (sunrise: Date?, sunset: Date?)? {
-        // Get coordinates for the timezone
-        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
-            return nil
-        }
-        
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        
-        // Create Sun object with coordinates and timezone
-        var sun = Sun(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current)
-        
-        // Set the date for calculations
-        sun.setDate(adjustedDate)
-        
-        // Get sunrise and sunset times as properties
-        let sunrise = sun.sunrise
-        let sunset = sun.sunset
-        
-        return (sunrise, sunset)
-    }
-    
-    // Calculate evening golden hour times
-    private var eveningGoldenHour: (start: Date?, end: Date?)? {
-        // Get coordinates for the timezone
-        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
-            return nil
-        }
-        
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        
-        // Create Sun object with coordinates and timezone
-        var sun = Sun(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current)
-        
-        // Set the date for calculations
-        sun.setDate(adjustedDate)
-        
-        return (sun.eveningGoldenHourStart, sun.eveningGoldenHourEnd)
-    }
-    
     // Check if weather is clear (sunny)
     private var isWeatherClear: Bool {
         guard let weather = currentWeather else { return false }
@@ -114,63 +70,78 @@ struct SunriseSunsetSheet: View {
         }
     }
     
-    // Calculate moon information
-    private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)? {
-        // Get coordinates for the timezone
-        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
-            return nil
-        }
-        
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        
-        // Create Moon object with coordinates and timezone
-        let moon = Moon(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current)
-        
-        // Set the date for calculations
-        moon.setDate(adjustedDate)
-        
-        // Get moon information
-        let moonrise = moon.moonRise
-        let moonset = moon.moonSet
-        let moonPhase = moon.currentMoonPhase
-        let phase = formatMoonPhase(moonPhase)
-        let phaseIcon = getMoonPhaseIcon(moonPhase)
-        
-        return (moonrise, moonset, phase, phaseIcon)
-    }
     
-    // Calculate next full moon date
-    private var nextFullMoonDate: Date? {
-        // Get coordinates for the timezone
-        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
-            return nil
-        }
-        
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-        
-        // Create Moon object with coordinates and timezone
-        let moon = Moon(location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude), timeZone: timeZone)
-        
-        // Start searching from tomorrow to find the next full moon
-        var searchDate = adjustedDate
+    private func calendarForTimeZone() -> Calendar {
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        return calendar
+    }
+
+    private func astronomyDayKey(for adjustedDate: Date) -> String {
+        let calendar = calendarForTimeZone()
+        let components = calendar.dateComponents([.year, .month, .day], from: adjustedDate)
+        return "\(timeZoneIdentifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
+    }
+
+    private func findNextFullMoonDate(using moon: Moon, startingFrom date: Date, calendar: Calendar) -> Date? {
+        var searchDate = date
         var attempts = 0
-        let maxAttempts = 60 // Search up to 60 days ahead
-        
+        let maxAttempts = 60
+
         while attempts < maxAttempts {
-            searchDate = Calendar.current.date(byAdding: .day, value: 1, to: searchDate) ?? searchDate
+            searchDate = calendar.date(byAdding: .day, value: 1, to: searchDate) ?? searchDate
             moon.setDate(searchDate)
-            
-            // Check if current phase is full moon by comparing string representation
+
             let phaseString = String(describing: moon.currentMoonPhase).lowercased()
             if phaseString.contains("fullmoon") || phaseString.contains("full moon") {
                 return searchDate
             }
-            
+
             attempts += 1
         }
-        
+
         return nil
+    }
+
+    private func refreshAstronomyData(force: Bool = false, referenceDate: Date) {
+        guard let coordinates = getCoordinatesForTimeZone(timeZoneIdentifier) else {
+            sunTimes = nil
+            eveningGoldenHour = nil
+            moonInfo = nil
+            nextFullMoonDate = nil
+            astronomyDayCacheKey = ""
+            return
+        }
+
+        let adjustedDate = referenceDate.addingTimeInterval(timeOffset)
+        let dayKey = astronomyDayKey(for: adjustedDate)
+
+        if !force && dayKey == astronomyDayCacheKey {
+            return
+        }
+
+        astronomyDayCacheKey = dayKey
+
+        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        let location = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
+        let calendar = calendarForTimeZone()
+
+        var sun = Sun(location: location, timeZone: timeZone)
+        sun.setDate(adjustedDate)
+        sunTimes = (sun.sunrise, sun.sunset)
+        eveningGoldenHour = (sun.eveningGoldenHourStart, sun.eveningGoldenHourEnd)
+
+        let moon = Moon(location: location, timeZone: timeZone)
+        moon.setDate(adjustedDate)
+        let phase = moon.currentMoonPhase
+        moonInfo = (
+            moonrise: moon.moonRise,
+            moonset: moon.moonSet,
+            phase: formatMoonPhase(phase),
+            phaseIcon: getMoonPhaseIcon(phase)
+        )
+
+        nextFullMoonDate = findNextFullMoonDate(using: moon, startingFrom: adjustedDate, calendar: calendar)
     }
     
     // Format moon phase to readable string
@@ -369,279 +340,127 @@ struct SunriseSunsetSheet: View {
     }
     
     private func formatNextFullMoonDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
-        formatter.locale = Locale.current
+        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
         
-        // Use relative date format if within a week, otherwise use short date format
-        let daysUntil = Calendar.current.dateComponents([.day], from: currentDate.addingTimeInterval(timeOffset), to: date).day ?? 0
+        let currentLocalDate = currentDate.addingTimeInterval(timeOffset)
+        let startOfToday = calendar.startOfDay(for: currentLocalDate)
+        let startOfTargetDay = calendar.startOfDay(for: date)
+        let daysUntil = max(calendar.dateComponents([.day], from: startOfToday, to: startOfTargetDay).day ?? 0, 0)
         
-        if daysUntil <= 7 {
-            if Locale.current.language.languageCode?.identifier == "zh" {
-                if daysUntil == 0 {
-                    return String(localized: "Today")
-                } else if daysUntil == 1 {
-                    return String(localized: "Tomorrow")
-                } else {
-                    return String(format: String(localized: "%d days"), daysUntil)
-                }
-            } else {
-                if daysUntil == 0 {
-                    return String(localized: "Today")
-                } else if daysUntil == 1 {
-                    return String(localized: "Tomorrow")
-                } else {
-                    return String(format: String(localized: "%d days"), daysUntil)
-                }
-            }
-        } else {
-            if Locale.current.language.languageCode?.identifier == "zh" {
-                formatter.dateFormat = "MMMd日"
-            } else {
-                formatter.dateFormat = "MMM d"
-            }
-            return formatter.string(from: date)
+        if Locale.current.language.languageCode?.identifier == "zh" {
+            return "\(daysUntil) 天"
         }
+        
+        return daysUntil == 1 ? "1 day" : "\(daysUntil) days"
     }
     
+    @ViewBuilder
+    private var stickyTimeSection: some View {
+        VStack(alignment: .center, spacing: 10) {
+            ZStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    // Top row: Weather and Date
+                    HStack {
+                        // SkyDot when additional time is off
+                        if showSkyDot && additionalTimeDisplay == "None" {
+                            SkyDotView(
+                                date: currentDate.addingTimeInterval(timeOffset),
+                                timeZoneIdentifier: timeZoneIdentifier,
+                                weatherCondition: weatherConditionForSky
+                            )
+                            .overlay(
+                                Capsule(style: .continuous)
+                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                    .blendMode(.plusLighter)
+                            )
+                            .transition(.blurReplace)
+                        }
+                        
+                        Spacer()
+                        
+                        // Weather display
+                        if showWeather, let weather = currentWeather {
+                            WeatherView(
+                                weather: weather,
+                                useCelsius: useCelsius
+                            )
+                            .transition(.blurReplace())
+                        }
+                        
+                        Text(currentDate.formattedDate(
+                            style: dateStyle,
+                            timeZoneIdentifier: timeZoneIdentifier,
+                            timeOffset: timeOffset
+                        ))
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .blendMode(.plusLighter)
+                        .contentTransition(.numericText())
+                    }
+                    .animation(.spring(), value: showWeather)
+                    .animation(.spring(), value: currentWeather)
+                    
+                    // Bottom row: City name and Time (baseline aligned)
+                    HStack(alignment: .lastTextBaseline) {
+                        Text(cityName)
+                            .font(.headline)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .contentTransition(.numericText())
+                        
+                        Spacer()
+                        
+                        Text({
+                            let formatter = DateFormatter()
+                            formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+                            formatter.locale = Locale(identifier: "en_US_POSIX")
+                            if use24HourFormat {
+                                formatter.dateFormat = "HH:mm"
+                            } else {
+                                formatter.dateFormat = "h:mm"
+                            }
+                            let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                            return formatter.string(from: adjustedDate)
+                        }())
+                        .font(.system(size: 36))
+                        .fontWeight(.light)
+                        .fontDesign(.rounded)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                    }
+                }
+                .padding()
+                .padding(.bottom, -4)
+            }
+            .background(
+                showSkyDot ?
+                ZStack {
+                    Color.black
+                    SkyBackgroundView(
+                        date: currentDate.addingTimeInterval(timeOffset),
+                        timeZoneIdentifier: timeZoneIdentifier,
+                        weatherCondition: weatherConditionForSky
+                    )
+                } : nil
+            )
+            .clipShape(
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+            )
+            .glassEffect(.clear.interactive(), in:
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            )
+            .animation(.spring(), value: showSkyDot)
+        }
+        .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
+    }
     
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 0) {
-                    // City Time Card - Similar to Settings Preview (only show when expanded to .large)
-                    if currentDetent == .large {
-                        VStack(alignment: .center, spacing: 10) {
-                            ZStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    // Top row: Weather and Date
-                                    HStack {
-                                        // SkyDot when additional time is off
-                                        if showSkyDot && additionalTimeDisplay == "None" {
-                                            SkyDotView(
-                                                date: currentDate.addingTimeInterval(timeOffset),
-                                                timeZoneIdentifier: timeZoneIdentifier,
-                                                weatherCondition: weatherConditionForSky
-                                            )
-                                            .overlay(
-                                                Capsule(style: .continuous)
-                                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                                    .blendMode(.plusLighter)
-                                            )
-                                            .transition(.blurReplace)
-                                        }
-                                        
-                                        Spacer()
-                                        
-                                        // Weather display
-                                        if showWeather, let weather = currentWeather {
-                                            WeatherView(
-                                                weather: weather,
-                                                useCelsius: useCelsius
-                                            )
-                                            .transition(.blurReplace())
-                                        }
-                                        
-                                        Text(currentDate.formattedDate(
-                                            style: dateStyle,
-                                            timeZoneIdentifier: timeZoneIdentifier,
-                                            timeOffset: timeOffset
-                                        ))
-                                        .font(.subheadline)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .contentTransition(.numericText())
-                                    }
-                                    .animation(.spring(), value: showWeather)
-                                    .animation(.spring(), value: currentWeather)
-                                    
-                                    // Bottom row: City name and Time (baseline aligned)
-                                    HStack(alignment: .lastTextBaseline) {
-                                        Text(cityName)
-                                            .font(.headline)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
-                                            .frame(maxWidth: (showAnalogClock || showSunPosition || showWeatherCondition || showUVIndex || showWindDirection || showSunAzimuth || showSunriseSunset || showDaylight) ? 120 : .infinity, alignment: .leading)
-                                            .contentTransition(.numericText())
-                                        
-                                        Spacer()
-                                        
-                                        Text({
-                                            let formatter = DateFormatter()
-                                            formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
-                                            formatter.locale = Locale(identifier: "en_US_POSIX")
-                                            if use24HourFormat {
-                                                formatter.dateFormat = "HH:mm"
-                                            } else {
-                                                formatter.dateFormat = "h:mm"
-                                            }
-                                            let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                                            return formatter.string(from: adjustedDate)
-                                        }())
-                                        .font(.system(size: 36))
-                                        .fontWeight(.light)
-                                        .fontDesign(.rounded)
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                    }
-                                }
-                                .frame(minHeight: 64) // For Complication Overlays
-                                .padding()
-                                .padding(.bottom, -4)
-                                
-                                // Analog Clock Overlay - Centered
-                                if showAnalogClock {
-                                    AnalogClockView(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        size: 64,
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        useMaterialBackground: true,
-                                        showScale: analogClockShowScale
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                                
-                                // Sun Position Overlay - Centered
-                                if showSunPosition {
-                                    SunPositionIndicator(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                                
-                                // Weather Condition Overlay - Centered
-                                if showWeather && showWeatherCondition {
-                                    WeatherConditionView(
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .environmentObject(weatherManager)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-
-                                // UV Index Overlay - Centered
-                                if showWeather && showUVIndex {
-                                    UVIndexIndicator(
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .environmentObject(weatherManager)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-
-                                // Wind Direction Overlay - Centered
-                                if showWeather && showWindDirection {
-                                    WindDirectionIndicator(
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .environmentObject(weatherManager)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                                
-                                // Sun Azimuth Overlay - Centered
-                                if showSunAzimuth {
-                                    SunAzimuthIndicator(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                                
-                                // Sunrise & Sunset Overlay - Centered
-                                if showSunriseSunset {
-                                    SunriseSunsetIndicator(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                                
-                                // Daylight Overlay - Centered
-                                if showDaylight {
-                                    DaylightIndicator(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current,
-                                        size: 64,
-                                        useMaterialBackground: true
-                                    )
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                            .blendMode(.plusLighter)
-                                    )
-                                    .transition(.identity)
-                                }
-                            }
-                            .background(
-                                showSkyDot ?
-                                ZStack {
-                                    Color.black
-                                    SkyBackgroundView(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZoneIdentifier: timeZoneIdentifier,
-                                        weatherCondition: weatherConditionForSky
-                                    )
-                                } : nil
-                            )
-                            .clipShape(
-                                RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            )
-                            .glassEffect(.clear.interactive(), in:
-                                            RoundedRectangle(cornerRadius: 26, style: .continuous)
-                            )
-                            .animation(.spring(), value: showSkyDot)
-                        }
-                        .padding(.horizontal, 16)
-                        .padding(.top, 16)
-                        .transition(.blurReplace().combined(with: .scale).combined(with: .opacity)) // Card transition
-                    }
-                    
                     // Weather section - only show if weather is enabled in settings
                     if showWeather {
                         if let weather = currentWeather {
@@ -701,10 +520,7 @@ struct SunriseSunsetSheet: View {
                                             .animation(.spring(), value: isWeatherExpanded)
                                     }
                                 }
-                                .padding(16)
-                                .background(.white.opacity(0.05))
-                                .blendMode(.plusLighter)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .detailsSheetCard()
                                 .contentShape(Rectangle())
                                 .onTapGesture {
                                     if hapticEnabled {
@@ -757,9 +573,7 @@ struct SunriseSunsetSheet: View {
                                                 }
                                                 .frame(width: 64)
                                                 .padding(.vertical, 12)
-                                                .background(.white.opacity(0.05))
-                                                .blendMode(.plusLighter)
-                                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                                .detailsSheetCardChrome()
                                             }
                                         }
                                         .padding(.horizontal, 16)
@@ -779,11 +593,7 @@ struct SunriseSunsetSheet: View {
                                     .blendMode(.plusLighter)
                                 Spacer()
                             }
-                            .padding(16)
-                            .background(.white.opacity(0.05))
-                            .blendMode(.plusLighter)
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                            .padding(.horizontal, 16)
+                            .detailsSheetCardRow()
                             .padding(.top, 16) // Row top padding
                         }
                     }
@@ -817,10 +627,7 @@ struct SunriseSunsetSheet: View {
                                         .animation(.spring(), value: times.sunrise)
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(16)
-                                .background(.white.opacity(0.05))
-                                .blendMode(.plusLighter)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .detailsSheetCard()
                                 
                                 // Sunset Section
                                 HStack{
@@ -839,10 +646,7 @@ struct SunriseSunsetSheet: View {
                                     
                                 }
                                 .frame(maxWidth: .infinity)
-                                .padding(16)
-                                .background(.white.opacity(0.05))
-                                .blendMode(.plusLighter)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .detailsSheetCard()
                             }
                             .padding(.horizontal, 16)
                             
@@ -866,11 +670,7 @@ struct SunriseSunsetSheet: View {
                                     .contentTransition(.numericText(countsDown: false))
                                     .animation(.spring(), value: "\(times.sunrise?.description ?? "")\(times.sunset?.description ?? "")")
                             }
-                            .padding(16)
-                            .background(.white.opacity(0.05))
-                            .blendMode(.plusLighter)
-                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                            .padding(.horizontal, 16)
+                            .detailsSheetCardRow()
                             
                             // Evening Golden Hour Section
                             if let goldenHour = eveningGoldenHour, goldenHour.start != nil && goldenHour.end != nil {
@@ -913,11 +713,7 @@ struct SunriseSunsetSheet: View {
                                     .lineLimit(1)
                                     .layoutPriority(1)
                                 }
-                                .padding(16)
-                                .background(.white.opacity(0.05))
-                                .blendMode(.plusLighter)
-                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                .padding(.horizontal, 16)
+                                .detailsSheetCardRow()
                                 .transition(.blurReplace().combined(with: .opacity))
                             }
                         }
@@ -950,10 +746,7 @@ struct SunriseSunsetSheet: View {
                                             .animation(.spring(), value: moon.moonrise)
                                     }
                                     .frame(maxWidth: .infinity)
-                                    .padding(16)
-                                    .background(.white.opacity(0.05))
-                                    .blendMode(.plusLighter)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .detailsSheetCard()
                                     
                                     // Moonset Section
                                     HStack{
@@ -972,10 +765,7 @@ struct SunriseSunsetSheet: View {
                                         
                                     }
                                     .frame(maxWidth: .infinity)
-                                    .padding(16)
-                                    .background(.white.opacity(0.05))
-                                    .blendMode(.plusLighter)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .detailsSheetCard()
                                 }
                                 .padding(.horizontal, 16)
                                 
@@ -1011,10 +801,7 @@ struct SunriseSunsetSheet: View {
                                             .foregroundStyle(.tertiary)
                                             .blendMode(.plusLighter)
                                     }
-                                    .padding(16)
-                                    .background(.white.opacity(0.05))
-                                    .blendMode(.plusLighter)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                    .detailsSheetCard()
                                 }
                                 .buttonStyle(.plain)
                                 .padding(.horizontal, 16)
@@ -1042,11 +829,7 @@ struct SunriseSunsetSheet: View {
                                             .contentTransition(.numericText())
                                             .animation(.spring(), value: nextFullMoon)
                                     }
-                                    .padding(16)
-                                    .background(.white.opacity(0.05))
-                                    .blendMode(.plusLighter)
-                                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                    .padding(.horizontal, 16)
+                                    .detailsSheetCardRow()
                                 }
                             }
                         }
@@ -1056,25 +839,32 @@ struct SunriseSunsetSheet: View {
                 .animation(.bouncy(), value: currentDetent)
             }
             .scrollIndicators(.hidden)
+            .safeAreaInset(edge: .top, spacing: 0) {
+                if currentDetent == .large {
+                    stickyTimeSection
+                        .padding(.horizontal, 16)
+                        .padding(.top, 8)
+                }
+            }
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 currentDate = initialDate
+                refreshAstronomyData(force: true, referenceDate: initialDate)
             }
             .task(id: timeZoneIdentifier) {
+                refreshAstronomyData(force: true, referenceDate: currentDate)
                 // Fetch weather data only if weather is enabled
                 // Using .task(id:) ensures this runs when timeZoneIdentifier changes
                 guard showWeather else { return }
                 await weatherManager.getWeather(for: timeZoneIdentifier)
                 weatherLoadAttempted = true
             }
-            // Fetch weather for weather-based complications
-            .task(id: "\(showWeatherCondition)_\(showUVIndex)_\(showWindDirection)") {
-                if showWeather && (showWeatherCondition || showUVIndex || showWindDirection) {
-                    await weatherManager.getWeather(for: timeZoneIdentifier)
+            .onReceive(timer) { now in
+                let calendar = Calendar.current
+                if calendar.component(.minute, from: now) != calendar.component(.minute, from: currentDate) {
+                    currentDate = now
+                    refreshAstronomyData(referenceDate: now)
                 }
-            }
-            .onReceive(timer) { _ in
-                currentDate = Date()
             }
             .onChange(of: currentDetent) { oldValue, newValue in
                 if newValue == .large && hapticEnabled {
@@ -1099,7 +889,7 @@ struct SunriseSunsetSheet: View {
                     }
                 }
                 
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -1166,5 +956,26 @@ struct SunriseSunsetSheet: View {
                 )
             }
         }
+    }
+}
+
+private extension View {
+    func detailsSheetCardChrome(cornerRadius: CGFloat = 20) -> some View {
+        self
+            .background(.white.opacity(0.05))
+            .blendMode(.plusLighter)
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+    }
+
+    func detailsSheetCard(innerPadding: CGFloat = 16, cornerRadius: CGFloat = 20) -> some View {
+        self
+            .padding(innerPadding)
+            .detailsSheetCardChrome(cornerRadius: cornerRadius)
+    }
+
+    func detailsSheetCardRow(horizontalPadding: CGFloat = 16, innerPadding: CGFloat = 16, cornerRadius: CGFloat = 20) -> some View {
+        self
+            .detailsSheetCard(innerPadding: innerPadding, cornerRadius: cornerRadius)
+            .padding(.horizontal, horizontalPadding)
     }
 }

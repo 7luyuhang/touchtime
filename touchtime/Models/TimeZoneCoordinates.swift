@@ -9,8 +9,10 @@ import Foundation
 import CoreLocation
 
 struct TimeZoneCoordinates {
-    static func getCoordinate(for timeZoneIdentifier: String) -> (latitude: Double, longitude: Double)? {
-        let coordinatesMap: [String: (Double, Double)] = [
+    private static let defaultCoordinate: (latitude: Double, longitude: Double) = (51.5074, -0.1278)
+
+    // Keep timezone coordinates in a static map so we do not rebuild 500+ entries on every lookup.
+    private static let coordinatesMap: [String: (latitude: Double, longitude: Double)] = [
             // Americas - North America
             "America/New_York": (40.7128, -74.0060),
             "America/Chicago": (41.8781, -87.6298),
@@ -536,25 +538,65 @@ struct TimeZoneCoordinates {
             "GMT": (51.4769, -0.0005),
             "Etc/GMT": (51.4769, -0.0005),
             "Etc/UTC": (51.4769, -0.0005)
-        ]
-        
-        // Try exact match first
+    ]
+
+    // Precompute city-component lookup once for fallback matching.
+    // Example: "America/New_York" -> "new_york"
+    private static let cityComponentIndex: [String: (latitude: Double, longitude: Double)] = {
+        var index: [String: (latitude: Double, longitude: Double)] = [:]
+
+        // Sort keys to keep deterministic "first winner" behavior for duplicate city components.
+        for identifier in coordinatesMap.keys.sorted() {
+            guard let cityComponent = identifier.split(separator: "/").last else { continue }
+            let normalizedComponent = cityComponent.lowercased()
+            if index[normalizedComponent] == nil, let coordinates = coordinatesMap[identifier] {
+                index[normalizedComponent] = coordinates
+            }
+        }
+
+        return index
+    }()
+
+    private static func wrappedLongitudeDelta(_ from: Double, _ to: Double) -> Double {
+        var delta = abs(from - to)
+        if delta > 180 {
+            delta = 360 - delta
+        }
+        return delta
+    }
+
+    static func nearestTimeZoneIdentifier(to coordinate: CLLocationCoordinate2D) -> String {
+        var nearestIdentifier = TimeZone.current.identifier
+        var nearestScore = Double.greatestFiniteMagnitude
+
+        for (identifier, coords) in coordinatesMap {
+            let latitudeDelta = coords.latitude - coordinate.latitude
+            let longitudeDelta = wrappedLongitudeDelta(coords.longitude, coordinate.longitude)
+            let score = (latitudeDelta * latitudeDelta) + (longitudeDelta * longitudeDelta)
+            if score < nearestScore {
+                nearestScore = score
+                nearestIdentifier = identifier
+            }
+        }
+
+        return nearestIdentifier
+    }
+
+    static func getCoordinate(for timeZoneIdentifier: String) -> (latitude: Double, longitude: Double)? {
+        // Exact match first.
         if let coords = coordinatesMap[timeZoneIdentifier] {
             return coords
         }
-        
-        // Try to match by city name from the identifier (e.g., "America/New_York" -> "New_York")
-        let components = timeZoneIdentifier.split(separator: "/")
-        if components.count >= 2 {
-            let cityComponent = String(components.last!)
-            for (key, value) in coordinatesMap {
-                if key.contains(cityComponent) {
-                    return value
-                }
+
+        // Fallback by city component, e.g. "America/New_York" -> "new_york".
+        if let cityComponent = timeZoneIdentifier.split(separator: "/").last {
+            let normalizedComponent = cityComponent.lowercased()
+            if let coords = cityComponentIndex[normalizedComponent] {
+                return coords
             }
         }
-        
-        // Default to London if not found
-        return (51.5074, -0.1278)
+
+        // Default to London if not found.
+        return defaultCoordinate
     }
 }

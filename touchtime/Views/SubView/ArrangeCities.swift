@@ -15,6 +15,7 @@ struct ArrangeListView: View {
     @AppStorage("showLocalTime") private var showLocalTimeInHome = true
     @AppStorage("customLocalName") private var customLocalName = ""
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("showWhatsNewLongpressCollection") private var showWhatsNewLongpressCollection = true
     
     let currentDate: Date
     let timeOffset: TimeInterval
@@ -215,6 +216,45 @@ struct ArrangeListView: View {
     var body: some View {
         NavigationStack {
             List {
+                if !collections.isEmpty && showWhatsNewLongpressCollection {
+                    Section {
+                        HStack(spacing: 16) {
+                            Image(systemName: "hand.tap.fill")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                                .frame(width: 24, height: 24)
+                            
+                            Text(String(localized: "Press and hold a collection for more actions"))
+                                .font(.subheadline)
+                                .foregroundStyle(.primary)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "xmark")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .frame(width: 24, height: 24)
+                        }
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                .fill(Color.black.opacity(0.10))
+                                .glassEffect(.regular.interactive(),
+                                             in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        )
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring()) {
+                                showWhatsNewLongpressCollection = false
+                            }
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                impactFeedback.impactOccurred()
+                            }
+                        }
+                    }
+                }
+                
                 // Collections Section
                 Section {
                     if collections.isEmpty {

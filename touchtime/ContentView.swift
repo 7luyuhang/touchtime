@@ -14,7 +14,8 @@ struct ContentView: View {
     
     // Shared time offset state for HomeView and AnalogClockFullView
     @State private var timeOffset: TimeInterval = 0
-    @State private var showScrollTimeButtons = false
+    @State private var listShowScrollTimeButtons = false
+    @State private var clockShowScrollTimeButtons = false
     
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     
@@ -28,7 +29,7 @@ struct ContentView: View {
                 HomeView(
                     worldClocks: $worldClocks,
                     timeOffset: $timeOffset,
-                    showScrollTimeButtons: $showScrollTimeButtons,
+                    showScrollTimeButtons: $listShowScrollTimeButtons,
                     weatherManager: weatherManager
                 )
             }
@@ -37,7 +38,7 @@ struct ContentView: View {
                 AnalogClockFullView(
                     worldClocks: $worldClocks,
                     timeOffset: $timeOffset,
-                    showScrollTimeButtons: $showScrollTimeButtons,
+                    showScrollTimeButtons: $clockShowScrollTimeButtons,
                     weatherManager: weatherManager
                 )
             }

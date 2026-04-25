@@ -12,6 +12,7 @@
 "Swipe to shift time zones and see the world in sync" = "滑動切換時區，與世界保持同步";
 "Explore time through an immersive globe view" = "以沉浸式地球視圖探索時間";
 "Event plan across zones, effortlessly" = "輕鬆規劃跨時區活動";
+"Smarter alarms and timers" = "更智慧的鬧鐘與計時器";
 "and much more..." = "以及更多功能...";
 "Choose a complication to display more" = "選擇一個複雜功能以顯示更多資訊";
 "Continue" = "繼續";
@@ -42,6 +43,8 @@
 "Weekend" = "週末";
 "Selected: %@" = "已選擇：%@";
 "Available Time" = "可用時間";
+"Complications Preview" = "複雜功能預覽";
+"Compare available time across cities" = "比較不同城市的可用時間";
 
 /* Settings */
 "Support & Love" = "支持與喜愛";
@@ -65,6 +68,7 @@
 "Arc Indicator" = "弧形指示器";
 "Sunrise & Sunset Lines" = "日出日落線";
 "Golden Hour Lines" = "黃金時刻線";
+"Minute Hand" = "分針";
 "Enable showing arc indicator for time offset." = "啟用顯示時間偏移的弧形指示器。";
 "Preview" = "預覽";
 "Sky Colour" = "天空色彩";
@@ -73,6 +77,7 @@
 "Additional Time" = "附加時間";
 "Time Shift" = "時差";
 "UTC" = "UTC";
+"Weekday" = "星期";
 "None" = "無";
 "Date Style" = "日期樣式";
 "Relative" = "相對日期";
@@ -101,6 +106,7 @@
 "Cancel" = "取消";
 "Reset" = "重置";
 "This will reset all cities to the default list, clear any custom city names, and reset your collections." = "這將把城市重置為預設列表，清除自訂名稱，並重置您的集合。";
+"Redeem Code" = "兌換代碼";
 "Send Feedback" = "發送回饋";
 "Review on App Store" = "在 App Store 評價";
 "Share with Friends" = "分享給朋友";
@@ -123,7 +129,12 @@
 "Copyright © %d Negative Time Limited. \nAll rights reserved." = "版權所有 © %d Negative Time Limited。\n保留所有權利。";
 
 /* Home View */
-"Swipe right for precise time adjustment" = "右滑城市以精確調整時間";
+"Swipe right for precise time adjustment or set alarms" = "右滑城市以精確調整時間或設定鬧鐘";
+"Double-tap for quick actions" = "雙擊以開啟快速操作";
+"Shake device to undo" = "搖晃裝置以復原";
+"Press and hold to view more about the city" = "長按查看城市更多資訊";
+"Press and hold for more options" = "長按查看更多選項";
+"Press and hold a collection for more actions" = "長按集合查看更多操作";
 "Add cities to track time." = "新增城市以追蹤時間。";
 "No cities in this collection." = "此集合中暫無城市。";
 "Add Cities" = "新增城市";
@@ -132,6 +143,14 @@
 
 /* Other */
 "Share" = "分享";
+"Open Camera" = "開啟相機";
+"Close Camera" = "關閉相機";
+"Camera Filter" = "相機濾鏡";
+"Standard" = "標準";
+"Blur" = "模糊";
+"Black and White" = "黑白";
+"Please allow camera access in Settings to show live camera background." = "請在「設定」中允許相機存取以顯示即時相機背景。";
+"Camera Unavailable" = "相機無法使用";
 "Slide to Adjust" = "滑動以調整";
 "%dh %dm" = "%d 小時 %d 分鐘";
 "%dh %02dm" = "%d 小時 %02d 分鐘";
@@ -161,7 +180,9 @@
 "No Weather Data" = "暫無天氣數據";
 "Cities" = "城市";
 "%d added" = "已新增 %d 個";
+"Total %d Cities" = "總共 %d 個城市";
 "City" = "城市";
+"Time" = "時間";
 
 /* Tabs */
 "List" = "列表";
@@ -176,9 +197,47 @@
 
 /* Arrange */
 "Arrange" = "整理";
+"Features" = "功能";
+"Set Alarm" = "設定鬧鐘";
+"Alarms" = "鬧鐘";
+"Timer" = "計時器";
+"Delete Timer" = "刪除計時器";
+"Set Timer" = "設定計時器";
+"New Timer" = "新計時器";
+"Rename Timer" = "重新命名計時器";
+"Customize the name of this timer" = "自訂計時器名稱";
+"Minutes" = "分鐘";
+"Seconds" = "秒";
+"min" = "分";
+"sec" = "秒";
+"%d min %d sec" = "%d分 %d秒";
+"%d min" = "%d分";
+"%d sec" = "%d秒";
+"Start" = "開始";
+"Pause" = "暫停";
+"Resume" = "繼續";
+"No Alarms" = "暫無鬧鐘";
+"Create alarms for your moments" = "為你的每個時刻建立鬧鐘";
+"Alarm" = "鬧鐘";
+"Alarm Error" = "鬧鐘錯誤";
+"Alarm Permission Needed" = "需要鬧鐘權限";
+"Please allow alarm access in Settings to create alarms." = "請在「設定」中允許鬧鐘權限以建立鬧鐘。";
+"Event Title" = "事件標題";
+"Optional" = "可選";
+"Create" = "建立";
+"Enter the event title for this alarm." = "請輸入這個鬧鐘的事件標題。";
+"Confirm" = "確認";
 "Rename" = "重新命名";
+"Repeat" = "重複";
+"Once" = "單次";
+"Weekly" = "每週";
+"Remove All" = "移除全部";
+"Remove" = "移除";
 "Delete" = "刪除";
+"Delete All Alarms" = "刪除所有鬧鐘";
 "Confirm Delete" = "確認刪除";
+"Are you sure want to remove all alarms?" = "確定要移除所有鬧鐘嗎？";
+"Confirm Remove" = "確認移除";
 "Add to Collection" = "加入集合";
 "New Collection" = "新建集合";
 "Collection Name" = "集合名稱";
@@ -191,6 +250,8 @@
 "Arrive" = "抵達";
 "No Cities" = "暫無城市";
 "Sort by" = "排序方式";
+"Newest First" = "最新優先";
+"Oldest First" = "最早優先";
 "West to East" = "從西向東";
 "East to West" = "從東向西";
 "%d city added." = "已新增 %d 個城市。";
@@ -790,17 +851,22 @@
 /* Sun Elevation */
 "Sun Elevation" = "太陽高度";
 "Sun Azimuth" = "太陽方位角";
+"Moon Azimuth" = "月亮方位角";
+"Moon & Sun Azimuth" = "月亮與太陽方位角";
 "Daylight" = "日照";
 "Daylight Curve" = "日光曲線";
+"Time Overlay" = "時間重合";
 "Solar Curve" = "太陽曲線";
 
 /* Complications */
 "Complications" = "複雜功能";
 "Add complications in the middle of the city list." = "在城市列表中間添加複雜功能。";
 "Weather Condition" = "天氣狀況";
+"Temperature Indicator" = "溫度指示器";
 "UV Index" = "紫外線指數";
 "Wind Direction" = "風向";
 "Use your current location" = "使用您目前的位置";
+"Enable Weather to discover more" = "開啟天氣以探索更多";
 "Customisation" = "自訂";
 "Dial Marker" = "錶盤刻度";
 "UTC Hand" = "UTC 指針";
@@ -819,6 +885,9 @@
 "Focus Time" = "專注時間";
 "Double-tap to focus on the selected time." = "雙擊錶盤以專注於所選時間";
 
+/* Alarm Tip */
+"Tap time to set an alarm" = "輕點時間以設定鬧鐘";
+
 /* Continuous Scroll Mode */
 "Continuous Scroll" = "連續滑動";
 "Reset" = "重置";
@@ -828,3 +897,9 @@
 /* DST */
 "Starts" = "開始於";
 "Ends" = "結束於";
+
+/* Lifetime */
+"Lifetime" = "永久版";
+"Unlock the experience with all complications, available time, and more." = "解鎖全部複雜功能、可用時間以及更多內容。";
+"Unlock all features" = "解鎖所有功能";
+"Restore Purchases" = "恢復購買";

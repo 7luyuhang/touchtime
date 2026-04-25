@@ -28,6 +28,6 @@ struct SkyDotView: View {
 //                    .blendMode(.plusLighter)
 //            )
             .glassEffect(.clear)
-            .animation(.spring(), value: skyColorGradient.animationValue)
+            .animation(.easeInOut(duration: 0.5), value: skyColorGradient.animationValue)
     }
 }
