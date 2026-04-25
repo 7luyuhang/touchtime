@@ -592,11 +592,10 @@ struct AnalogClockFullView: View {
         Binding(
             get: { showTimeInsteadOfCityName },
             set: { newValue in
-                guard newValue != showTimeInsteadOfCityName else { return }
+                guard newValue != showTimeInsteadOfCityName || selectedDisplayPage == .timer else { return }
                 triggerMenuHaptic()
-                withAnimation(.smooth) {
-                    showTimeInsteadOfCityName = newValue
-                }
+                showTimeInsteadOfCityName = newValue
+                selectedDisplayPage = .time
             }
         )
     }
@@ -626,9 +625,8 @@ struct AnalogClockFullView: View {
                         cycleToNextCollection()
                     } else {
                         triggerMenuHaptic()
-                        withAnimation(.smooth) {
-                            showTimeInsteadOfCityName.toggle()
-                        }
+                        showTimeInsteadOfCityName.toggle()
+                        selectedDisplayPage = .time
                     }
                 }
         }
@@ -974,6 +972,7 @@ struct AnalogClockFullView: View {
                                         triggerMenuHaptic()
                                         showSetTimerSheet = true
                                     },
+                                    selectedPage: $selectedDisplayPage,
                                     onDisplayPageChange: { page in
                                         selectedDisplayPage = page
                                     }
@@ -2623,11 +2622,11 @@ struct DigitalTimeDisplayView: View {
     let timerPausedRemainingSeconds: Int
     let onTimerTap: () -> Void
     let onTimerConfigureTap: () -> Void
+    @Binding var selectedPage: DisplayPage
     let onDisplayPageChange: (DisplayPage) -> Void
     let onTimeTap: () -> Void
     
     @AppStorage("dateStyle") private var dateStyle = "Relative"
-    @State private var selectedPage: DisplayPage
 
     init(
         currentDate: Date,
@@ -2644,6 +2643,7 @@ struct DigitalTimeDisplayView: View {
         timerPausedRemainingSeconds: Int,
         onTimerTap: @escaping () -> Void,
         onTimerConfigureTap: @escaping () -> Void,
+        selectedPage: Binding<DisplayPage>,
         onDisplayPageChange: @escaping (DisplayPage) -> Void,
         onTimeTap: @escaping () -> Void
     ) {
@@ -2661,9 +2661,9 @@ struct DigitalTimeDisplayView: View {
         self.timerPausedRemainingSeconds = timerPausedRemainingSeconds
         self.onTimerTap = onTimerTap
         self.onTimerConfigureTap = onTimerConfigureTap
+        _selectedPage = selectedPage
         self.onDisplayPageChange = onDisplayPageChange
         self.onTimeTap = onTimeTap
-        _selectedPage = State(initialValue: timerConfiguredSeconds > 0 ? .timer : .time)
     }
 
     private var adjustedDate: Date {
@@ -2871,9 +2871,6 @@ struct DigitalTimeDisplayView: View {
             guard oldValue != newValue else { return }
             triggerPageHapticIfNeeded()
             onDisplayPageChange(newValue)
-        }
-        .onAppear {
-            onDisplayPageChange(selectedPage)
         }
     }
 }
