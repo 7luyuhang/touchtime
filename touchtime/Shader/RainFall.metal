@@ -138,6 +138,17 @@ half4 rainFall(float2 pos,
     float cy = rain::Drops(uv + e.yx, t, staticDrops, layer1, layer2).x;
     float2 nrm = float2(cx - c.x, cy - c.x);
 
+    // Sample the drop mask at a small offset toward the light direction so
+    // pixels just outside a drop on the shadow side see the drop body
+    // "above" them. The difference becomes a thin annular contact shadow
+    // (the wetting ring) that anchors each drop to the glass surface.
+    // Light comes from upper-left in screen space, so the shadow falls
+    // lower-right; in uv space (uv.y is flipped from screen) we sample
+    // upper-left, i.e. uv minus (+x, -y).
+    const float2 contactOffset = float2(0.0035, -0.0028);
+    float cContact = rain::Drops(uv - contactOffset, t, staticDrops, layer1, layer2).x;
+    float contactRing = clamp(cContact - c.x, 0.0, 1.0);
+
     // ---- Lens-style refraction ----
     // A real droplet on glass behaves like a tiny convex lens: it inverts and
     // magnifies the background. We push the sample along the gradient
@@ -210,6 +221,11 @@ half4 rainFall(float2 pos,
     // 6. Wet-streak darkening along trails, like water film on glass.
     half trailDark = cy_h * 0.06h;
 
+    // 7. Wetting-ring contact shadow on the glass directly under each drop.
+    //    A 1-pixel-radius annulus on the shadow side that fades quickly,
+    //    so the drop reads as physically resting on the surface.
+    half contactShadow = half(contactRing) * 0.10h; // Shadow
+
     col.rgb = clamp(col.rgb
                         + body            * col.a
                         + specSharp       * highlightTint * col.a
@@ -217,7 +233,8 @@ half4 rainFall(float2 pos,
                         + caustic         * highlightTint * col.a
                         + rimLight        * highlightTint * col.a
                         - shadow          * col.a
-                        - trailDark       * col.a,
+                        - trailDark       * col.a
+                        - contactShadow   * col.a,
                     0.0h, 1.0h);
 
     return col;
