@@ -88,6 +88,10 @@ struct SkyBackgroundView: View {
     /// When true, an animated rainy-glass shader is layered on top of the sky
     /// background whenever `weatherCondition` represents a rainy condition.
     var showRainEffect: Bool = false
+    /// When non-nil, the rain shader is rendered as a single static frame at
+    /// the given elapsed time. Used by `ImageRenderer` snapshots since
+    /// `TimelineView` animations don't run during rendering.
+    var staticRainElapsed: Float? = nil
 
     // Create sky color gradient instance
     private var skyColorGradient: SkyColorGradient {
@@ -119,7 +123,7 @@ struct SkyBackgroundView: View {
         }
         // Run the shader on the full rectangle, then round the corners so the
         // drops on the edges still get refraction without any black halo.
-        .rainFallEffect(intensity: rainIntensity)
+        .rainFallEffect(intensity: rainIntensity, staticElapsed: staticRainElapsed)
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         // border
         .overlay(

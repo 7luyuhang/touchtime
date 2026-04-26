@@ -301,7 +301,9 @@ struct CityCardSnapshotView: View {
                     SkyBackgroundView(
                         date: date,
                         timeZoneIdentifier: timeZoneIdentifier,
-                        weatherCondition: weatherCondition
+                        weatherCondition: weatherCondition,
+                        showRainEffect: true,
+                        staticRainElapsed: 30.0
                     )
                 } else {
                     RoundedRectangle(cornerRadius: 26, style: .continuous)
