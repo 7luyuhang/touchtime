@@ -134,19 +134,59 @@ class WeatherManager: ObservableObject {
         
         isLoading = true
         
-        // Fetch all in sequence, collect results, then apply at once
-        var fetchedResults: [(id: String, current: CurrentWeather, daily: DayWeather?, weekly: [DayWeather])] = []
+        // Fetch in parallel with a concurrency cap so multiple cities don't
+        // serialize behind each other, but we still avoid hammering WeatherKit
+        // (and tripping rate limits) when many cities are added at once.
+        typealias FetchResult = (id: String, current: CurrentWeather, daily: DayWeather?, weekly: [DayWeather])
+        let maxConcurrent = 6
+        var fetchedResults: [FetchResult] = []
+        fetchedResults.reserveCapacity(toFetch.count)
         
-        for item in toFetch {
-            do {
-                let weather = try await weatherService.weather(for: item.location)
-                let daily = weather.dailyForecast.first
-                let weekly = Array(weather.dailyForecast.prefix(10))
-                weatherCache[item.id] = (weather.currentWeather, daily, weekly, Date())
-                fetchedResults.append((item.id, weather.currentWeather, daily, weekly))
-            } catch {
-                print("Failed to fetch weather for \(item.id): \(error)")
+        await withTaskGroup(of: FetchResult?.self) { group in
+            var iterator = toFetch.makeIterator()
+            
+            // Seed the initial concurrent window
+            var seeded = 0
+            while seeded < maxConcurrent, let item = iterator.next() {
+                group.addTask {
+                    do {
+                        let weather = try await WeatherService.shared.weather(for: item.location)
+                        let daily = weather.dailyForecast.first
+                        let weekly = Array(weather.dailyForecast.prefix(10))
+                        return (item.id, weather.currentWeather, daily, weekly)
+                    } catch {
+                        print("Failed to fetch weather for \(item.id): \(error)")
+                        return nil
+                    }
+                }
+                seeded += 1
             }
+            
+            // Sliding window: as each completes, schedule the next pending fetch
+            while let result = await group.next() {
+                if let result {
+                    fetchedResults.append(result)
+                }
+                if let item = iterator.next() {
+                    group.addTask {
+                        do {
+                            let weather = try await WeatherService.shared.weather(for: item.location)
+                            let daily = weather.dailyForecast.first
+                            let weekly = Array(weather.dailyForecast.prefix(10))
+                            return (item.id, weather.currentWeather, daily, weekly)
+                        } catch {
+                            print("Failed to fetch weather for \(item.id): \(error)")
+                            return nil
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Update cache for all successful fetches
+        let fetchTimestamp = Date()
+        for item in fetchedResults {
+            weatherCache[item.id] = (item.current, item.daily, item.weekly, fetchTimestamp)
         }
         
         // Apply all fetched results at once to minimize @Published notifications
