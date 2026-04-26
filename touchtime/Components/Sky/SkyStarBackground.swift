@@ -85,19 +85,33 @@ struct SkyBackgroundView: View {
     let date: Date
     let timeZoneIdentifier: String
     var weatherCondition: WeatherCondition? = nil
-    
+    /// When true, an animated rainy-glass shader is layered on top of the sky
+    /// background whenever `weatherCondition` represents a rainy condition.
+    var showRainEffect: Bool = false
+    /// When non-nil, the rain shader is rendered as a single static frame at
+    /// the given elapsed time. Used by `ImageRenderer` snapshots since
+    /// `TimelineView` animations don't run during rendering.
+    var staticRainElapsed: Float? = nil
+
     // Create sky color gradient instance
     private var skyColorGradient: SkyColorGradient {
         SkyColorGradient(date: date, timeZoneIdentifier: timeZoneIdentifier, weatherCondition: weatherCondition)
     }
-    
+
+    private var rainIntensity: Float {
+        guard showRainEffect, let condition = weatherCondition else { return 0 }
+        return condition.rainIntensity
+    }
+
     var body: some View {
         ZStack {
-            // Background sky gradient with opacity for background usage
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            // Fill the full bounding rectangle so the rain shader never samples
+            // transparent pixels (which would show as black refractive halos
+            // around drops near the rounded corners).
+            Rectangle()
                 .fill(skyColorGradient.linearGradient(opacity: 0.65))
                 .animation(.easeInOut(duration: 0.5), value: skyColorGradient.animationValue)
-            
+
             // Stars overlay for nighttime
             if skyColorGradient.starOpacity > 0 {
                 StarsView()
@@ -107,6 +121,9 @@ struct SkyBackgroundView: View {
                     .allowsHitTesting(false)
             }
         }
+        // Run the shader on the full rectangle, then round the corners so the
+        // drops on the edges still get refraction without any black halo.
+        .rainFallEffect(intensity: rainIntensity, staticElapsed: staticRainElapsed)
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
         // border
         .overlay(
