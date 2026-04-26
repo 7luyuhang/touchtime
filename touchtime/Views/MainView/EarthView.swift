@@ -628,14 +628,15 @@ struct EarthView: View {
                                         Text(formattedTime(for: TimeZone.current.identifier))
                                         .font(.caption)
                                         .fontWeight(.bold)
-                                        .foregroundStyle(.white)
+                                        .foregroundStyle(.black)
                                         .monospacedDigit()
                                         .contentTransition(.numericText())
                                         .animation(.spring(), value: currentDate)
                                         
                                         Image(systemName: "location.fill")
                                             .font(.caption2)
-                                            .foregroundStyle(.white)
+                                            .foregroundStyle(.black.opacity(0.50))
+                                            .blendMode(.plusDarker)
                                     }
 
                                 }
@@ -645,12 +646,7 @@ struct EarthView: View {
                                 .padding(.leading, showSkyDot ? 4 : 8)
                                 .padding(.trailing, 8)
                                 .padding(.vertical, 4)
-                                .clipShape(Capsule())
-                                .background(
-                                    Capsule()
-                                        .fill(Color.black.opacity(0.25))
-                                        .glassEffect(.clear.interactive())
-                                )
+                                .glassEffect(.regular.tint(.white).interactive(), in: Capsule())
                                 .onTapGesture {
                                     if hapticEnabled {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
@@ -996,8 +992,7 @@ struct EarthView: View {
                         .transition(.blurReplace())
                     }
                     .padding(.trailing)
-
-                    Spacer()
+                    .padding(.bottom, 96)
                 }
             }
                 
