@@ -860,136 +860,146 @@ struct EarthView: View {
                 .offset(y: ringAndControlsOffsetY)
             }
 
-            // Bottom Controls - Hide when renaming
-            if !showingRenameAlert {
-                VStack(spacing: 8) {
-                    if !(worldClocks.isEmpty && !showLocalTime) {
-                        ScrollTimeView(
-                            timeOffset: $timeOffset,
-                            showButtons: $showScrollTimeButtons,
-                            worldClocks: $worldClocks
-                        )
-                        .padding(.horizontal)
-                        .transition(.blurReplace())
-                    }
-
-                    GlassEffectContainer(spacing: 8.0) {
-                        HStack(spacing: 8) {
-                            // Group of main buttons
-                            HStack(spacing: 0) {
-                                // Back to Local Time Button - Only show when local time is enabled and flight time is not active
-                                if showLocalTime && !(selectedFlightCities.from != nil && selectedFlightCities.to != nil) {
-                                    Button(action: {
-                                        if hapticEnabled {
-                                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                            impactFeedback.prepare()
-                                            impactFeedback.impactOccurred()
-                                        }
-                                        
-                                        // Navigate to local time location
-                                        if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
-                                            withAnimation(.smooth()) {
-                                                position = MapCameraPosition.region(MKCoordinateRegion(
-                                                    center: localCoordinate,
-                                                    span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
-                                                ))
-                                            }
-                                        }
-                                    }) {
-                                        Image(systemName: "location.fill")
-                                            .font(.headline)
-                                            .foregroundStyle(.white)
-                                            .frame(width: 52, height: 52)
-                                    }
-                                }
-                                
-                                // Map Mode Toggle Button
-                                Button(action: {
-                                    if hapticEnabled {
-                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                        impactFeedback.prepare()
-                                        impactFeedback.impactOccurred()
-                                    }
-                                    
-                                    withAnimation(.spring()) {
-                                        isUsingExploreMode.toggle()
-                                    }
-                                }) {
-                                    Image(systemName: isUsingExploreMode ? "view.2d" : "view.3d")
-                                        .font(.headline)
-                                        .foregroundStyle(.white)
-                                        .frame(width: 52, height: 52)
-                                        .contentTransition(.symbolEffect(.replace))
-                                }
-                                
-                                // Map Labels Toggle Button - Only show in 2D mode (standard map)
-                                if !isUsingExploreMode {
-                                    Button(action: {
-                                        if hapticEnabled {
-                                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                            impactFeedback.prepare()
-                                            impactFeedback.impactOccurred()
-                                        }
-                                        
-                                        withAnimation(.spring()) {
-                                            showMapLabels.toggle()
-                                        }
-                                    }) {
-                                        Image(systemName: showMapLabels ? "square.2.layers.3d.fill" : "square.2.layers.3d")
-                                            .font(.headline)
-                                            .foregroundStyle(.white)
-                                            .frame(width: 52, height: 52)
-                                            .contentTransition(.symbolEffect(.replace))
-                                    }
-                                    .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
-                                }
-
-                                // Sun Compass Toggle Button - Only show in 2D mode
-                                if isUsingExploreMode {
-                                    Button(action: {
-                                        toggleSunCompass()
-                                    }) {
-                                        Image(systemName: showSunCompass ? "safari.fill" : "safari")
-                                            .font(.headline)
-                                            .foregroundStyle(.white)
-                                            .frame(width: 52, height: 52)
-                                            .contentTransition(.symbolEffect(.replace))
-                                    }
-                                    .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
-                                }
-                            }
-                            .glassEffect(.regular)
-                            .glassEffectID("mapButtonGroup", in: glassEffectNamespace)
-                            .glassEffectTransition(.matchedGeometry)
-                            
-                            
-                            // Clear Flight Path Button - Show when flight path is active (placed on the right)
-                            if selectedFlightCities.from != nil && selectedFlightCities.to != nil {
-                                Button(action: {
-                                    if hapticEnabled {
-                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                        impactFeedback.prepare()
-                                        impactFeedback.impactOccurred()
-                                    }
-                                    
-                                    withAnimation(.spring()) {
-                                        setFlightCitiesAndCenter(from: nil, to: nil)
-                                    }
-                                }) {
-                                    Image(systemName: "xmark")
-                                        .font(.headline)
-                                        .foregroundStyle(.yellow)
-                                        .frame(width: 52, height: 52)
-                                }
-                                .glassEffect(.regular.tint(.yellow.opacity(0.15)).interactive())
-                                .glassEffectID("clearFlightButton", in: glassEffectNamespace)
-                                .glassEffectTransition(.matchedGeometry)
-                            }
-                        }
-                    }
+            // Bottom controls - Hide when renaming
+            if !showingRenameAlert, !(worldClocks.isEmpty && !showLocalTime) {
+                VStack {
+                    Spacer()
+                    ScrollTimeView(
+                        timeOffset: $timeOffset,
+                        showButtons: $showScrollTimeButtons,
+                        worldClocks: $worldClocks
+                    )
+                    .padding(.horizontal)
+                    .padding(.bottom, 32) // Scroll Bar
                     .transition(.blurReplace())
                 }
-                .padding(.bottom, 8)
+            }
+
+            // Top-right map controls - Hide when renaming
+            if !showingRenameAlert {
+                VStack {
+                    HStack {
+                        Spacer()
+                        GlassEffectContainer(spacing: 8.0) {
+                            VStack(spacing: 8) {
+                                // Group of main buttons
+                                VStack(spacing: 0) {
+                                    // Back to Local Time Button - Only show when local time is enabled and flight time is not active
+                                    if showLocalTime && !(selectedFlightCities.from != nil && selectedFlightCities.to != nil) {
+                                        Button(action: {
+                                            if hapticEnabled {
+                                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                                impactFeedback.prepare()
+                                                impactFeedback.impactOccurred()
+                                            }
+
+                                            // Navigate to local time location
+                                            if let localCoordinate = getCoordinate(for: TimeZone.current.identifier) {
+                                                withAnimation(.smooth()) {
+                                                    position = MapCameraPosition.region(MKCoordinateRegion(
+                                                        center: localCoordinate,
+                                                        span: MKCoordinateSpan(latitudeDelta: 30, longitudeDelta: 30)
+                                                    ))
+                                                }
+                                            }
+                                        }) {
+                                            Image(systemName: "location.fill")
+                                                .font(.headline)
+                                                .foregroundStyle(.white)
+                                                .frame(width: 44, height: 44)
+                                        }
+                                    }
+
+                                    // Map Mode Toggle Button
+                                    Button(action: {
+                                        if hapticEnabled {
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                            impactFeedback.prepare()
+                                            impactFeedback.impactOccurred()
+                                        }
+
+                                        withAnimation(.spring()) {
+                                            isUsingExploreMode.toggle()
+                                        }
+                                    }) {
+                                        Image(systemName: isUsingExploreMode ? "view.2d" : "view.3d")
+                                            .font(.headline)
+                                            .foregroundStyle(.white)
+                                            .frame(width: 44, height: 44)
+                                            .contentTransition(.symbolEffect(.replace))
+                                    }
+
+                                    // Map Labels Toggle Button - Only show in 2D mode (standard map)
+                                    if !isUsingExploreMode {
+                                        Button(action: {
+                                            if hapticEnabled {
+                                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                                impactFeedback.prepare()
+                                                impactFeedback.impactOccurred()
+                                            }
+
+                                            withAnimation(.spring()) {
+                                                showMapLabels.toggle()
+                                            }
+                                        }) {
+                                            Image(systemName: showMapLabels ? "square.2.layers.3d.fill" : "square.2.layers.3d")
+                                                .font(.headline)
+                                                .foregroundStyle(.white)
+                                                .frame(width: 44, height: 44)
+                                                .contentTransition(.symbolEffect(.replace))
+                                        }
+                                        .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
+                                    }
+
+                                    // Sun Compass Toggle Button - Only show in 2D mode
+                                    if isUsingExploreMode {
+                                        Button(action: {
+                                            toggleSunCompass()
+                                        }) {
+                                            Image(systemName: showSunCompass ? "safari.fill" : "safari")
+                                                .font(.headline)
+                                                .foregroundStyle(.white)
+                                                .frame(width: 44, height: 44)
+                                                .contentTransition(.symbolEffect(.replace))
+                                        }
+                                        .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
+                                    }
+                                }
+                                .glassEffect(.regular)
+                                .glassEffectID("mapButtonGroup", in: glassEffectNamespace)
+                                .glassEffectTransition(.matchedGeometry)
+
+                                // Clear Flight Path Button - Show when flight path is active
+                                if selectedFlightCities.from != nil && selectedFlightCities.to != nil {
+                                    Button(action: {
+                                        if hapticEnabled {
+                                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                            impactFeedback.prepare()
+                                            impactFeedback.impactOccurred()
+                                        }
+
+                                        withAnimation(.spring()) {
+                                            setFlightCitiesAndCenter(from: nil, to: nil)
+                                        }
+                                    }) {
+                                        Image(systemName: "xmark")
+                                            .font(.headline)
+                                            .foregroundStyle(.yellow)
+                                            .frame(width: 44, height: 44)
+                                    }
+                                    .glassEffect(.regular.tint(.yellow.opacity(0.15)).interactive())
+                                    .glassEffectID("clearFlightButton", in: glassEffectNamespace)
+                                    .glassEffectTransition(.matchedGeometry)
+                                }
+                            }
+                        }
+                        .transition(.blurReplace())
+                    }
+                    .padding(.top, 8)
+                    .padding(.trailing, 16)
+
+                    Spacer()
+                }
             }
                 
                 // Empty state - on top of map
@@ -1048,17 +1058,33 @@ struct EarthView: View {
                 }
                 
                 ToolbarItemGroup(placement: .topBarTrailing) {
-                    // Flight Time button - Only show when no flight path is active and there are cities
-                    if (selectedFlightCities.from == nil || selectedFlightCities.to == nil) && !worldClocks.isEmpty {
-                        Button(action: {
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
+                    // Flight Time button - Show whenever there are cities
+                    if !worldClocks.isEmpty {
+                        if selectedFlightCities.from != nil && selectedFlightCities.to != nil {
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showFlightTimeSheet = true
+                            }) {
+                                Image(systemName: "airplane.up.right")
                             }
-                            showFlightTimeSheet = true
-                        }) {
-                            Image(systemName: "airplane.up.right")
+                            .buttonStyle(.borderedProminent)
+                            .tint(.yellow)
+                            .foregroundStyle(.black)
+                        } else {
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showFlightTimeSheet = true
+                            }) {
+                                Image(systemName: "airplane.up.right")
+                            }
                         }
                     }
                 }
