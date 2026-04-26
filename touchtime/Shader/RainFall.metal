@@ -125,7 +125,7 @@ half4 rainFall(float2 pos,
 
     // Lower factor zooms in further; 0.7 makes drops ~2.1x larger than the
     // shader's original 1.5 setting while keeping cells/drops in proportion.
-    uv *= 0.50;
+    uv *= 0.35;
 
     // Tightened curves so even moderate rainAmount stays visually sparse.
     float staticDrops = S(.1, 1., rainAmount);
