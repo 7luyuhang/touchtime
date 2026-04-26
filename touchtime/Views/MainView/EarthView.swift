@@ -995,8 +995,7 @@ struct EarthView: View {
                         }
                         .transition(.blurReplace())
                     }
-                    .padding(.top, 8)
-                    .padding(.trailing, 16)
+                    .padding(.trailing)
 
                     Spacer()
                 }
