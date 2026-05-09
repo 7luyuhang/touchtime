@@ -6,6 +6,8 @@
 //
 
 import SwiftUI
+import UIKit
+import CoreHaptics
 
 // MARK: - Timer Clock Face
 struct TimerClockFaceView: View {
@@ -14,26 +16,164 @@ struct TimerClockFaceView: View {
     let configuredSeconds: Int
     let resetAnimationTrigger: Int
     let resetAnimationFromSeconds: Int
+    let isAdjustable: Bool
+    let hapticEnabled: Bool
+    let onAdjustSeconds: (Int) -> Bool
+    let onAdjustingChanged: (Bool) -> Void
 
     @State private var resetAnimationHandAngle: Double
     @State private var isResetAnimating = false
     @State private var resetAnimationTask: Task<Void, Never>? = nil
+    @State private var lastDragAngle: Double? = nil
+    @State private var accumulatedDragDegrees: Double = 0
+    @State private var hapticEngine: CHHapticEngine?
+    @State private var hapticPlayer: CHHapticPatternPlayer?
 
     private let resetAnimationDuration: TimeInterval = 0.25
+    private let degreesPerMinute: Double = 6.0
 
     init(
         size: CGFloat,
         remainingSeconds: Int,
         configuredSeconds: Int,
         resetAnimationTrigger: Int = 0,
-        resetAnimationFromSeconds: Int = 0
+        resetAnimationFromSeconds: Int = 0,
+        isAdjustable: Bool = false,
+        hapticEnabled: Bool = true,
+        onAdjustSeconds: @escaping (Int) -> Bool = { _ in false },
+        onAdjustingChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.size = size
         self.remainingSeconds = remainingSeconds
         self.configuredSeconds = configuredSeconds
         self.resetAnimationTrigger = resetAnimationTrigger
         self.resetAnimationFromSeconds = resetAnimationFromSeconds
+        self.isAdjustable = isAdjustable
+        self.hapticEnabled = hapticEnabled
+        self.onAdjustSeconds = onAdjustSeconds
+        self.onAdjustingChanged = onAdjustingChanged
         _resetAnimationHandAngle = State(initialValue: Self.angle(for: remainingSeconds))
+    }
+
+    private func angleDegrees(at location: CGPoint) -> Double {
+        let center = CGPoint(x: size / 2, y: size / 2)
+        let dx = Double(location.x - center.x)
+        let dy = Double(location.y - center.y)
+        return atan2(dy, dx) * 180 / .pi
+    }
+
+    private func normalizedAngleDelta(_ delta: Double) -> Double {
+        var value = delta
+        if value > 180 {
+            value -= 360
+        } else if value < -180 {
+            value += 360
+        }
+        return value
+    }
+
+    private func prepareHaptics() {
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+
+        do {
+            if hapticEngine == nil {
+                hapticEngine = try CHHapticEngine()
+                let engine = hapticEngine
+
+                hapticEngine?.stoppedHandler = { _ in
+                    DispatchQueue.main.async {
+                        do {
+                            try engine?.start()
+                        } catch {
+                            print("Failed to restart haptic engine: \(error.localizedDescription)")
+                        }
+                    }
+                }
+
+                hapticEngine?.resetHandler = {
+                    DispatchQueue.main.async {
+                        do {
+                            try engine?.start()
+                        } catch {
+                            print("Failed to restart haptic engine: \(error.localizedDescription)")
+                        }
+                    }
+                }
+            }
+
+            try hapticEngine?.start()
+            prepareHapticPlayer()
+        } catch {
+            print("Error creating/starting haptic engine: \(error.localizedDescription)")
+        }
+    }
+
+    private func restartHapticEngine() {
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+
+        do {
+            try hapticEngine?.start()
+            prepareHapticPlayer()
+        } catch {
+            print("Failed to restart haptic engine: \(error.localizedDescription)")
+        }
+    }
+
+    private func prepareHapticPlayer() {
+        guard let engine = hapticEngine else { return }
+
+        do {
+            let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
+            let intensity = CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5)
+            let tickEvent = CHHapticEvent(
+                eventType: .hapticTransient,
+                parameters: [sharpness, intensity],
+                relativeTime: 0
+            )
+            let pattern = try CHHapticPattern(events: [tickEvent], parameters: [])
+            hapticPlayer = try engine.makePlayer(with: pattern)
+        } catch {
+            print("Failed to create haptic player: \(error.localizedDescription)")
+        }
+    }
+
+    private func ensureHapticEngineRunning() {
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+
+        if hapticEngine == nil {
+            prepareHaptics()
+        } else {
+            do {
+                try hapticEngine?.start()
+            } catch {
+                restartHapticEngine()
+            }
+        }
+    }
+
+    private func playAdjustHaptic(intensity: Float = 0.50) {
+        guard hapticEnabled && CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        ensureHapticEngineRunning()
+
+        do {
+            if let player = hapticPlayer {
+                try player.start(atTime: CHHapticTimeImmediate)
+            } else if let engine = hapticEngine {
+                let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.20)
+                let intensityParam = CHHapticEventParameter(parameterID: .hapticIntensity, value: intensity)
+                let tickEvent = CHHapticEvent(
+                    eventType: .hapticTransient,
+                    parameters: [sharpness, intensityParam],
+                    relativeTime: 0
+                )
+                let pattern = try CHHapticPattern(events: [tickEvent], parameters: [])
+                let newPlayer = try engine.makePlayer(with: pattern)
+                try newPlayer.start(atTime: CHHapticTimeImmediate)
+            }
+        } catch {
+            print("Failed to play tick haptic: \(error.localizedDescription)")
+            restartHapticEngine()
+        }
     }
 
     private static func angle(for seconds: Int) -> Double {
@@ -120,6 +260,37 @@ struct TimerClockFaceView: View {
                 .fill(Color.black.opacity(0.25))
                 .glassEffect(.clear.interactive())
                 .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+                .contentShape(Circle())
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 0, coordinateSpace: .local)
+                        .onChanged { value in
+                            guard isAdjustable else { return }
+                            let angle = angleDegrees(at: value.location)
+                            if let lastAngle = lastDragAngle {
+                                let delta = normalizedAngleDelta(angle - lastAngle)
+                                accumulatedDragDegrees += delta
+                                let minuteDelta = Int(
+                                    (accumulatedDragDegrees / degreesPerMinute).rounded(.towardZero)
+                                )
+                                if minuteDelta != 0 {
+                                    accumulatedDragDegrees -= Double(minuteDelta) * degreesPerMinute
+                                    let didAdjust = onAdjustSeconds(minuteDelta * 60)
+                                    if didAdjust {
+                                        playAdjustHaptic()
+                                    }
+                                }
+                            } else {
+                                accumulatedDragDegrees = 0
+                                onAdjustingChanged(true)
+                            }
+                            lastDragAngle = angle
+                        }
+                        .onEnded { _ in
+                            lastDragAngle = nil
+                            accumulatedDragDegrees = 0
+                            onAdjustingChanged(false)
+                        }
+                )
 
             if clampedConfiguredSeconds > 0 {
                 TimerRangeFillView(
@@ -179,9 +350,28 @@ struct TimerClockFaceView: View {
         .onChange(of: resetAnimationTrigger) { _, _ in
             animateTimerResetHand()
         }
+        .onChange(of: isAdjustable) { _, newValue in
+            if !newValue {
+                lastDragAngle = nil
+                accumulatedDragDegrees = 0
+                onAdjustingChanged(false)
+            }
+        }
+        .onAppear {
+            prepareHaptics()
+        }
         .onDisappear {
             resetAnimationTask?.cancel()
             resetAnimationTask = nil
+            hapticEngine?.stop()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
+            if hapticEnabled {
+                restartHapticEngine()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didEnterBackgroundNotification)) { _ in
+            hapticEngine?.stop()
         }
     }
 }

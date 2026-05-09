@@ -442,7 +442,8 @@ struct SunriseSunsetSheet: View {
                     SkyBackgroundView(
                         date: currentDate.addingTimeInterval(timeOffset),
                         timeZoneIdentifier: timeZoneIdentifier,
-                        weatherCondition: weatherConditionForSky
+                        weatherCondition: weatherConditionForSky,
+                        showRainEffect: true
                     )
                 } : nil
             )
