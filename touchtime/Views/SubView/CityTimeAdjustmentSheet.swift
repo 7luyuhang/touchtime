@@ -235,13 +235,13 @@ struct CityTimeAdjustmentSheet: View {
                                 .animation(.smooth(duration: 0.25), value: adjustedLocalTimeText)
                         }
                         .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
+                        .padding(.vertical, 10)
                         .glassEffect(.regular.tint(.blue), in: .capsule(style: .continuous))
                         .foregroundStyle(.white)
                     }
                     .padding(.leading, 20)
-                    .padding(.trailing, 10)
-                    .padding(.vertical, 10)
+                    .padding(.trailing, 8)
+                    .padding(.vertical, 8)
                 }
                 // Border
                 .overlay(
