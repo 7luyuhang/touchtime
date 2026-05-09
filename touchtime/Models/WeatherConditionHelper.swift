@@ -179,4 +179,29 @@ extension WeatherCondition {
             return String(localized: "Unknown")
         }
     }
+
+    // Approximate rain intensity in [0, 1] for the rain shader.
+    // Returns 0 for non-rainy conditions.
+    var rainIntensity: Float {
+        switch self {
+        case .drizzle, .freezingDrizzle, .sunShowers:
+            return 0.45
+        case .rain, .freezingRain, .sleet, .wintryMix:
+            return 0.7
+        case .heavyRain:
+            return 1.0
+        case .isolatedThunderstorms, .scatteredThunderstorms:
+            return 0.75
+        case .thunderstorms, .strongStorms:
+            return 0.9
+        case .hurricane, .tropicalStorm:
+            return 1.0
+        default:
+            return 0
+        }
+    }
+
+    var isRainy: Bool {
+        rainIntensity > 0
+    }
 }
