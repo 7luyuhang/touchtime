@@ -23,6 +23,7 @@ struct SunriseSunsetSheet: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("show10DaysWeather") private var storedWeatherExpanded = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @Environment(\.dismiss) private var dismiss
@@ -527,9 +528,11 @@ struct SunriseSunsetSheet: View {
                                     if hapticEnabled {
                                         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                                     }
+                                    let newValue = !isWeatherExpanded
                                     withAnimation(.snappy(duration: 0.50)) { // weekly weather animation
-                                        isWeatherExpanded.toggle()
+                                        isWeatherExpanded = newValue
                                     }
+                                    storedWeatherExpanded = newValue
                                 }
                                 .padding(.horizontal, 16)
                                 
@@ -850,6 +853,7 @@ struct SunriseSunsetSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 currentDate = initialDate
+                isWeatherExpanded = storedWeatherExpanded
                 refreshAstronomyData(force: true, referenceDate: initialDate)
             }
             .task(id: timeZoneIdentifier) {
