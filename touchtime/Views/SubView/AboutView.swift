@@ -19,7 +19,6 @@ struct AboutView: View {
     @State private var rippleCounter: Int = 0
     @State private var rippleOrigin: CGPoint = .init(x: 50, y: 50)
     @State private var safariURL: URL?
-    @State private var scrollOffset: CGFloat = 0
     
     // UserDefaults keys
     private let worldClocksKey = "savedWorldClocks"
@@ -42,6 +41,40 @@ struct AboutView: View {
     
     var body: some View {
         List {
+            VStack(spacing: 16) {
+                Image("TouchTimeAppIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .glassEffect(.clear, in:
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    )
+                    .frame(width: 100, height: 100)
+                    .modifier(RippleEffect(at: rippleOrigin, trigger: rippleCounter))
+                    .modifier(PushEffect(trigger: rippleCounter))
+                    .onPressingChanged { point in
+                        if let point {
+                            rippleOrigin = point
+                            rippleCounter += 1
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                        }
+                    }
+
+                VStack(spacing: 4) {
+                    Text("Touch Time")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+
+                    Text(getVersionString())
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .listRowBackground(Color.clear)
+
             Section {
                 // Language
                 Button(action: {
@@ -212,49 +245,6 @@ struct AboutView: View {
 //            }
         }
         .scrollIndicators(.hidden)
-        .onScrollGeometryChange(for: CGFloat.self) { geometry in
-            geometry.contentOffset.y + geometry.contentInsets.top
-        } action: { _, newValue in
-            scrollOffset = newValue
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 16) {
-                Image("TouchTimeAppIcon")
-                    .resizable()
-                    .scaledToFit()
-                    .glassEffect(.clear, in:
-                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    )
-                    .frame(width: 100, height: 100)
-                    .modifier(RippleEffect(at: rippleOrigin, trigger: rippleCounter))
-                    .modifier(PushEffect(trigger: rippleCounter))
-                    .onPressingChanged { point in
-                        if let point {
-                            rippleOrigin = point
-                            rippleCounter += 1
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                        }
-                    }
-
-                VStack(spacing: 4) {
-                    Text("Touch Time")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.primary)
-
-                    Text(getVersionString())
-                        .foregroundColor(.secondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.vertical)
-            .padding(.top)
-            .blur(radius: min(max(scrollOffset, CGFloat(0)) / CGFloat(20), CGFloat(5)))
-            .opacity(Double(max(0, 1 - max(scrollOffset, CGFloat(0)) / CGFloat(150))))
-        }
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
         
