@@ -22,6 +22,7 @@ struct EarthView: View {
         return cache
     }()
     private static let defaultMapSpan = MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
+    private static let visualTimeBucket: TimeInterval = 5 * 60
 
     private static func systemTimeCenteredRegion() -> MKCoordinateRegion {
         let offsetHours = Double(TimeZone.current.secondsFromGMT(for: Date())) / 3600
@@ -37,6 +38,12 @@ struct EarthView: View {
             center: CLLocationCoordinate2D(latitude: 0, longitude: longitude),
             span: defaultMapSpan
         )
+    }
+
+    private static func bucketedDate(_ date: Date, interval: TimeInterval = visualTimeBucket) -> Date {
+        guard interval > 0 else { return date }
+        let bucket = (date.timeIntervalSinceReferenceDate / interval).rounded(.down) * interval
+        return Date(timeIntervalSinceReferenceDate: bucket)
     }
 
     @Binding var timeOffset: TimeInterval
@@ -119,6 +126,10 @@ struct EarthView: View {
 
     private var displayDate: Date {
         currentDate.addingTimeInterval(timeOffset)
+    }
+
+    private var visualDisplayDate: Date {
+        Self.bucketedDate(displayDate)
     }
 
     // In 2D (explore) mode, disable pitch gestures so two-finger drag won't tilt into 3D.
@@ -228,13 +239,14 @@ struct EarthView: View {
 
     private func sunAzimuth(for date: Date?, in timeZone: TimeZone) -> Double? {
         guard let date else { return nil }
+        let calculationDate = Self.bucketedDate(date)
         var calendar = Calendar.current
         calendar.timeZone = timeZone
-        let minuteComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: date)
+        let minuteComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: calculationDate)
         let roundedLatitude = (mapCenterCoordinate.latitude * 100).rounded() / 100
         let roundedLongitude = (mapCenterCoordinate.longitude * 100).rounded() / 100
         let cacheKey =
-            "\(timeZone.identifier)_\(timeZone.secondsFromGMT(for: date))_azimuth_\(minuteComponents.year ?? 0)_\(minuteComponents.month ?? 0)_\(minuteComponents.day ?? 0)_\(minuteComponents.hour ?? 0)_\(minuteComponents.minute ?? 0)_\(roundedLatitude)_\(roundedLongitude)" as NSString
+            "\(timeZone.identifier)_\(timeZone.secondsFromGMT(for: calculationDate))_azimuth_\(minuteComponents.year ?? 0)_\(minuteComponents.month ?? 0)_\(minuteComponents.day ?? 0)_\(minuteComponents.hour ?? 0)_\(minuteComponents.minute ?? 0)_\(roundedLatitude)_\(roundedLongitude)" as NSString
 
         if let cached = Self.mapSunAzimuthCache.object(forKey: cacheKey) {
             return cached.azimuth
@@ -244,7 +256,7 @@ struct EarthView: View {
             location: CLLocation(latitude: mapCenterCoordinate.latitude, longitude: mapCenterCoordinate.longitude),
             timeZone: timeZone
         )
-        sun.setDate(date)
+        sun.setDate(calculationDate)
         let azimuth = normalizedAzimuth(sun.azimuth.degrees)
         Self.mapSunAzimuthCache.setObject(MapSunAzimuthDataWrapper(azimuth), forKey: cacheKey)
         return azimuth
@@ -263,7 +275,7 @@ struct EarthView: View {
             sunset: normalizedAzimuth(sunTimes?.sunsetAzimuth)
                 ?? sunAzimuth(for: sunsetFallbackDate, in: timeZone)
                 ?? 270,
-            currentSun: sunAzimuth(for: displayDate, in: timeZone) ?? 180
+            currentSun: sunAzimuth(for: visualDisplayDate, in: timeZone) ?? 180
         )
     }
 
@@ -612,7 +624,7 @@ struct EarthView: View {
                                     
                                     if showSkyDot {
                                         SkyDotView(
-                                            date: displayDate,
+                                            date: visualDisplayDate,
                                             timeZoneIdentifier: TimeZone.current.identifier,
                                             weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
                                         )
@@ -688,7 +700,7 @@ struct EarthView: View {
                                 HStack(spacing: 8) {
                                     if showSkyDot {
                                         SkyDotView(
-                                            date: displayDate,
+                                            date: visualDisplayDate,
                                             timeZoneIdentifier: clock.timeZoneIdentifier,
                                             weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
                                         )
