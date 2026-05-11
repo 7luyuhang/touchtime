@@ -343,17 +343,18 @@ private struct DayCellView: View {
         VStack(spacing: 8) {
             Text("\(dayNumber)")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(isToday ? .primary : .secondary)
+                .foregroundStyle(isToday ? .black : .secondary)
             
             Image(systemName: moonPhaseIcon)
                 .font(.title3)
                 .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(isToday ? .black : .primary)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isToday ? Color.white.opacity(0.10) : .clear)
+                .fill(isToday ? Color.white : .clear)
         )
     }
 }
