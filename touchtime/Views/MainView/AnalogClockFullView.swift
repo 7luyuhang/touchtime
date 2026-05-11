@@ -1036,7 +1036,7 @@ struct AnalogClockFullView: View {
                             VStack {
                                 Spacer()
                                 // Local time display (hidden when continuous scroll reset button is showing)
-                                if !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
+                                if selectedDisplayPage == .timer || !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
                                     if selectedDisplayPage == .timer {
                                         // Timer Close Button
                                         Button(action: handleBottomTimerLabelTap) {
