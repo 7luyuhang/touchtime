@@ -516,10 +516,10 @@ struct SunriseSunsetSheet: View {
                                         // Chevron icon
                                         Image(systemName: "chevron.right")
                                             .font(.footnote.weight(.semibold))
+                                            .frame(width: 14, height: 14)
                                             .foregroundStyle(isWeatherExpanded ? .primary : .tertiary)
                                             .blendMode(.plusLighter)
-                                            .rotationEffect(.degrees(isWeatherExpanded ? 90 : 0))
-                                            .animation(.spring(), value: isWeatherExpanded)
+                                            .rotationEffect(.degrees(isWeatherExpanded ? 90 : 0), anchor: .center)
                                     }
                                 }
                                 .detailsSheetCard()
