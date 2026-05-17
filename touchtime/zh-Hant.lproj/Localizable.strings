@@ -206,6 +206,8 @@
 "New Timer" = "新計時器";
 "Rename Timer" = "重新命名計時器";
 "Customize the name of this timer" = "自訂計時器名稱";
+"Are you sure you want to replace current timer?" = "確定要取代目前的計時器嗎？";
+"Replace" = "取代";
 "Minutes" = "分鐘";
 "Seconds" = "秒";
 "min" = "分";

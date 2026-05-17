@@ -12,14 +12,17 @@ struct SetTimerSheet: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
     let onConfirm: (Int) -> Void
+    private let requiresReplacementConfirmation: Bool
 
     @State private var selectedDuration: Int
+    @State private var showReplaceTimerConfirmation = false
 
     init(initialDurationSeconds: Int, onConfirm: @escaping (Int) -> Void) {
         let defaultDurationSeconds = 2 * 60
         let effectiveDuration = initialDurationSeconds > 0 ? initialDurationSeconds : defaultDurationSeconds
         let clampedDuration = min(max(effectiveDuration, 0), 59 * 60 + 59)
         self.onConfirm = onConfirm
+        self.requiresReplacementConfirmation = initialDurationSeconds > 0
         _selectedDuration = State(initialValue: clampedDuration)
     }
 
@@ -55,6 +58,11 @@ struct SetTimerSheet: View {
                 selectedDuration = selectedMinutes * 60 + newValue
             }
         )
+    }
+
+    private func confirmTimer() {
+        onConfirm(totalSeconds)
+        dismiss()
     }
 
     var body: some View {
@@ -118,8 +126,11 @@ struct SetTimerSheet: View {
 
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
-                        onConfirm(totalSeconds)
-                        dismiss()
+                        if requiresReplacementConfirmation {
+                            showReplaceTimerConfirmation = true
+                        } else {
+                            confirmTimer()
+                        }
                     } label: {
                         Image(systemName: "play.fill")
                             .foregroundStyle(totalSeconds == 0 ? .white.opacity(0.50) : .black)
@@ -127,6 +138,15 @@ struct SetTimerSheet: View {
                     .buttonStyle(.borderedProminent)
                     .tint(.white)
                     .disabled(totalSeconds == 0)
+                    .confirmationDialog(
+                        String(localized: "Are you sure you want to replace current timer?"),
+                        isPresented: $showReplaceTimerConfirmation,
+                        titleVisibility: .visible
+                    ) {
+                        Button(String(localized: "Replace"), role: .destructive) {
+                            confirmTimer()
+                        }
+                    }
                 }
             }
         }

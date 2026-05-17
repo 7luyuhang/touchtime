@@ -208,6 +208,8 @@
 "New Timer" = "New Timer";
 "Rename Timer" = "Rename Timer";
 "Customize the name of this timer" = "Customize the name of this timer";
+"Are you sure you want to replace current timer?" = "Are you sure you want to replace current timer?";
+"Replace" = "Replace";
 "Minutes" = "Minutes";
 "Seconds" = "Seconds";
 "min" = "min";
