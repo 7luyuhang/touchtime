@@ -356,6 +356,23 @@ struct SunriseSunsetSheet: View {
         
         return daysUntil == 1 ? "1 day" : "\(daysUntil) days"
     }
+
+    @ViewBuilder
+    private var sheetSkyBackground: some View {
+        if showSkyDot && currentDetent == .large {
+            SkyBackgroundView(
+                date: currentDate.addingTimeInterval(timeOffset),
+                timeZoneIdentifier: timeZoneIdentifier,
+                weatherCondition: weatherConditionForSky
+            )
+            .frame(width: 500, height: 500)
+            .blur(radius: 50)
+            .offset(y: -250)
+            .opacity(0.35)
+            .allowsHitTesting(false)
+            .ignoresSafeArea()
+        }
+    }
     
     @ViewBuilder
     private var stickyTimeSection: some View {
@@ -462,393 +479,396 @@ struct SunriseSunsetSheet: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 0) {
-                    // Weather section - only show if weather is enabled in settings
-                    if showWeather {
-                        if let weather = currentWeather {
-                            VStack(alignment: .leading, spacing: 8){
-                                // Weather info section
-                                HStack {
-                                    HStack(spacing: 16){
-                                        Image(systemName: weather.condition.icon)
-                                            .symbolRenderingMode(.multicolor)
-                                            .font(.title3.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                            .frame(width: 24, height: 24)
-                                        
-                                        Text(weather.condition.displayName)
-                                            .font(.headline)
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                    }
-                                    
-                                    Spacer()
-                                    
-                                    // Temperature
-                                    let temp = useCelsius ?
-                                    weather.temperature.converted(to: .celsius) :
-                                    weather.temperature.converted(to: .fahrenheit)
-                                    let tempValue = Int(temp.value)
-                                    
-                                    HStack(spacing: 10) {
-                                        // Temps
-                                        HStack(spacing: 6){
-                                            Text("\(tempValue)°")
-                                                .monospacedDigit()
-                                                .contentTransition(.numericText())
-                                                .animation(.spring(), value: tempValue)
-                                            
-                                            // Minimum temperature
-                                            if let daily = dailyWeather {
-                                                let minTemp = useCelsius ?
-                                                daily.lowTemperature.converted(to: .celsius) :
-                                                daily.lowTemperature.converted(to: .fahrenheit)
-                                                let minTempValue = Int(minTemp.value)
-                                                
-                                                Text("\(minTempValue)°")
+                    VStack(spacing: 0) {
+                        // Weather section - only show if weather is enabled in settings
+                        if showWeather {
+                            if let weather = currentWeather {
+                                VStack(alignment: .leading, spacing: 8){
+                                    // Weather info section
+                                    HStack {
+                                        HStack(spacing: 16){
+                                            Image(systemName: weather.condition.icon)
+                                                .symbolRenderingMode(.multicolor)
+                                                .font(.title3.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                                .frame(width: 24, height: 24)
+
+                                            Text(weather.condition.displayName)
+                                                .font(.headline)
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                        }
+
+                                        Spacer()
+
+                                        // Temperature
+                                        let temp = useCelsius ?
+                                        weather.temperature.converted(to: .celsius) :
+                                        weather.temperature.converted(to: .fahrenheit)
+                                        let tempValue = Int(temp.value)
+
+                                        HStack(spacing: 10) {
+                                            // Temps
+                                            HStack(spacing: 6){
+                                                Text("\(tempValue)°")
                                                     .monospacedDigit()
                                                     .contentTransition(.numericText())
-                                                    .animation(.spring(), value: minTempValue)
-                                                    .foregroundStyle(.secondary)
-                                                    .blendMode(.plusLighter)
-                                            }}
-                                        // Chevron icon
-                                        Image(systemName: "chevron.right")
-                                            .font(.footnote.weight(.semibold))
-                                            .frame(width: 14, height: 14)
-                                            .foregroundStyle(isWeatherExpanded ? .primary : .tertiary)
-                                            .blendMode(.plusLighter)
-                                            .rotationEffect(.degrees(isWeatherExpanded ? 90 : 0), anchor: .center)
-                                    }
-                                }
-                                .detailsSheetCard()
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    if hapticEnabled {
-                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                                    }
-                                    let newValue = !isWeatherExpanded
-                                    withAnimation(.snappy(duration: 0.50)) { // weekly weather animation
-                                        isWeatherExpanded = newValue
-                                    }
-                                    storedWeatherExpanded = newValue
-                                }
-                                .padding(.horizontal, 16)
-                                
-                                // Weekly weather section (expandable)
-                                if isWeatherExpanded && !weeklyWeather.isEmpty {
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 8) {
-                                            ForEach(Array(weeklyWeather.enumerated()), id: \.offset) { index, day in
-                                                VStack(spacing: 5) {
-                                                    // High temperature
-                                                    let highTemp = useCelsius ?
-                                                    day.highTemperature.converted(to: .celsius) :
-                                                    day.highTemperature.converted(to: .fahrenheit)
-                                                    Text("\(Int(highTemp.value))°")
-                                                        .font(.subheadline.weight(.medium))
+                                                    .animation(.spring(), value: tempValue)
+
+                                                // Minimum temperature
+                                                if let daily = dailyWeather {
+                                                    let minTemp = useCelsius ?
+                                                    daily.lowTemperature.converted(to: .celsius) :
+                                                    daily.lowTemperature.converted(to: .fahrenheit)
+                                                    let minTempValue = Int(minTemp.value)
+
+                                                    Text("\(minTempValue)°")
                                                         .monospacedDigit()
-                                                    
-                                                    // Low temperature
-                                                    let lowTemp = useCelsius ?
-                                                    day.lowTemperature.converted(to: .celsius) :
-                                                    day.lowTemperature.converted(to: .fahrenheit)
-                                                    Text("\(Int(lowTemp.value))°")
-                                                        .font(.subheadline.weight(.medium))
+                                                        .contentTransition(.numericText())
+                                                        .animation(.spring(), value: minTempValue)
                                                         .foregroundStyle(.secondary)
                                                         .blendMode(.plusLighter)
-                                                        .monospacedDigit()
-                                                    
-                                                    // Weather icon
-                                                    Image(systemName: day.condition.icon)
-                                                        .symbolRenderingMode(.multicolor)
-                                                        .font(.title3)
-                                                        .foregroundStyle(.secondary)
-                                                        .blendMode(.plusLighter)
-                                                        .frame(height: 28)
-                                                    
-                                                    // Day of week
-                                                    Text(formatDayOfWeek(day.date))
-                                                        .font(.caption.weight(.semibold))
-                                                        .foregroundStyle(.secondary)
-                                                        .blendMode(.plusLighter)
-                                                        .padding(.top, 5)
-                                                }
-                                                .frame(width: 64)
-                                                .padding(.vertical, 12)
-                                                .detailsSheetCardChrome()
-                                            }
+                                                }}
+                                            // Chevron icon
+                                            Image(systemName: "chevron.right")
+                                                .font(.footnote.weight(.semibold))
+                                                .frame(width: 14, height: 14)
+                                                .foregroundStyle(isWeatherExpanded ? .primary : .tertiary)
+                                                .blendMode(.plusLighter)
+                                                .rotationEffect(.degrees(isWeatherExpanded ? 90 : 0), anchor: .center)
                                         }
-                                        .padding(.horizontal, 16)
                                     }
-                                    .transition(.blurReplace())
-                                }
-                            }
-                            .padding(.top, 16) // Row top padding
-                            
-                        } else if weatherLoadAttempted {
-                            // Show "No Internet" message when weather is enabled but couldn't be loaded
-                            HStack {
-                                Spacer()
-                                Text("No Weather Data")
-                                    .fontWeight(.medium)
-                                    .foregroundStyle(.secondary)
-                                    .blendMode(.plusLighter)
-                                Spacer()
-                            }
-                            .detailsSheetCardRow()
-                            .padding(.top, 16) // Row top padding
-                        }
-                    }
-                    
-                    if let times = sunTimes {
-                        // Sun times section
-                        VStack(alignment: .leading){
-                            
-                            Text("Solar Time")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .blendMode(.plusLighter)
-                                .padding(.horizontal, 32)
-                                .padding(.bottom, 4)
-                                .padding(.top, (showWeather && (currentWeather != nil || weatherLoadAttempted)) || currentDetent == .large ? 24 : 8)
-                            
-                            HStack(spacing: 8) {
-                                // Sunrise Section
-                                HStack {
-                                    Image(systemName: "sunrise.fill")
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .frame(width: 24)
-                                    
-                                    Spacer()
-                                    
-                                    Text(formatTime(times.sunrise))
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText(countsDown: false))
-                                        .animation(.spring(), value: times.sunrise)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .detailsSheetCard()
-                                
-                                // Sunset Section
-                                HStack{
-                                    Image(systemName: "sunset.fill")
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .frame(width: 24)
-                                    
-                                    Spacer()
-                                    
-                                    Text(formatTime(times.sunset))
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText(countsDown: false))
-                                        .animation(.spring(), value: times.sunset)
-                                    
-                                }
-                                .frame(maxWidth: .infinity)
-                                .detailsSheetCard()
-                            }
-                            .padding(.horizontal, 16)
-                            
-                            // Daylight Duration Section
-                            HStack {
-                                HStack(spacing: 16){
-                                    Image(systemName: "rays")
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .frame(width: 24)
-                                    
-                                    Text("Daylight")
-                                        .font(.headline)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                }
-                                Spacer()
-                                Text(formatDuration(from: times.sunrise, to: times.sunset))
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText(countsDown: false))
-                                    .animation(.spring(), value: "\(times.sunrise?.description ?? "")\(times.sunset?.description ?? "")")
-                            }
-                            .detailsSheetCardRow()
-                            
-                            // Evening Golden Hour Section
-                            if let goldenHour = eveningGoldenHour, goldenHour.start != nil && goldenHour.end != nil {
-                                HStack(spacing: 16) {
-                                    // Icon
-                                    Image(systemName: "sun.max.fill")
-                                        .font(.title3.weight(.semibold))
-                                        .foregroundStyle(.secondary)
-                                        .frame(width: 24)
-                                    
-                                    // Golden Hour text
-                                    Text("Golden Hour")
-                                        .font(.headline)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                    
-                                    Spacer()
-                                    
-                                    // Time range
-                                    HStack(spacing: 8) {
-                                        let adjustedNow = currentDate.addingTimeInterval(timeOffset)
-                                        let isInGoldenHour: Bool = {
-                                            if let start = goldenHour.start, let end = goldenHour.end {
-                                                return adjustedNow >= start && adjustedNow <= end
+                                    .detailsSheetCard()
+                                    .contentShape(Rectangle())
+                                    .onTapGesture {
+                                        if hapticEnabled {
+                                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                        }
+                                        let newValue = !isWeatherExpanded
+                                        withAnimation(.snappy(duration: 0.50)) { // weekly weather animation
+                                            isWeatherExpanded = newValue
+                                        }
+                                        storedWeatherExpanded = newValue
+                                    }
+                                    .padding(.horizontal, 16)
+
+                                    // Weekly weather section (expandable)
+                                    if isWeatherExpanded && !weeklyWeather.isEmpty {
+                                        ScrollView(.horizontal, showsIndicators: false) {
+                                            HStack(spacing: 8) {
+                                                ForEach(Array(weeklyWeather.enumerated()), id: \.offset) { index, day in
+                                                    VStack(spacing: 5) {
+                                                        // High temperature
+                                                        let highTemp = useCelsius ?
+                                                        day.highTemperature.converted(to: .celsius) :
+                                                        day.highTemperature.converted(to: .fahrenheit)
+                                                        Text("\(Int(highTemp.value))°")
+                                                            .font(.subheadline.weight(.medium))
+                                                            .monospacedDigit()
+
+                                                        // Low temperature
+                                                        let lowTemp = useCelsius ?
+                                                        day.lowTemperature.converted(to: .celsius) :
+                                                        day.lowTemperature.converted(to: .fahrenheit)
+                                                        Text("\(Int(lowTemp.value))°")
+                                                            .font(.subheadline.weight(.medium))
+                                                            .foregroundStyle(.secondary)
+                                                            .blendMode(.plusLighter)
+                                                            .monospacedDigit()
+
+                                                        // Weather icon
+                                                        Image(systemName: day.condition.icon)
+                                                            .symbolRenderingMode(.multicolor)
+                                                            .font(.title3)
+                                                            .foregroundStyle(.secondary)
+                                                            .blendMode(.plusLighter)
+                                                            .frame(height: 28)
+
+                                                        // Day of week
+                                                        Text(formatDayOfWeek(day.date))
+                                                            .font(.caption.weight(.semibold))
+                                                            .foregroundStyle(.secondary)
+                                                            .blendMode(.plusLighter)
+                                                            .padding(.top, 5)
+                                                    }
+                                                    .frame(width: 64)
+                                                    .padding(.vertical, 12)
+                                                    .detailsSheetCardChrome()
+                                                }
                                             }
-                                            return false
-                                        }()
-                                        
-                                        Text(formatGoldenHourStartTime(goldenHour.start))
-                                            .monospacedDigit()
-                                            .lineLimit(1)
-                                        Image(systemName: "arrow.right")
-                                            .font(.footnote.weight(.bold))
-                                            .foregroundStyle(isInGoldenHour ? .yellow : .secondary)
-                                            .animation(.spring(), value: isInGoldenHour)
-                                        Text(formatTime(goldenHour.end))
-                                            .monospacedDigit()
-                                            .lineLimit(1)
+                                            .padding(.horizontal, 16)
+                                        }
+                                        .transition(.blurReplace())
                                     }
-                                    .lineLimit(1)
-                                    .layoutPriority(1)
+                                }
+                                .padding(.top, 16) // Row top padding
+
+                            } else if weatherLoadAttempted {
+                                // Show "No Internet" message when weather is enabled but couldn't be loaded
+                                HStack {
+                                    Spacer()
+                                    Text("No Weather Data")
+                                        .fontWeight(.medium)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                    Spacer()
                                 }
                                 .detailsSheetCardRow()
-                                .transition(.blurReplace().combined(with: .opacity))
+                                .padding(.top, 16) // Row top padding
                             }
                         }
-                        
-                        // Moon Time section
-                        if let moon = moonInfo {
+
+                        if let times = sunTimes {
+                            // Sun times section
                             VStack(alignment: .leading){
-                                Text("Moon Time")
+
+                                Text("Solar Time")
                                     .font(.subheadline.weight(.semibold))
                                     .foregroundStyle(.secondary)
                                     .blendMode(.plusLighter)
                                     .padding(.horizontal, 32)
                                     .padding(.bottom, 4)
-                                    .padding(.top, 24)
-                                
+                                    .padding(.top, (showWeather && (currentWeather != nil || weatherLoadAttempted)) || currentDetent == .large ? 24 : 8)
+
                                 HStack(spacing: 8) {
-                                    // Moonrise Section
+                                    // Sunrise Section
                                     HStack {
-                                        Image(systemName: "moonrise.fill")
+                                        Image(systemName: "sunrise.fill")
                                             .font(.title3.weight(.semibold))
                                             .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
                                             .frame(width: 24)
-                                        
+
                                         Spacer()
-                                        
-                                        Text(formatTime(moon.moonrise))
+
+                                        Text(formatTime(times.sunrise))
                                             .monospacedDigit()
                                             .contentTransition(.numericText(countsDown: false))
-                                            .animation(.spring(), value: moon.moonrise)
+                                            .animation(.spring(), value: times.sunrise)
                                     }
                                     .frame(maxWidth: .infinity)
                                     .detailsSheetCard()
-                                    
-                                    // Moonset Section
+
+                                    // Sunset Section
                                     HStack{
-                                        Image(systemName: "moonset.fill")
+                                        Image(systemName: "sunset.fill")
                                             .font(.title3.weight(.semibold))
                                             .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
                                             .frame(width: 24)
-                                        
+
                                         Spacer()
-                                        
-                                        Text(formatTime(moon.moonset))
+
+                                        Text(formatTime(times.sunset))
                                             .monospacedDigit()
                                             .contentTransition(.numericText(countsDown: false))
-                                            .animation(.spring(), value: moon.moonset)
-                                        
+                                            .animation(.spring(), value: times.sunset)
+
                                     }
                                     .frame(maxWidth: .infinity)
                                     .detailsSheetCard()
                                 }
                                 .padding(.horizontal, 16)
-                                
-                                // Moon Phase Section
-                                Button {
-                                    if hapticEnabled {
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    }
-                                    showMoonPhaseView = true
-                                } label: {
-                                    HStack {
-                                        HStack(spacing: 16){
-                                            Image(systemName: moon.phaseIcon)
-                                                .font(.title3.weight(.semibold))
-                                                .foregroundStyle(.secondary)
-                                                .blendMode(.plusLighter)
-                                                .frame(width: 24)
-                                                .contentTransition(.symbolEffect(.replace))
-                                                .animation(.spring(), value: moon.phaseIcon)
-                                            
-                                            Text("Moon Phase")
-                                                .font(.headline)
-                                                .foregroundStyle(.secondary)
-                                                .blendMode(.plusLighter)
-                                        }
-                                        Spacer()
-                                        
-                                        Text(moon.phase)
-                                            .foregroundStyle(.primary)
-                                        
-                                        Image(systemName: "chevron.right")
-                                            .font(.footnote.weight(.semibold))
-                                            .foregroundStyle(.tertiary)
+
+                                // Daylight Duration Section
+                                HStack {
+                                    HStack(spacing: 16){
+                                        Image(systemName: "rays")
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+                                            .frame(width: 24)
+
+                                        Text("Daylight")
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
                                             .blendMode(.plusLighter)
                                     }
-                                    .detailsSheetCard()
+                                    Spacer()
+                                    Text(formatDuration(from: times.sunrise, to: times.sunset))
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText(countsDown: false))
+                                        .animation(.spring(), value: "\(times.sunrise?.description ?? "")\(times.sunset?.description ?? "")")
                                 }
-                                .buttonStyle(.plain)
-                                .padding(.horizontal, 16)
-                                
-                                // Next Full Moon Section
-                                if let nextFullMoon = nextFullMoonDate {
-                                    HStack {
-                                        HStack(spacing: 16){
-                                            Image(systemName: "moonphase.full.moon")
-                                                .font(.title3.weight(.semibold))
-                                                .foregroundStyle(.secondary)
-                                                .blendMode(.plusLighter)
-                                                .frame(width: 24)
-                                            
-                                            Text(String(localized: "Next Full Moon"))
-                                                .font(.headline)
-                                                .foregroundStyle(.secondary)
-                                                .blendMode(.plusLighter)
-                                        }
+                                .detailsSheetCardRow()
+
+                                // Evening Golden Hour Section
+                                if let goldenHour = eveningGoldenHour, goldenHour.start != nil && goldenHour.end != nil {
+                                    HStack(spacing: 16) {
+                                        // Icon
+                                        Image(systemName: "sun.max.fill")
+                                            .font(.title3.weight(.semibold))
+                                            .foregroundStyle(.secondary)
+                                            .frame(width: 24)
+
+                                        // Golden Hour text
+                                        Text("Golden Hour")
+                                            .font(.headline)
+                                            .foregroundStyle(.secondary)
+                                            .blendMode(.plusLighter)
+
                                         Spacer()
-                                        
-                                        Text(formatNextFullMoonDate(nextFullMoon))
-                                            .foregroundStyle(.primary)
-                                            .monospacedDigit()
-                                            .contentTransition(.numericText())
-                                            .animation(.spring(), value: nextFullMoon)
+
+                                        // Time range
+                                        HStack(spacing: 8) {
+                                            let adjustedNow = currentDate.addingTimeInterval(timeOffset)
+                                            let isInGoldenHour: Bool = {
+                                                if let start = goldenHour.start, let end = goldenHour.end {
+                                                    return adjustedNow >= start && adjustedNow <= end
+                                                }
+                                                return false
+                                            }()
+
+                                            Text(formatGoldenHourStartTime(goldenHour.start))
+                                                .monospacedDigit()
+                                                .lineLimit(1)
+                                            Image(systemName: "arrow.right")
+                                                .font(.footnote.weight(.bold))
+                                                .foregroundStyle(isInGoldenHour ? .yellow : .secondary)
+                                                .animation(.spring(), value: isInGoldenHour)
+                                            Text(formatTime(goldenHour.end))
+                                                .monospacedDigit()
+                                                .lineLimit(1)
+                                        }
+                                        .lineLimit(1)
+                                        .layoutPriority(1)
                                     }
                                     .detailsSheetCardRow()
+                                    .transition(.blurReplace().combined(with: .opacity))
+                                }
+                            }
+
+                            // Moon Time section
+                            if let moon = moonInfo {
+                                VStack(alignment: .leading){
+                                    Text("Moon Time")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .padding(.horizontal, 32)
+                                        .padding(.bottom, 4)
+                                        .padding(.top, 24)
+
+                                    HStack(spacing: 8) {
+                                        // Moonrise Section
+                                        HStack {
+                                            Image(systemName: "moonrise.fill")
+                                                .font(.title3.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                                .frame(width: 24)
+
+                                            Spacer()
+
+                                            Text(formatTime(moon.moonrise))
+                                                .monospacedDigit()
+                                                .contentTransition(.numericText(countsDown: false))
+                                                .animation(.spring(), value: moon.moonrise)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .detailsSheetCard()
+
+                                        // Moonset Section
+                                        HStack{
+                                            Image(systemName: "moonset.fill")
+                                                .font(.title3.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                                .frame(width: 24)
+
+                                            Spacer()
+
+                                            Text(formatTime(moon.moonset))
+                                                .monospacedDigit()
+                                                .contentTransition(.numericText(countsDown: false))
+                                                .animation(.spring(), value: moon.moonset)
+
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .detailsSheetCard()
+                                    }
+                                    .padding(.horizontal, 16)
+
+                                    // Moon Phase Section
+                                    Button {
+                                        if hapticEnabled {
+                                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        }
+                                        showMoonPhaseView = true
+                                    } label: {
+                                        HStack {
+                                            HStack(spacing: 16){
+                                                Image(systemName: moon.phaseIcon)
+                                                    .font(.title3.weight(.semibold))
+                                                    .foregroundStyle(.secondary)
+                                                    .blendMode(.plusLighter)
+                                                    .frame(width: 24)
+                                                    .contentTransition(.symbolEffect(.replace))
+                                                    .animation(.spring(), value: moon.phaseIcon)
+
+                                                Text("Moon Phase")
+                                                    .font(.headline)
+                                                    .foregroundStyle(.secondary)
+                                                    .blendMode(.plusLighter)
+                                            }
+                                            Spacer()
+
+                                            Text(moon.phase)
+                                                .foregroundStyle(.primary)
+
+                                            Image(systemName: "chevron.right")
+                                                .font(.footnote.weight(.semibold))
+                                                .foregroundStyle(.tertiary)
+                                                .blendMode(.plusLighter)
+                                        }
+                                        .detailsSheetCard()
+                                    }
+                                    .buttonStyle(.plain)
+                                    .padding(.horizontal, 16)
+
+                                    // Next Full Moon Section
+                                    if let nextFullMoon = nextFullMoonDate {
+                                        HStack {
+                                            HStack(spacing: 16){
+                                                Image(systemName: "moonphase.full.moon")
+                                                    .font(.title3.weight(.semibold))
+                                                    .foregroundStyle(.secondary)
+                                                    .blendMode(.plusLighter)
+                                                    .frame(width: 24)
+
+                                                Text(String(localized: "Next Full Moon"))
+                                                    .font(.headline)
+                                                    .foregroundStyle(.secondary)
+                                                    .blendMode(.plusLighter)
+                                            }
+                                            Spacer()
+
+                                            Text(formatNextFullMoonDate(nextFullMoon))
+                                                .foregroundStyle(.primary)
+                                                .monospacedDigit()
+                                                .contentTransition(.numericText())
+                                                .animation(.spring(), value: nextFullMoon)
+                                        }
+                                        .detailsSheetCardRow()
+                                    }
                                 }
                             }
                         }
+
                     }
-                    
+                    .animation(.bouncy(), value: currentDetent)
                 }
-                .animation(.bouncy(), value: currentDetent)
-            }
-            .scrollIndicators(.hidden)
+                .scrollIndicators(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 if currentDetent == .large {
                     stickyTimeSection
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
                 }
+            }
+            .background(alignment: .top) {
+                sheetSkyBackground
             }
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
