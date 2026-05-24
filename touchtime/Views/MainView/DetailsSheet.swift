@@ -25,7 +25,6 @@ struct SunriseSunsetSheet: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("show10DaysWeather") private var storedWeatherExpanded = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
-    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
     @EnvironmentObject private var weatherManager: WeatherManager
@@ -381,21 +380,6 @@ struct SunriseSunsetSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     // Top row: Weather and Date
                     HStack {
-                        // SkyDot when additional time is off
-                        if showSkyDot && additionalTimeDisplay == "None" {
-                            SkyDotView(
-                                date: currentDate.addingTimeInterval(timeOffset),
-                                timeZoneIdentifier: timeZoneIdentifier,
-                                weatherCondition: weatherConditionForSky
-                            )
-                            .overlay(
-                                Capsule(style: .continuous)
-                                    .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
-                                    .blendMode(.plusLighter)
-                            )
-                            .transition(.blurReplace)
-                        }
-                        
                         Spacer()
                         
                         // Weather display
