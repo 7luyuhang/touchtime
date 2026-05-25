@@ -952,8 +952,8 @@ struct AnalogClockFullView: View {
                         }
                     } else {
                         // Analog Clock - always centered
-                        if selectedDisplayPage == .timer {
-                            TimelineView(.periodic(from: .now, by: 1)) { context in
+                        TimelineView(.periodic(from: .now, by: 1)) { context in
+                            if selectedDisplayPage == .timer {
                                 TimerClockFaceView(
                                     size: size,
                                     remainingSeconds: homeTimerRemainingSeconds(at: context.date),
@@ -969,23 +969,23 @@ struct AnalogClockFullView: View {
                                         isTimerCircleAdjusting = adjusting
                                     }
                                 )
+                            } else {
+                                AnalogClockFaceView(
+                                    date: context.date.addingTimeInterval(timeOffset),
+                                    timeOffset: $timeOffset,
+                                    showScrollTimeButtons: $showScrollTimeButtons,
+                                    selectedTimeZone: selectedTimeZone,
+                                    size: size,
+                                    worldClocks: displayedClocks,
+                                    showLocalTime: showLocalTime,
+                                    selectedCityId: $selectedCityId,
+                                    hapticEnabled: hapticEnabled,
+                                    showDetailsSheet: $showDetailsSheet,
+                                    weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                                    showWeather: showWeather,
+                                    showTimeInsteadOfCityName: showTimeInsteadOfCityName
+                                )
                             }
-                        } else {
-                            AnalogClockFaceView(
-                                date: displayDate,
-                                timeOffset: $timeOffset,
-                                showScrollTimeButtons: $showScrollTimeButtons,
-                                selectedTimeZone: selectedTimeZone,
-                                size: size,
-                                worldClocks: displayedClocks,
-                                showLocalTime: showLocalTime,
-                                selectedCityId: $selectedCityId,
-                                hapticEnabled: hapticEnabled,
-                                showDetailsSheet: $showDetailsSheet,
-                                weather: weatherManager.weatherData[selectedTimeZone.identifier],
-                                showWeather: showWeather,
-                                showTimeInsteadOfCityName: showTimeInsteadOfCityName
-                            )
                         }
                         
                         // Digital time and scroll controls overlay
@@ -1712,6 +1712,18 @@ struct AnalogClockFaceView: View {
         return (components.hour ?? 0, components.minute ?? 0)
     }
 
+    // Get the currently displayed time for the selected timezone.
+    private var selectedClockTime: (hour: Int, minute: Int, second: Int) {
+        var calendar = Calendar.current
+        calendar.timeZone = selectedTimeZone
+        let components = calendar.dateComponents([.hour, .minute, .second], from: date)
+        return (
+            components.hour ?? 0,
+            components.minute ?? 0,
+            components.second ?? 0
+        )
+    }
+
     // Get time for a specific timezone
     private func getTime(for timeZoneIdentifier: String) -> (hour: Int, minute: Int) {
         guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
@@ -2040,9 +2052,9 @@ struct AnalogClockFaceView: View {
             }
             
             if hasLifetimeAccess, showMinuteHand {
-                CurrentMinuteHandView(
-                    timeOffset: timeOffset,
-                    selectedTimeZone: selectedTimeZone,
+                MinuteHandView(
+                    minute: selectedClockTime.minute,
+                    second: selectedClockTime.second,
                     size: size
                 )
                 .allowsHitTesting(false)
@@ -2404,33 +2416,6 @@ struct UTCClockHandView: View {
 }
 
 // MARK: - Minute Hand
-private struct CurrentMinuteHandView: View {
-    let timeOffset: TimeInterval
-    let selectedTimeZone: TimeZone
-    let size: CGFloat
-
-    var body: some View {
-        TimelineView(.periodic(from: .now, by: 1)) { context in
-            let time = timeComponents(for: context.date.addingTimeInterval(timeOffset))
-            MinuteHandView(
-                minute: time.minute,
-                second: time.second,
-                size: size
-            )
-        }
-    }
-
-    private func timeComponents(for date: Date) -> (minute: Int, second: Int) {
-        var calendar = Calendar.current
-        calendar.timeZone = selectedTimeZone
-        let components = calendar.dateComponents([.minute, .second], from: date)
-        return (
-            components.minute ?? 0,
-            components.second ?? 0
-        )
-    }
-}
-
 struct MinuteHandView: View {
     let minute: Int
     let second: Int
