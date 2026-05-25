@@ -315,6 +315,20 @@ struct TipJarView: View {
             // Title
             .navigationTitle(String(localized: "Support & Love"))
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                        }
+                        dismiss()
+                    }) {
+                        Image(systemName: "xmark")
+                            .fontWeight(.semibold)
+                    }
+                }
+            }
             
             // Bottom Email Button (appears when expanded)
             if showExpandedFeatures {
@@ -379,4 +393,3 @@ struct TipJarView: View {
         }
     }
 }
-

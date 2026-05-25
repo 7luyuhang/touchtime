@@ -917,20 +917,6 @@ struct SettingsView: View {
             .fullScreenCover(isPresented: $showSupportLove) {
                 NavigationStack {
                     TipJarView()
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button(action: {
-                                    if hapticEnabled {
-                                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                        impactFeedback.impactOccurred()
-                                    }
-                                    showSupportLove = false
-                                }) {
-                                    Image(systemName: "xmark")
-                                        .fontWeight(.semibold)
-                                }
-                            }
-                        }
                 }
             }
             // Complications Sheet
