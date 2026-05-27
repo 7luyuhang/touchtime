@@ -956,7 +956,7 @@ struct SunriseSunsetSheet: View {
                 }
             }
             .presentationDetents([.medium, .large], selection: $currentDetent)
-            .presentationDragIndicator(.hidden)
+            .presentationDragIndicator(.visible)
             .sheet(isPresented: $showMoonPhaseView) {
                 MoonPhaseView(
                     cityName: cityName,
