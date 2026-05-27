@@ -80,6 +80,7 @@ struct HomeView: View {
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
+    @State private var showComplicationsSheet = false
     @State private var showEarthView = false
     @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
     @State private var showCalendarPermissionAlert = false
@@ -1300,6 +1301,7 @@ struct HomeView: View {
                                     )
                                     .environmentObject(weatherManager)
                                 }
+                                .animation(nil, value: complicationOptions)
                                 // Make entire row tappable
                                 .contentShape(Rectangle())
                                 // Sky Background
@@ -1461,6 +1463,7 @@ struct HomeView: View {
                                     )
                                     .environmentObject(weatherManager)
                                 }
+                                .animation(nil, value: complicationOptions)
                                 // Make entire row tappable
                                 .contentShape(Rectangle())
                                 // Sky Background
@@ -1649,19 +1652,6 @@ struct HomeView: View {
             .animation(.spring(), value: showSkyDot)
             .animation(.spring(), value: showLocalTime)
             .animation(.spring(), value: hasLifetimeAccess && availableTimeEnabled)
-            .animation(.spring(), value: showAnalogClock)
-            .animation(.spring(), value: showSunPosition)
-            .animation(.spring(), value: effectiveShowWeatherCondition)
-            .animation(.spring(), value: effectiveShowTemperatureIndicator)
-            .animation(.spring(), value: effectiveShowUVIndex)
-            .animation(.spring(), value: effectiveShowWindDirection)
-            .animation(.spring(), value: showSunAzimuth)
-            .animation(.spring(), value: effectiveShowMoonAzimuth)
-            .animation(.spring(), value: effectiveShowMoonSunAzimuth)
-            .animation(.spring(), value: showSunriseSunset)
-            .animation(.spring(), value: effectiveShowDaylight)
-            .animation(.spring(), value: effectiveShowTimeOverlay)
-            .animation(.spring(), value: showSolarCurve)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.spring(), value: showShakeToResetTip)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
@@ -1798,6 +1788,17 @@ struct HomeView: View {
                                 showSetTimerSheet = true
                             }) {
                                 Label(String(localized: "Timer"), systemImage: "timer")
+                            }
+
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showComplicationsSheet = true
+                            }) {
+                                Label(String(localized: "Complications"), systemImage: "watch.analog")
                             }
                         }
 
@@ -2009,6 +2010,31 @@ struct HomeView: View {
                 SetTimerSheet(initialDurationSeconds: homeTimerConfiguredSeconds) { durationSeconds in
                     startHomeTimer(durationSeconds: durationSeconds)
                 }
+            }
+
+            // Complications Sheet
+            .sheet(isPresented: $showComplicationsSheet) {
+                NavigationStack {
+                    ComplicationsSettingsView(
+                        showAnalogClock: $showAnalogClock,
+                        showSunPosition: $showSunPosition,
+                        showSunAzimuth: $showSunAzimuth,
+                        showMoonAzimuth: $showMoonAzimuth,
+                        showMoonSunAzimuth: $showMoonSunAzimuth,
+                        showSunriseSunset: $showSunriseSunset,
+                        showWeatherCondition: $showWeatherCondition,
+                        showTemperatureIndicator: $showTemperatureIndicator,
+                        showUVIndex: $showUVIndex,
+                        showWindDirection: $showWindDirection,
+                        showDaylight: $showDaylight,
+                        showTimeOverlay: $showTimeOverlay,
+                        showSolarCurve: $showSolarCurve,
+                        showWeather: showWeather,
+                        weatherManager: weatherManager
+                    )
+                }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
             }
             
             // Earth View
