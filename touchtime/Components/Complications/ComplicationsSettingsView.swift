@@ -24,6 +24,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showSolarCurve: Bool
     var showWeather: Bool
     @ObservedObject var weatherManager: WeatherManager
+    @Environment(\.dismiss) private var dismiss
     
     @State private var currentDate = Date()
     @State private var showLifetimeStore = false
@@ -123,6 +124,18 @@ struct ComplicationsSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    }
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+                .accessibilityLabel(Text("Close"))
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
                 if showAnalogClock || (showWeather && showWeatherCondition) {
                     Menu {
                         Section(String(localized: "Customisation")) {

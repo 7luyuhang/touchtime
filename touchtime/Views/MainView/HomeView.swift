@@ -2034,7 +2034,7 @@ struct HomeView: View {
                     )
                 }
                 .presentationDetents([.medium])
-                .presentationDragIndicator(.visible)
+                .presentationDragIndicator(.hidden)
             }
             
             // Earth View
