@@ -239,6 +239,24 @@ struct MoonPhaseView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+                
+                ToolbarItem(placement: .principal) {
+                    Text(monthYearString(for: currentDisplayedMonth))
+                        .font(.headline)
+                        .contentTransition(.numericText())
+                        .animation(.spring(), value: selectedMonthIndex)
+                }
+                
+                ToolbarItem(placement: .topBarTrailing) {
                     if selectedMonthIndex != 1 {
                         Button {
                             if hapticEnabled {
@@ -251,24 +269,6 @@ struct MoonPhaseView: View {
                             Image(systemName: selectedMonthIndex < 1 ? "arrow.forward" : "arrow.backward")
                                 .font(.headline)
                         }
-                    }
-                }
-                
-                ToolbarItem(placement: .principal) {
-                    Text(monthYearString(for: currentDisplayedMonth))
-                        .font(.headline)
-                        .contentTransition(.numericText())
-                        .animation(.spring(), value: selectedMonthIndex)
-                }
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
                     }
                 }
             }
