@@ -97,13 +97,13 @@ struct SetTimerSheet: View {
 
                     HStack(spacing: 0) {
                         Text(String(localized: "min"))
-                            .font(.headline)
+                            .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity, alignment: .trailing)
-                            .padding(.trailing, 24)
+                            .padding(.trailing, 16)
                         Text(String(localized: "sec"))
-                            .font(.headline)
+                            .font(.subheadline.weight(.semibold))
                             .frame(maxWidth: .infinity, alignment: .trailing)
-                            .padding(.trailing, 24)
+                            .padding(.trailing, 16)
                     }
                     .allowsHitTesting(false)
                 }
