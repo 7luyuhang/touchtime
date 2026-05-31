@@ -151,6 +151,6 @@ struct SetTimerSheet: View {
             }
         }
         .presentationDetents([.height(300)])
-        .presentationDragIndicator(.visible)
+        .presentationDragIndicator(.hidden)
     }
 }
