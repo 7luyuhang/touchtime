@@ -206,12 +206,16 @@
 "Delete Timer" = "Delete Timer";
 "Set Timer" = "Set Timer";
 "New Timer" = "New Timer";
+"Adjust Time" = "Adjust Time";
+"Direction" = "Direction";
+"Hours" = "Hours";
 "Rename Timer" = "Rename Timer";
 "Customize the name of this timer" = "Customize the name of this timer";
 "Are you sure you want to replace current timer?" = "Are you sure you want to replace current timer?";
 "Replace" = "Replace";
 "Minutes" = "Minutes";
 "Seconds" = "Seconds";
+"hr" = "hr";
 "min" = "min";
 "sec" = "sec";
 "%d min %d sec" = "%d min %d sec";

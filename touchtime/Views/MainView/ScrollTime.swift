@@ -43,6 +43,10 @@ struct ScrollTimeView: View {
     @State private var inertiaTimer: Timer?
     @State private var inertiaVelocity: CGFloat = 0
     @State private var lastInertiaHapticOffset: TimeInterval = 0
+    @State private var showTimeOffsetAdjustmentSheet = false
+    @State private var pendingOffsetDirection: ScrollTimeOffsetDirection = .increase
+    @State private var pendingOffsetHours = 0
+    @State private var pendingOffsetMinutes = 0
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
     @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
@@ -557,6 +561,34 @@ struct ScrollTimeView: View {
         }
     }
 
+    private func prepareTimeOffsetAdjustmentSheet() {
+        stopInertia()
+
+        let snappedOffset = snappedToWholeMinute(timeOffset)
+        let totalMinutes = Int(abs(snappedOffset) / 60)
+        pendingOffsetDirection = snappedOffset >= 0 ? .increase : .decrease
+        pendingOffsetHours = min(totalMinutes / 60, 24)
+        pendingOffsetMinutes = totalMinutes % 60
+    }
+
+    private func confirmTimeOffsetAdjustment() {
+        let totalMinutes = pendingOffsetHours * 60 + pendingOffsetMinutes
+        let signedOffset = TimeInterval(totalMinutes * 60 * pendingOffsetDirection.rawValue)
+
+        stopInertia()
+        withAnimation(.spring()) {
+            accumulatedOffset = signedOffset
+            commitTimeOffset(signedOffset)
+            dragOffset = 0
+            lastHapticOffset = 0
+            lastInertiaHapticOffset = 0
+            showButtons = false
+        }
+
+        showTimeOffsetAdjustmentSheet = false
+        triggerControlHaptic(style: .soft)
+    }
+
     private var resolvedTimerPlayPauseTitle: String {
         if let timerPlayPauseTitle {
             return timerPlayPauseTitle
@@ -784,9 +816,17 @@ struct ScrollTimeView: View {
             }
             .buttonStyle(.plain)
 
-            Text(formattedTimeOffset(timeOffset))
-                .font(.footnote.weight(.semibold))
-                .monospacedDigit()
+            Button {
+                prepareTimeOffsetAdjustmentSheet()
+                showTimeOffsetAdjustmentSheet = true
+                triggerControlHaptic(style: .soft)
+            } label: {
+                Text(formattedTimeOffset(timeOffset))
+                    .font(.footnote.weight(.semibold))
+                    .monospacedDigit()
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
             // Reset button
             Button(action: {
@@ -924,6 +964,18 @@ struct ScrollTimeView: View {
                newValue != snappedToWholeMinute(accumulatedOffset) {
                 accumulatedOffset = newValue
             }
+        }
+        .sheet(isPresented: $showTimeOffsetAdjustmentSheet) {
+            ScrollTimeOffsetAdjustmentSheet(
+                direction: $pendingOffsetDirection,
+                hours: $pendingOffsetHours,
+                minutes: $pendingOffsetMinutes,
+                onClose: {
+                    showTimeOffsetAdjustmentSheet = false
+                    triggerControlHaptic(style: .soft)
+                },
+                onConfirm: confirmTimeOffsetAdjustment
+            )
         }
         .sheet(isPresented: $showEventEditor) {
             EventEditView(
