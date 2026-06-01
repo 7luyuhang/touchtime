@@ -457,7 +457,6 @@ struct SunriseSunsetSheet: View {
             )
             .animation(.spring(), value: showSkyDot)
         }
-        .transition(.blurReplace().combined(with: .scale).combined(with: .opacity))
     }
     
     var body: some View {
@@ -845,11 +844,15 @@ struct SunriseSunsetSheet: View {
                 }
                 .scrollIndicators(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
-                if currentDetent == .large {
-                    stickyTimeSection
-                        .padding(.horizontal, 16)
-                        .padding(.top, 8)
+                Group {
+                    if currentDetent == .large {
+                        stickyTimeSection
+                            .padding(.horizontal, 16)
+                            .padding(.top, 8)
+                            .transition(.blurReplace())
+                    }
                 }
+                .animation(.bouncy(), value: currentDetent)
             }
             .background(alignment: .top) {
                 sheetSkyBackground
