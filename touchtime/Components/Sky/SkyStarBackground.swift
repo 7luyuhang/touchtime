@@ -92,6 +92,9 @@ struct SkyBackgroundView: View {
     /// the given elapsed time. Used by `ImageRenderer` snapshots since
     /// `TimelineView` animations don't run during rendering.
     var staticRainElapsed: Float? = nil
+    /// Set to false when the containing card already applies clipping and
+    /// border chrome around the complete card.
+    var appliesCardChrome: Bool = true
 
     // Create sky color gradient instance
     private var skyColorGradient: SkyColorGradient {
@@ -103,7 +106,7 @@ struct SkyBackgroundView: View {
         return condition.rainIntensity
     }
 
-    var body: some View {
+    private var skyContent: some View {
         ZStack {
             // Fill the full bounding rectangle so the rain shader never samples
             // transparent pixels (which would show as black refractive halos
@@ -121,13 +124,26 @@ struct SkyBackgroundView: View {
                     .allowsHitTesting(false)
             }
         }
-        // Run the shader on the full rectangle, then round the corners so the
-        // drops on the edges still get refraction without any black halo.
         .rainFallEffect(intensity: rainIntensity, staticElapsed: staticRainElapsed)
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        // border
+    }
+
+    @ViewBuilder
+    var body: some View {
+        if appliesCardChrome {
+            // Run effects on the full rectangle, then round the complete sky so
+            // shaders keep enough sampling room near the corners.
+            skyContent.skyBackgroundCardChrome()
+        } else {
+            skyContent
+        }
+    }
+}
+
+extension View {
+    func skyBackgroundCardChrome(cornerRadius: CGFloat = 26) -> some View {
+        clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1.0)
                 .blendMode(.plusLighter)
         )

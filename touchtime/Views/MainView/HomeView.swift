@@ -22,6 +22,23 @@ struct CityTimeAdjustmentData: Identifiable {
     let timeZoneIdentifier: String
 }
 
+private struct HomeSkyListRowBackground: View {
+    let date: Date
+    let timeZoneIdentifier: String
+    let weatherCondition: WeatherCondition?
+
+    var body: some View {
+        SkyBackgroundView(
+            date: date,
+            timeZoneIdentifier: timeZoneIdentifier,
+            weatherCondition: weatherCondition,
+            showRainEffect: true,
+            appliesCardChrome: false
+        )
+        .skyBackgroundCardChrome()
+    }
+}
+
 // MARK: - Lazy Card Image (deferred rendering for ShareLink)
 struct LazyCardImage: Transferable {
     let render: () -> UIImage
@@ -1306,11 +1323,10 @@ struct HomeView: View {
                                 .contentShape(Rectangle())
                                 // Sky Background
                                 .listRowBackground(
-                                    showSkyDot ? SkyBackgroundView(
+                                    showSkyDot ? HomeSkyListRowBackground(
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZoneIdentifier: TimeZone.current.identifier,
-                                        weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier),
-                                        showRainEffect: true
+                                        weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
                                     ) : nil
                                 )
                                 .id("local-\(showSkyDot)")
@@ -1468,11 +1484,10 @@ struct HomeView: View {
                                 .contentShape(Rectangle())
                                 // Sky Background
                                 .listRowBackground(
-                                    showSkyDot ? SkyBackgroundView(
+                                    showSkyDot ? HomeSkyListRowBackground(
                                         date: currentDate.addingTimeInterval(timeOffset),
                                         timeZoneIdentifier: clock.timeZoneIdentifier,
-                                        weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier),
-                                        showRainEffect: true
+                                        weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
                                     ) : nil
                                 )
                                 .id("\(clock.id)-\(showSkyDot)")
@@ -1631,7 +1646,8 @@ struct HomeView: View {
                             SkyBackgroundView(
                                 date: currentDate.addingTimeInterval(timeOffset),
                                 timeZoneIdentifier: TimeZone.current.identifier,
-                                weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
+                                weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier),
+                                appliesCardChrome: false
                             )
                             .frame(width: 500, height: 500)
                             .blur(radius: 50)
