@@ -60,6 +60,7 @@ struct DotMatrixOverlay: View {
 }
 
 struct OnboardingView: View {
+    @Environment(\.dismiss) private var dismiss
     @Binding var hasCompletedOnboarding: Bool
     @ObservedObject var weatherManager: WeatherManager
     var isReviewing: Bool = false  // True when showing from Settings
@@ -861,6 +862,21 @@ struct OnboardingView: View {
                     .spring(duration: 1.0), value: animateButton
                 )
   
+            }
+        }
+        .overlay(alignment: .topLeading) {
+            if isReviewing {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "xmark")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(width: 36, height: 36)
+                        .glassEffect(.clear.interactive())
+                }
+                .accessibilityLabel(Text("Close"))
+                .padding(.leading)
             }
         }
         .onAppear {

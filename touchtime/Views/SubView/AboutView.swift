@@ -261,19 +261,7 @@ struct AboutView: View {
                         showOnboarding = false
                     }
                 }
-            ), weatherManager: weatherManager)
-            .overlay(alignment: .topTrailing) {
-                Button(action: {
-                    showOnboarding = false
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
-                        .glassEffect(.clear.interactive())
-                }
-                .padding(.horizontal)
-            }
+            ), weatherManager: weatherManager, isReviewing: true)
         }
     }
     
