@@ -125,7 +125,7 @@ struct HomeTimerSection: View {
                         Image(systemName: symbol)
                             .font(.title2.weight(.semibold))
                             .foregroundStyle(.white)
-                            .contentTransition(.symbolEffect(.replace))
+                            .contentTransition(.symbolEffect(.replace, options: .speed(2.0)))
                             .animation(.spring(), value: symbol)
                             .frame(width: complicationButtonSize, height: complicationButtonSize)
                     }
