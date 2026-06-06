@@ -151,6 +151,10 @@ struct OnboardingView: View {
         hasLifetimeAccess
     }
 
+    private var canShowTimeOverlayComplication: Bool {
+        canShowLifetimeComplications && availableTimeEnabled
+    }
+
     private var effectiveShowMoonAzimuth: Bool {
         canShowLifetimeComplications && showMoonAzimuth
     }
@@ -164,7 +168,7 @@ struct OnboardingView: View {
     }
 
     private var effectiveShowTimeOverlay: Bool {
-        canShowLifetimeComplications && showTimeOverlay && availableTimeEnabled
+        canShowTimeOverlayComplication && showTimeOverlay
     }
     
     // Prepare haptic engine
@@ -219,26 +223,39 @@ struct OnboardingView: View {
     
     private func selectComplication(_ type: OnboardingComplicationType?) {
         withAnimation(.spring()) {
-            showAnalogClock = type == .analogClock
-            showSunPosition = type == .sunElevation
-            showSunAzimuth = type == .sunAzimuth
-            showMoonAzimuth = type == .moonAzimuth
-            showMoonSunAzimuth = type == .moonSunAzimuth
-            showSunriseSunset = type == .sunriseSunset
-            showWeatherCondition = type == .weatherCondition
-            showTemperatureIndicator = type == .temperatureIndicator
-            showUVIndex = type == .uvIndex
-            showWindDirection = type == .windDirection
-            showDaylight = type == .daylight
-            showTimeOverlay = type == .timeOverlay
-            showSolarCurve = type == .solarCurve
+            let selectedType = type == .timeOverlay && !canShowTimeOverlayComplication ? nil : type
+
+            showAnalogClock = selectedType == .analogClock
+            showSunPosition = selectedType == .sunElevation
+            showSunAzimuth = selectedType == .sunAzimuth
+            showMoonAzimuth = selectedType == .moonAzimuth
+            showMoonSunAzimuth = selectedType == .moonSunAzimuth
+            showSunriseSunset = selectedType == .sunriseSunset
+            showWeatherCondition = selectedType == .weatherCondition
+            showTemperatureIndicator = selectedType == .temperatureIndicator
+            showUVIndex = selectedType == .uvIndex
+            showWindDirection = selectedType == .windDirection
+            showDaylight = selectedType == .daylight
+            showTimeOverlay = selectedType == .timeOverlay
+            showSolarCurve = selectedType == .solarCurve
         }
     }
 
-    private func enforceLifetimeAccess() {
-        guard !hasLifetimeAccess else { return }
+    private func enforceComplicationAvailability() {
+        let hasLifetimeOnlySelection = [
+            showMoonAzimuth,
+            showMoonSunAzimuth,
+            showWeatherCondition,
+            showTemperatureIndicator,
+            showUVIndex,
+            showWindDirection,
+            showDaylight,
+            showTimeOverlay
+        ].contains(true)
 
-        if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
+        if !hasLifetimeAccess && hasLifetimeOnlySelection {
+            selectComplication(nil)
+        } else if !availableTimeEnabled && showTimeOverlay {
             selectComplication(nil)
         }
     }
@@ -686,7 +703,7 @@ struct OnboardingView: View {
                                         )
                                     }
 
-                                    if canShowLifetimeComplications {
+                                    if canShowTimeOverlayComplication {
                                         complicationOption(type: .timeOverlay, isSelected: effectiveShowTimeOverlay) {
                                             TimeOverlayIndicator(
                                                 date: currentDate,
@@ -881,7 +898,7 @@ struct OnboardingView: View {
         }
         .onAppear {
             prepareHaptics()
-            enforceLifetimeAccess()
+            enforceComplicationAvailability()
             
             animateIcon = true
             animateText = true
@@ -904,7 +921,10 @@ struct OnboardingView: View {
             }
         }
         .onChange(of: hasLifetimeAccess) { _, _ in
-            enforceLifetimeAccess()
+            enforceComplicationAvailability()
+        }
+        .onChange(of: availableTimeEnabled) { _, _ in
+            enforceComplicationAvailability()
         }
         .onDisappear {
             hapticEngine?.stop()
