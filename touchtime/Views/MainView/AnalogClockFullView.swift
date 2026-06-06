@@ -1696,12 +1696,20 @@ struct AnalogClockFaceView: View {
         return CGPoint(x: x, y: y)
     }
     
+    private func getTime(in timeZone: TimeZone) -> (hour: Int, minute: Int) {
+        getTime(in: timeZone, at: date)
+    }
+
+    private func getTime(in timeZone: TimeZone, at sourceDate: Date) -> (hour: Int, minute: Int) {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let components = calendar.dateComponents([.hour, .minute], from: sourceDate)
+        return (components.hour ?? 0, components.minute ?? 0)
+    }
+
     // Get local time components
     private var localTime: (hour: Int, minute: Int) {
-        var calendar = Calendar.current
-        calendar.timeZone = TimeZone.current
-        let components = calendar.dateComponents([.hour, .minute], from: date)
-        return (components.hour ?? 0, components.minute ?? 0)
+        getTime(in: TimeZone.current)
     }
     
     // Get UTC time components
@@ -1726,13 +1734,36 @@ struct AnalogClockFaceView: View {
 
     // Get time for a specific timezone
     private func getTime(for timeZoneIdentifier: String) -> (hour: Int, minute: Int) {
+        getTime(for: timeZoneIdentifier, at: date)
+    }
+
+    private func getTime(for timeZoneIdentifier: String, at sourceDate: Date) -> (hour: Int, minute: Int) {
         guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
             return (0, 0)
         }
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        let components = calendar.dateComponents([.hour, .minute], from: date)
-        return (components.hour ?? 0, components.minute ?? 0)
+        return getTime(in: timeZone, at: sourceDate)
+    }
+
+    private var clockHandTimeOffsetDegrees: Double {
+        (timeOffset / 240.0).truncatingRemainder(dividingBy: 360)
+    }
+
+    private var localClockHandAngle: Double {
+        clockHandAngle(in: TimeZone.current)
+    }
+
+    private func clockHandAngle(for timeZoneIdentifier: String) -> Double {
+        guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
+            return clockHandTimeOffsetDegrees
+        }
+        return clockHandAngle(in: timeZone)
+    }
+
+    private func clockHandAngle(in timeZone: TimeZone) -> Double {
+        let baseTime = getTime(in: timeZone, at: originalDate)
+        let hourAngle = Double(baseTime.hour) * 15.0
+        let minuteAngle = Double(baseTime.minute) * 0.25
+        return hourAngle + minuteAngle + clockHandTimeOffsetDegrees
     }
     
     // Calculate angle for a given hour and minute
@@ -2082,6 +2113,7 @@ struct AnalogClockFaceView: View {
                         cityName: clock.localizedCityName,
                         hour: time.hour,
                         minute: time.minute,
+                        angle: clockHandAngle(for: clock.timeZoneIdentifier),
                         size: size,
                         color: .white.opacity(0.25), // Hand colour
                         isSelected: false,
@@ -2102,6 +2134,7 @@ struct AnalogClockFaceView: View {
                     cityName: String(localized: "Local"),
                     hour: localTime.hour,
                     minute: localTime.minute,
+                    angle: localClockHandAngle,
                     size: size,
                     color: .blue,
                     isSelected: false,
@@ -2124,6 +2157,7 @@ struct AnalogClockFaceView: View {
                         cityName: clock.localizedCityName,
                         hour: time.hour,
                         minute: time.minute,
+                        angle: clockHandAngle(for: clock.timeZoneIdentifier),
                         size: size,
                         color: .white.opacity(0.25),
                         isSelected: true,
@@ -2142,6 +2176,7 @@ struct AnalogClockFaceView: View {
                     cityName: String(localized: "Local"),
                     hour: localTime.hour,
                     minute: localTime.minute,
+                    angle: localClockHandAngle,
                     size: size,
                     color: .blue,
                     isSelected: true,
@@ -2198,6 +2233,7 @@ struct ClockHandWithLabel: View {
     let cityName: String
     let hour: Int
     let minute: Int
+    let angle: Double
     let size: CGFloat
     let color: Color
     let isSelected: Bool
@@ -2223,17 +2259,15 @@ struct ClockHandWithLabel: View {
         showTimeInsteadOfCityName ? timeString : cityName
     }
     
-    private var angle: Double {
-        // 24-hour clock: full rotation = 24 hours
-        let hourAngle = Double(hour) * 15.0 // 15 degrees per hour
-        let minuteAngle = Double(minute) * 0.25 // 15/60 degrees per minute
-        return hourAngle + minuteAngle
+    private var normalizedAngle: Double {
+        let normalized = angle.truncatingRemainder(dividingBy: 360)
+        return normalized >= 0 ? normalized : normalized + 360
     }
     
     // Counter-rotation: flip text 180° when pointing down/left to keep it readable
     private var textCounterRotation: Double {
         // When angle is greater than 180° (bottom half), flip the text
-        angle > 180 ? 180 : 0
+        normalizedAngle > 180 ? 180 : 0
     }
     
     // Hand color: white when selected, blue for Local when not selected
