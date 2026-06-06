@@ -1052,6 +1052,8 @@ struct HomeView: View {
             formatter.dateFormat = "h:mm"
         }
         let timeString = formatter.string(from: adjustedDate)
+        formatter.timeZone = TimeZone.current
+        let localTimeString = formatter.string(from: adjustedDate)
         
         let dateString = getCityDate(
             timeZoneIdentifier: timeZoneIdentifier,
@@ -1067,6 +1069,8 @@ struct HomeView: View {
         let snapshotView = CityCardSnapshotView(
             cityName: cityName,
             timeString: timeString,
+            localCityName: localCityName,
+            localTimeString: localTimeString,
             dateString: dateString,
             date: adjustedDate,
             timeZone: targetTimeZone,

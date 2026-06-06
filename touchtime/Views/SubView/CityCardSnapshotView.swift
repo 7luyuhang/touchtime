@@ -45,7 +45,7 @@ private struct SnapshotStarsView: View {
                         .fill(
                             star.size > 1.5 ?
                             Color(white: 1.0) :
-                            Color(white: 0.95, opacity: 1.0)
+                                Color(white: 0.95, opacity: 1.0)
                         )
                         .frame(width: star.size, height: star.size)
                         .blur(radius: star.size > 1.5 ? 0.3 : 0)
@@ -105,9 +105,11 @@ struct CityCardSnapshotView: View {
         let current: String
         let next: String
     }
-
+    
     let cityName: String
     let timeString: String
+    let localCityName: String
+    let localTimeString: String
     let dateString: String
     let date: Date
     let timeZone: TimeZone
@@ -133,21 +135,21 @@ struct CityCardSnapshotView: View {
         let zoneComponent = UInt64(abs(timeZoneIdentifier.unicodeScalars.reduce(0) { $0 + Int($1.value) }))
         return timeComponent ^ (zoneComponent << 1)
     }
-
+    
     private var weekdayDisplay: WeekdayDisplay {
         var calendar = Calendar.current
         calendar.timeZone = timeZone
-
+        
         let previousDate = calendar.date(byAdding: .day, value: -1, to: date) ?? date.addingTimeInterval(-86_400)
         let nextDate = calendar.date(byAdding: .day, value: 1, to: date) ?? date.addingTimeInterval(86_400)
-
+        
         return WeekdayDisplay(
             previous: weekdaySymbol(for: calendar.component(.weekday, from: previousDate)),
             current: weekdaySymbol(for: calendar.component(.weekday, from: date)),
             next: weekdaySymbol(for: calendar.component(.weekday, from: nextDate))
         )
     }
-
+    
     private func weekdaySymbol(for weekday: Int) -> String {
         switch weekday {
         case 1:
@@ -168,7 +170,7 @@ struct CityCardSnapshotView: View {
             return ""
         }
     }
-
+    
     @ViewBuilder
     private var additionalTimeView: some View {
         if additionalTimeDisplay == "Weekday" {
@@ -185,7 +187,7 @@ struct CityCardSnapshotView: View {
                     )
                     .blendMode(.plusLighter)
                     .contentTransition(.numericText())
-
+                
                 Text(weekday.current)
                     .font(.caption.weight(.bold))
                     .fontDesign(.rounded)
@@ -193,7 +195,7 @@ struct CityCardSnapshotView: View {
                     .frame(width: 20, height: 16)
                     .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
                     .contentTransition(.numericText())
-
+                
                 Text(weekday.next)
                     .font(.caption.weight(.semibold))
                     .fontDesign(.rounded)
@@ -231,86 +233,103 @@ struct CityCardSnapshotView: View {
                     .blendMode(.plusDarker)
             }
             
-            // Card replica from HomeView, centered vertically
-            ZStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    // Top row: Time difference / SkyDot and Date
-                    HStack {
-                        if additionalTimeDisplay != "None" {
-                            additionalTimeView
+            VStack(spacing: 10) {
+                // Card replica from HomeView, centered vertically
+                ZStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        // Top row: Time difference / SkyDot and Date
+                        HStack {
+                            if additionalTimeDisplay != "None" {
+                                additionalTimeView
+                            }
+                            
+                            Spacer()
+                            
+                            if weather != nil {
+                                WeatherView(
+                                    weather: weather,
+                                    useCelsius: useCelsius
+                                )
+                                .contentTransition(.numericText())
+                            }
+                            
+                            Text(dateString)
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
                         }
                         
-                        Spacer()
-
-                        if weather != nil {
-                            WeatherView(
-                                weather: weather,
-                                useCelsius: useCelsius
-                            )
-                            .contentTransition(.numericText())
+                        // Bottom row: City name and Time
+                        HStack(alignment: .lastTextBaseline) {
+                            Text(cityName)
+                                .font(.headline)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                                .frame(maxWidth: hasComplication ? 120 : .infinity, alignment: .leading)
+                            
+                            Spacer()
+                            
+                            Text(timeString)
+                                .font(.system(size: 36))
+                                .fontWeight(.light)
+                                .fontDesign(.rounded)
+                                .monospacedDigit()
                         }
-                        
-                        Text(dateString)
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .blendMode(.plusLighter)
-                    }
-                    
-                    // Bottom row: City name and Time
-                    HStack(alignment: .lastTextBaseline) {
-                        Text(cityName)
-                            .font(.headline)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                            .frame(maxWidth: hasComplication ? 120 : .infinity, alignment: .leading)
-                        
-                        Spacer()
-                        
-                        Text(timeString)
-                            .font(.system(size: 36))
-                            .fontWeight(.light)
-                            .fontDesign(.rounded)
-                            .monospacedDigit()
-                    }
-                    .padding(.bottom, -4)
-                    .background {
-                        if showSkyDot {
+                        .padding(.bottom, -4)
+                        .background {
+                            if showSkyDot {
                                 if skyColorGradient.starOpacity > 0 {
                                     SnapshotStarsView(starCount: 30, seed: snapshotStarSeed ^ 0xA5A5A5A5)
                                         .opacity(min(1.0, skyColorGradient.starOpacity * 1.15))
                                         .blendMode(.plusLighter)
                                         .allowsHitTesting(false)
                                 }
+                            }
                         }
                     }
-                }
-                .frame(minHeight: 64)
-                
-                // Complication Overlays
-                ComplicationOverlayView(
-                    date: date,
-                    timeZone: timeZone,
-                    options: complications,
-                    bottomPadding: 0
-                )
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 12)
-            .background {
-                if showSkyDot {
-                    SkyBackgroundView(
+                    .frame(minHeight: 64)
+                    
+                    // Complication Overlays
+                    ComplicationOverlayView(
                         date: date,
-                        timeZoneIdentifier: timeZoneIdentifier,
-                        weatherCondition: weatherCondition,
-                        showRainEffect: true,
-                        staticRainElapsed: 30.0
+                        timeZone: timeZone,
+                        options: complications,
+                        bottomPadding: 0
                     )
-                } else {
-                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                        .fill(Color(UIColor.secondarySystemBackground))
                 }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background {
+                    if showSkyDot {
+                        SkyBackgroundView(
+                            date: date,
+                            timeZoneIdentifier: timeZoneIdentifier,
+                            weatherCondition: weatherCondition,
+                            showRainEffect: true,
+                            staticRainElapsed: 30.0
+                        )
+                    } else {
+                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            .fill(Color(UIColor.secondarySystemBackground))
+                    }
+                }
+                .padding(.horizontal, 8)
+                
+                HStack(spacing: 0) {
+                    Text(localCityName)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    
+                    Text(" · \(localTimeString)")
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .fixedSize()
+                }
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
+                .padding(.horizontal, 24)
             }
-            .padding(.horizontal, 8)
         }
         .frame(width: 360, height: 640) // 9:16 share frame ratio
     }
