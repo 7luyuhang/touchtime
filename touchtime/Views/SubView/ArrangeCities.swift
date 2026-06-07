@@ -566,5 +566,6 @@ struct ArrangeListView: View {
                 Text(String(localized: "Enter a new name for your collection"))
             }
         }
+        .presentationDragIndicator(.visible)
     }
 }
