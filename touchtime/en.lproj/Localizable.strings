@@ -150,6 +150,8 @@
 "Black and White" = "Black and White";
 "Please allow camera access in Settings to show live camera background." = "Please allow camera access in Settings to show live camera background.";
 "Camera Unavailable" = "Camera Unavailable";
+"Photo Access Needed" = "Photo Access Needed";
+"Please allow photo library access in Settings to save captures." = "Please allow photo library access in Settings to save captures.";
 "Slide to Adjust" = "Slide to Adjust";
 "%dh %dm" = "%dh %dm";
 "%dh %02dm" = "%dh %02dm";

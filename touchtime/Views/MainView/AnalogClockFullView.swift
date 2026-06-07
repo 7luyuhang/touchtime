@@ -16,6 +16,7 @@ import SunKit
 import CoreLocation
 import TipKit
 import AlarmKit
+import Photos
 
 struct AnalogClockFullView: View {
     private enum CameraPreviewFilter {
@@ -882,27 +883,64 @@ struct AnalogClockFullView: View {
         }
     }
 
+    private func hasPhotoLibraryAddAccess(_ status: PHAuthorizationStatus) -> Bool {
+        switch status {
+        case .authorized, .limited:
+            return true
+        case .notDetermined, .denied, .restricted:
+            return false
+        @unknown default:
+            return false
+        }
+    }
+
+    private func requestPhotoLibraryAddAccess() async -> Bool {
+        let currentStatus = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+        if currentStatus != .notDetermined {
+            return hasPhotoLibraryAddAccess(currentStatus)
+        }
+
+        let updatedStatus = await withCheckedContinuation { continuation in
+            PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+                continuation.resume(returning: status)
+            }
+        }
+
+        return hasPhotoLibraryAddAccess(updatedStatus)
+    }
+
     private func handleCapturePhoto() {
         triggerLightHaptic()
 
-        guard let frame = cameraSessionController.getLatestFrameAsImage() else { return }
-
-        staticCameraFrame = frame
-        withAnimation(.spring()) {
-            isCaptureButtonHidden = true
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            let screenshot = captureScreenshot()
-
-            if let screenshot {
-                UIImageWriteToSavedPhotosAlbum(screenshot, nil, nil, nil)
+        Task { @MainActor in
+            let hasPhotoAccess = await requestPhotoLibraryAddAccess()
+            guard hasPhotoAccess else {
+                showCameraAlert(
+                    title: String(localized: "Photo Access Needed"),
+                    message: String(localized: "Please allow photo library access in Settings to save captures.")
+                )
+                return
             }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                staticCameraFrame = nil
-                withAnimation(.spring()) {
-                    isCaptureButtonHidden = false
+            guard let frame = cameraSessionController.getLatestFrameAsImage() else { return }
+
+            staticCameraFrame = frame
+            withAnimation(.spring()) {
+                isCaptureButtonHidden = true
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let screenshot = captureScreenshot()
+
+                if let screenshot {
+                    UIImageWriteToSavedPhotosAlbum(screenshot, nil, nil, nil)
+                }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    staticCameraFrame = nil
+                    withAnimation(.spring()) {
+                        isCaptureButtonHidden = false
+                    }
                 }
             }
         }

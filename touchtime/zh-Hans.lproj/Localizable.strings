@@ -153,6 +153,8 @@
 "Black and White" = "黑白";
 "Please allow camera access in Settings to show live camera background." = "请在“设置”中允许相机访问以显示实时相机背景。";
 "Camera Unavailable" = "相机不可用";
+"Photo Access Needed" = "需要照片访问权限";
+"Please allow photo library access in Settings to save captures." = "请在“设置”中允许照片访问，以保存拍摄内容。";
 "Slide to Adjust" = "滑动以调整";
 "%dh %dm" = "%d小时%d分钟";
 "%dh %02dm" = "%d小时%02d分钟";
