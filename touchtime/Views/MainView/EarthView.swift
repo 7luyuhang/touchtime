@@ -291,9 +291,7 @@ struct EarthView: View {
             impactFeedback.impactOccurred()
         }
 
-        withAnimation(.spring()) {
-            showSunCompass.toggle()
-        }
+        showSunCompass.toggle()
     }
 
     private static func timeFormatter(for timeZone: TimeZone, use24Hour: Bool) -> DateFormatter {
@@ -539,7 +537,7 @@ struct EarthView: View {
     var body: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
-                let ringAndControlsOffsetY: CGFloat = -20
+                let ringAndControlsOffsetY: CGFloat = -60
             
                 Map(position: $position, interactionModes: mapInteractionModes) {
                 // Show flight path if two cities are selected
@@ -866,6 +864,7 @@ struct EarthView: View {
                     .allowsHitTesting(false)
                 }
                 .offset(y: ringAndControlsOffsetY)
+                .transition(.identity)
             }
 
             // Bottom controls - Hide when renaming
@@ -964,7 +963,7 @@ struct EarthView: View {
                                         Button(action: {
                                             toggleSunCompass()
                                         }) {
-                                            Image(systemName: showSunCompass ? "safari.fill" : "safari")
+                                            Image(systemName: showSunCompass ? "sun.max.fill" : "sun.max")
                                                 .font(.headline)
                                                 .foregroundStyle(.white)
                                                 .frame(width: 44, height: 44)
@@ -1027,7 +1026,6 @@ struct EarthView: View {
         .animation(.spring(), value: worldClocks)
         .animation(.spring(), value: isUsingExploreMode)
         .animation(.spring(), value: showMapLabels)
-        .animation(.spring(), value: showSunCompass)
         .animation(.spring(), value: showingRenameAlert)
         .animation(.spring(), value: selectedFlightCities.from)
         .animation(.spring(), value: selectedFlightCities.to)
@@ -1060,6 +1058,17 @@ struct EarthView: View {
                         dismiss()
                     }) {
                         Image(systemName: "xmark")
+                    }
+                }
+
+                if isUsingExploreMode && showSunCompass {
+                    ToolbarItem(placement: .principal) {
+                        Text("Sun Azimuth")
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.horizontal, 16)
+                            .frame(height: 44)
+                            .glassEffect(.regular, in: Capsule(style: .continuous))
+                            .lineLimit(1)
                     }
                 }
                 
