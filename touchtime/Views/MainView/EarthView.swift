@@ -810,14 +810,14 @@ struct EarthView: View {
                     ZStack {
                         // External Circle
                         Circle()
-                            .glassEffect(.clear.tint(.black.opacity(0.75)))
+                            .glassEffect(.clear.tint(.black.opacity(0.85)))
                             .mask {
                                 Circle()
                                     .stroke(style: StrokeStyle(lineWidth: ringWidth))
                             }
                             .overlay { // Internal Border
                                 Circle()
-                                    .stroke(Color.white.opacity(0.25), lineWidth: 1)
+                                    .stroke(Color.white.opacity(0.20), lineWidth: 1)
                                     .frame(
                                         width: max(ringDiameter - ringWidth, 0),
                                         height: max(ringDiameter - ringWidth, 0)
@@ -867,7 +867,7 @@ struct EarthView: View {
                 .transition(.identity)
             }
 
-            // Bottom controls - Hide when renaming
+            // Scrollbar
             if !showingRenameAlert, !(worldClocks.isEmpty && !showLocalTime) {
                 VStack {
                     Spacer()
@@ -882,7 +882,7 @@ struct EarthView: View {
                 }
             }
 
-            // Top-right map controls - Hide when renaming
+            // Bottom Control Tool Bar
             if !showingRenameAlert {
                 VStack {
                     HStack {
@@ -1061,7 +1061,7 @@ struct EarthView: View {
                     }
                 }
 
-                if isUsingExploreMode && showSunCompass {
+                if isUsingExploreMode {
                     ToolbarItem(placement: .principal) {
                         Text("Sun Azimuth")
                             .font(.subheadline.weight(.semibold))
@@ -1069,6 +1069,10 @@ struct EarthView: View {
                             .frame(height: 44)
                             .glassEffect(.regular, in: Capsule(style: .continuous))
                             .lineLimit(1)
+                            .opacity(showSunCompass ? 1 : 0)
+                            .transaction { transaction in
+                                transaction.animation = nil
+                            }
                     }
                 }
                 
