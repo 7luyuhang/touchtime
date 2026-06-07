@@ -354,6 +354,7 @@ struct OnboardingView: View {
                                 .blur(radius: animateIcon ? 0 : 25)
                                 .scaleEffect(animateIcon ? 1.0 : 0.5)
                                 .opacity(animateIcon ? 1.0 : 0.0)
+                                .brightness(animateIcon ? 0 : 1.0)
                                 .offset(y: animateText ? 0 : 50)
                                 .animation(
                                     .bouncy(duration: 1.0), value: animateIcon
