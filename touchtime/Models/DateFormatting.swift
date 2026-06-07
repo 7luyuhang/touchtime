@@ -15,25 +15,29 @@ private enum DateFormatterCache {
         return c
     }()
     
-    static func dateFormatter(for timeZone: TimeZone) -> DateFormatter {
+    static func dateFormatter(for timeZone: TimeZone, includesWeekday: Bool) -> DateFormatter {
         let isZh = Locale.current.language.languageCode?.identifier == "zh"
-        let key = "\(timeZone.identifier)_\(isZh)" as NSString
+        let key = "\(timeZone.identifier)_\(isZh)_\(includesWeekday)" as NSString
         if let cached = cache.object(forKey: key) {
             return cached
         }
         let formatter = DateFormatter()
         formatter.locale = Locale.current
         formatter.timeZone = timeZone
-        formatter.dateFormat = isZh ? "MMMd日 E" : "E, d MMM"
+        if includesWeekday {
+            formatter.dateFormat = isZh ? "MMMd日 E" : "E, d MMM"
+        } else {
+            formatter.dateFormat = isZh ? "MMMd日" : "d MMM"
+        }
         cache.setObject(formatter, forKey: key)
         return formatter
     }
 }
 
 extension Date {
-    /// Format the date with relative style (Today/Yesterday/Tomorrow) or absolute style (E, d MMM)
+    /// Format the date with relative, weekday date, or date-only style.
     /// - Parameters:
-    ///   - dateStyle: "Relative" or "Absolute" style preference
+    ///   - dateStyle: "Relative", "With Weekday", or "Date Only" style preference
     ///   - timeZone: TimeZone to use for formatting (defaults to current)
     ///   - referenceDate: The reference date to compare against (defaults to Date())
     /// - Returns: Formatted date string
@@ -86,14 +90,15 @@ extension Date {
             }
         }
         
-        // Show the full date format (when dateStyle is "Absolute" or not Today/Yesterday/Tomorrow)
-        let formatter = DateFormatterCache.dateFormatter(for: timeZone)
+        // Keep supporting the old persisted "Absolute" value as "With Weekday".
+        let includesWeekday = dateStyle != "Date Only"
+        let formatter = DateFormatterCache.dateFormatter(for: timeZone, includesWeekday: includesWeekday)
         return formatter.string(from: self)
     }
     
     /// Convenience method for formatting date with time offset
     /// - Parameters:
-    ///   - dateStyle: "Relative" or "Absolute" style preference
+    ///   - dateStyle: "Relative", "With Weekday", or "Date Only" style preference
     ///   - timeZoneIdentifier: TimeZone identifier string
     ///   - timeOffset: Optional time offset to add to the date
     /// - Returns: Formatted date string

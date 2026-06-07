@@ -84,6 +84,8 @@
 "Date Style" = "日期样式";
 "Relative" = "相对日期";
 "Absolute" = "绝对日期";
+"With Weekday" = "带星期";
+"Date Only" = "仅日期";
 "Weather" = "天气";
 "Celsius" = "摄氏度（°C)";
 "Fahrenheit" = "华氏度（°F)";

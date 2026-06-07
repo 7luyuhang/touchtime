@@ -81,6 +81,8 @@
 "Date Style" = "Date Style";
 "Relative" = "Relative";
 "Absolute" = "Absolute";
+"With Weekday" = "With Weekday";
+"Date Only" = "Date Only";
 "Weather" = "Weather";
 "Celsius" = "Celsius";
 "Fahrenheit" = "Fahrenheit";

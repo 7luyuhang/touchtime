@@ -54,6 +54,11 @@ struct SettingsView: View {
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
+    private static let relativeDateStyle = "Relative"
+    private static let withWeekdayDateStyle = "With Weekday"
+    private static let dateOnlyDateStyle = "Date Only"
+    private static let legacyAbsoluteDateStyle = "Absolute"
+
     private static let preview24HourFormatter: DateFormatter = makeFormatter("HH:mm")
     private static let preview12HourFormatter: DateFormatter = makeFormatter("h:mm")
     private static let settingInputTimeFormatter: DateFormatter = makeFormatter("HH:mm")
@@ -220,8 +225,10 @@ struct SettingsView: View {
         hasLifetimeAccess && showTimeOverlay && availableTimeEnabled
     }
 
-    private var hasComplicationEnabled: Bool {
-        selectedPreviewComplication != nil
+    private func normalizeLegacyDateStyle() {
+        if dateStyle == Self.legacyAbsoluteDateStyle {
+            dateStyle = Self.withWeekdayDateStyle
+        }
     }
 
     private var goldenHourBinding: Binding<Bool> {
@@ -627,12 +634,13 @@ struct SettingsView: View {
                     // Date Picker
                     Picker(selection: $dateStyle) {
                         Text("Relative")
-                            .tag("Relative")
+                            .tag(Self.relativeDateStyle)
                         
-                        if !hasComplicationEnabled {
-                            Text("Absolute")
-                                .tag("Absolute")
-                        }
+                        Text("With Weekday")
+                            .tag(Self.withWeekdayDateStyle)
+
+                        Text("Date Only")
+                            .tag(Self.dateOnlyDateStyle)
                     } label: {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .gray, bottomColor: .gray, style: .plain)
@@ -641,12 +649,6 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(hasComplicationEnabled)
-                    .onChange(of: selectedPreviewComplication?.rawValue) { _, newValue in
-                        if newValue != nil {
-                            dateStyle = "Relative"
-                        }
-                    }
                     
                     
                     // Complications
@@ -893,6 +895,8 @@ struct SettingsView: View {
                 }
             }
             .onAppear {
+                normalizeLegacyDateStyle()
+
                 // Fetch weather for local timezone
                 Task {
                     guard showWeather else { return }
