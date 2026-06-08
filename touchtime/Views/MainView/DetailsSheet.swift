@@ -257,6 +257,19 @@ struct SunriseSunsetSheet: View {
 
         return formatter.string(from: date)
     }
+
+    private func isInGoldenHour(start: Date, end: Date) -> Bool {
+        guard end > start else { return false }
+        let adjustedNow = currentDate.addingTimeInterval(timeOffset)
+        return adjustedNow >= start && adjustedNow <= end
+    }
+
+    private func goldenHourProgress(start: Date, end: Date) -> Double {
+        guard end > start else { return 0 }
+        let adjustedNow = currentDate.addingTimeInterval(timeOffset)
+        let progress = adjustedNow.timeIntervalSince(start) / end.timeIntervalSince(start)
+        return min(max(progress, 0), 1)
+    }
     
     private func formatDuration(from startDate: Date?, to endDate: Date?) -> String {
         guard let start = startDate, let end = endDate else { return "-" }
@@ -677,47 +690,59 @@ struct SunriseSunsetSheet: View {
                                 .detailsSheetCardRow()
 
                                 // Evening Golden Hour Section
-                                if let goldenHour = eveningGoldenHour, goldenHour.start != nil && goldenHour.end != nil {
-                                    HStack(spacing: 16) {
-                                        // Icon
-                                        Image(systemName: "sun.max.fill")
-                                            .font(.title3.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                            .frame(width: 24)
+                                if let goldenHour = eveningGoldenHour,
+                                   let goldenHourStart = goldenHour.start,
+                                   let goldenHourEnd = goldenHour.end {
+                                    let isInGoldenHour = isInGoldenHour(start: goldenHourStart, end: goldenHourEnd)
+                                    let goldenHourFillProgress = goldenHourProgress(start: goldenHourStart, end: goldenHourEnd)
 
-                                        // Golden Hour text
-                                        Text("Golden Hour")
-                                            .font(.headline)
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
+                                    ZStack(alignment: .leading) {
+                                        HStack(spacing: 16) {
+                                            // Icon
+                                            Image(systemName: "sun.max.fill")
+                                                .font(.title3.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                                .frame(width: 24)
 
-                                        Spacer()
+                                            // Golden Hour text
+                                            Text("Golden Hour")
+                                                .font(.headline)
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
 
-                                        // Time range
-                                        HStack(spacing: 8) {
-                                            let adjustedNow = currentDate.addingTimeInterval(timeOffset)
-                                            let isInGoldenHour: Bool = {
-                                                if let start = goldenHour.start, let end = goldenHour.end {
-                                                    return adjustedNow >= start && adjustedNow <= end
-                                                }
-                                                return false
-                                            }()
+                                            Spacer()
 
-                                            Text(formatGoldenHourStartTime(goldenHour.start))
-                                                .monospacedDigit()
-                                                .lineLimit(1)
-                                            Image(systemName: "arrow.right")
-                                                .font(.footnote.weight(.bold))
-                                                .foregroundStyle(isInGoldenHour ? .yellow : .secondary)
-                                                .animation(.spring(), value: isInGoldenHour)
-                                            Text(formatTime(goldenHour.end))
-                                                .monospacedDigit()
-                                                .lineLimit(1)
+                                            // Time range
+                                            HStack(spacing: 8) {
+                                                Text(formatGoldenHourStartTime(goldenHourStart))
+                                                    .monospacedDigit()
+                                                    .lineLimit(1)
+                                                Image(systemName: "arrow.right")
+                                                    .font(.footnote.weight(.bold))
+                                                    .foregroundStyle(isInGoldenHour ? .yellow : .secondary)
+                                                    .animation(.spring(), value: isInGoldenHour)
+                                                Text(formatTime(goldenHourEnd))
+                                                    .monospacedDigit()
+                                                    .lineLimit(1)
+                                            }
+                                            .lineLimit(1)
+                                            .layoutPriority(1)
                                         }
-                                        .lineLimit(1)
-                                        .layoutPriority(1)
+                                        .padding(16)
+                                        .frame(maxWidth: .infinity)
+                                        .background(alignment: .leading) {
+                                            GeometryReader { geometry in
+                                                Rectangle()
+                                                    .fill(.white.opacity(0.05))
+                                                    .blendMode(.plusLighter)
+                                                    .frame(width: geometry.size.width * CGFloat(goldenHourFillProgress))
+                                                    .frame(maxHeight: .infinity)
+                                            }
+                                            .opacity(isInGoldenHour ? 1 : 0)
+                                        }
                                     }
-                                    .detailsSheetCardRow()
+                                    .detailsSheetCardChrome()
+                                    .padding(.horizontal, 16)
                                     .transition(.blurReplace().combined(with: .opacity))
                                 }
                             }
