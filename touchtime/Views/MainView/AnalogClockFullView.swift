@@ -1481,6 +1481,8 @@ struct AnalogClockFaceView: View {
     @State private var lastRotationAngle: Double? = nil
     @State private var arcCitySwitchRotationDegrees: Double = 0
     private let rotationSecondsPerDegree: Double = 180
+    private let focusedIconScale: CGFloat = 1.25 // icon scale
+    private let focusedIconShift: CGFloat = 6 // icon shift
     @State private var hapticEngine: CHHapticEngine?
     @State private var hapticPlayer: CHHapticPatternPlayer?
     @State private var lastRotationHapticOffset: TimeInterval = 0
@@ -2088,9 +2090,11 @@ struct AnalogClockFaceView: View {
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
                 .frame(height: 24)
-                .position(x: size / 2,  y: size / 2 + (size / 2 - 64))
+                .scaleEffect(hideOtherHands ? focusedIconScale : 1.0)
+                .position(x: size / 2,  y: size / 2 + (size / 2 - 64) - (hideOtherHands ? focusedIconShift : 0))
                 .contentTransition(.symbolEffect(.replace))
                 .animation(.spring(), value: weather?.condition)
+                .animation(.spring(), value: hideOtherHands)
 
             if hideOtherHands, showWeather, let weather {
                 Text(weather.condition.displayName)
@@ -2106,9 +2110,11 @@ struct AnalogClockFaceView: View {
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
                 .frame(height: 24)
-                .position(x: size / 2, y: size / 2 - (size / 2 - 62))
+                .scaleEffect(hideOtherHands ? focusedIconScale : 1.0)
+                .position(x: size / 2, y: size / 2 - (size / 2 - 62) + (hideOtherHands ? focusedIconShift : 0))
                 .contentTransition(.symbolEffect(.replace))
                 .animation(.spring(), value: moonPhaseIcon)
+                .animation(.spring(), value: hideOtherHands)
 
             if hideOtherHands {
                 Text(moonPhaseName)
