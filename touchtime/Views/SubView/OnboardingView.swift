@@ -351,10 +351,10 @@ struct OnboardingView: View {
                                                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                                 )
                                 .frame(width: 100, height: 100)
+                                .brightness(animateIcon ? 0 : 1.0)
                                 .blur(radius: animateIcon ? 0 : 25)
                                 .scaleEffect(animateIcon ? 1.0 : 0.5)
                                 .opacity(animateIcon ? 1.0 : 0.0)
-                                .brightness(animateIcon ? 0 : 1.0)
                                 .offset(y: animateText ? 0 : 50)
                                 .animation(
                                     .bouncy(duration: 1.0), value: animateIcon
