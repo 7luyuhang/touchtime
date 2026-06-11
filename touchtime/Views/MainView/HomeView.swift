@@ -732,6 +732,19 @@ struct HomeView: View {
     }
     
     // Get formatted date for city with Natural Dates setting
+    /// `currentDate + timeOffset`, floored to the whole minute.
+    ///
+    /// Sky colors and the astronomical complications (sunrise/sunset, sun/moon
+    /// position, daylight, analog clock, …) only change at minute granularity.
+    /// Feeding them a value that still carries the seconds component forces SwiftUI
+    /// to re-evaluate those (expensive) subtrees on every body pass, even when the
+    /// minute hasn't changed. Quantizing to the minute keeps identical inputs equal
+    /// so SwiftUI can skip re-rendering those subtrees.
+    private var minuteQuantizedDate: Date {
+        let interval = currentDate.addingTimeInterval(timeOffset).timeIntervalSinceReferenceDate
+        return Date(timeIntervalSinceReferenceDate: (interval / 60).rounded(.down) * 60)
+    }
+
     func getCityDate(timeZoneIdentifier: String, baseDate: Date, offset: TimeInterval) -> String {
         guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
             return ""
@@ -1315,7 +1328,7 @@ struct HomeView: View {
                                     
                                     // Complication Overlays
                                     ComplicationOverlayView(
-                                        date: currentDate.addingTimeInterval(timeOffset),
+                                        date: minuteQuantizedDate,
                                         timeZone: TimeZone.current,
                                         options: complicationOptions,
                                         bottomPadding: (hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0
@@ -1328,7 +1341,7 @@ struct HomeView: View {
                                 // Sky Background
                                 .listRowBackground(
                                     showSkyDot ? HomeSkyListRowBackground(
-                                        date: currentDate.addingTimeInterval(timeOffset),
+                                        date: minuteQuantizedDate,
                                         timeZoneIdentifier: TimeZone.current.identifier,
                                         weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
                                     ) : nil
@@ -1476,7 +1489,7 @@ struct HomeView: View {
                                     
                                     // Complication Overlays
                                     ComplicationOverlayView(
-                                        date: currentDate.addingTimeInterval(timeOffset),
+                                        date: minuteQuantizedDate,
                                         timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
                                         options: complicationOptions,
                                         bottomPadding: 0
@@ -1489,7 +1502,7 @@ struct HomeView: View {
                                 // Sky Background
                                 .listRowBackground(
                                     showSkyDot ? HomeSkyListRowBackground(
-                                        date: currentDate.addingTimeInterval(timeOffset),
+                                        date: minuteQuantizedDate,
                                         timeZoneIdentifier: clock.timeZoneIdentifier,
                                         weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
                                     ) : nil
@@ -1648,7 +1661,7 @@ struct HomeView: View {
                     if showLocalTime && showSkyDot {
                         VStack {
                             SkyBackgroundView(
-                                date: currentDate.addingTimeInterval(timeOffset),
+                                date: minuteQuantizedDate,
                                 timeZoneIdentifier: TimeZone.current.identifier,
                                 weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier),
                                 appliesCardChrome: false
