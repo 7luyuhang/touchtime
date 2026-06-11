@@ -105,6 +105,7 @@
 "Go to Settings" = "前往設定";
 "Show Onboarding" = "顯示引導";
 "Reset Cities" = "重置城市";
+"Reset Successfully" = "重置成功";
 "Cancel" = "取消";
 "Reset" = "重置";
 "This will reset all cities to the default list, clear any custom city names, and reset your collections." = "這將把城市重置為預設列表，清除自訂名稱，並重置您的集合。";

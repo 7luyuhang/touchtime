@@ -104,6 +104,7 @@
 "Go to Settings" = "Go to Settings";
 "Show Onboarding" = "Show Onboarding";
 "Reset Cities" = "Reset Cities";
+"Reset Successfully" = "Reset Successfully";
 "Cancel" = "Cancel";
 "Reset" = "Reset";
 "This will reset all cities to the default list, clear any custom city names, and reset your collections." = "This will reset all cities to the default list, clear any custom city names, and reset your collections.";

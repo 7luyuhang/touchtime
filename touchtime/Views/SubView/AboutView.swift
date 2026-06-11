@@ -14,6 +14,7 @@ struct AboutView: View {
     @ObservedObject var weatherManager: WeatherManager
     @State private var showOnboarding = false
     @State private var showResetConfirmation = false
+    @State private var didResetSuccessfully = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @State private var rippleCounter: Int = 0
@@ -124,10 +125,12 @@ struct AboutView: View {
                 }) {
                     HStack(spacing: 12) {
                         SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .gray, bottomColor: .gray, style: .plain)
-                        Text("Reset Cities")
+                        Text(didResetSuccessfully ? "Reset Successfully" : "Reset Cities")
+                            .contentTransition(.numericText())
                     }
                 }
                 .foregroundStyle(.primary)
+                .disabled(didResetSuccessfully)
                 .alert("Reset Cities", isPresented: $showResetConfirmation) {
                     Button("Cancel", role: .cancel) {}
                     Button("Reset", role: .destructive) {
@@ -304,6 +307,17 @@ struct AboutView: View {
             let impactFeedback = UINotificationFeedbackGenerator()
             impactFeedback.prepare()
             impactFeedback.notificationOccurred(.success)
+        }
+        
+        // Show success feedback, then revert after a short delay
+        withAnimation {
+            didResetSuccessfully = true
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation {
+                didResetSuccessfully = false
+            }
         }
     }
 }
