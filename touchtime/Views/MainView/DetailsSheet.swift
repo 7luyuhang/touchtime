@@ -701,14 +701,16 @@ struct SunriseSunsetSheet: View {
                                             // Icon
                                             Image(systemName: "sun.max.fill")
                                                 .font(.title3.weight(.semibold))
-                                                .foregroundStyle(.secondary)
+                                                .foregroundStyle(isInGoldenHour ? .yellow : .secondary)
                                                 .frame(width: 24)
+                                                .animation(.spring(), value: isInGoldenHour)
 
                                             // Golden Hour text
                                             Text("Golden Hour")
                                                 .font(.headline)
-                                                .foregroundStyle(.secondary)
+                                                .foregroundStyle(isInGoldenHour ? .yellow : .secondary)
                                                 .blendMode(.plusLighter)
+                                                .animation(.spring(), value: isInGoldenHour)
 
                                             Spacer()
 
@@ -732,11 +734,22 @@ struct SunriseSunsetSheet: View {
                                         .frame(maxWidth: .infinity)
                                         .background(alignment: .leading) {
                                             GeometryReader { geometry in
-                                                Rectangle()
-                                                    .fill(.white.opacity(0.05))
-                                                    .blendMode(.plusLighter)
-                                                    .frame(width: geometry.size.width * CGFloat(goldenHourFillProgress))
-                                                    .frame(maxHeight: .infinity)
+                                                ZStack(alignment: .leading) {
+                                                    if isInGoldenHour {
+                                                        Rectangle()
+                                                            .fill(.yellow.opacity(0.05))
+                                                            .blendMode(.plusLighter)
+                                                            .overlay {
+                                                                ParticleView(color: .yellow, direction: .rightToLeft)
+                                                                    .opacity(0.75)
+                                                                    .blendMode(.plusLighter)
+                                                                    .allowsHitTesting(false)
+                                                            }
+                                                            .frame(width: geometry.size.width * CGFloat(goldenHourFillProgress))
+                                                            .frame(maxHeight: .infinity)
+                                                    }
+                                                }
+                                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
                                             }
                                             .opacity(isInGoldenHour ? 1 : 0)
                                         }

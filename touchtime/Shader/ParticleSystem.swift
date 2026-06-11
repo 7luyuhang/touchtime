@@ -16,6 +16,11 @@ struct Particle {
     var opacity: Float
 }
 
+enum ParticleMotionDirection {
+    case bottomToTop
+    case rightToLeft
+}
+
 class ParticleSystemRenderer: NSObject, MTKViewDelegate {
     var device: MTLDevice!
     var commandQueue: MTLCommandQueue!
@@ -31,6 +36,7 @@ class ParticleSystemRenderer: NSObject, MTKViewDelegate {
     
     // 粒子颜色 (默认白色)
     var particleColor: SIMD3<Float> = SIMD3<Float>(1.0, 1.0, 1.0)
+    var motionDirection: ParticleMotionDirection = .bottomToTop
     
     override init() {
         super.init()
@@ -40,6 +46,13 @@ class ParticleSystemRenderer: NSObject, MTKViewDelegate {
     
     init(color: SIMD3<Float>) {
         self.particleColor = color
+        super.init()
+        setupMetal()
+    }
+
+    init(color: SIMD3<Float>, direction: ParticleMotionDirection) {
+        self.particleColor = color
+        self.motionDirection = direction
         super.init()
         setupMetal()
     }
@@ -98,26 +111,49 @@ class ParticleSystemRenderer: NSObject, MTKViewDelegate {
     
     func createParticle(fromBottom: Bool = true) -> Particle {
         // 使用实际的 viewSize，不设置默认值
-        let x = Float.random(in: 0...viewSize.x)
+        let x: Float
         let y: Float
-        
-        if fromBottom {
-            // 从底部生成新粒子
-            y = Float.random(in: viewSize.y + 50...viewSize.y + 200)
-        } else {
-            // 在屏幕范围内随机位置生成
-            y = Float.random(in: -200...viewSize.y + 200)
+        let speedX: Float
+        let speedY: Float
+        let size: Float
+        let opacity: Float
+
+        switch motionDirection {
+        case .bottomToTop:
+            x = Float.random(in: 0...viewSize.x)
+
+            if fromBottom {
+                // 从底部生成新粒子
+                y = Float.random(in: viewSize.y + 50...viewSize.y + 200)
+            } else {
+                // 在屏幕范围内随机位置生成
+                y = Float.random(in: -200...viewSize.y + 200)
+            }
+
+            speedX = Float.random(in: -30...30)
+            speedY = Float.random(in: -150...(-80)) // 向上移动
+            size = Float.random(in: 10...20)
+            opacity = Float.random(in: 0.5...1.0)
+
+        case .rightToLeft:
+            if fromBottom {
+                x = Float.random(in: (viewSize.x + 40)...(viewSize.x + 160))
+            } else {
+                x = Float.random(in: (-160)...(viewSize.x + 160))
+            }
+            y = Float.random(in: 0...viewSize.y)
+            speedX = Float.random(in: -150...(-80))
+            speedY = Float.random(in: -18...18)
+            size = Float.random(in: 8...16)
+            opacity = Float.random(in: 0.45...0.9)
         }
-        
-        let speedX = Float.random(in: -30...30)
-        let speedY = Float.random(in: -150...(-80)) // 向上移动
-        
+
         return Particle(
             position: SIMD2<Float>(x, y),
             velocity: SIMD2<Float>(speedX, speedY),
             life: 1.5, // 增加初始生命值，让粒子活得更久
-            size: Float.random(in: 10...20), // 更大的粒子
-            opacity: Float.random(in: 0.5...1.0) // 更高的不透明度
+            size: size,
+            opacity: opacity
         )
     }
     
@@ -129,10 +165,17 @@ class ParticleSystemRenderer: NSObject, MTKViewDelegate {
             particles[i].position += particles[i].velocity * deltaTime
             particles[i].life -= deltaTime * 0.15 // 减缓生命衰减速度
             
-            // 如果粒子死亡或移出屏幕顶部，重新生成
-            if particles[i].life <= 0 || particles[i].position.y < -500 {
-                // 始终在屏幕范围内随机位置重生，保持全屏分布
-                particles[i] = createParticle(fromBottom: false)
+            let shouldRespawn: Bool
+            switch motionDirection {
+            case .bottomToTop:
+                // 如果粒子死亡或移出屏幕顶部，重新生成
+                shouldRespawn = particles[i].life <= 0 || particles[i].position.y < -500
+            case .rightToLeft:
+                shouldRespawn = particles[i].life <= 0 || particles[i].position.x < -500
+            }
+
+            if shouldRespawn {
+                particles[i] = createParticle(fromBottom: motionDirection == .rightToLeft)
                 // 重置生命值确保粒子能够显示
                 particles[i].life = 1.5 // 与初始生命值保持一致
             }
@@ -206,6 +249,7 @@ class ParticleSystemRenderer: NSObject, MTKViewDelegate {
 
 struct ParticleView: UIViewRepresentable {
     var color: Color = .white
+    var direction: ParticleMotionDirection = .bottomToTop
     
     func makeUIView(context: Context) -> MTKView {
         let mtkView = MTKView()
@@ -234,7 +278,7 @@ struct ParticleView: UIViewRepresentable {
         uiColor.getRed(&red, green: &green, blue: &blue, alpha: &alpha)
         
         let colorSIMD = SIMD3<Float>(Float(red), Float(green), Float(blue))
-        return ParticleSystemRenderer(color: colorSIMD)
+        return ParticleSystemRenderer(color: colorSIMD, direction: direction)
     }
 }
 
