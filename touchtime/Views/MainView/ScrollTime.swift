@@ -615,8 +615,12 @@ struct ScrollTimeView: View {
         }
         .padding(.horizontal, 16)
         .font(.subheadline)
-        .animation(.spring(duration: 0.25), value: dragOffset)
-        .animation(.spring(duration: 0.25), value: timeOffset)
+        // Animate only the local indicator swap (dragging vs. idle), keyed on the
+        // boolean that drives it. Keying on the continuous `dragOffset`/`timeOffset`
+        // values re-fired this spring every frame / every minute-crossing and, for the
+        // shared `timeOffset` binding, risked dragging the whole dependent tree into
+        // the transaction. The boolean flips only when the indicator actually changes.
+        .animation(.spring(duration: 0.25), value: dragOffset != 0 || timeOffset != 0)
         .frame(maxWidth: .infinity)
         .frame(height: controlHeight)
         .contentShape(Rectangle())
