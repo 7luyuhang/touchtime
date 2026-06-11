@@ -107,20 +107,26 @@ struct SkyBackgroundView: View {
     }
 
     private var skyContent: some View {
-        ZStack {
+        // Build the gradient once per body evaluation. `skyColorGradient` is a
+        // computed property that constructs a new `SkyColorGradient` on every access
+        // (each init does Calendar copies + dateComponents), and it was previously
+        // read 5x per body. Reuse a single instance and its derived values.
+        let gradient = skyColorGradient
+        let starOpacity = gradient.starOpacity
+        return ZStack {
             // Fill the full bounding rectangle so the rain shader never samples
             // transparent pixels (which would show as black refractive halos
             // around drops near the rounded corners).
             Rectangle()
-                .fill(skyColorGradient.linearGradient(opacity: 0.65))
-                .animation(.easeInOut(duration: 0.5), value: skyColorGradient.animationValue)
+                .fill(gradient.linearGradient(opacity: 0.65))
+                .animation(.easeInOut(duration: 0.5), value: gradient.animationValue)
 
             // Stars overlay for nighttime
-            if skyColorGradient.starOpacity > 0 {
+            if starOpacity > 0 {
                 StarsView()
-                    .opacity(skyColorGradient.starOpacity)
+                    .opacity(starOpacity)
                     .blendMode(.plusLighter)
-                    .animation(.easeInOut(duration: 0.5), value: skyColorGradient.starOpacity)
+                    .animation(.easeInOut(duration: 0.5), value: starOpacity)
                     .allowsHitTesting(false)
             }
         }
