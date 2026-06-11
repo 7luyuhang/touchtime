@@ -231,6 +231,12 @@ struct SettingsView: View {
         }
     }
 
+    private func normalizeDateStyleForWeather() {
+        if showWeather && dateStyle == Self.withWeekdayDateStyle {
+            dateStyle = Self.relativeDateStyle
+        }
+    }
+
     private var goldenHourBinding: Binding<Bool> {
         Binding(
             get: { hasLifetimeAccess && showGoldenHour },
@@ -505,7 +511,11 @@ struct SettingsView: View {
                         get: { showWeather },
                         set: { newValue in
                             showWeather = newValue
-                            if !newValue {
+                            if newValue {
+                                if dateStyle == Self.withWeekdayDateStyle {
+                                    dateStyle = Self.relativeDateStyle
+                                }
+                            } else {
                                 showWeatherCondition = false
                                 showTemperatureIndicator = false
                                 showUVIndex = false
@@ -631,13 +641,16 @@ struct SettingsView: View {
                     .tint(.secondary)
                     
                     
-                    // Date Picker
+                    // Date PickeDr
                     Picker(selection: $dateStyle) {
                         Text("Relative")
                             .tag(Self.relativeDateStyle)
                         
-                        Text("With Weekday")
-                            .tag(Self.withWeekdayDateStyle)
+                        // The weekday-laden date competes with Weather for trailing space, so hide it when Weather is on
+                        if !showWeather {
+                            Text("With Weekday")
+                                .tag(Self.withWeekdayDateStyle)
+                        }
 
                         Text("Date Only")
                             .tag(Self.dateOnlyDateStyle)
@@ -896,6 +909,7 @@ struct SettingsView: View {
             }
             .onAppear {
                 normalizeLegacyDateStyle()
+                normalizeDateStyleForWeather()
 
                 // Fetch weather for local timezone
                 Task {
