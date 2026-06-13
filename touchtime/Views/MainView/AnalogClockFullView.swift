@@ -86,8 +86,6 @@ struct AnalogClockFullView: View {
     @State private var homeTimerAlarmSyncVersion = 0
     @State private var homeTimerResetAnimationTrigger = 0
     @State private var homeTimerResetAnimationFromSeconds = 0
-    @State private var showBottomTimerDeleteIcon = false
-    @State private var bottomTimerDeleteIconTask: Task<Void, Never>? = nil
     @State private var isTimerCircleAdjusting = false
 
     // Get displayed clocks based on selected collection
@@ -116,13 +114,7 @@ struct AnalogClockFullView: View {
     }
 
     private var shouldShowToolbarTitle: Bool {
-        guard !toolbarTitleText.isEmpty else { return false }
-        // Hide the toolbar title entirely on the timer page
-        // (both the City/Time segmented control and the collection title).
-        if selectedDisplayPage == .timer {
-            return false
-        }
-        return true
+        !toolbarTitleText.isEmpty
     }
     
     // Get selected city name
@@ -350,76 +342,6 @@ struct AnalogClockFullView: View {
         )
     }
 
-    private func hideBottomTimerDeleteIcon(animate: Bool = true) {
-        bottomTimerDeleteIconTask?.cancel()
-        bottomTimerDeleteIconTask = nil
-
-        guard showBottomTimerDeleteIcon else { return }
-
-        if animate {
-            withAnimation(.smooth(duration: 0.25)) {
-                showBottomTimerDeleteIcon = false
-            }
-        } else {
-            showBottomTimerDeleteIcon = false
-        }
-    }
-
-    private func showBottomTimerDeleteIconTemporarily() {
-        guard hasConfiguredHomeTimer else { return }
-
-        bottomTimerDeleteIconTask?.cancel()
-        withAnimation(.smooth(duration: 0.25)) {
-            showBottomTimerDeleteIcon = true
-        }
-
-        bottomTimerDeleteIconTask = Task {
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            guard !Task.isCancelled else { return }
-
-            await MainActor.run {
-                withAnimation(.smooth(duration: 0.25)) {
-                    showBottomTimerDeleteIcon = false
-                }
-                bottomTimerDeleteIconTask = nil
-            }
-        }
-    }
-
-    private func clearHomeTimer() {
-        homeTimerConfiguredSeconds = 0
-        homeTimerEndDateEpoch = 0
-        homeTimerCompletionHandled = false
-        homeTimerPaused = false
-        homeTimerPausedRemainingSeconds = 0
-        homeTimerName = ""
-        hideBottomTimerDeleteIcon(animate: false)
-        refreshHomeTimerAlarm(requestAuthorization: false)
-
-        if hapticEnabled {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.prepare()
-            impactFeedback.impactOccurred()
-        }
-    }
-
-    private func handleBottomTimerLabelTap() {
-        guard selectedDisplayPage == .timer, hasConfiguredHomeTimer else { return }
-
-        if showBottomTimerDeleteIcon {
-            clearHomeTimer()
-            return
-        }
-
-        showBottomTimerDeleteIconTemporarily()
-
-        if hapticEnabled {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.prepare()
-            impactFeedback.impactOccurred()
-        }
-    }
-
     private func timerPlayPauseSymbol(at date: Date) -> String {
         let remaining = homeTimerRemainingSeconds(at: date)
         return (homeTimerPaused || remaining == 0) ? "play.fill" : "pause.fill"
@@ -636,6 +558,22 @@ struct AnalogClockFullView: View {
                 selectedDisplayPage = .time
             }
         )
+    }
+
+    @ViewBuilder
+    private var principalToolbarTitle: some View {
+        if selectedDisplayPage == .timer {
+            Text(homeTimerDisplayName)
+                .font(.subheadline.weight(.semibold))
+                .contentTransition(.numericText())
+                .padding(.horizontal, 16)
+                .frame(height: 44)
+                .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                .lineLimit(1)
+                .animation(.snappy, value: homeTimerDisplayName)
+        } else if shouldShowToolbarTitle {
+            collectionTitleView
+        }
     }
 
     @ViewBuilder
@@ -1080,76 +1018,49 @@ struct AnalogClockFullView: View {
                             VStack {
                                 Spacer()
                                 // Local time display (hidden when continuous scroll reset button is showing)
-                                if selectedDisplayPage == .timer || !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
-                                    if selectedDisplayPage == .timer {
-                                        // Timer Close Button
-                                        Button(action: handleBottomTimerLabelTap) {
-                                            let timerLabelText = showBottomTimerDeleteIcon && hasConfiguredHomeTimer
-                                                ? String(localized: "Delete Timer")
-                                                : homeTimerDisplayName
-                                            HStack(spacing: 5) {
-                                                Text(timerLabelText)
-                                                    .lineLimit(1)
-                                                    .truncationMode(.tail)
-                                                    .contentTransition(.numericText())
-                                                    .animation(.smooth(duration: 0.25), value: timerLabelText)
-
-                                                if showBottomTimerDeleteIcon && hasConfiguredHomeTimer {
-                                                    Image(systemName: "xmark.circle.fill")
-                                                        .font(.subheadline.weight(.semibold))
-                                                        .transition(.blurReplace.combined(with: .scale))
-                                                }
-                                            }
-                                            .font(.subheadline.weight(.medium))
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                            .padding(.horizontal, 24)
-                                            .frame(maxWidth: .infinity)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .padding(.bottom, 16)
-                                    } else if selectedCityId != nil {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "location.fill")
-                                                .font(.footnote.weight(.medium))
-                                            Text({
-                                                if showTimeInsteadOfCityName {
-                                                    // Show "Local" when hands show time
-                                                    return String(localized: "Local")
+                                if selectedDisplayPage != .timer,
+                                   !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons),
+                                   selectedCityId != nil {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "location.fill")
+                                            .font(.footnote.weight(.medium))
+                                        Text({
+                                            if showTimeInsteadOfCityName {
+                                                // Show "Local" when hands show time
+                                                return String(localized: "Local")
+                                            } else {
+                                                // Show local time when hands show city names
+                                                let formatter = DateFormatter()
+                                                formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                formatter.timeZone = TimeZone.current
+                                                if use24HourFormat {
+                                                    formatter.dateFormat = "HH:mm"
                                                 } else {
-                                                    // Show local time when hands show city names
-                                                    let formatter = DateFormatter()
-                                                    formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                    formatter.timeZone = TimeZone.current
-                                                    if use24HourFormat {
-                                                        formatter.dateFormat = "HH:mm"
-                                                    } else {
-                                                        formatter.dateFormat = "h:mm"
-                                                    }
-                                                    return formatter.string(from: displayDate)
+                                                    formatter.dateFormat = "h:mm"
                                                 }
-                                            }())
-                                            .font(.subheadline.weight(.medium))
-
-                                            let additionalText = selectedAdditionalTimeText
-                                            let shouldShowAdditionalText = showTimeInsteadOfCityName
-                                                ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
-                                                : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
-                                            if shouldShowAdditionalText {
-                                                Text("·")
-                                                    .font(.subheadline.weight(.medium))
-                                                Text(additionalText)
-                                                    .font(.subheadline.weight(.medium))
-                                                    .contentTransition(.numericText())
-                                                    .animation(.smooth(duration: 0.25), value: additionalText)
+                                                return formatter.string(from: displayDate)
                                             }
+                                        }())
+                                        .font(.subheadline.weight(.medium))
+
+                                        let additionalText = selectedAdditionalTimeText
+                                        let shouldShowAdditionalText = showTimeInsteadOfCityName
+                                            ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
+                                            : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
+                                        if shouldShowAdditionalText {
+                                            Text("·")
+                                                .font(.subheadline.weight(.medium))
+                                            Text(additionalText)
+                                                .font(.subheadline.weight(.medium))
+                                                .contentTransition(.numericText())
+                                                .animation(.smooth(duration: 0.25), value: additionalText)
                                         }
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                        .padding(.bottom, 16)
                                     }
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
+                                    .padding(.bottom, 16)
                                 }
                                 Spacer()
                                 ScrollTimeView(
@@ -1196,10 +1107,8 @@ struct AnalogClockFullView: View {
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if shouldShowToolbarTitle {
-                    ToolbarItem(placement: .principal) {
-                        collectionTitleView
-                    }
+                ToolbarItem(placement: .principal) {
+                    principalToolbarTitle
                 }
                 
                 ToolbarItem(placement: .topBarLeading) {
@@ -1355,7 +1264,6 @@ struct AnalogClockFullView: View {
             .onDisappear {
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = nil
-                hideBottomTimerDeleteIcon(animate: false)
             }
             .onChange(of: scenePhase) { oldValue, newValue in
                 if newValue == .active {
@@ -1375,16 +1283,6 @@ struct AnalogClockFullView: View {
             }
             .onChange(of: worldClocks) { oldValue, newValue in
                 ensureValidSelectedCity(in: displayedClocks)
-            }
-            .onChange(of: selectedDisplayPage) { oldValue, newValue in
-                if oldValue != newValue && newValue != .timer {
-                    hideBottomTimerDeleteIcon()
-                }
-            }
-            .onChange(of: hasConfiguredHomeTimer) { oldValue, newValue in
-                if oldValue != newValue && !newValue {
-                    hideBottomTimerDeleteIcon(animate: false)
-                }
             }
         }
         .preferredColorScheme(.dark)
