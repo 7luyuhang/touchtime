@@ -87,6 +87,8 @@ struct AnalogClockFullView: View {
     @State private var homeTimerResetAnimationTrigger = 0
     @State private var homeTimerResetAnimationFromSeconds = 0
     @State private var isTimerCircleAdjusting = false
+    @State private var showingTimerRenameAlert = false
+    @State private var newTimerName = ""
 
     // Get displayed clocks based on selected collection
     private var displayedClocks: [WorldClock] {
@@ -342,6 +344,46 @@ struct AnalogClockFullView: View {
         )
     }
 
+    private var isHomeTimerRunning: Bool {
+        !homeTimerPaused && homeTimerRemainingSeconds(at: Date()) > 0
+    }
+
+    private func renameHomeTimer() {
+        newTimerName = homeTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        showingTimerRenameAlert = true
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func saveHomeTimerName() {
+        let trimmedName = newTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        withAnimation(.smooth(duration: 0.25)) {
+            homeTimerName = trimmedName
+        }
+        newTimerName = ""
+        refreshHomeTimerAlarm(requestAuthorization: false)
+    }
+
+    private func clearHomeTimer() {
+        homeTimerConfiguredSeconds = 0
+        homeTimerEndDateEpoch = 0
+        homeTimerCompletionHandled = false
+        homeTimerPaused = false
+        homeTimerPausedRemainingSeconds = 0
+        homeTimerName = ""
+        refreshHomeTimerAlarm(requestAuthorization: false)
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
     private func timerPlayPauseSymbol(at date: Date) -> String {
         let remaining = homeTimerRemainingSeconds(at: date)
         return (homeTimerPaused || remaining == 0) ? "play.fill" : "pause.fill"
@@ -563,16 +605,44 @@ struct AnalogClockFullView: View {
     @ViewBuilder
     private var principalToolbarTitle: some View {
         if selectedDisplayPage == .timer {
-            Text(homeTimerDisplayName)
-                .font(.subheadline.weight(.semibold))
-                .contentTransition(.numericText())
-                .padding(.horizontal, 16)
-                .frame(height: 44)
-                .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
-                .lineLimit(1)
-                .animation(.snappy, value: homeTimerDisplayName)
+            timerToolbarTitle
         } else if shouldShowToolbarTitle {
             collectionTitleView
+        }
+    }
+
+    // Timer Tool Bar Title
+    @ViewBuilder
+    private var timerToolbarTitle: some View {
+        let titleLabel = Text(homeTimerDisplayName)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .contentTransition(.numericText())
+            .frame(maxWidth: 200)
+            .padding(.horizontal, 16)
+            .frame(height: 44)
+            .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+            .contentShape(Capsule())
+            .animation(.snappy, value: homeTimerDisplayName)
+
+        if hasConfiguredHomeTimer {
+            Menu {
+                if !isHomeTimerRunning {
+                    Button(action: renameHomeTimer) {
+                        Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
+                    }
+                    Divider()
+                }
+                Button(role: .destructive, action: clearHomeTimer) {
+                    Label(String(localized: "Delete"), systemImage: "xmark.circle")
+                }
+            } label: {
+                titleLabel
+            }
+        } else {
+            titleLabel
         }
     }
 
@@ -1240,6 +1310,17 @@ struct AnalogClockFullView: View {
                 }
             } message: {
                 Text(cameraAlertMessage)
+            }
+            .alert(String(localized: "Rename Timer"), isPresented: $showingTimerRenameAlert) {
+                TextField(homeTimerDisplayName, text: $newTimerName)
+                Button(String(localized: "Cancel"), role: .cancel) {
+                    newTimerName = ""
+                }
+                Button(String(localized: "Save")) {
+                    saveHomeTimerName()
+                }
+            } message: {
+                Text(String(localized: "Customize the name of this timer"))
             }
             // Unified weather fetch trigger for this screen.
             .task(id: "\(showWeather)-\(selectedTimeZone.identifier)") {
