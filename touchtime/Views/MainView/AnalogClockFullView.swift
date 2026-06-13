@@ -116,7 +116,13 @@ struct AnalogClockFullView: View {
     }
 
     private var shouldShowToolbarTitle: Bool {
-        !toolbarTitleText.isEmpty
+        guard !toolbarTitleText.isEmpty else { return false }
+        // Hide the toolbar title entirely on the timer page
+        // (both the City/Time segmented control and the collection title).
+        if selectedDisplayPage == .timer {
+            return false
+        }
+        return true
     }
     
     // Get selected city name
