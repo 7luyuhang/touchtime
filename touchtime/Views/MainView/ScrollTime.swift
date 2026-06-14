@@ -10,6 +10,8 @@ import EventKit
 import EventKitUI
 import CoreHaptics
 import StoreKit
+import Combine
+import QuartzCore
 
 struct ScrollTimeView: View {
     enum ExpandedControlsMode {
@@ -40,9 +42,16 @@ struct ScrollTimeView: View {
     @State private var hapticEngine: CHHapticEngine?
     @State private var lastHapticOffset: CGFloat = 0
     @State private var hapticPlayer: CHHapticPatternPlayer?
-    @State private var inertiaTimer: Timer?
     @State private var inertiaVelocity: CGFloat = 0
     @State private var lastInertiaHapticOffset: TimeInterval = 0
+    @State private var inertiaActive = false
+    // Latest offset requested by an in-progress scrub / inertia frame. It is
+    // flushed to the shared `timeOffset` binding at most once per display frame
+    // (via `frameDriver`), so the city list re-renders no more than once per frame
+    // even though the drag gesture and inertia integrator fire far more often.
+    @State private var pendingScrubOffset: TimeInterval?
+    @State private var isDragging = false
+    @State private var frameDriver = ScrollTimeFrameDriver()
     @State private var showTimeOffsetAdjustmentSheet = false
     @State private var pendingOffsetDirection: ScrollTimeOffsetDirection = .increase
     @State private var pendingOffsetHours = 0
@@ -271,15 +280,23 @@ struct ScrollTimeView: View {
     
     // Stop any ongoing inertia animation
     func stopInertia() {
-        inertiaTimer?.invalidate()
-        inertiaTimer = nil
+        inertiaActive = false
         inertiaVelocity = 0
+        // If the user isn't actively dragging there is no more work for the
+        // per-frame driver, so drop any pending push and shut it down.
+        if !isDragging {
+            pendingScrubOffset = nil
+            frameDriver.stop()
+        }
     }
     
     // Start inertia scroll animation
     func startInertiaScroll(velocity: CGFloat) {
-        // Stop any existing inertia
-        stopInertia()
+        // Cancel any existing inertia, but keep the frame driver alive — we are
+        // about to need it again (either for inertia or to flush the final drag
+        // position).
+        inertiaActive = false
+        inertiaVelocity = 0
         
         // Only start inertia if velocity is significant enough
         guard abs(velocity) > 200 else { return }
@@ -291,36 +308,53 @@ struct ScrollTimeView: View {
         // Initialize haptic tracking
         lastInertiaHapticOffset = accumulatedOffset
         
-        // Use a timer for smooth deceleration (60 fps)
-        let frameInterval: TimeInterval = 1.0 / 60.0
+        // Advance the inertia from the shared per-frame driver so the list still
+        // sees at most one update per frame.
+        inertiaActive = true
+        frameDriver.start()
+    }
+    
+    // Per-frame integration of the inertia velocity. Expressed in real time so it
+    // keeps the previous 0.96-per-frame-at-60fps feel identically on 60 Hz and
+    // 120 Hz (ProMotion) displays.
+    private func advanceInertia(dt: CFTimeInterval) {
+        guard inertiaActive else { return }
         
-        // Create timer and add to .common mode so it continues running during List scrolling
-        let timer = Timer(timeInterval: frameInterval, repeats: true) { [self] timer in
-            let decelerationRate: CGFloat = 0.96
-            inertiaVelocity *= decelerationRate
-            
-            // Stop when velocity is negligible
-            if abs(inertiaVelocity) < 5 {
-                timer.invalidate()
-                inertiaTimer = nil
-                return
-            }
-            
-            // Calculate time change from velocity
-            // velocity is in points/second, convert to hours then to seconds
-            let deltaPoints = inertiaVelocity * CGFloat(frameInterval)
-            let deltaHours = hoursFromOffset(deltaPoints)
-            let deltaSeconds = deltaHours * 3600
-            
-            // Update offsets
-            accumulatedOffset += deltaSeconds
-            commitTimeOffset(accumulatedOffset)
-            
-            // Play haptic during inertia scroll
-            checkAndPlayInertiaHapticTick()
+        let decelerationPerSecond = pow(0.96, 60.0)
+        inertiaVelocity *= CGFloat(pow(decelerationPerSecond, Double(dt)))
+        
+        // Stop when velocity is negligible
+        if abs(inertiaVelocity) < 5 {
+            inertiaActive = false
+            inertiaVelocity = 0
+            return
         }
-        RunLoop.current.add(timer, forMode: .common)
-        inertiaTimer = timer
+        
+        // velocity is in points/second, convert to hours then to seconds
+        let deltaPoints = inertiaVelocity * CGFloat(dt)
+        let deltaSeconds = hoursFromOffset(deltaPoints) * 3600
+        
+        accumulatedOffset += deltaSeconds
+        pendingScrubOffset = accumulatedOffset
+        
+        // Play haptic during inertia scroll
+        checkAndPlayInertiaHapticTick()
+    }
+    
+    // Called once per display frame by `frameDriver`: advance inertia (if any) and
+    // push the most recent offset to the list a single time.
+    private func handleFrameTick(dt: CFTimeInterval) {
+        advanceInertia(dt: dt)
+        
+        if let pending = pendingScrubOffset {
+            pendingScrubOffset = nil
+            commitTimeOffset(pending)
+        }
+        
+        // No drag, no inertia, nothing buffered → nothing to do; stop the driver.
+        if !isDragging && !inertiaActive && pendingScrubOffset == nil {
+            frameDriver.stop()
+        }
     }
     
     // Generate notes text with selected cities and their times
@@ -863,13 +897,19 @@ struct ScrollTimeView: View {
     private var scrollDragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
+                isDragging = true
                 stopInertia()
                 dragOffset = value.translation.width
                 let hours = hoursFromOffset(dragOffset)
-                commitTimeOffset(accumulatedOffset + hours * 3600)
+                // Don't write `timeOffset` here. Buffer the desired value and let
+                // the per-frame driver flush it, coalescing the high-frequency drag
+                // callbacks into at most one list update per frame.
+                pendingScrubOffset = accumulatedOffset + hours * 3600
+                frameDriver.start()
                 checkAndPlayHapticTick()
             }
             .onEnded { value in
+                isDragging = false
                 lastHapticOffset = 0
                 
                 if hapticEnabled {
@@ -880,6 +920,7 @@ struct ScrollTimeView: View {
 
                 let hours = hoursFromOffset(dragOffset)
                 accumulatedOffset += hours * 3600
+                pendingScrubOffset = accumulatedOffset
                 let velocity = value.velocity.width
 
                 withAnimation(.spring()) {
@@ -887,6 +928,9 @@ struct ScrollTimeView: View {
                 }
 
                 startInertiaScroll(velocity: velocity)
+                // Keep the driver running to flush the final position (and to run
+                // inertia if it started).
+                frameDriver.start()
             }
     }
     
@@ -911,6 +955,9 @@ struct ScrollTimeView: View {
         }
         .animation(.spring(), value: isExpanded)
         .animation(.spring(), value: timeOffset != 0)
+        .onReceive(frameDriver.publisher) { dt in
+            handleFrameTick(dt: dt)
+        }
         .onAppear {
             if !continuousScrollMode {
                 continuousScrollMode = true
@@ -919,7 +966,9 @@ struct ScrollTimeView: View {
             prepareHaptics()
         }
         .onDisappear {
+            isDragging = false
             stopInertia()
+            frameDriver.stop()
             hapticEngine?.stop()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
@@ -964,7 +1013,7 @@ struct ScrollTimeView: View {
         }
         .onChange(of: timeOffset) { _, newValue in
             if dragOffset == 0,
-               inertiaTimer == nil,
+               !inertiaActive,
                newValue != snappedToWholeMinute(accumulatedOffset) {
                 accumulatedOffset = newValue
             }
@@ -999,6 +1048,46 @@ struct ScrollTimeView: View {
         } message: {
             Text("Please allow calendar access in Settings to add events.")
         }
+    }
+}
+
+// MARK: - Per-Frame Driver
+/// Drives at most one callback per display refresh via `CADisplayLink`.
+///
+/// Used to throttle how often time scrubbing pushes a new `timeOffset` to the
+/// city list: the drag gesture and inertia integrator can fire much faster than
+/// the screen refreshes, so they only buffer the latest value and this driver
+/// flushes it once per frame. Because `CADisplayLink` callbacks are skipped when
+/// the main thread is busy, list updates also self-throttle under heavy load.
+final class ScrollTimeFrameDriver: NSObject {
+    private var displayLink: CADisplayLink?
+    private var lastTimestamp: CFTimeInterval = 0
+    /// Emits the elapsed time (seconds) since the previous frame, on the main thread.
+    let publisher = PassthroughSubject<CFTimeInterval, Never>()
+
+    func start() {
+        guard displayLink == nil else { return }
+        lastTimestamp = 0
+        let link = CADisplayLink(target: self, selector: #selector(step(_:)))
+        link.add(to: .main, forMode: .common)
+        displayLink = link
+    }
+
+    func stop() {
+        displayLink?.invalidate()
+        displayLink = nil
+        lastTimestamp = 0
+    }
+
+    @objc private func step(_ link: CADisplayLink) {
+        let now = link.timestamp
+        let dt = lastTimestamp == 0 ? link.duration : now - lastTimestamp
+        lastTimestamp = now
+        publisher.send(dt)
+    }
+
+    deinit {
+        displayLink?.invalidate()
     }
 }
 
