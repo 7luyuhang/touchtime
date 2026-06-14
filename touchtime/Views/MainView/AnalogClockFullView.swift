@@ -623,7 +623,7 @@ struct AnalogClockFullView: View {
             .frame(maxWidth: 200)
             .padding(.horizontal, 16)
             .frame(height: 44)
-            .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+            .glassEffect(.regular, in: Capsule(style: .continuous))
             .contentShape(Capsule())
             .animation(.snappy, value: homeTimerDisplayName)
 
