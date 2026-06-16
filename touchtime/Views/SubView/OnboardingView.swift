@@ -170,6 +170,13 @@ struct OnboardingView: View {
     private var effectiveShowTimeOverlay: Bool {
         canShowTimeOverlayComplication && showTimeOverlay
     }
+
+    private var hasAnyComplicationSelected: Bool {
+        showAnalogClock || showSunPosition || showSunAzimuth || effectiveShowMoonAzimuth
+            || effectiveShowMoonSunAzimuth || showSunriseSunset || showWeatherCondition
+            || showTemperatureIndicator || showUVIndex || showWindDirection
+            || effectiveShowDaylight || effectiveShowTimeOverlay || showSolarCurve
+    }
     
     // Prepare haptic engine
     func prepareHaptics() {
@@ -825,6 +832,9 @@ struct OnboardingView: View {
                                 animateFeatures = true
                             }
                         } else if currentPage == 2 {
+                            if !hasAnyComplicationSelected {
+                                selectComplication(.analogClock)
+                            }
                             withAnimation(.spring()) {
                                 currentPage = 3
                             }
