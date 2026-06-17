@@ -72,7 +72,9 @@ struct CitySelectionSheet: View {
                 Section {
                     ForEach(worldClocks) { clock in
                         Button(action: {
-                            toggleSelection(for: clock.id.uuidString)
+                            withAnimation {
+                                toggleSelection(for: clock.id.uuidString)
+                            }
                             
                             if hapticEnabled {
                                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -84,12 +86,11 @@ struct CitySelectionSheet: View {
                                 
                                 Spacer()
                                 
-                                if selectedIds.contains(clock.id.uuidString) {
-                                    Image(systemName: "checkmark")
-                                        .font(.subheadline)
-                                        .fontWeight(.semibold)
-                                        .transition(.identity)
-                                }
+                                let isSelected = selectedIds.contains(clock.id.uuidString)
+                                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                    .font(.title3.weight(.medium))
+                                    .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                                    .contentTransition(.symbolEffect(.replace))
                             }
                             .contentShape(Rectangle())
                         }
