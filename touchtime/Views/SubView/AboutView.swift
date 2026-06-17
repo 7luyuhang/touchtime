@@ -89,9 +89,16 @@ struct AboutView: View {
                             Text("Language")
                         }
                         .layoutPriority(1)
+                        
                         Spacer(minLength: 8)
-                        Text(currentLanguageName)
-                            .foregroundStyle(.secondary)
+                        
+                        HStack(spacing: 6) {
+                            Text(currentLanguageName)
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "arrow.up.forward.app.fill")
+                                .font(.headline)
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                 }
                 .foregroundStyle(.primary)
