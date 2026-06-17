@@ -16,13 +16,7 @@ import WeatherKit
 import SunKit
 
 struct EarthView: View {
-    private static let timeFormatterCache: NSCache<NSString, DateFormatter> = {
-        let cache = NSCache<NSString, DateFormatter>()
-        cache.countLimit = 50
-        return cache
-    }()
     private static let defaultMapSpan = MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
-    private static let visualTimeBucket: TimeInterval = 5 * 60
 
     private static func systemTimeCenteredRegion() -> MKCoordinateRegion {
         let offsetHours = Double(TimeZone.current.secondsFromGMT(for: Date())) / 3600
@@ -38,12 +32,6 @@ struct EarthView: View {
             center: CLLocationCoordinate2D(latitude: 0, longitude: longitude),
             span: defaultMapSpan
         )
-    }
-
-    private static func bucketedDate(_ date: Date, interval: TimeInterval = visualTimeBucket) -> Date {
-        guard interval > 0 else { return date }
-        let bucket = (date.timeIntervalSinceReferenceDate / interval).rounded(.down) * interval
-        return Date(timeIntervalSinceReferenceDate: bucket)
     }
 
     @Binding var timeOffset: TimeInterval
@@ -79,7 +67,6 @@ struct EarthView: View {
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("customLocalName") private var customLocalName = ""
     @AppStorage("showMapLabels") private var showMapLabels = true // 默认显示地图标签
-    @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("showSunCompass") private var showSunCompass = true
     
@@ -110,62 +97,14 @@ struct EarthView: View {
         return nil
     }
     
-    // Get formatted date for menu section header
-    func getMenuDateHeader(for timeZoneIdentifier: String) -> String {
-        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
-            return ""
-        }
-        
-        return displayDate.formattedDate(style: dateStyle, timeZone: targetTimeZone, relativeTo: currentDate)
-    }
-
-    private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
-        guard showWeather else { return nil }
-        return weatherManager.weatherData[timeZoneIdentifier]?.condition
-    }
-
     private var displayDate: Date {
         currentDate.addingTimeInterval(timeOffset)
-    }
-
-    private var visualDisplayDate: Date {
-        Self.bucketedDate(displayDate)
     }
 
     // In 2D (explore) mode, disable pitch gestures so two-finger drag won't tilt into 3D.
     private var mapInteractionModes: MapInteractionModes {
         isUsingExploreMode ? [.pan, .zoom, .rotate] : .all
     }
-
-    // MARK: - Sun Times Cache
-    private struct MapSunTimesData {
-        let sunrise: Date?
-        let sunset: Date?
-        let sunriseAzimuth: Double?
-        let sunsetAzimuth: Double?
-    }
-
-    private class MapSunTimesDataWrapper {
-        let data: MapSunTimesData
-        init(_ data: MapSunTimesData) { self.data = data }
-    }
-
-    private static let mapSunTimesCache: NSCache<NSString, MapSunTimesDataWrapper> = {
-        let cache = NSCache<NSString, MapSunTimesDataWrapper>()
-        cache.countLimit = 120
-        return cache
-    }()
-
-    private class MapSunAzimuthDataWrapper {
-        let azimuth: Double?
-        init(_ azimuth: Double?) { self.azimuth = azimuth }
-    }
-
-    private static let mapSunAzimuthCache: NSCache<NSString, MapSunAzimuthDataWrapper> = {
-        let cache = NSCache<NSString, MapSunAzimuthDataWrapper>()
-        cache.countLimit = 1_440
-        return cache
-    }()
 
     private static func mapCenterTimeZoneSeconds(from longitude: Double) -> Int {
         var normalizedLongitude = longitude.truncatingRemainder(dividingBy: 360)
@@ -178,105 +117,6 @@ struct EarthView: View {
         // Use a longitude-derived offset to avoid abrupt jumps from nearest-city timezone switching.
         let seconds = Int((normalizedLongitude / 15.0 * 3600.0).rounded())
         return min(max(seconds, -18 * 3600), 18 * 3600)
-    }
-
-    private var mapCenterTimeZone: TimeZone {
-        TimeZone(secondsFromGMT: mapCenterTimeZoneSecondsFromGMT) ?? .gmt
-    }
-
-    private var mapCenterSunTimes: MapSunTimesData? {
-        var calendar = Calendar.current
-        calendar.timeZone = mapCenterTimeZone
-        let components = calendar.dateComponents([.year, .month, .day], from: displayDate)
-        let roundedLatitude = (mapCenterCoordinate.latitude * 100).rounded() / 100
-        let roundedLongitude = (mapCenterCoordinate.longitude * 100).rounded() / 100
-        let cacheKey = "\(mapCenterTimeZoneSecondsFromGMT)_earth_sun_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)_\(roundedLatitude)_\(roundedLongitude)" as NSString
-
-        if let cached = Self.mapSunTimesCache.object(forKey: cacheKey) {
-            return cached.data
-        }
-
-        var sun = Sun(
-            location: CLLocation(latitude: mapCenterCoordinate.latitude, longitude: mapCenterCoordinate.longitude),
-            timeZone: mapCenterTimeZone
-        )
-        sun.setDate(displayDate)
-
-        let sunrise = sun.sunrise
-        let sunset = sun.sunset
-        sun.setDate(sunrise)
-        let sunriseAzimuth = sun.azimuth.degrees
-        sun.setDate(sunset)
-        let sunsetAzimuth = sun.azimuth.degrees
-
-        let data = MapSunTimesData(
-            sunrise: sunrise,
-            sunset: sunset,
-            sunriseAzimuth: sunriseAzimuth,
-            sunsetAzimuth: sunsetAzimuth
-        )
-        Self.mapSunTimesCache.setObject(MapSunTimesDataWrapper(data), forKey: cacheKey)
-        return data
-    }
-
-    private func dateAt(hour: Int, minute: Int, in timeZone: TimeZone) -> Date? {
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        var components = calendar.dateComponents([.year, .month, .day], from: displayDate)
-        components.hour = hour
-        components.minute = minute
-        return calendar.date(from: components)
-    }
-
-    private func normalizedAzimuth(_ azimuth: Double?) -> Double? {
-        guard let azimuth, azimuth.isFinite else { return nil }
-        var normalized = azimuth.truncatingRemainder(dividingBy: 360)
-        if normalized < 0 {
-            normalized += 360
-        }
-        return normalized
-    }
-
-    private func sunAzimuth(for date: Date?, in timeZone: TimeZone) -> Double? {
-        guard let date else { return nil }
-        let calculationDate = Self.bucketedDate(date)
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        let minuteComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: calculationDate)
-        let roundedLatitude = (mapCenterCoordinate.latitude * 100).rounded() / 100
-        let roundedLongitude = (mapCenterCoordinate.longitude * 100).rounded() / 100
-        let cacheKey =
-            "\(timeZone.identifier)_\(timeZone.secondsFromGMT(for: calculationDate))_azimuth_\(minuteComponents.year ?? 0)_\(minuteComponents.month ?? 0)_\(minuteComponents.day ?? 0)_\(minuteComponents.hour ?? 0)_\(minuteComponents.minute ?? 0)_\(roundedLatitude)_\(roundedLongitude)" as NSString
-
-        if let cached = Self.mapSunAzimuthCache.object(forKey: cacheKey) {
-            return cached.azimuth
-        }
-
-        var sun = Sun(
-            location: CLLocation(latitude: mapCenterCoordinate.latitude, longitude: mapCenterCoordinate.longitude),
-            timeZone: timeZone
-        )
-        sun.setDate(calculationDate)
-        let azimuth = normalizedAzimuth(sun.azimuth.degrees)
-        Self.mapSunAzimuthCache.setObject(MapSunAzimuthDataWrapper(azimuth), forKey: cacheKey)
-        return azimuth
-    }
-
-    private var mapSolarAngles: (sunrise: Double, sunset: Double, currentSun: Double) {
-        let timeZone = mapCenterTimeZone
-        let sunTimes = mapCenterSunTimes
-        let sunriseFallbackDate = dateAt(hour: 6, minute: 0, in: timeZone)
-        let sunsetFallbackDate = dateAt(hour: 18, minute: 0, in: timeZone)
-
-        return (
-            sunrise: normalizedAzimuth(sunTimes?.sunriseAzimuth)
-                ?? sunAzimuth(for: sunriseFallbackDate, in: timeZone)
-                ?? 90,
-            sunset: normalizedAzimuth(sunTimes?.sunsetAzimuth)
-                ?? sunAzimuth(for: sunsetFallbackDate, in: timeZone)
-                ?? 270,
-            currentSun: sunAzimuth(for: visualDisplayDate, in: timeZone) ?? 180
-        )
     }
 
     private func updateMapSolarReference(center: CLLocationCoordinate2D) {
@@ -294,27 +134,6 @@ struct EarthView: View {
         showSunCompass.toggle()
     }
 
-    private static func timeFormatter(for timeZone: TimeZone, use24Hour: Bool) -> DateFormatter {
-        let key = "\(timeZone.identifier)_\(use24Hour)" as NSString
-        if let cached = timeFormatterCache.object(forKey: key) {
-            return cached
-        }
-
-        let formatter = DateFormatter()
-        formatter.timeZone = timeZone
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = use24Hour ? "HH:mm" : "h:mma"
-        timeFormatterCache.setObject(formatter, forKey: key)
-        return formatter
-    }
-
-    private func formattedTime(for timeZoneIdentifier: String) -> String {
-        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
-        return Self.timeFormatter(for: timeZone, use24Hour: use24HourFormat)
-            .string(from: displayDate)
-            .lowercased()
-    }
-    
     // Add to Calendar
     func addToCalendar(timeZoneIdentifier: String, cityName: String) {
         eventStore.requestFullAccessToEvents { granted, error in
@@ -615,69 +434,22 @@ struct EarthView: View {
                     if shouldShowLocalTime,
                        let coordinate = getCoordinate(for: TimeZone.current.identifier) {
                         Annotation(String(localized: "Local"), coordinate: coordinate) {
-
-                            VStack(spacing: 6) {
-                                // Time bubble with SkyDot - wrapped in contextMenu
-                                HStack(spacing: 8) {
-                                    
-                                    if showSkyDot {
-                                        SkyDotView(
-                                            date: visualDisplayDate,
-                                            timeZoneIdentifier: TimeZone.current.identifier,
-                                            weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
-                                        )
-                                        .overlay(
-                                            Capsule(style: .continuous)
-                                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                                .blendMode(.plusLighter)
-                                        )
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    HStack(spacing: 4) {
-                                        Text(formattedTime(for: TimeZone.current.identifier))
-                                        .font(.caption)
-                                        .fontWeight(.bold)
-                                        .foregroundStyle(.black)
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                        .animation(.spring(), value: currentDate)
-                                        
-                                        Image(systemName: "location.fill")
-                                            .font(.caption2)
-                                            .foregroundStyle(.black.opacity(0.50))
-                                            .blendMode(.plusDarker)
-                                    }
-
-                                }
-                                .animation(.spring(), value: showSkyDot)
-                                
-                                // Overall Paddings
-                                .padding(.leading, showSkyDot ? 4 : 8)
-                                .padding(.trailing, 8)
-                                .padding(.vertical, 4)
-                                .glassEffect(.regular.tint(.white).interactive(), in: Capsule())
-                                .onTapGesture {
-                                    if hapticEnabled {
-                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                        impactFeedback.prepare()
-                                        impactFeedback.impactOccurred()
-                                    }
+                            EarthLocalAnnotationContent(
+                                timeOffset: $timeOffset,
+                                currentDate: $currentDate,
+                                weatherManager: weatherManager,
+                                onSelect: {
                                     selectedCityName = String(localized: "Local")
                                     selectedTimeZoneIdentifier = TimeZone.current.identifier
                                     showSunriseSunsetSheet = true
+                                },
+                                onScheduleEvent: {
+                                    addToCalendar(
+                                        timeZoneIdentifier: TimeZone.current.identifier,
+                                        cityName: String(localized: "Local")
+                                    )
                                 }
-                                .contextMenu {
-                                    Section(getMenuDateHeader(for: TimeZone.current.identifier)) {
-                                        Button(action: {
-                                            let cityName = String(localized: "Local")
-                                            addToCalendar(timeZoneIdentifier: TimeZone.current.identifier, cityName: cityName)
-                                        }) {
-                                            Label(String(localized: "Schedule Event"), systemImage: "calendar.badge.plus")
-                                        }
-                                    }
-                                }
-                            }
+                            )
                         }
                     }
                 }
@@ -693,89 +465,43 @@ struct EarthView: View {
                         // Don't show duplicate of local time
                     } else if shouldShowClock, let coordinate = getCoordinate(for: clock.timeZoneIdentifier) {
                         Annotation(clock.localizedCityName, coordinate: coordinate) {
-                            VStack(spacing: 6) {
-                                // Time bubble with SkyDot - wrapped in contextMenu
-                                HStack(spacing: 8) {
-                                    if showSkyDot {
-                                        SkyDotView(
-                                            date: visualDisplayDate,
-                                            timeZoneIdentifier: clock.timeZoneIdentifier,
-                                            weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
-                                        )
-                                        .overlay(
-                                            Capsule(style: .continuous)
-                                                .stroke(Color.white.opacity(0.1), lineWidth: 1)
-                                                .blendMode(.plusLighter)
-                                        )
-                                        .transition(.blurReplace)
-                                    }
-                                    
-                                    Text(formattedTime(for: clock.timeZoneIdentifier))
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .foregroundStyle(.white)
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText())
-                                    .animation(.spring(), value: currentDate)
-                                }
-                                .animation(.spring(), value: showSkyDot)
-                                .padding(.leading, showSkyDot ? 4 : 8)
-                                .padding(.trailing, 8)
-                                .padding(.vertical, 4)
-                                .clipShape(Capsule())
-                                .background(
-                                    Capsule()
-                                        .fill(Color.black.opacity(0.25))
-                                        .glassEffect(.clear.interactive())
-                                )
-                                .onTapGesture {
-                                    if hapticEnabled {
-                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                        impactFeedback.prepare()
-                                        impactFeedback.impactOccurred()
-                                    }
+                            EarthCityAnnotationContent(
+                                clock: clock,
+                                timeOffset: $timeOffset,
+                                currentDate: $currentDate,
+                                weatherManager: weatherManager,
+                                onSelect: {
                                     selectedCityName = clock.localizedCityName
                                     selectedTimeZoneIdentifier = clock.timeZoneIdentifier
                                     showSunriseSunsetSheet = true
-                                }
-                                .contextMenu {
-                                    Section(getMenuDateHeader(for: clock.timeZoneIdentifier)) {
-                                        Button(action: {
-                                            addToCalendar(timeZoneIdentifier: clock.timeZoneIdentifier, cityName: clock.localizedCityName)
-                                        }) {
-                                            Label(String(localized: "Schedule Event"), systemImage: "calendar.badge.plus")
+                                },
+                                onScheduleEvent: {
+                                    addToCalendar(
+                                        timeZoneIdentifier: clock.timeZoneIdentifier,
+                                        cityName: clock.localizedCityName
+                                    )
+                                },
+                                onRename: {
+                                    renamingClockId = clock.id
+                                    let identifier = clock.timeZoneIdentifier
+                                    let components = identifier.split(separator: "/")
+                                    let rawName = components.count >= 2
+                                        ? String(components.last!).replacingOccurrences(of: "_", with: " ")
+                                        : String(identifier)
+                                    originalClockName = String(localized: String.LocalizationValue(rawName))
+                                    newClockName = clock.localizedCityName
+                                    showingRenameAlert = true
+                                },
+                                onDelete: {
+                                    if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
+                                        withAnimation {
+                                            worldClocks.remove(at: index)
+                                            saveWorldClocks()
                                         }
-           
-                                        Button(action: {
-                                            renamingClockId = clock.id
-                                            let identifier = clock.timeZoneIdentifier
-                                            let components = identifier.split(separator: "/")
-                                            let rawName = components.count >= 2
-                                                ? String(components.last!).replacingOccurrences(of: "_", with: " ")
-                                                : String(identifier)
-                                            originalClockName = String(localized: String.LocalizationValue(rawName))
-                                            newClockName = clock.localizedCityName
-                                            showingRenameAlert = true
-                                        }) {
-                                            Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
-                                        }
-                                        
-                                        Divider()
-                                        
-                                        Button(role: .destructive, action: {
-                                            if let index = worldClocks.firstIndex(where: { $0.id == clock.id }) {
-                                                withAnimation {
-                                                    worldClocks.remove(at: index)
-                                                    saveWorldClocks()
-                                                }
-                                                CollectionsStore.removeCity(withId: clock.id)
-                                            }
-                                        }) {
-                                            Label("Delete", systemImage: "xmark.circle")
-                                        }
+                                        CollectionsStore.removeCity(withId: clock.id)
                                     }
                                 }
-                            }
+                            )
                         }
                     }
                 }
@@ -800,69 +526,12 @@ struct EarthView: View {
             }
 
             if isUsingExploreMode && showSunCompass {
-                GeometryReader { geometry in
-                    let analogClockSize = min(geometry.size.width, geometry.size.height)
-                    let ringDiameter = max(analogClockSize - 24, 0)
-                    let ringWidth: CGFloat = 32
-                    let lineRadius = max((ringDiameter / 2) - (ringWidth / 2), 0)
-                    let angles = mapSolarAngles
-
-                    ZStack {
-                        // External Circle
-                        Circle()
-                            .glassEffect(.clear.tint(.black.opacity(0.85)))
-                            .mask {
-                                Circle()
-                                    .stroke(style: StrokeStyle(lineWidth: ringWidth))
-                            }
-                            .overlay { // Internal Border
-                                Circle()
-                                    .stroke(Color.white.opacity(0.20), lineWidth: 1)
-                                    .frame(
-                                        width: max(ringDiameter - ringWidth, 0),
-                                        height: max(ringDiameter - ringWidth, 0)
-                                    )
-                                    .blendMode(.plusLighter)
-                            }
-
-                        EarthCompassLabelsView(
-                            diameter: ringDiameter,
-                            ringWidth: ringWidth
-                        )
-
-                        EarthSolarLineView(
-                            angle: angles.sunrise,
-                            diameter: ringDiameter,
-                            radius: lineRadius,
-                            color: Color.white.opacity(0.50)
-                        )
-
-                        EarthSolarLineView(
-                            angle: angles.sunset,
-                            diameter: ringDiameter,
-                            radius: lineRadius,
-                            color: Color.white.opacity(0.50)
-                        )
-
-                        EarthSolarLineView(
-                            angle: angles.currentSun,
-                            diameter: ringDiameter,
-                            radius: lineRadius,
-                            color: .white,
-                            lineWidth: 2.5,
-                            endpointSize: 16,
-                            disableAnimation: false
-                        )
-
-                        // Center Point
-                        Circle()
-                            .fill(.white)
-                            .frame(width: 8, height: 8)
-                    }
-                    .frame(width: ringDiameter, height: ringDiameter)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .allowsHitTesting(false)
-                }
+                EarthSunCompassOverlay(
+                    timeOffset: $timeOffset,
+                    currentDate: $currentDate,
+                    mapCenterCoordinate: $mapCenterCoordinate,
+                    mapCenterTimeZoneSecondsFromGMT: $mapCenterTimeZoneSecondsFromGMT
+                )
                 .offset(y: ringAndControlsOffsetY)
                 .transition(.identity)
             }
@@ -1177,6 +846,438 @@ struct EarthView: View {
             }
         }
     }  
+}
+
+// MARK: - Shared time helpers for the map layer
+// Bucketing + cached formatting used by the annotation leaf views so they can
+// read time directly (via bindings) without going through `EarthView`.
+fileprivate enum EarthMapTime {
+    static let visualTimeBucket: TimeInterval = 5 * 60
+
+    static func bucketedDate(_ date: Date, interval: TimeInterval = visualTimeBucket) -> Date {
+        guard interval > 0 else { return date }
+        let bucket = (date.timeIntervalSinceReferenceDate / interval).rounded(.down) * interval
+        return Date(timeIntervalSinceReferenceDate: bucket)
+    }
+
+    private static let timeFormatterCache: NSCache<NSString, DateFormatter> = {
+        let cache = NSCache<NSString, DateFormatter>()
+        cache.countLimit = 50
+        return cache
+    }()
+
+    static func timeFormatter(for timeZone: TimeZone, use24Hour: Bool) -> DateFormatter {
+        let key = "\(timeZone.identifier)_\(use24Hour)" as NSString
+        if let cached = timeFormatterCache.object(forKey: key) {
+            return cached
+        }
+
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = use24Hour ? "HH:mm" : "h:mma"
+        timeFormatterCache.setObject(formatter, forKey: key)
+        return formatter
+    }
+
+    static func formattedTime(for timeZoneIdentifier: String, date: Date, use24Hour: Bool) -> String {
+        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        return timeFormatter(for: timeZone, use24Hour: use24Hour)
+            .string(from: date)
+            .lowercased()
+    }
+}
+
+// MARK: - Map annotation leaf views (localized invalidation)
+// These hold the time bindings and quantize internally, so while scrubbing time
+// only the visible annotation labels recompute instead of `EarthView.body`
+// rebuilding the whole `Map` (which would force MapKit to re-diff every
+// annotation). Mirrors the row extraction used in `HomeView`.
+
+/// Local-time map bubble.
+fileprivate struct EarthLocalAnnotationContent: View {
+    @Binding var timeOffset: TimeInterval
+    @Binding var currentDate: Date
+    @ObservedObject var weatherManager: WeatherManager
+    var onSelect: () -> Void
+    var onScheduleEvent: () -> Void
+
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("showSkyDot") private var showSkyDot = true
+    @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
+
+    private var timeZoneIdentifier: String { TimeZone.current.identifier }
+    private var displayDate: Date { currentDate.addingTimeInterval(timeOffset) }
+    private var visualDisplayDate: Date { EarthMapTime.bucketedDate(displayDate) }
+
+    private var weatherCondition: WeatherCondition? {
+        showWeather ? weatherManager.weatherData[timeZoneIdentifier]?.condition : nil
+    }
+
+    private var menuDateHeader: String {
+        guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else { return "" }
+        return displayDate.formattedDate(style: dateStyle, timeZone: timeZone, relativeTo: currentDate)
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            // Time bubble with SkyDot - wrapped in contextMenu
+            HStack(spacing: 8) {
+                if showSkyDot {
+                    SkyDotView(
+                        date: visualDisplayDate,
+                        timeZoneIdentifier: timeZoneIdentifier,
+                        weatherCondition: weatherCondition
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            .blendMode(.plusLighter)
+                    )
+                    .transition(.blurReplace)
+                }
+
+                HStack(spacing: 4) {
+                    Text(EarthMapTime.formattedTime(for: timeZoneIdentifier, date: displayDate, use24Hour: use24HourFormat))
+                        .font(.caption)
+                        .fontWeight(.bold)
+                        .foregroundStyle(.black)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .animation(.spring(), value: currentDate)
+
+                    Image(systemName: "location.fill")
+                        .font(.caption2)
+                        .foregroundStyle(.black.opacity(0.50))
+                        .blendMode(.plusDarker)
+                }
+            }
+            .animation(.spring(), value: showSkyDot)
+            .padding(.leading, showSkyDot ? 4 : 8)
+            .padding(.trailing, 8)
+            .padding(.vertical, 4)
+            .glassEffect(.regular.tint(.white).interactive(), in: Capsule())
+            .onTapGesture {
+                if hapticEnabled {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                    impactFeedback.prepare()
+                    impactFeedback.impactOccurred()
+                }
+                onSelect()
+            }
+            .contextMenu {
+                Section(menuDateHeader) {
+                    Button(action: onScheduleEvent) {
+                        Label(String(localized: "Schedule Event"), systemImage: "calendar.badge.plus")
+                    }
+                }
+            }
+        }
+    }
+}
+
+/// World-clock (city) map bubble.
+fileprivate struct EarthCityAnnotationContent: View {
+    let clock: WorldClock
+    @Binding var timeOffset: TimeInterval
+    @Binding var currentDate: Date
+    @ObservedObject var weatherManager: WeatherManager
+    var onSelect: () -> Void
+    var onScheduleEvent: () -> Void
+    var onRename: () -> Void
+    var onDelete: () -> Void
+
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("showSkyDot") private var showSkyDot = true
+    @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
+
+    private var displayDate: Date { currentDate.addingTimeInterval(timeOffset) }
+    private var visualDisplayDate: Date { EarthMapTime.bucketedDate(displayDate) }
+
+    private var weatherCondition: WeatherCondition? {
+        showWeather ? weatherManager.weatherData[clock.timeZoneIdentifier]?.condition : nil
+    }
+
+    private var menuDateHeader: String {
+        guard let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) else { return "" }
+        return displayDate.formattedDate(style: dateStyle, timeZone: timeZone, relativeTo: currentDate)
+    }
+
+    var body: some View {
+        VStack(spacing: 6) {
+            // Time bubble with SkyDot - wrapped in contextMenu
+            HStack(spacing: 8) {
+                if showSkyDot {
+                    SkyDotView(
+                        date: visualDisplayDate,
+                        timeZoneIdentifier: clock.timeZoneIdentifier,
+                        weatherCondition: weatherCondition
+                    )
+                    .overlay(
+                        Capsule(style: .continuous)
+                            .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                            .blendMode(.plusLighter)
+                    )
+                    .transition(.blurReplace)
+                }
+
+                Text(EarthMapTime.formattedTime(for: clock.timeZoneIdentifier, date: displayDate, use24Hour: use24HourFormat))
+                    .font(.caption)
+                    .fontWeight(.bold)
+                    .foregroundStyle(.white)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .animation(.spring(), value: currentDate)
+            }
+            .animation(.spring(), value: showSkyDot)
+            .padding(.leading, showSkyDot ? 4 : 8)
+            .padding(.trailing, 8)
+            .padding(.vertical, 4)
+            .clipShape(Capsule())
+            .background(
+                Capsule()
+                    .fill(Color.black.opacity(0.25))
+                    .glassEffect(.clear.interactive())
+            )
+            .onTapGesture {
+                if hapticEnabled {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                    impactFeedback.prepare()
+                    impactFeedback.impactOccurred()
+                }
+                onSelect()
+            }
+            .contextMenu {
+                Section(menuDateHeader) {
+                    Button(action: onScheduleEvent) {
+                        Label(String(localized: "Schedule Event"), systemImage: "calendar.badge.plus")
+                    }
+
+                    Button(action: onRename) {
+                        Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
+                    }
+
+                    Divider()
+
+                    Button(role: .destructive, action: onDelete) {
+                        Label("Delete", systemImage: "xmark.circle")
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Sun compass overlay (explore mode)
+// Owns the per-frame time + map-center dependencies so the compass updates while
+// scrubbing/panning without invalidating `EarthView.body`.
+fileprivate struct EarthSunCompassOverlay: View {
+    @Binding var timeOffset: TimeInterval
+    @Binding var currentDate: Date
+    @Binding var mapCenterCoordinate: CLLocationCoordinate2D
+    @Binding var mapCenterTimeZoneSecondsFromGMT: Int
+
+    // MARK: - Sun Times Cache
+    private struct MapSunTimesData {
+        let sunrise: Date?
+        let sunset: Date?
+        let sunriseAzimuth: Double?
+        let sunsetAzimuth: Double?
+    }
+
+    private class MapSunTimesDataWrapper {
+        let data: MapSunTimesData
+        init(_ data: MapSunTimesData) { self.data = data }
+    }
+
+    private static let mapSunTimesCache: NSCache<NSString, MapSunTimesDataWrapper> = {
+        let cache = NSCache<NSString, MapSunTimesDataWrapper>()
+        cache.countLimit = 120
+        return cache
+    }()
+
+    private class MapSunAzimuthDataWrapper {
+        let azimuth: Double?
+        init(_ azimuth: Double?) { self.azimuth = azimuth }
+    }
+
+    private static let mapSunAzimuthCache: NSCache<NSString, MapSunAzimuthDataWrapper> = {
+        let cache = NSCache<NSString, MapSunAzimuthDataWrapper>()
+        cache.countLimit = 1_440
+        return cache
+    }()
+
+    private var displayDate: Date { currentDate.addingTimeInterval(timeOffset) }
+    private var visualDisplayDate: Date { EarthMapTime.bucketedDate(displayDate) }
+
+    private var mapCenterTimeZone: TimeZone {
+        TimeZone(secondsFromGMT: mapCenterTimeZoneSecondsFromGMT) ?? .gmt
+    }
+
+    private var mapCenterSunTimes: MapSunTimesData? {
+        var calendar = Calendar.current
+        calendar.timeZone = mapCenterTimeZone
+        let components = calendar.dateComponents([.year, .month, .day], from: displayDate)
+        let roundedLatitude = (mapCenterCoordinate.latitude * 100).rounded() / 100
+        let roundedLongitude = (mapCenterCoordinate.longitude * 100).rounded() / 100
+        let cacheKey = "\(mapCenterTimeZoneSecondsFromGMT)_earth_sun_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)_\(roundedLatitude)_\(roundedLongitude)" as NSString
+
+        if let cached = Self.mapSunTimesCache.object(forKey: cacheKey) {
+            return cached.data
+        }
+
+        var sun = Sun(
+            location: CLLocation(latitude: mapCenterCoordinate.latitude, longitude: mapCenterCoordinate.longitude),
+            timeZone: mapCenterTimeZone
+        )
+        sun.setDate(displayDate)
+
+        let sunrise = sun.sunrise
+        let sunset = sun.sunset
+        sun.setDate(sunrise)
+        let sunriseAzimuth = sun.azimuth.degrees
+        sun.setDate(sunset)
+        let sunsetAzimuth = sun.azimuth.degrees
+
+        let data = MapSunTimesData(
+            sunrise: sunrise,
+            sunset: sunset,
+            sunriseAzimuth: sunriseAzimuth,
+            sunsetAzimuth: sunsetAzimuth
+        )
+        Self.mapSunTimesCache.setObject(MapSunTimesDataWrapper(data), forKey: cacheKey)
+        return data
+    }
+
+    private func dateAt(hour: Int, minute: Int, in timeZone: TimeZone) -> Date? {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        var components = calendar.dateComponents([.year, .month, .day], from: displayDate)
+        components.hour = hour
+        components.minute = minute
+        return calendar.date(from: components)
+    }
+
+    private func normalizedAzimuth(_ azimuth: Double?) -> Double? {
+        guard let azimuth, azimuth.isFinite else { return nil }
+        var normalized = azimuth.truncatingRemainder(dividingBy: 360)
+        if normalized < 0 {
+            normalized += 360
+        }
+        return normalized
+    }
+
+    private func sunAzimuth(for date: Date?, in timeZone: TimeZone) -> Double? {
+        guard let date else { return nil }
+        let calculationDate = EarthMapTime.bucketedDate(date)
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let minuteComponents = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: calculationDate)
+        let roundedLatitude = (mapCenterCoordinate.latitude * 100).rounded() / 100
+        let roundedLongitude = (mapCenterCoordinate.longitude * 100).rounded() / 100
+        let cacheKey =
+            "\(timeZone.identifier)_\(timeZone.secondsFromGMT(for: calculationDate))_azimuth_\(minuteComponents.year ?? 0)_\(minuteComponents.month ?? 0)_\(minuteComponents.day ?? 0)_\(minuteComponents.hour ?? 0)_\(minuteComponents.minute ?? 0)_\(roundedLatitude)_\(roundedLongitude)" as NSString
+
+        if let cached = Self.mapSunAzimuthCache.object(forKey: cacheKey) {
+            return cached.azimuth
+        }
+
+        var sun = Sun(
+            location: CLLocation(latitude: mapCenterCoordinate.latitude, longitude: mapCenterCoordinate.longitude),
+            timeZone: timeZone
+        )
+        sun.setDate(calculationDate)
+        let azimuth = normalizedAzimuth(sun.azimuth.degrees)
+        Self.mapSunAzimuthCache.setObject(MapSunAzimuthDataWrapper(azimuth), forKey: cacheKey)
+        return azimuth
+    }
+
+    private var mapSolarAngles: (sunrise: Double, sunset: Double, currentSun: Double) {
+        let timeZone = mapCenterTimeZone
+        let sunTimes = mapCenterSunTimes
+        let sunriseFallbackDate = dateAt(hour: 6, minute: 0, in: timeZone)
+        let sunsetFallbackDate = dateAt(hour: 18, minute: 0, in: timeZone)
+
+        return (
+            sunrise: normalizedAzimuth(sunTimes?.sunriseAzimuth)
+                ?? sunAzimuth(for: sunriseFallbackDate, in: timeZone)
+                ?? 90,
+            sunset: normalizedAzimuth(sunTimes?.sunsetAzimuth)
+                ?? sunAzimuth(for: sunsetFallbackDate, in: timeZone)
+                ?? 270,
+            currentSun: sunAzimuth(for: visualDisplayDate, in: timeZone) ?? 180
+        )
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            let analogClockSize = min(geometry.size.width, geometry.size.height)
+            let ringDiameter = max(analogClockSize - 24, 0)
+            let ringWidth: CGFloat = 32
+            let lineRadius = max((ringDiameter / 2) - (ringWidth / 2), 0)
+            let angles = mapSolarAngles
+
+            ZStack {
+                // External Circle
+                Circle()
+                    .glassEffect(.clear.tint(.black.opacity(0.85)))
+                    .mask {
+                        Circle()
+                            .stroke(style: StrokeStyle(lineWidth: ringWidth))
+                    }
+                    .overlay { // Internal Border
+                        Circle()
+                            .stroke(Color.white.opacity(0.20), lineWidth: 1)
+                            .frame(
+                                width: max(ringDiameter - ringWidth, 0),
+                                height: max(ringDiameter - ringWidth, 0)
+                            )
+                            .blendMode(.plusLighter)
+                    }
+
+                EarthCompassLabelsView(
+                    diameter: ringDiameter,
+                    ringWidth: ringWidth
+                )
+
+                EarthSolarLineView(
+                    angle: angles.sunrise,
+                    diameter: ringDiameter,
+                    radius: lineRadius,
+                    color: Color.white.opacity(0.50)
+                )
+
+                EarthSolarLineView(
+                    angle: angles.sunset,
+                    diameter: ringDiameter,
+                    radius: lineRadius,
+                    color: Color.white.opacity(0.50)
+                )
+
+                EarthSolarLineView(
+                    angle: angles.currentSun,
+                    diameter: ringDiameter,
+                    radius: lineRadius,
+                    color: .white,
+                    lineWidth: 2.5,
+                    endpointSize: 16,
+                    disableAnimation: false
+                )
+
+                // Center Point
+                Circle()
+                    .fill(.white)
+                    .frame(width: 8, height: 8)
+            }
+            .frame(width: ringDiameter, height: ringDiameter)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .allowsHitTesting(false)
+        }
+    }
 }
 
 private struct EarthSolarLineView: View {
