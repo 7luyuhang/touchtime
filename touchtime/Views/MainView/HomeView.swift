@@ -76,6 +76,7 @@ struct HomeView: View {
     @Binding var timeOffset: TimeInterval
     @Binding var showScrollTimeButtons: Bool
     @ObservedObject var weatherManager: WeatherManager
+    @ObservedObject private var googleMeet = GoogleMeetManager.shared
     @State private var currentDate = Date()
     @State private var showingRenameAlert = false
     @State private var renamingClockId: UUID? = nil
@@ -131,6 +132,7 @@ struct HomeView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
+    @AppStorage("addMeetLinkToEvents") private var addMeetLinkToEvents = false
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
@@ -632,66 +634,7 @@ struct HomeView: View {
     func addToCalendar(timeZoneIdentifier: String, cityName: String) {
         // Request calendar permission
         eventStore.requestFullAccessToEvents { granted, error in
-            if granted && error == nil {
-                DispatchQueue.main.async {
-                    // Create event with adjusted time
-                    let event = EKEvent(eventStore: self.eventStore)
-                    
-                    // Calculate the adjusted start time for the selected timezone
-                    let currentDate = Date()
-                    let formatter = DateFormatter()
-                    formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
-                    formatter.locale = Locale(identifier: "en_US_POSIX")
-                    
-                    // Get the current time in the target timezone
-                    let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-                    
-                    // Calculate time in target timezone adjusted by the offset
-                    let adjustedDate = currentDate.addingTimeInterval(self.timeOffset)
-                    
-                    // Set the start date
-                    event.startDate = adjustedDate
-                    
-                    // Set end date with user-configured default duration
-                    event.endDate = adjustedDate.addingTimeInterval(self.defaultEventDuration)
-                    
-                    // Set calendar - use selected calendar if available, otherwise default
-                    if !self.selectedCalendarIdentifier.isEmpty,
-                       let selectedCalendar = self.eventStore.calendars(for: .event).first(where: { $0.calendarIdentifier == self.selectedCalendarIdentifier }) {
-                        event.calendar = selectedCalendar
-                    } else {
-                        event.calendar = self.eventStore.defaultCalendarForNewEvents
-                    }
-                    
-                    // Add notes with the city and time information
-                    formatter.timeZone = targetTimeZone
-                    if self.use24HourFormat {
-                        formatter.dateFormat = "HH:mm"
-                    } else {
-                        formatter.dateFormat = "h:mm a"
-                    }
-                    let timeString = formatter.string(from: adjustedDate)
-                    
-                    // Format date - use different format for Chinese locale
-                    formatter.locale = Locale.current
-                    if Locale.current.language.languageCode?.identifier == "zh" {
-                        formatter.dateFormat = "MMMd日 E"
-                    } else {
-                        formatter.dateFormat = "E, d MMM"
-                    }
-                    let dateString = formatter.string(from: adjustedDate)
-                    
-                    // Reset locale for next iteration
-                    formatter.locale = Locale(identifier: "en_US_POSIX")
-                    
-                    event.notes = String(format: String(localized: "Time in %@: %@ · %@"), cityName, timeString, dateString)
-                    
-                    // Store the event and show the editor
-                    self.eventToEdit = event
-                    self.scheduleForTimeZone = timeZoneIdentifier
-                    self.showEventEditor = true
-                }
-            } else {
+            guard granted, error == nil else {
                 print("Calendar access denied or error: \(String(describing: error))")
                 DispatchQueue.main.async {
                     self.showCalendarPermissionAlert = true
@@ -702,8 +645,83 @@ struct HomeView: View {
                         impactFeedback.notificationOccurred(.warning)
                     }
                 }
+                return
+            }
+
+            Task { @MainActor in
+                await self.prepareAndPresentEvent(timeZoneIdentifier: timeZoneIdentifier, cityName: cityName)
             }
         }
+    }
+
+    // Build the event (notes + optional Google Meet link) and present the editor
+    @MainActor
+    private func prepareAndPresentEvent(timeZoneIdentifier: String, cityName: String) async {
+        // Create event with adjusted time
+        let event = EKEvent(eventStore: eventStore)
+
+        // Calculate the adjusted start time for the selected timezone
+        let currentDate = Date()
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+
+        // Get the current time in the target timezone
+        let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+
+        // Calculate time in target timezone adjusted by the offset
+        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+
+        // Set the start date
+        event.startDate = adjustedDate
+
+        // Set end date with user-configured default duration
+        event.endDate = adjustedDate.addingTimeInterval(defaultEventDuration)
+
+        // Set calendar - use selected calendar if available, otherwise default
+        if !selectedCalendarIdentifier.isEmpty,
+           let selectedCalendar = eventStore.calendars(for: .event).first(where: { $0.calendarIdentifier == selectedCalendarIdentifier }) {
+            event.calendar = selectedCalendar
+        } else {
+            event.calendar = eventStore.defaultCalendarForNewEvents
+        }
+
+        // Add notes with the city and time information
+        formatter.timeZone = targetTimeZone
+        if use24HourFormat {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "h:mm a"
+        }
+        let timeString = formatter.string(from: adjustedDate)
+
+        // Format date - use different format for Chinese locale
+        formatter.locale = Locale.current
+        if Locale.current.language.languageCode?.identifier == "zh" {
+            formatter.dateFormat = "MMMd日 E"
+        } else {
+            formatter.dateFormat = "E, d MMM"
+        }
+        let dateString = formatter.string(from: adjustedDate)
+
+        // Reset locale
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+
+        // Build notes: city time first, then optionally a Google Meet link below it.
+        var noteSections: [String] = [
+            String(format: String(localized: "Time in %@: %@ · %@"), cityName, timeString, dateString)
+        ]
+        if addMeetLinkToEvents,
+           googleMeet.isSignedIn,
+           let meetLink = try? await googleMeet.createMeetLink() {
+            noteSections.append(String(localized: "Google Meet:") + "\n" + meetLink)
+        }
+        event.notes = noteSections.joined(separator: "\n\n")
+
+        // Store the event and show the editor
+        eventToEdit = event
+        scheduleForTimeZone = timeZoneIdentifier
+        showEventEditor = true
     }
     
     // Get formatted date for city with Natural Dates setting
