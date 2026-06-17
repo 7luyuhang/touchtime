@@ -102,12 +102,15 @@ float2 Drops(float2 uv, float t, float l0, float l1, float l2) {
 // `size` is the view size in points so we can build a stable centered uv
 // regardless of the bounding rect. `iTime` is seconds since the effect
 // started. `intensity` is in [0, 1] and controls how much rain is drawn.
+// `dropScale` scales the apparent drop size: 1.0 = default, smaller values
+// (e.g. 0.6) produce smaller, denser drops.
 [[ stitchable ]]
 half4 rainFall(float2 pos,
                SwiftUI::Layer layer,
                float2 size,
                float iTime,
-               float intensity)
+               float intensity,
+               float dropScale)
 {
     float w = max(size.x, 1.0);
     float h = max(size.y, 1.0);
@@ -125,7 +128,8 @@ half4 rainFall(float2 pos,
 
     // Lower factor zooms in further; 0.7 makes drops ~2.1x larger than the
     // shader's original 1.5 setting while keeping cells/drops in proportion.
-    uv *= 0.35;
+    // Dividing by `dropScale` shrinks the drops as `dropScale` decreases.
+    uv *= 0.35 / max(dropScale, 0.01);
 
     // Tightened curves so even moderate rainAmount stays visually sparse.
     float staticDrops = S(.1, 1., rainAmount);

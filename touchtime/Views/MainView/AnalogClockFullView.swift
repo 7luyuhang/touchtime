@@ -1930,7 +1930,15 @@ struct AnalogClockFaceView: View {
             showScrollTimeButtons = false
         }
     }
-    
+
+    /// Rain intensity in [0, 1] for the clock-face rain shader. Driven by the
+    /// displayed weather (matching `SkyStarBackground`): returns 0 when weather
+    /// is hidden or the current condition isn't rainy, which disables the effect.
+    private var rainIntensity: Float {
+        guard showWeather, let condition = weather?.condition else { return 0 }
+        return condition.rainIntensity
+    }
+
     var body: some View {
         ZStack {
             // Clock face background
@@ -1974,7 +1982,25 @@ struct AnalogClockFaceView: View {
                             lastRotationAngle = nil
                         }
                 )
-            
+
+            // Rain-on-glass effect sitting on the clock face, below all clock
+            // markings. Fills a full square so the shader never samples
+            // transparent pixels (which would show as black refractive halos),
+            // then masks to the clock-face circle. `.plusLighter` keeps the dark
+            // base from dimming the face so only the luminous drops read.
+            if rainIntensity > 0 {
+                Rectangle()
+                    .fill(Color.black)
+                    .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+                    .rainFallEffect(intensity: rainIntensity, dropScale: 0.6)
+                    .mask {
+                        Circle()
+                            .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+                    }
+                    .blendMode(.plusLighter)
+                    .allowsHitTesting(false)
+            }
+
             // Time offset arc (显示滚动时间的起点到终点)
             if showArcIndicator && timeOffset != 0 {
                 TimeOffsetArcView(
