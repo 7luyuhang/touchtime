@@ -62,12 +62,14 @@ struct ScrollTimeView: View {
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
+    @AppStorage("addMeetLinkToEvents") private var addMeetLinkToEvents = false
     @AppStorage("hasRequestedReviewAfterFirstReset") private var hasRequestedReviewAfterFirstReset = false
     @AppStorage("resetCount") private var resetCount: Int = 0
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @Environment(\.requestReview) private var requestReview
     @Namespace private var glassNamespace
     @State private var showCalendarPermissionAlert = false
+    @ObservedObject private var googleMeet = GoogleMeetManager.shared
     
     // Calculate hours from drag offset
     func hoursFromOffset(_ offset: CGFloat) -> Double {
@@ -408,42 +410,12 @@ struct ScrollTimeView: View {
     func addToCalendar() {
         // Request calendar permission
         eventStore.requestFullAccessToEvents { granted, error in
-            if granted && error == nil {
-                DispatchQueue.main.async {
-                    // Create event with adjusted time
-                    let event = EKEvent(eventStore: self.eventStore)
-                    
-                    // Calculate the adjusted start time
-                    let currentDate = Date()
-                    let startDate = currentDate.addingTimeInterval(self.timeOffset)
-                    event.startDate = startDate
-                    
-                    // Set end date with user-configured default duration
-                    event.endDate = startDate.addingTimeInterval(self.defaultEventDuration)
-                    
-                    // Set calendar - use selected calendar if available, otherwise default
-                    if !self.selectedCalendarIdentifier.isEmpty,
-                       let selectedCalendar = self.eventStore.calendars(for: .event).first(where: { $0.calendarIdentifier == self.selectedCalendarIdentifier }) {
-                        event.calendar = selectedCalendar
-                    } else {
-                        event.calendar = self.eventStore.defaultCalendarForNewEvents
-                    }
-                    
-                    // Add notes with selected cities and their times
-                    if let notesText = self.generateCityNotesText() {
-                        event.notes = notesText
-                    }
-                    
-                    // Store the event and show the editor
-                    self.eventToEdit = event
-                    self.showEventEditor = true
-                }
-            } else {
+            guard granted, error == nil else {
                 print("Calendar access denied or error: \(String(describing: error))")
                 DispatchQueue.main.async {
                     // Show permission alert
                     self.showCalendarPermissionAlert = true
-                    
+
                     // Provide haptic feedback on permission denied if enabled
                     if self.hapticEnabled {
                         let impactFeedback = UINotificationFeedbackGenerator()
@@ -451,8 +423,54 @@ struct ScrollTimeView: View {
                         impactFeedback.notificationOccurred(.warning)
                     }
                 }
+                return
+            }
+
+            Task { @MainActor in
+                await self.prepareAndPresentEvent()
             }
         }
+    }
+
+    // Build the event (notes + optional Google Meet link) and present the editor
+    @MainActor
+    private func prepareAndPresentEvent() async {
+        // Create event with adjusted time
+        let event = EKEvent(eventStore: eventStore)
+
+        // Calculate the adjusted start time
+        let startDate = Date().addingTimeInterval(timeOffset)
+        event.startDate = startDate
+
+        // Set end date with user-configured default duration
+        event.endDate = startDate.addingTimeInterval(defaultEventDuration)
+
+        // Set calendar - use selected calendar if available, otherwise default
+        if !selectedCalendarIdentifier.isEmpty,
+           let selectedCalendar = eventStore.calendars(for: .event).first(where: { $0.calendarIdentifier == selectedCalendarIdentifier }) {
+            event.calendar = selectedCalendar
+        } else {
+            event.calendar = eventStore.defaultCalendarForNewEvents
+        }
+
+        // Build notes: selected cities and their times first, then a Google Meet
+        // link on its own line below them.
+        var noteSections: [String] = []
+        if let cityNotes = generateCityNotesText() {
+            noteSections.append(cityNotes)
+        }
+        if addMeetLinkToEvents,
+           googleMeet.isSignedIn,
+           let meetLink = try? await googleMeet.createMeetLink() {
+            noteSections.append(String(localized: "Google Meet:") + "\n" + meetLink)
+        }
+        if !noteSections.isEmpty {
+            event.notes = noteSections.joined(separator: "\n\n")
+        }
+
+        // Store the event and show the editor
+        eventToEdit = event
+        showEventEditor = true
     }
     
     // Reset time offset

@@ -914,3 +914,22 @@
 "Unlock the experience with all complications, available time, and more." = "解鎖全部複雜功能、可用時間以及更多內容。";
 "Unlock all features" = "解鎖所有功能";
 "Restore Purchases" = "恢復購買";
+
+/* Google Meet */
+"Video Call" = "視訊通話";
+"Add Google Meet Link" = "加入 Google Meet 連結";
+"Add to Event Notes" = "加入活動備註";
+"Connect your Google account to add a Meet link to new events." = "連接你的 Google 帳號，即可在新活動中加入 Meet 連結。";
+"Connected with %@." = "已連接 %@。";
+"Google Account" = "Google 帳號";
+"Disconnect" = "中斷連接";
+"Disconnect Google Account?" = "要中斷連接 Google 帳號嗎？";
+"Meet links will no longer be added to new events." = "新活動將不再加入 Meet 連結。";
+"OK" = "好";
+"Google Meet" = "Google Meet";
+"Google Meet:" = "Google Meet：";
+"Google Sign-In isn't set up yet. Add your OAuth client ID in GoogleAuthConfig." = "尚未設定 Google 登入。請在 GoogleAuthConfig 中加入你的 OAuth 用戶端 ID。";
+"Sign-in was cancelled or returned no authorization code." = "登入已取消，或未取得授權碼。";
+"Couldn't complete Google Sign-In. Please try again." = "無法完成 Google 登入，請再試一次。";
+"Couldn't create a Google Meet link. Please try again." = "無法建立 Google Meet 連結，請再試一次。";
+"Connect a Google account first." = "請先連接 Google 帳號。";

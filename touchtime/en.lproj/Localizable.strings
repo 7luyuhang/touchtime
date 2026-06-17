@@ -466,3 +466,22 @@
 "Unlock the experience with all complications, available time, and more." = "Unlock the experience with all complications, available time, and more.";
 "Unlock all features" = "Unlock all features";
 "Restore Purchases" = "Restore Purchases";
+
+/* Google Meet */
+"Video Call" = "Video Call";
+"Add Google Meet Link" = "Add Google Meet Link";
+"Add to Event Notes" = "Add to Event Notes";
+"Connect your Google account to add a Meet link to new events." = "Connect your Google account to add a Meet link to new events.";
+"Connected with %@." = "Connected with %@.";
+"Google Account" = "Google Account";
+"Disconnect" = "Disconnect";
+"Disconnect Google Account?" = "Disconnect Google Account?";
+"Meet links will no longer be added to new events." = "Meet links will no longer be added to new events.";
+"OK" = "OK";
+"Google Meet" = "Google Meet";
+"Google Meet:" = "Google Meet:";
+"Google Sign-In isn't set up yet. Add your OAuth client ID in GoogleAuthConfig." = "Google Sign-In isn't set up yet. Add your OAuth client ID in GoogleAuthConfig.";
+"Sign-in was cancelled or returned no authorization code." = "Sign-in was cancelled or returned no authorization code.";
+"Couldn't complete Google Sign-In. Please try again." = "Couldn't complete Google Sign-In. Please try again.";
+"Couldn't create a Google Meet link. Please try again." = "Couldn't create a Google Meet link. Please try again.";
+"Connect a Google account first." = "Connect a Google account first.";

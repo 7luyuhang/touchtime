@@ -916,3 +916,22 @@
 "Unlock the experience with all complications, available time, and more." = "解锁全部复杂功能、可用时间以及更多内容。";
 "Unlock all features" = "解锁所有功能";
 "Restore Purchases" = "恢复购买";
+
+/* Google Meet */
+"Video Call" = "视频通话";
+"Add Google Meet Link" = "添加 Google Meet 链接";
+"Add to Event Notes" = "添加到活动备注";
+"Connect your Google account to add a Meet link to new events." = "连接你的 Google 账号，即可在新活动中添加 Meet 链接。";
+"Connected with %@." = "已连接 %@。";
+"Google Account" = "Google 账号";
+"Disconnect" = "断开连接";
+"Disconnect Google Account?" = "要断开 Google 账号连接吗？";
+"Meet links will no longer be added to new events." = "新活动将不再添加 Meet 链接。";
+"OK" = "好";
+"Google Meet" = "Google Meet";
+"Google Meet:" = "Google Meet：";
+"Google Sign-In isn't set up yet. Add your OAuth client ID in GoogleAuthConfig." = "尚未设置 Google 登录。请在 GoogleAuthConfig 中添加你的 OAuth 客户端 ID。";
+"Sign-in was cancelled or returned no authorization code." = "登录已取消，或未返回授权码。";
+"Couldn't complete Google Sign-In. Please try again." = "无法完成 Google 登录，请重试。";
+"Couldn't create a Google Meet link. Please try again." = "无法创建 Google Meet 链接，请重试。";
+"Connect a Google account first." = "请先连接 Google 账号。";
