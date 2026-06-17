@@ -36,6 +36,9 @@ struct LifetimeStoreView: View {
                 .opacity(0.75)
                 .blendMode(.plusLighter)
 
+            GlowPulseView()
+                .ignoresSafeArea()
+
             GeometryReader { geometry in
                 ScrollView {
                     VStack(spacing: 16) {
