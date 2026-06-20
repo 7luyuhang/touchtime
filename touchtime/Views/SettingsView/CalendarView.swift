@@ -17,10 +17,12 @@ struct CalendarView: View {
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @AppStorage("addMeetLinkToEvents") private var addMeetLinkToEvents = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @State private var eventStore = EKEventStore()
     @State private var availableCalendars: [EKCalendar] = []
     @State private var hasCalendarPermission = false
     @State private var showDisconnectConfirmation = false
+    @State private var showLifetimeStore = false
     @ObservedObject private var googleMeet = GoogleMeetManager.shared
     
     // Get city count text for Notes setting
@@ -189,6 +191,11 @@ struct CalendarView: View {
         } message: {
             Text("Meet links will no longer be added to new events.")
         }
+        .sheet(isPresented: $showLifetimeStore) {
+            NavigationStack {
+                LifetimeStoreView()
+            }
+        }
     }
 
     // MARK: - Google Meet
@@ -213,22 +220,48 @@ struct CalendarView: View {
     @ViewBuilder
     private var googleMeetSection: some View {
         Section {
-            if googleMeet.isSignedIn {
-                // Toggle: include a Meet link in new events
-                Toggle(isOn: $addMeetLinkToEvents) {
-                    HStack(spacing: 12) {
-                        SystemIconImage(systemName: "plus.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
-                        Text("Add to Event Notes")
+            if hasLifetimeAccess {
+                if googleMeet.isSignedIn {
+                    // Toggle: include a Meet link in new events
+                    Toggle(isOn: $addMeetLinkToEvents) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "plus.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Add to Event Notes")
+                        }
                     }
+                    .tint(.blue)
+                } else {
+                    // Connect account button
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                        }
+                        Task { await googleMeet.signIn() }
+                    }) {
+                        HStack {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "video.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                                Text("Add Google Meet Link")
+                            }
+                            .layoutPriority(1)
+
+                            Spacer(minLength: 8)
+
+                            if googleMeet.isAuthenticating {
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    .disabled(googleMeet.isAuthenticating)
                 }
-                .tint(.blue)
             } else {
-                // Connect account button
+                // Locked behind Lifetime
                 Button(action: {
                     if hapticEnabled {
                         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                     }
-                    Task { await googleMeet.signIn() }
+                    showLifetimeStore = true
                 }) {
                     HStack {
                         HStack(spacing: 12) {
@@ -239,18 +272,17 @@ struct CalendarView: View {
 
                         Spacer(minLength: 8)
 
-                        if googleMeet.isAuthenticating {
-                            ProgressView()
-                        }
+                        Image(systemName: "lock.fill")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
                     }
                 }
                 .foregroundStyle(.primary)
-                .disabled(googleMeet.isAuthenticating)
             }
         } header: {
             Text("Video Call")
         } footer: {
-            if googleMeet.isSignedIn {
+            if hasLifetimeAccess && googleMeet.isSignedIn {
                 Text(connectedFooterText(email: googleMeet.email ?? String(localized: "Google Account")))
                     .tint(.white)
                     .environment(\.openURL, OpenURLAction { url in

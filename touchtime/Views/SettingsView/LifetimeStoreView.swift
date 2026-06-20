@@ -158,11 +158,13 @@ struct LifetimeStoreView: View {
                     .foregroundStyle(.tertiary)
                     .blendMode(.plusLighter)
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 Text(String(localized: "Unlock the experience with all complications"))
                     .font(.subheadline.weight(.semibold))
                     .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
             }
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -175,11 +177,13 @@ struct LifetimeStoreView: View {
                     .foregroundStyle(.tertiary)
                     .blendMode(.plusLighter)
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 Text(String(localized: "Compare available time across cities"))
                     .font(.subheadline.weight(.semibold))
                     .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
             }
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -192,11 +196,13 @@ struct LifetimeStoreView: View {
                     .foregroundStyle(.tertiary)
                     .blendMode(.plusLighter)
 
-                Spacer()
+                Spacer(minLength: 8)
 
                 Text(String(localized: "Add Google Meet Link to new events"))
                     .font(.subheadline.weight(.semibold))
                     .multilineTextAlignment(.leading)
+                    .lineLimit(2)
+                    .truncationMode(.tail)
             }
             .padding(.vertical, 8)
             .frame(maxWidth: .infinity, alignment: .leading)
