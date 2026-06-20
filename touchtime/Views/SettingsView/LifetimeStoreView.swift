@@ -152,60 +152,24 @@ struct LifetimeStoreView: View {
         ) {
             complicationShowcase
 
-            VStack(alignment: .leading) {
-                Image(systemName: "1.circle.fill")
-                    .font(.headline)
-                    .foregroundStyle(.tertiary)
-                    .blendMode(.plusLighter)
-
-                Spacer(minLength: 8)
-
-                Text(String(localized: "Unlock the experience with all complications"))
-                    .font(.subheadline.weight(.semibold))
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(2)
-                    .truncationMode(.tail)
-            }
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            ShowcaseStepCaption(
+                number: 1,
+                title: String(localized: "Unlock the experience with all complications")
+            )
 
             availableTimeShowcase(cardWidth: cardWidth)
 
-            VStack(alignment: .leading) {
-                Image(systemName: "2.circle.fill")
-                    .font(.headline)
-                    .foregroundStyle(.tertiary)
-                    .blendMode(.plusLighter)
-
-                Spacer(minLength: 8)
-
-                Text(String(localized: "Compare available time across cities"))
-                    .font(.subheadline.weight(.semibold))
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(2)
-                    .truncationMode(.tail)
-            }
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            ShowcaseStepCaption(
+                number: 2,
+                title: String(localized: "Compare available time across cities")
+            )
 
             googleMeetShowcase
 
-            VStack(alignment: .leading) {
-                Image(systemName: "3.circle.fill")
-                    .font(.headline)
-                    .foregroundStyle(.tertiary)
-                    .blendMode(.plusLighter)
-
-                Spacer(minLength: 8)
-
-                Text(String(localized: "Add Google Meet Link to new events"))
-                    .font(.subheadline.weight(.semibold))
-                    .multilineTextAlignment(.leading)
-                    .lineLimit(2)
-                    .truncationMode(.tail)
-            }
-            .padding(.vertical, 8)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            ShowcaseStepCaption(
+                number: 3,
+                title: String(localized: "Add Google Meet Link to new events")
+            )
         }
     }
 
@@ -579,6 +543,32 @@ struct LifetimeStoreView: View {
         case .verified(let safe):
             return safe
         }
+    }
+}
+
+// MARK: - Showcase Step Caption
+
+private struct ShowcaseStepCaption: View {
+    let number: Int
+    let title: String
+
+    var body: some View {
+        VStack(alignment: .leading) {
+            Image(systemName: "\(number).circle.fill")
+                .font(.headline)
+                .foregroundStyle(.tertiary)
+                .blendMode(.plusLighter)
+
+            Spacer(minLength: 8)
+
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .multilineTextAlignment(.leading)
+                .lineLimit(2)
+                .truncationMode(.tail)
+        }
+        .padding(.vertical, 8)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
