@@ -206,11 +206,33 @@ struct LifetimeStoreView: View {
     // MARK: - Google Meet Showcase
 
     private var googleMeetShowcase: some View {
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
-            .fill(Color.black.opacity(0.25))
-            .frame(maxWidth: .infinity)
-            .frame(height: showcaseHeight)
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        let circleSize: CGFloat = 64
+
+        return ZStack {
+            Circle()
+                .fill(.clear)
+                .background(
+                    Circle()
+                        .fill(Color.black.opacity(0.10))
+                        .glassEffect(.clear)
+                )
+            Image(systemName: "video.fill")
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(.white)
+        }
+        .frame(width: circleSize, height: circleSize)
+        .overlay(
+            Circle()
+                .stroke(.white.opacity(0.1), lineWidth: 1)
+                .blendMode(.plusLighter)
+        )
+        .frame(height: showcaseHeight)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: 20, style: .continuous)
+                .fill(Color.black.opacity(0.25))
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
     }
 
     // MARK: - Available Time Showcase
