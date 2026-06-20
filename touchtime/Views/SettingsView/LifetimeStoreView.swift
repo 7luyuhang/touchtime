@@ -39,7 +39,6 @@ struct LifetimeStoreView: View {
         case sunriseSunset
         case solarCurve
         case daylight
-        case timeOverlay
         case moonAzimuth
         case moonSunAzimuth
         case weatherCondition
@@ -57,7 +56,6 @@ struct LifetimeStoreView: View {
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .solarCurve: return String(localized: "Solar Curve")
             case .daylight: return String(localized: "Daylight Curve")
-            case .timeOverlay: return String(localized: "Time Overlay")
             case .moonAzimuth: return String(localized: "Moon Azimuth")
             case .moonSunAzimuth: return String(localized: "Moon & Sun Azimuth")
             case .weatherCondition: return String(localized: "Weather Condition")
@@ -83,7 +81,7 @@ struct LifetimeStoreView: View {
 
             GeometryReader { geometry in
                 ScrollView {
-                    complicationShowcaseRow
+                    complicationShowcaseRow(cardWidth: geometry.size.width - 48)
                         .padding(.horizontal, 24)
                         .frame(maxWidth: .infinity)
                         .frame(minHeight: geometry.size.height, alignment: .center)
@@ -121,10 +119,12 @@ struct LifetimeStoreView: View {
                 dismiss()
             }
         }
-        .presentationDetents([.medium])
+        .presentationDetents([.fraction(0.70)])
         .safeAreaInset(edge: .bottom) {
             bottomActions
         }
+        .navigationTitle("Lifetime")
+        .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {
@@ -142,7 +142,7 @@ struct LifetimeStoreView: View {
 
     // MARK: - Complication Showcase
 
-    private var complicationShowcaseRow: some View {
+    private func complicationShowcaseRow(cardWidth: CGFloat) -> some View {
         LazyVGrid(
             columns: [
                 GridItem(.flexible(), spacing: 16, alignment: .center),
@@ -152,11 +152,92 @@ struct LifetimeStoreView: View {
         ) {
             complicationShowcase
 
-            Text(String(localized: "Unlock the experience with all complications"))
-                .font(.body.weight(.medium))
-                .multilineTextAlignment(.leading)
-                .frame(maxWidth: .infinity, alignment: .leading)
+            VStack(alignment: .leading) {
+                Image(systemName: "1.circle.fill")
+                    .font(.headline)
+                    .foregroundStyle(.tertiary)
+                    .blendMode(.plusLighter)
+
+                Spacer()
+
+                Text(String(localized: "Unlock the experience with all complications"))
+                    .font(.subheadline.weight(.semibold))
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            availableTimeShowcase(cardWidth: cardWidth)
+
+            VStack(alignment: .leading) {
+                Image(systemName: "2.circle.fill")
+                    .font(.headline)
+                    .foregroundStyle(.tertiary)
+                    .blendMode(.plusLighter)
+
+                Spacer()
+
+                Text(String(localized: "Compare available time across cities"))
+                    .font(.subheadline.weight(.semibold))
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            googleMeetShowcase
+
+            VStack(alignment: .leading) {
+                Image(systemName: "3.circle.fill")
+                    .font(.headline)
+                    .foregroundStyle(.tertiary)
+                    .blendMode(.plusLighter)
+
+                Spacer()
+
+                Text(String(localized: "Add Google Meet Link to new events"))
+                    .font(.subheadline.weight(.semibold))
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
+    }
+
+    // MARK: - Google Meet Showcase
+
+    private var googleMeetShowcase: some View {
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(Color.black.opacity(0.25))
+            .frame(maxWidth: .infinity)
+            .frame(height: showcaseHeight)
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    // MARK: - Available Time Showcase
+
+    // Fixed-height container (matching the complication showcase) with the
+    // real-width local-time card overlaid on top. The card overflows the
+    // trailing edge (big time, date, end label) and the top/bottom, and the
+    // container's rounded rectangle masks the overflow, leaving a gray inset on
+    // the leading edge.
+    private func availableTimeShowcase(cardWidth: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 20, style: .continuous)
+            .fill(Color.black.opacity(0.25))
+            .frame(maxWidth: .infinity)
+            .frame(height: showcaseHeight)
+            .overlay(alignment: .leading) {
+                LocalAvailableTimePreview(date: previewDate, skyDate: currentDate)
+                    .frame(width: cardWidth, alignment: .leading)
+                    .padding(.leading, 24)
+                    .padding(.bottom, 56)
+            }
+            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+    }
+
+    // Fixed 09:00 local time for the time label and availability indicator, so
+    // they stay stable while the sky gradient follows the real current time.
+    private var previewDate: Date {
+        Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: currentDate) ?? currentDate
     }
 
     private var complicationShowcase: some View {
@@ -239,13 +320,6 @@ struct LifetimeStoreView: View {
                 size: size,
                 useMaterialBackground: false
             )
-        case .timeOverlay:
-            TimeOverlayIndicator(
-                date: currentDate,
-                timeZone: .current,
-                size: size,
-                useMaterialBackground: false
-            )
         case .daylight:
             DaylightIndicator(
                 date: currentDate,
@@ -320,17 +394,13 @@ struct LifetimeStoreView: View {
                         await purchase(product)
                     }
                 } label: {
-                    HStack(spacing: 8) {
-                        Text("Lifetime")
-                            .font(.headline)
-                        Text(product.displayPrice)
-                            .font(.headline)
-                    }
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-                    .contentShape(Capsule(style: .continuous))
-                    .glassEffect(.clear.tint(.white), in: Capsule(style: .continuous))
+                    Text("Continue for \(product.displayPrice)")
+                        .font(.headline)
+                        .foregroundStyle(.black)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical)
+                        .contentShape(Capsule(style: .continuous))
+                        .glassEffect(.clear.tint(.white), in: Capsule(style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .disabled(purchaseState == .purchasing)
@@ -481,5 +551,93 @@ struct LifetimeStoreView: View {
         case .verified(let safe):
             return safe
         }
+    }
+}
+
+// MARK: - Local Time + Available Time Preview
+
+/// Recreates the `HomeView` local-time row (with the available-time indicator)
+/// at its native sizes so it can be showcased inside the store.
+private struct LocalAvailableTimePreview: View {
+    /// Drives the time label, date label, and availability indicator (kept fixed).
+    let date: Date
+    /// Drives only the sky gradient so it can follow the real current time.
+    let skyDate: Date
+
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
+
+    private var timeText: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = .current
+        formatter.dateFormat = use24HourFormat ? "HH:mm" : "h:mm"
+        return formatter.string(from: date)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            // Top row: "Local" indicator icon and date
+            HStack {
+                Image(systemName: "location.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+
+                Spacer()
+
+                Text(date.formattedDate(
+                    style: dateStyle,
+                    timeZoneIdentifier: TimeZone.current.identifier
+                ))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
+            }
+
+            // Bottom row: Location and Time (baseline aligned)
+            HStack(alignment: .lastTextBaseline) {
+                Text(String(localized: "Local"))
+                    .font(.headline)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                Spacer()
+
+                Text(timeText)
+                    .font(.system(size: 36))
+                    .fontWeight(.light)
+                    .fontDesign(.rounded)
+                    .monospacedDigit()
+            }
+            .padding(.bottom, -4)
+
+            // Available Time Display with Progress Indicator
+            AvailableTimeIndicator(
+                currentDate: date,
+                timeOffset: 0,
+                availableStartTime: "09:00",
+                availableEndTime: "17:00",
+                use24HourFormat: use24HourFormat,
+                availableWeekdays: "1,2,3,4,5,6,7"
+            )
+        }
+        .padding()
+        .padding(.bottom, -4)
+        .background(
+            ZStack {
+                Color.black
+                SkyBackgroundView(
+                    date: skyDate,
+                    timeZoneIdentifier: TimeZone.current.identifier
+                )
+            }
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .glassEffect(
+            .clear.interactive(),
+            in: RoundedRectangle(cornerRadius: 26, style: .continuous)
+        )
     }
 }
