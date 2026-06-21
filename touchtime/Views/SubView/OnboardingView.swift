@@ -67,9 +67,10 @@ struct OnboardingView: View {
     @State private var animateIcon = false
     @State private var animateText = false
     @State private var animateButton = false
-    @State private var currentPage = 1  // 1 for intro, 2 for features, 3 for complication selection
+    @State private var currentPage = 1  // 1 intro, 2 features, 3 time format, 4 complication selection
     @State private var animateFeatures = false
     @State private var currentDate = Date()
+    @Namespace private var timeFormatNamespace
     @State private var hapticEngine: CHHapticEngine?
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("use24HourFormat") private var use24HourFormat = false
@@ -131,13 +132,6 @@ struct OnboardingView: View {
         }
     }
     
-    private var localCityName: String {
-        guard let city = TimeZone.current.identifier.split(separator: "/").last else {
-            return String(localized: "Local")
-        }
-        return city.replacingOccurrences(of: "_", with: " ")
-    }
-
     private var weatherConditionForSky: WeatherCondition? {
         guard showWeather else { return nil }
         return weatherManager.weatherData[TimeZone.current.identifier]?.condition
@@ -444,39 +438,28 @@ struct OnboardingView: View {
                     
                 } else {
                     
-                    // Complication Selection
+                    // Time Format (3) & Complications (4) — share one stable city card
                         VStack(spacing: 24) {
-                            
-                            Text("Complications")
+
+                            Text(currentPage == 3 ? String(localized: "Time Format") : String(localized: "Complications"))
                                 .font(.headline)
                                 .foregroundStyle(.primary)
-                            
-                            
+                                .id(currentPage == 3 ? "onbHeaderTitleFormat" : "onbHeaderTitleComplication")
+                                .transition(.blurReplace())
+
                             Spacer()
-                            
-                            Text("Choose a complication to display more")
+
+                            Text(currentPage == 3 ? String(localized: "Choose your preferred time format") : String(localized: "Choose a complication to display more"))
                                 .font(.subheadline.weight(.medium))
                                 .foregroundStyle(.secondary)
                                 .multilineTextAlignment(.center)
                                 .blendMode(.plusLighter)
                                 .padding(.horizontal, 32)
-                            
-                            // City Card + Complications
-                            TimePreviewCard(
-                                date: currentDate,
-                                timeZoneIdentifier: TimeZone.current.identifier,
-                                weatherCondition: weatherConditionForSky,
-                                showSkyDot: showSkyDot,
-                                showSkyDotBadge: true,
-                                additionalTimeDisplay: additionalTimeDisplay,
-                                additionalTimeText: additionalTimeText(),
-                                showWeather: showWeather,
-                                weather: weatherManager.currentWeather,
-                                useCelsius: useCelsius,
-                                dateText: formatDate(),
-                                cityText: localCityName,
-                                timeText: formatTime(use24Hour: use24HourFormat)
-                            ) {
+                                .id(currentPage == 3 ? "onbHeaderDescFormat" : "onbHeaderDescComplication")
+                                .transition(.blurReplace())
+
+                            // City Card — shared across both steps so it does NOT blur-replace
+                            cityPreviewCard {
                                 // Complications
                                 if showAnalogClock {
                                     AnalogClockView(
@@ -662,7 +645,12 @@ struct OnboardingView: View {
                                 }
                             }
                             .padding(.horizontal, 16)
-                            
+
+                            // Below the card: 12h/24h selector (step 3) or complication picker (step 4)
+                            if currentPage == 3 {
+                                timeFormatSelector
+                                    .transition(.blurReplace())
+                            } else {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(alignment: .top, spacing: 16) {
                                     complicationOption(type: .analogClock, isSelected: showAnalogClock) {
@@ -796,20 +784,25 @@ struct OnboardingView: View {
                                 .padding(.horizontal, 24)
                                 .padding(.top, 8)
                             }
-                            
-                            Spacer()
-                            
-                            // Use your current location
-                            HStack {
-                                Image(systemName: "location.fill")
-                                    .font(.footnote.weight(.semibold))
-                                Text(String(localized: "Use your current location"))
-                                    .font(.footnote.weight(.medium))
+                            .transition(.blurReplace())
                             }
-                            .foregroundStyle(.secondary)
-                            .blendMode(.plusLighter)
-                            .padding(.bottom, 16)
-                            
+
+                            Spacer()
+
+                            // Use your current location (complication step only)
+                            if currentPage != 3 {
+                                HStack {
+                                    Image(systemName: "location.fill")
+                                        .font(.footnote.weight(.semibold))
+                                    Text(String(localized: "Use your current location"))
+                                        .font(.footnote.weight(.medium))
+                                }
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                                .padding(.bottom, 16)
+                                .transition(.blurReplace())
+                            }
+
                         }
                         .transition(.blurReplace())
                 }
@@ -832,17 +825,21 @@ struct OnboardingView: View {
                                 animateFeatures = true
                             }
                         } else if currentPage == 2 {
+                            withAnimation(.spring()) {
+                                currentPage = 3
+                            }
+                        } else if currentPage == 3 {
                             if !hasAnyComplicationSelected {
                                 selectComplication(.analogClock)
                             }
                             withAnimation(.spring()) {
-                                currentPage = 3
+                                currentPage = 4
                             }
                         } else {
                             completeOnboarding()
                         }
                     }) {
-                        Text(currentPage == 3 ? "Get Started" : "Continue")
+                        Text(currentPage == 4 ? String(localized: "Get Started") : String(localized: "Continue"))
                             .font(.headline)
                             .foregroundStyle(.white)
                             .contentTransition(.numericText())
@@ -850,7 +847,7 @@ struct OnboardingView: View {
                             .frame(height: 52)
                             .background(
                                 Capsule()
-                                    .fill(currentPage == 3 ? Color.blue.opacity(0.85) : Color.black.opacity(0.25))
+                                    .fill(currentPage == 4 ? Color.blue.opacity(0.85) : Color.black.opacity(0.25))
                             )
                             .glassEffect(.clear.interactive())
                     }
@@ -941,6 +938,62 @@ struct OnboardingView: View {
             hapticEngine?.stop()
             hapticEngine = nil
         }
+    }
+    
+    @ViewBuilder
+    private func cityPreviewCard<Overlay: View>(@ViewBuilder overlayContent: @escaping () -> Overlay) -> some View {
+        TimePreviewCard(
+            date: currentDate,
+            timeZoneIdentifier: TimeZone.current.identifier,
+            weatherCondition: weatherConditionForSky,
+            showSkyDot: showSkyDot,
+            showSkyDotBadge: false,
+            additionalTimeDisplay: additionalTimeDisplay,
+            additionalTimeText: additionalTimeText(),
+            showWeather: showWeather,
+            weather: weatherManager.currentWeather,
+            useCelsius: useCelsius,
+            dateText: formatDate(),
+            cityText: String(localized: "Local"),
+            timeText: formatTime(use24Hour: use24HourFormat)
+        ) {
+            overlayContent()
+        }
+    }
+    
+    private var timeFormatSelector: some View {
+        HStack(spacing: 4) {
+            timeFormatOption(title: "12h", is24Hour: false)
+            timeFormatOption(title: "24h", is24Hour: true)
+        }
+    }
+    
+    private func timeFormatOption(title: LocalizedStringKey, is24Hour: Bool) -> some View {
+        let isSelected = use24HourFormat == is24Hour
+        return Button {
+            if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+            withAnimation(.snappy(duration: 0.25)) {
+                use24HourFormat = is24Hour
+            }
+        } label: {
+            Text(title)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(isSelected ? .primary : .secondary)
+                .padding(.horizontal, 12)
+                .frame(height: 32)
+                .background {
+                    if isSelected {
+                        Capsule(style: .continuous)
+                            .glassEffect(.regular, in: Capsule(style: .continuous))
+                            .matchedGeometryEffect(id: "timeFormatThumb", in: timeFormatNamespace)
+                    }
+                }
+                .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .animation(.snappy(duration: 0.25), value: isSelected)
     }
     
     private func complicationOption<Content: View>(
