@@ -76,9 +76,6 @@ struct LifetimeStoreView: View {
                 .opacity(0.75)
                 .blendMode(.plusLighter)
 
-            GlowPulseView()
-                .ignoresSafeArea()
-
             GeometryReader { geometry in
                 ScrollView {
                     complicationShowcaseRow(cardWidth: geometry.size.width - 48)
