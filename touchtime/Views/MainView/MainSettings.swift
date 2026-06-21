@@ -434,10 +434,6 @@ struct SettingsView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(
                         ZStack {
-                            // Particle effect
-                            ParticleView(color: .white)
-                                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                            
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
                             //                          .fill(Color.black.opacity(0.25))
                                 .fill(LinearGradient(
