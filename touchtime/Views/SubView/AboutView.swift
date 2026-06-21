@@ -212,13 +212,22 @@ struct AboutView: View {
                         .tint(.primary)
                 }
             } header: {
-                Text("Open Source Library", comment: "Credits section header")
+                Text("Open Source Library")
             } footer: {
-                Text("Thanks for these kind human beings.", comment: "Credits section footer")
+                Text("Thanks for these kind human beings.")
             }
 
             // Terms / Privacy / Copyright Section
             Section {
+                Button {
+                    safariURL = URL(string: "https://touch-time.com")
+                } label: {
+                    HStack {
+                        Text("Website")
+                    }
+                }
+                .foregroundStyle(.primary)
+
                 Button {
                     safariURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
                 } label: {
