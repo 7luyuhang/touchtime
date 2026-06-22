@@ -1337,14 +1337,33 @@ struct AnalogClockFullView: View {
                 cameraWarmupTask = Task {
                     let status = AVCaptureDevice.authorizationStatus(for: .video)
                     if Task.isCancelled { return }
-                    if status == .authorized {
-                        _ = await cameraSessionController.configureIfNeeded()
+                    guard status == .authorized else { return }
+                    _ = await cameraSessionController.configureIfNeeded()
+                    if Task.isCancelled { return }
+                    // Resume the live background that was suspended in
+                    // `onDisappear` once the user returns to the Clock tab.
+                    let shouldResume = await MainActor.run {
+                        isCameraBackgroundEnabled && scenePhase == .active
+                    }
+                    if shouldResume {
+                        _ = await cameraSessionController.startRunning()
                     }
                 }
             }
             .onDisappear {
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = nil
+                // Stop the capture session when leaving the Clock tab. Otherwise
+                // the camera (high preset + per-frame video output) keeps running
+                // on other tabs, draining battery and heating the device.
+                // Invalidate any in-flight toggle so it can't start the session on
+                // a hidden tab, while preserving `isCameraBackgroundEnabled` so the
+                // background resumes automatically in `onAppear`.
+                cameraToggleTask?.cancel()
+                cameraToggleTask = nil
+                activeCameraRequestId = UUID()
+                isCameraPreparing = false
+                cameraSessionController.stopRunning()
             }
             .onChange(of: scenePhase) { oldValue, newValue in
                 if newValue == .active {

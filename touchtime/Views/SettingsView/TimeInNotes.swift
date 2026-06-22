@@ -89,7 +89,7 @@ struct CitySelectionSheet: View {
                                 let isSelected = selectedIds.contains(clock.id.uuidString)
                                 Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
                                     .font(.title3.weight(.medium))
-                                    .foregroundStyle(isSelected ? Color.white : Color.secondary)
+                                    .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.25))
                                     .contentTransition(.symbolEffect(.replace))
                             }
                             .contentShape(Rectangle())
