@@ -18,6 +18,8 @@ private struct RainFallEffect: ViewModifier {
     let staticElapsed: Float?
 
     @State private var startDate = Date()
+    @State private var isVisible = false
+    @Environment(\.scenePhase) private var scenePhase
 
     func body(content: Content) -> some View {
         if intensity > 0 {
@@ -35,7 +37,11 @@ private struct RainFallEffect: ViewModifier {
                         )
                     }
             } else {
-                TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
+                // Only drive the per-frame shader while the view is on-screen and the
+                // app is in the foreground; otherwise freeze it so we don't re-render
+                // the shader every frame for an invisible/background view.
+                TimelineView(.animation(minimumInterval: 1.0 / 30.0,
+                                        paused: !isVisible || scenePhase != .active)) { context in
                     let elapsed = Float(context.date.timeIntervalSince(startDate))
                     content
                         .visualEffect { view, proxy in
@@ -50,6 +56,8 @@ private struct RainFallEffect: ViewModifier {
                             )
                         }
                 }
+                .onAppear { isVisible = true }
+                .onDisappear { isVisible = false }
             }
         } else {
             content
