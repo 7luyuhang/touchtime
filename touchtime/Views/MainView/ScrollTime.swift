@@ -1112,14 +1112,12 @@ final class ScrollTimeFrameDriver: NSObject {
 // MARK: - Static Dots Indicator
 struct ScrollTimeDotsIndicator: View {
     // Pre-calculated static values - computed once
-    private static let dotData: [(opacity: Double, blur: CGFloat)] = {
+    private static let dotOpacities: [Double] = {
         let center = 11.5
         let maxDistance = 11.5
         return (0..<24).map { index in
             let distance = abs(Double(index) - center)
-            let opacity = 1.0 - (distance / maxDistance)
-            let blur = CGFloat((distance / maxDistance) * 1.0)
-            return (opacity, blur)
+            return 1.0 - (distance / maxDistance)
         }
     }()
     
@@ -1127,9 +1125,8 @@ struct ScrollTimeDotsIndicator: View {
         HStack(spacing: 8) {
             ForEach(0..<24, id: \.self) { index in
                 Capsule()
-                    .fill(.primary.opacity(Self.dotData[index].opacity))
+                    .fill(.primary.opacity(Self.dotOpacities[index]))
                     .frame(width: 2, height: 12)
-                    .blur(radius: Self.dotData[index].blur)
             }
         }
     }

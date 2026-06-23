@@ -612,7 +612,7 @@ private struct LocalAvailableTimePreview: View {
 
             // Bottom row: Location and Time (baseline aligned)
             HStack(alignment: .lastTextBaseline) {
-                Text(String(localized: "Local"))
+                Text(String(localized: "City"))
                     .font(.headline)
                     .lineLimit(1)
                     .truncationMode(.tail)
