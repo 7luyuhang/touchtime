@@ -223,7 +223,7 @@ struct AboutView: View {
                     safariURL = URL(string: "https://touch-time.com")
                 } label: {
                     HStack {
-                        Text("Website")
+                        Text("App Website")
                     }
                 }
                 .foregroundStyle(.primary)

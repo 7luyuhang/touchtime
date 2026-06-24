@@ -1480,6 +1480,7 @@ struct AnalogClockFaceView: View {
     @AppStorage("showUTCHand") private var showUTCHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
+    @AppStorage("showSkyDot") private var showSkyDot = true
     
     @State private var hideOtherHands = false
     @State private var lastRotationAngle: Double? = nil
@@ -1951,10 +1952,11 @@ struct AnalogClockFaceView: View {
     }
 
     /// Rain intensity in [0, 1] for the clock-face rain shader. Driven by the
-    /// displayed weather (matching `SkyStarBackground`): returns 0 when weather
-    /// is hidden or the current condition isn't rainy, which disables the effect.
+    /// displayed weather (matching `SkyStarBackground`): returns 0 when Sky
+    /// Colour is off, weather is hidden, or the current condition isn't rainy,
+    /// which disables the effect.
     private var rainIntensity: Float {
-        guard showWeather, let condition = weather?.condition else { return 0 }
+        guard showSkyDot, showWeather, let condition = weather?.condition else { return 0 }
         return condition.rainIntensity
     }
 
