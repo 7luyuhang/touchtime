@@ -581,6 +581,7 @@ private struct LocalAvailableTimePreview: View {
 
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("showSkyDot") private var showSkyDot = true
 
     private var timeText: String {
         let formatter = DateFormatter()
@@ -590,7 +591,7 @@ private struct LocalAvailableTimePreview: View {
         return formatter.string(from: date)
     }
 
-    var body: some View {
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 4) {
             // Top row: "Local" indicator icon and date
             HStack {
@@ -640,19 +641,37 @@ private struct LocalAvailableTimePreview: View {
         }
         .padding()
         .padding(.bottom, -4)
-        .background(
-            ZStack {
-                Color.black
-                SkyBackgroundView(
-                    date: skyDate,
-                    timeZoneIdentifier: TimeZone.current.identifier
+    }
+
+    var body: some View {
+        if showSkyDot {
+            cardContent
+                .background(
+                    ZStack {
+                        Color.black
+                        SkyBackgroundView(
+                            date: skyDate,
+                            timeZoneIdentifier: TimeZone.current.identifier
+                        )
+                    }
                 )
-            }
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .glassEffect(
-            .clear.interactive(),
-            in: RoundedRectangle(cornerRadius: 26, style: .continuous)
-        )
+                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                .glassEffect(
+                    .clear.interactive(),
+                    in: RoundedRectangle(cornerRadius: 26, style: .continuous)
+                )
+        } else {
+            cardContent
+                .background(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .fill(Color.black.opacity(0.1))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        .stroke(.white.opacity(0.1), lineWidth: 1)
+                        .blendMode(.plusLighter)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        }
     }
 }
