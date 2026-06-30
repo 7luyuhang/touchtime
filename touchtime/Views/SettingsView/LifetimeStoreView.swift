@@ -248,6 +248,7 @@ struct LifetimeStoreView: View {
                     }
                 }
             }
+            .scrollTargetBehavior(CenteredComplicationScrollBehavior(itemWidth: itemWidth))
             .defaultScrollAnchor(showcaseInitialAnchor)
             .environmentObject(weatherManager)
         }
@@ -540,6 +541,32 @@ struct LifetimeStoreView: View {
         case .verified(let safe):
             return safe
         }
+    }
+}
+
+// MARK: - Centered Complication Scroll Behavior
+
+/// Keeps the complication carousel resting on a centered complication, with half
+/// of each neighbour peeking on the sides (half · full · half). Snapping is
+/// clamped so the first and last complications can never become the centered
+/// slot; they're only the edge-half at rest and only show fully while dragging.
+private struct CenteredComplicationScrollBehavior: ScrollTargetBehavior {
+    /// Width of a single carousel slot (half the viewport width).
+    let itemWidth: CGFloat
+
+    func updateTarget(_ target: inout ScrollTarget, context: TargetContext) {
+        guard itemWidth > 0 else { return }
+
+        // Resting offsets sit a slot's center on the viewport's leading edge,
+        // producing the half · full · half layout: firstSnap + n · itemWidth.
+        let firstSnap = itemWidth / 2
+        let maxOffset = max(0, context.contentSize.width - context.containerSize.width)
+        let maxIndex = max(0, ((maxOffset - firstSnap) / itemWidth).rounded(.down))
+
+        let proposedIndex = ((target.rect.minX - firstSnap) / itemWidth).rounded()
+        let clampedIndex = min(max(proposedIndex, 0), maxIndex)
+
+        target.rect.origin.x = firstSnap + clampedIndex * itemWidth
     }
 }
 
