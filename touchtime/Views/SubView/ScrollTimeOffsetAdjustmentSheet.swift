@@ -95,7 +95,7 @@ struct ScrollTimeOffsetAdjustmentSheet: View {
                 .frame(height: 200)
             }
             .padding(.horizontal)
-            .navigationTitle(String(localized: "Adjust time offset"))
+            .navigationTitle(String(localized: "Adjust Time Offset"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
