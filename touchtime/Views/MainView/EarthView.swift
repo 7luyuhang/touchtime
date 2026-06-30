@@ -61,8 +61,15 @@ struct EarthView: View {
     @State private var selectedTimeZoneIdentifier: String = ""
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
+    @State private var showArrangeListSheet = false
+    @State private var showSettingsSheet = false
+    @State private var showLifetimeStore = false
+    @State private var collections: [CityCollection] = []
+    @State private var selectedCollectionId: UUID? = nil
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("isUsingExploreMode") private var isUsingExploreMode = false
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("selectedCollectionId") private var savedSelectedCollectionId: String = ""
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600
@@ -122,7 +129,7 @@ struct EarthView: View {
     // The time scrubber overlays the bottom of the map. When it's visible we inset
     // the map's safe area so the Apple Maps logo + Legal attribution sit above it.
     private var isScrollTimeBarVisible: Bool {
-        !showingRenameAlert && !(worldClocks.isEmpty && !showLocalTime)
+        !showingRenameAlert && !(displayedClocks.isEmpty && !showLocalTime)
     }
 
     private static func mapCenterTimeZoneSeconds(from longitude: Double) -> Int {
@@ -219,6 +226,127 @@ struct EarthView: View {
     func saveWorldClocks() {
         if let encoded = try? JSONEncoder().encode(worldClocks) {
             UserDefaults.standard.set(encoded, forKey: "savedWorldClocks")
+        }
+    }
+
+    // MARK: - City Collections (shared with AnalogClockFullView via AppStorage)
+
+    // Cities shown on the map, filtered by the selected collection.
+    private var displayedClocks: [WorldClock] {
+        if let collectionId = selectedCollectionId,
+           let collection = collections.first(where: { $0.id == collectionId }) {
+            return collection.cities
+        }
+        return worldClocks
+    }
+
+    private func triggerMenuHaptic() {
+        guard hapticEnabled else { return }
+        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+        impactFeedback.prepare()
+        impactFeedback.impactOccurred()
+    }
+
+    private func loadCollections() {
+        collections = CollectionsStore.load()
+
+        if let uuid = UUID(uuidString: savedSelectedCollectionId),
+           collections.contains(where: { $0.id == uuid }) {
+            selectedCollectionId = uuid
+        } else {
+            selectedCollectionId = nil
+            if !savedSelectedCollectionId.isEmpty {
+                savedSelectedCollectionId = ""
+            }
+        }
+    }
+
+    private func saveSelectedCollection() {
+        savedSelectedCollectionId = selectedCollectionId?.uuidString ?? ""
+    }
+
+    private func selectCollection(_ collectionId: UUID?) {
+        selectedCollectionId = collectionId
+        saveSelectedCollection()
+        triggerMenuHaptic()
+    }
+
+    @ViewBuilder
+    private var leadingMenuContent: some View {
+        if !hasLifetimeAccess {
+            Button(action: {
+                triggerMenuHaptic()
+                showLifetimeStore = true
+            }) {
+                Text(String(localized: "Lifetime"))
+                Text(String(localized: "Unlock all features"))
+                Image(systemName: "heart")
+            }
+
+            Divider()
+        }
+
+        if !collections.isEmpty {
+            Button {
+                selectCollection(nil)
+            } label: {
+                Label("All Cities", systemImage: selectedCollectionId == nil ? "checkmark.circle" : "")
+            }
+
+            ForEach(collections) { collection in
+                Button {
+                    selectCollection(collection.id)
+                } label: {
+                    Label(collection.name, systemImage: selectedCollectionId == collection.id ? "checkmark.circle" : "")
+                }
+            }
+            Divider()
+        }
+
+        // Share Section - only show if there are world clocks
+        if !worldClocks.isEmpty {
+            Button(action: {
+                triggerMenuHaptic()
+                showShareSheet = true
+            }) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+        }
+
+        // Arrange Section - show if there are world clocks or collections
+        if !worldClocks.isEmpty || !collections.isEmpty {
+            Button(action: {
+                triggerMenuHaptic()
+                showArrangeListSheet = true
+            }) {
+                Label(String(localized: "Arrange"), systemImage: "list.bullet")
+            }
+        }
+
+        Section(String(localized: "Features")) {
+            Button(action: {
+                triggerMenuHaptic()
+                showSetAlarmSheet = true
+            }) {
+                Label(String(localized: "Alarms"), systemImage: "alarm")
+            }
+
+            Button(action: {
+                triggerMenuHaptic()
+                showSetTimerSheet = true
+            }) {
+                Label(String(localized: "Timer"), systemImage: "timer")
+            }
+        }
+
+        Divider()
+
+        // Settings Section
+        Button(action: {
+            triggerMenuHaptic()
+            showSettingsSheet = true
+        }) {
+            Label("Settings", systemImage: "gear")
         }
     }
 
@@ -627,7 +755,7 @@ struct EarthView: View {
                 }
                 
                 // Show world clock markers
-                ForEach(worldClocks) { clock in
+                ForEach(displayedClocks) { clock in
                     // Check if we should show this clock based on flight selection
                     let shouldShowClock = selectedFlightCities.from == nil || selectedFlightCities.to == nil ||
                         (clock.id == selectedFlightCities.from?.id || clock.id == selectedFlightCities.to?.id)
@@ -852,7 +980,7 @@ struct EarthView: View {
             }
                 
                 // Empty state - on top of map
-                if worldClocks.isEmpty && !showLocalTime {
+                if displayedClocks.isEmpty && !showLocalTime {
                     HStack {
                         Image(systemName: "sparkle.magnifyingglass")
                             .font(.subheadline.weight(.medium))
@@ -868,6 +996,7 @@ struct EarthView: View {
                 }
         }
         .animation(.spring(), value: worldClocks)
+        .animation(.spring(), value: selectedCollectionId)
         .animation(.spring(), value: isUsingExploreMode)
         .animation(.spring(), value: showMapLabels)
         .animation(.spring(), value: showingRenameAlert)
@@ -878,6 +1007,7 @@ struct EarthView: View {
             currentDate = Date()
             startTimer()
             updateMapSolarReference(center: mapCenterCoordinate)
+            loadCollections()
         }
         // Fetch weather for sky gradient (rain-aware)
         .task(id: "\(showSkyDot)-\(showWeather)") {
@@ -888,10 +1018,21 @@ struct EarthView: View {
                 }
             }
         }
+        .onChange(of: worldClocks) { _, _ in
+            loadCollections()
+        }
         .onDisappear {
             stopTimer()
         }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        leadingMenuContent
+                    } label: {
+                        Image(systemName: "ellipsis")
+                    }
+                }
+
                 if isUsingExploreMode {
                     ToolbarItem(placement: .principal) {
                         Text("Sun Azimuth")
@@ -956,6 +1097,35 @@ struct EarthView: View {
                     currentDate: currentDate,
                     onSelectionConfirm: setFlightCitiesAndCenter
                 )
+            }
+            .sheet(isPresented: $showArrangeListSheet) {
+                ArrangeListView(
+                    worldClocks: $worldClocks,
+                    showSheet: $showArrangeListSheet,
+                    currentDate: currentDate,
+                    timeOffset: timeOffset
+                )
+            }
+            .onChange(of: showArrangeListSheet) { oldValue, newValue in
+                if oldValue && !newValue {
+                    loadCollections()
+                }
+            }
+            .sheet(isPresented: $showSettingsSheet) {
+                SettingsView(
+                    worldClocks: $worldClocks,
+                    weatherManager: weatherManager
+                )
+            }
+            .onChange(of: showSettingsSheet) { oldValue, newValue in
+                if oldValue && !newValue {
+                    loadCollections()
+                }
+            }
+            .sheet(isPresented: $showLifetimeStore) {
+                NavigationStack {
+                    LifetimeStoreView()
+                }
             }
 
             
