@@ -590,7 +590,8 @@ struct SettingsView: View {
                     // Options in Settings
                     TouchTimeToggle(isOn: $showSkyDot) {
                         HStack(spacing: 12) {
-                            // Use SkyColorGradient colors for the background
+                            // When enabled, tint the icon with the live SkyColorGradient;
+                            // when off, fall back to gray so it matches the other Settings icons.
                             let gradient = SkyColorGradient(
                                 date: currentDate,
                                 timeZoneIdentifier: TimeZone.current.identifier,
@@ -599,8 +600,8 @@ struct SettingsView: View {
                             let colors = gradient.colors
                             SystemIconImage(
                                 systemName: "cloud.fill",
-                                topColor: colors.first ?? .blue,
-                                bottomColor: colors.last ?? .white,
+                                topColor: showSkyDot ? (colors.first ?? .blue) : .gray,
+                                bottomColor: showSkyDot ? (colors.last ?? .white) : .gray,
                                 style: .plain
                             )
                             Text("Sky Colour")
