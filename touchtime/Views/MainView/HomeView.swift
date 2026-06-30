@@ -99,7 +99,6 @@ struct HomeView: View {
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
     @State private var showComplicationsSheet = false
-    @State private var showEarthView = false
     @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
     @State private var showCalendarPermissionAlert = false
     
@@ -166,9 +165,6 @@ struct HomeView: View {
     @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
     @AppStorage("homeTimerAlarmID") private var homeTimerAlarmIDRawValue = ""
     @AppStorage("homeTimerName") private var homeTimerName = ""
-    
-    // Namespace for zoom transition
-    @Namespace private var earthViewNamespace
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -1412,28 +1408,21 @@ struct HomeView: View {
                 
                 
                 // Scroll Time View - Hide when renaming or when there's no content to display
-                if !showingRenameAlert && !(displayedClocks.isEmpty && !showLocalTime) {
-                    ScrollTimeView(
-                        timeOffset: $timeOffset,
-                        showButtons: $showScrollTimeButtons,
-                        worldClocks: $worldClocks,
-                        enableDoubleTapExpandedControls: true,
-                        onAlarmTap: {
-                            showSetAlarmSheet = true
-                        },
-                        onTimerTap: {
-                            showSetTimerSheet = true
-                        },
-                        onExpandControlsByDoubleTap: {
-                            withAnimation(.spring()) {
-                                showDoubleTapMoreActionTip = false
-                            }
+                TimeScrubberBar(
+                    timeOffset: $timeOffset,
+                    worldClocks: $worldClocks,
+                    showScrollTimeButtons: $showScrollTimeButtons,
+                    showSetAlarmSheet: $showSetAlarmSheet,
+                    showSetTimerSheet: $showSetTimerSheet,
+                    isVisible: !showingRenameAlert && !(displayedClocks.isEmpty && !showLocalTime),
+                    timerInitialSeconds: homeTimerConfiguredSeconds,
+                    onStartTimer: { startHomeTimer(durationSeconds: $0) },
+                    onExpandControlsByDoubleTap: {
+                        withAnimation(.spring()) {
+                            showDoubleTapMoreActionTip = false
                         }
-                    )
-                        .padding(.horizontal)
-                        .padding(.bottom, 8)
-                        .transition(.blurReplace())
-                }
+                    }
+                )
             }
             .background(
                 ZStack {
@@ -1632,20 +1621,6 @@ struct HomeView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .topBarTrailing) {
-                    // Earth View Button
-                    Button(action: {
-                        if hapticEnabled {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                            impactFeedback.prepare()
-                            impactFeedback.impactOccurred()
-                        }
-                        showEarthView = true
-                    }) {
-                        Image(systemName: "globe.americas.fill")
-                    }
-                    .matchedTransitionSource(id: "earthView", in: earthViewNamespace)
-                }
             }
             
             .onReceive(timer) { now in
@@ -1812,18 +1787,6 @@ struct HomeView: View {
                 }
             }
 
-            // Set Alarm Sheet
-            .sheet(isPresented: $showSetAlarmSheet) {
-                SetAlarmSheet()
-            }
-
-            // Set Timer Sheet
-            .sheet(isPresented: $showSetTimerSheet) {
-                SetTimerSheet(initialDurationSeconds: homeTimerConfiguredSeconds) { durationSeconds in
-                    startHomeTimer(durationSeconds: durationSeconds)
-                }
-            }
-
             // Complications Sheet
             .sheet(isPresented: $showComplicationsSheet) {
                 NavigationStack {
@@ -1847,17 +1810,6 @@ struct HomeView: View {
                 }
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.hidden)
-            }
-            
-            // Earth View
-            .sheet(isPresented: $showEarthView) {
-                EarthView(
-                    timeOffset: $timeOffset,
-                    worldClocks: $worldClocks,
-                    weatherManager: weatherManager
-                )
-                    .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
-                    .interactiveDismissDisabled(true)
             }
             
             // City Time Adjustment Sheet

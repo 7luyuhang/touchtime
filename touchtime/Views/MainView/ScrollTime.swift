@@ -67,6 +67,9 @@ struct ScrollTimeView: View {
     @AppStorage("resetCount") private var resetCount: Int = 0
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @Environment(\.requestReview) private var requestReview
+    // False while this view's tab is in the background. Used to skip time-driven
+    // animations so the shared `timeOffset` doesn't replay its spring on tab switch.
+    @Environment(\.isTabActive) private var isTabActive
     @Namespace private var glassNamespace
     @State private var showCalendarPermissionAlert = false
     @ObservedObject private var googleMeet = GoogleMeetManager.shared
@@ -672,7 +675,7 @@ struct ScrollTimeView: View {
         // values re-fired this spring every frame / every minute-crossing and, for the
         // shared `timeOffset` binding, risked dragging the whole dependent tree into
         // the transaction. The boolean flips only when the indicator actually changes.
-        .animation(.spring(duration: 0.25), value: dragOffset != 0 || timeOffset != 0)
+        .animation(isTabActive ? .spring(duration: 0.25) : nil, value: dragOffset != 0 || timeOffset != 0)
         .frame(maxWidth: .infinity)
         .frame(height: controlHeight)
         .contentShape(Rectangle())
@@ -971,8 +974,8 @@ struct ScrollTimeView: View {
                 continuousScrollOverlayButtons
             }
         }
-        .animation(.spring(), value: isExpanded)
-        .animation(.spring(), value: timeOffset != 0)
+        .animation(isTabActive ? .spring() : nil, value: isExpanded)
+        .animation(isTabActive ? .spring() : nil, value: timeOffset != 0)
         .onReceive(frameDriver.publisher) { dt in
             handleFrameTick(dt: dt)
         }

@@ -14,6 +14,7 @@ import EventKitUI
 import CoreLocation
 import WeatherKit
 import SunKit
+import AlarmKit
 
 struct EarthView: View {
     private static let defaultMapSpan = MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
@@ -36,6 +37,7 @@ struct EarthView: View {
 
     @Binding var timeOffset: TimeInterval
     @Binding var worldClocks: [WorldClock]
+    @Binding var showScrollTimeButtons: Bool
     @ObservedObject var weatherManager: WeatherManager
     @State private var position = MapCameraPosition.region(Self.systemTimeCenteredRegion())
     @State private var lastKnownRegion = Self.systemTimeCenteredRegion()
@@ -57,7 +59,8 @@ struct EarthView: View {
     @State private var showSunriseSunsetSheet = false
     @State private var selectedCityName: String = ""
     @State private var selectedTimeZoneIdentifier: String = ""
-    @State private var showScrollTimeButtons = false
+    @State private var showSetAlarmSheet = false
+    @State private var showSetTimerSheet = false
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("isUsingExploreMode") private var isUsingExploreMode = false
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -69,8 +72,18 @@ struct EarthView: View {
     @AppStorage("showMapLabels") private var showMapLabels = true // 默认显示地图标签
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("showSunCompass") private var showSunCompass = true
-    
-    @Environment(\.dismiss) private var dismiss
+
+    // Home timer state (shared with HomeView / AnalogClockFullView via AppStorage)
+    @AppStorage("homeTimerConfiguredSeconds") private var homeTimerConfiguredSeconds = 0
+    @AppStorage("homeTimerEndDateEpoch") private var homeTimerEndDateEpoch: Double = 0
+    @AppStorage("homeTimerCompletionHandled") private var homeTimerCompletionHandled = false
+    @AppStorage("homeTimerPaused") private var homeTimerPaused = false
+    @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
+    @AppStorage("homeTimerAlarmID") private var homeTimerAlarmIDRawValue = ""
+    @AppStorage("homeTimerName") private var homeTimerName = ""
+
+    private let alarmManager = AlarmManager.shared
+    @State private var homeTimerAlarmSyncVersion = 0
     
     // Namespace for Glass Effect morphing
     @Namespace private var glassEffectNamespace
@@ -104,6 +117,12 @@ struct EarthView: View {
     // In 2D (explore) mode, disable pitch gestures so two-finger drag won't tilt into 3D.
     private var mapInteractionModes: MapInteractionModes {
         isUsingExploreMode ? [.pan, .zoom, .rotate] : .all
+    }
+
+    // The time scrubber overlays the bottom of the map. When it's visible we inset
+    // the map's safe area so the Apple Maps logo + Legal attribution sit above it.
+    private var isScrollTimeBarVisible: Bool {
+        !showingRenameAlert && !(worldClocks.isEmpty && !showLocalTime)
     }
 
     private static func mapCenterTimeZoneSeconds(from longitude: Double) -> Int {
@@ -201,6 +220,159 @@ struct EarthView: View {
         if let encoded = try? JSONEncoder().encode(worldClocks) {
             UserDefaults.standard.set(encoded, forKey: "savedWorldClocks")
         }
+    }
+
+    // MARK: - Home Timer (shared with HomeView / AnalogClockFullView)
+
+    private var hasConfiguredHomeTimer: Bool {
+        homeTimerConfiguredSeconds > 0
+    }
+
+    private var homeTimerDisplayName: String {
+        let trimmedName = homeTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmedName.isEmpty ? String(localized: "Timer") : trimmedName
+    }
+
+    private var homeTimerAlarmID: UUID? {
+        UUID(uuidString: homeTimerAlarmIDRawValue)
+    }
+
+    private var homeTimerEndDate: Date? {
+        guard homeTimerEndDateEpoch > 0 else { return nil }
+        return Date(timeIntervalSince1970: homeTimerEndDateEpoch)
+    }
+
+    private func homeTimerRemainingFromEndDate(at date: Date) -> Int {
+        guard let endDate = homeTimerEndDate else {
+            return 0
+        }
+
+        let remaining = Int(ceil(endDate.timeIntervalSince(date)))
+        return max(remaining, 0)
+    }
+
+    private func homeTimerRemainingSeconds(at date: Date) -> Int {
+        guard hasConfiguredHomeTimer else {
+            return 0
+        }
+
+        if homeTimerPaused {
+            return max(0, min(homeTimerPausedRemainingSeconds, 59 * 60 + 59))
+        }
+
+        return homeTimerRemainingFromEndDate(at: date)
+    }
+
+    private func startHomeTimer(
+        durationSeconds: Int,
+        startPaused: Bool = false,
+        requestAlarmAuthorization: Bool = true
+    ) {
+        let clampedDuration = min(max(durationSeconds, 1), 59 * 60 + 59)
+        homeTimerConfiguredSeconds = clampedDuration
+
+        if startPaused {
+            homeTimerEndDateEpoch = 0
+            homeTimerPaused = true
+            homeTimerPausedRemainingSeconds = clampedDuration
+        } else {
+            homeTimerEndDateEpoch = Date().addingTimeInterval(TimeInterval(clampedDuration)).timeIntervalSince1970
+            homeTimerPaused = false
+            homeTimerPausedRemainingSeconds = 0
+        }
+
+        homeTimerCompletionHandled = false
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+
+        refreshHomeTimerAlarm(
+            requestAuthorization: requestAlarmAuthorization
+        )
+    }
+
+    private func refreshHomeTimerAlarm(
+        requestAuthorization: Bool
+    ) {
+        homeTimerAlarmSyncVersion += 1
+        let syncVersion = homeTimerAlarmSyncVersion
+        let shouldSchedule = hasConfiguredHomeTimer && !homeTimerPaused
+        let remainingSeconds = homeTimerRemainingSeconds(at: Date())
+        let existingAlarmID = homeTimerAlarmID
+
+        Task { @MainActor in
+            await synchronizeHomeTimerAlarm(
+                syncVersion: syncVersion,
+                existingAlarmID: existingAlarmID,
+                shouldSchedule: shouldSchedule,
+                remainingSeconds: remainingSeconds,
+                requestAuthorization: requestAuthorization
+            )
+        }
+    }
+
+    @MainActor
+    private func synchronizeHomeTimerAlarm(
+        syncVersion: Int,
+        existingAlarmID: UUID?,
+        shouldSchedule: Bool,
+        remainingSeconds: Int,
+        requestAuthorization: Bool
+    ) async {
+        let isStale = { syncVersion != homeTimerAlarmSyncVersion || Task.isCancelled }
+
+        if let existingAlarmID {
+            try? alarmManager.cancel(id: existingAlarmID)
+        }
+
+        guard !isStale() else { return }
+
+        guard shouldSchedule, remainingSeconds > 0 else {
+            homeTimerAlarmIDRawValue = ""
+            return
+        }
+
+        if requestAuthorization {
+            switch await AlarmSupport.ensureAuthorization(using: alarmManager) {
+            case .authorized:
+                break
+            case .denied:
+                homeTimerAlarmIDRawValue = ""
+                return
+            case .failed(let error):
+                homeTimerAlarmIDRawValue = ""
+                print("Failed to authorize AlarmKit for timer: \(error.localizedDescription)")
+                return
+            }
+        } else if alarmManager.authorizationState != .authorized {
+            homeTimerAlarmIDRawValue = ""
+            return
+        }
+
+        let newAlarmID = UUID()
+
+        do {
+            try await AlarmSupport.scheduleTimerAlarm(
+                id: newAlarmID,
+                durationSeconds: remainingSeconds,
+                eventTitle: homeTimerDisplayName,
+                using: alarmManager
+            )
+        } catch {
+            homeTimerAlarmIDRawValue = ""
+            print("Failed to schedule AlarmKit timer reminder: \(error.localizedDescription)")
+            return
+        }
+
+        guard !isStale() else {
+            try? alarmManager.cancel(id: newAlarmID)
+            return
+        }
+
+        homeTimerAlarmIDRawValue = newAlarmID.uuidString
     }
     
     // Calculate flight time between two timezones
@@ -513,6 +685,9 @@ struct EarthView: View {
             .mapControls {
                 MapCompass()
             }
+            // Keep the Apple Maps logo + Legal attribution in their normal spot,
+            // just above the time scrubber (8pt padding + 52pt bar + small gap).
+            .safeAreaPadding(.bottom, isScrollTimeBarVisible ? 64 : 0)
             .onMapCameraChange(frequency: .continuous) { context in
                 lastKnownRegion = context.region
                 updateMapSolarReference(center: context.region.center)
@@ -537,18 +712,18 @@ struct EarthView: View {
             }
 
             // Scrollbar
-            if !showingRenameAlert, !(worldClocks.isEmpty && !showLocalTime) {
-                VStack {
-                    Spacer()
-                    ScrollTimeView(
-                        timeOffset: $timeOffset,
-                        showButtons: $showScrollTimeButtons,
-                        worldClocks: $worldClocks
-                    )
-                    .padding(.horizontal)
-                    .padding(.bottom, 32) // Scroll Bar
-                    .transition(.blurReplace())
-                }
+            VStack {
+                Spacer()
+                TimeScrubberBar(
+                    timeOffset: $timeOffset,
+                    worldClocks: $worldClocks,
+                    showScrollTimeButtons: $showScrollTimeButtons,
+                    showSetAlarmSheet: $showSetAlarmSheet,
+                    showSetTimerSheet: $showSetTimerSheet,
+                    isVisible: isScrollTimeBarVisible,
+                    timerInitialSeconds: homeTimerConfiguredSeconds,
+                    onStartTimer: { startHomeTimer(durationSeconds: $0) }
+                )
             }
 
             // Bottom Control Tool Bar
@@ -672,7 +847,7 @@ struct EarthView: View {
                         .transition(.blurReplace())
                     }
                     .padding(.trailing)
-                    .padding(.bottom, 96)
+                    .padding(.bottom, 72)
                 }
             }
                 
@@ -717,19 +892,6 @@ struct EarthView: View {
             stopTimer()
         }
             .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: {
-                        if hapticEnabled {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                            impactFeedback.prepare()
-                            impactFeedback.impactOccurred()
-                        }
-                        dismiss()
-                    }) {
-                        Image(systemName: "xmark")
-                    }
-                }
-
                 if isUsingExploreMode {
                     ToolbarItem(placement: .principal) {
                         Text("Sun Azimuth")
@@ -795,6 +957,7 @@ struct EarthView: View {
                     onSelectionConfirm: setFlightCitiesAndCenter
                 )
             }
+
             
             // Rename Alert
             .alert(String(localized: "Rename"), isPresented: $showingRenameAlert) {
