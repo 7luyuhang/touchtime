@@ -11,6 +11,8 @@ import UIKit
 
 @main
 struct touchtimeApp: App {
+    @Environment(\.scenePhase) private var scenePhase
+
     init() {
         // Initialize TipKit
         try? Tips.configure([
@@ -33,6 +35,14 @@ struct touchtimeApp: App {
                         }
                     }
                 }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // Keep the rolling 24-hour window of on-the-hour notifications topped up,
+            // and turn the toggle off if permission was revoked in system Settings
+            if newPhase == .active {
+                HourlyNotificationManager.shared.syncEnabledWithAuthorization()
+                HourlyNotificationManager.shared.reschedule()
+            }
         }
     }
 }

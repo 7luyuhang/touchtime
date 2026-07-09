@@ -44,6 +44,9 @@ struct SettingsView: View {
     @AppStorage("showMinuteHand") private var showMinuteHand = true
     @AppStorage("showUTCHand") private var showUTCHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("hourlyNotificationEnabled") private var hourlyNotificationEnabled = false
+    @State private var hourlyNotificationCityIds: Set<UUID> = HourlyNotificationManager.loadSelectedCityIds()
+    @State private var showNotificationPermissionAlert = false
     @State private var currentDate = Date()
     @State private var showLifetimeStore = false
     @State private var showSupportLove = false
@@ -269,6 +272,43 @@ struct SettingsView: View {
                 }
             }
         )
+    }
+
+    private var hourlyNotificationBinding: Binding<Bool> {
+        Binding(
+            get: { hourlyNotificationEnabled },
+            set: { newValue in
+                if newValue {
+                    Task {
+                        let granted = await HourlyNotificationManager.shared.requestAuthorization()
+                        await MainActor.run {
+                            if granted {
+                                hourlyNotificationEnabled = true
+                                HourlyNotificationManager.shared.reschedule()
+                            } else {
+                                hourlyNotificationEnabled = false
+                                showNotificationPermissionAlert = true
+                            }
+                        }
+                    }
+                } else {
+                    hourlyNotificationEnabled = false
+                    HourlyNotificationManager.shared.cancelAll()
+                }
+            }
+        )
+    }
+
+    private var hourlyNotificationCitySummary: String {
+        let selected = worldClocks.filter { hourlyNotificationCityIds.contains($0.id) }
+        switch selected.count {
+        case 0:
+            return String(localized: "None")
+        case 1:
+            return selected[0].localizedCityName
+        default:
+            return String(format: String(localized: "%d Cities"), selected.count)
+        }
     }
 
     private var minuteHandBinding: Binding<Bool> {
@@ -744,6 +784,37 @@ struct SettingsView: View {
                     Text("Enable showing arc indicator for time offset.")
                 }
                 
+                // Hourly Notification
+                Section {
+                    TouchTimeToggle(isOn: hourlyNotificationBinding) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "clock.badge", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("On the Hour")
+                        }
+                    }
+                    
+                    if hourlyNotificationEnabled {
+                        NavigationLink(destination: HourlyNotificationCityPicker(
+                            worldClocks: worldClocks,
+                            selectedCityIds: $hourlyNotificationCityIds,
+                            weatherCondition: weatherConditionForSky
+                        )) {
+                            HStack {
+                                Text("City Selection")
+                                Spacer(minLength: 8)
+                                Text(hourlyNotificationCitySummary)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Notification")
+                } footer: {
+                    Text("Get a notification at the top of every hour.")
+                }
+                .animation(.spring(), value: hourlyNotificationEnabled)
+                
                 // Others
                 Section {
                     
@@ -921,6 +992,19 @@ struct SettingsView: View {
                 for await _ in Transaction.updates {
                     await refreshLifetimeStatus()
                 }
+            }
+            .onChange(of: use24HourFormat) {
+                HourlyNotificationManager.shared.reschedule()
+            }
+            .alert("Notifications Disabled", isPresented: $showNotificationPermissionAlert) {
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Allow notifications in Settings to get on-the-hour notifications.")
             }
             .sheet(isPresented: $showLifetimeStore) {
                 NavigationStack {

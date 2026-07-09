@@ -66,6 +66,14 @@
 "Enable showing system time at the top of the list with ambient background." = "在列表顶部显示本地时间，并呈现柔和的氛围背景。";
 "Haptics" = "触觉反馈";
 "System Time" = "本地时间";
+"On the Hour" = "准点通知";
+"Get a notification at the top of every hour." = "每小时收到准点通知。";
+"Notifications Disabled" = "通知未开启";
+"Open Settings" = "打开设置";
+"Allow notifications in Settings to get on-the-hour notifications." = "请在设置中允许通知，以接收准点通知。";
+"Test Notification" = "测试通知";
+"City Selection" = "选择城市";
+"Notification" = "通知";
 "Language" = "语言";
 "Widget" = "小组件";
 "Display" = "显示";

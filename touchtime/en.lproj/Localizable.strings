@@ -67,6 +67,14 @@
 "Enable showing system time at the top of the list with ambient background." = "Enable showing local time at the top of the list with ambient background.";
 "Haptics" = "Haptics";
 "System Time" = "Local Time";
+"On the Hour" = "On the Hour";
+"Get a notification at the top of every hour." = "Get a notification at the top of every hour.";
+"Notifications Disabled" = "Notifications Disabled";
+"Open Settings" = "Open Settings";
+"Allow notifications in Settings to get on-the-hour notifications." = "Allow notifications in Settings to get on-the-hour notifications.";
+"Test Notification" = "Test Notification";
+"City Selection" = "City Selection";
+"Notification" = "Notification";
 "Language" = "Language";
 "Widget" = "Widget";
 "Display" = "Display";

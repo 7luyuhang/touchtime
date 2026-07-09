@@ -315,6 +315,10 @@ struct AboutView: View {
         // Clear selected collection
         UserDefaults.standard.removeObject(forKey: "selectedCollectionId")
         
+        // Clear hourly notification city selection (old ids no longer exist)
+        UserDefaults.standard.removeObject(forKey: HourlyNotificationManager.selectedCityIdsKey)
+        HourlyNotificationManager.shared.reschedule()
+        
         // Post notification to reset scroll time
         NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
         
