@@ -780,15 +780,13 @@ struct SettingsView: View {
                             Text("Arc Indicator")
                         }
                     }
-                } footer: {
-                    Text("Enable showing arc indicator for time offset.")
                 }
                 
                 // Hourly Notification
                 Section {
                     TouchTimeToggle(isOn: hourlyNotificationBinding) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "clock.badge", topColor: .gray, bottomColor: .gray, style: .plain)
+                            SystemIconImage(systemName: "bell.badge", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("On the Hour")
                         }
                     }
