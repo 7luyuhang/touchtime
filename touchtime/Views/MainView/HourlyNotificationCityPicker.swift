@@ -106,6 +106,7 @@ struct HourlyNotificationCityPicker: View {
             }
 
         }
+        .scrollIndicators(.hidden)
         .navigationTitle("City Selection")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {

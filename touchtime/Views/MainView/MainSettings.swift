@@ -725,7 +725,7 @@ struct SettingsView: View {
                 }
                 
                 // Analog Time Section
-                Section {
+                Section(header: Text("Clock")) {
                     TouchTimeToggle(isOn: goldenHourBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "angle", topColor: .gray, bottomColor: .gray, style: .plain)
