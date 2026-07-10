@@ -48,6 +48,7 @@ final class CameraSessionController: NSObject, ObservableObject {
     @Published private(set) var isSessionRunning = false
     @Published private(set) var isCameraAvailable = true
     @Published private(set) var sessionState: SessionState = .idle
+    @Published private(set) var cameraPosition: AVCaptureDevice.Position = .back
 
     let session = AVCaptureSession()
     private let photoOutput = AVCapturePhotoOutput()
@@ -225,6 +226,49 @@ final class CameraSessionController: NSObject, ObservableObject {
             DispatchQueue.main.async {
                 self.isSessionRunning = false
                 self.sessionState = .idle
+            }
+        }
+    }
+
+    func flipCamera() {
+        sessionQueue.async {
+            guard self.didConfigureSession else { return }
+
+            let newPosition: AVCaptureDevice.Position = self.cameraPosition == .back ? .front : .back
+            guard let newCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: newPosition),
+                  let newInput = try? AVCaptureDeviceInput(device: newCamera) else { return }
+
+            self.session.beginConfiguration()
+
+            let currentVideoInputs = self.session.inputs
+                .compactMap { $0 as? AVCaptureDeviceInput }
+                .filter { $0.device.hasMediaType(.video) }
+            currentVideoInputs.forEach { self.session.removeInput($0) }
+
+            var appliedPosition = newPosition
+            if self.session.canAddInput(newInput) {
+                self.session.addInput(newInput)
+            } else if let previousInput = currentVideoInputs.first, self.session.canAddInput(previousInput) {
+                // Restore the previous camera if the new one can't be added.
+                self.session.addInput(previousInput)
+                appliedPosition = previousInput.device.position
+            }
+
+            if let connection = self.videoDataOutput.connection(with: .video) {
+                if connection.isVideoRotationAngleSupported(90) {
+                    connection.videoRotationAngle = 90
+                }
+                // Mirror captured frames from the front camera to match the preview.
+                if connection.isVideoMirroringSupported {
+                    connection.automaticallyAdjustsVideoMirroring = false
+                    connection.isVideoMirrored = appliedPosition == .front
+                }
+            }
+
+            self.session.commitConfiguration()
+
+            DispatchQueue.main.async {
+                self.cameraPosition = appliedPosition
             }
         }
     }

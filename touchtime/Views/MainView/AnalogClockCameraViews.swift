@@ -98,7 +98,7 @@ struct AnalogClockCameraCaptureButton: View {
                 .contentShape(Circle())
                 .padding(.trailing, 20)
                 .padding(.bottom, 12)
-                .offset(y: -75)
+                .offset(y: -73) // bottom padding
                 .transition(.blurReplace().combined(with: .opacity).combined(with: .scale(0.95)))
             }
         }
@@ -123,10 +123,35 @@ struct AnalogClockCameraCloseButton: View {
                 .contentShape(Circle())
                 .padding(.leading, 20)
                 .padding(.bottom, 12)
-                .offset(y: -75)
+                .offset(y: -73)
                 .transition(.blurReplace().combined(with: .opacity).combined(with: .scale(0.95)))
             }
         }
+    }
+}
+
+struct AnalogClockCameraFlipButton: View {
+    let isVisible: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Group {
+            if isVisible {
+                Button(action: action) {
+                    Image(systemName: "arrow.trianglehead.2.clockwise.rotate.90")
+                        .font(.headline)
+                        .foregroundStyle(.primary)
+                }
+                .frame(width: 52, height: 52)
+                .glassEffect(.regular.interactive())
+                .buttonStyle(.plain)
+                .contentShape(Circle())
+                .padding(.bottom, 12)
+                .offset(y: -73)
+                .transition(.blurReplace().combined(with: .opacity).combined(with: .scale(0.95)))
+            }
+        }
+        .animation(.spring(), value: isVisible)
     }
 }
 

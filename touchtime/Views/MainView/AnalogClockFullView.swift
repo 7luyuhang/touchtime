@@ -876,6 +876,11 @@ struct AnalogClockFullView: View {
         disableCameraBackground()
     }
 
+    private func handleCameraFlip() {
+        triggerLightHaptic()
+        cameraSessionController.flipCamera()
+    }
+
     private func setCameraFilter(_ filter: CameraPreviewFilter) {
         guard cameraPreviewFilter != filter else { return }
         triggerLightHaptic()
@@ -1162,6 +1167,12 @@ struct AnalogClockFullView: View {
                                     AnalogClockCameraCloseButton(
                                         isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden,
                                         action: handleCameraClose
+                                    )
+                                }
+                                .overlay(alignment: .top) { // Flip Camera Button
+                                    AnalogClockCameraFlipButton(
+                                        isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden && timeOffset == 0 && selectedCityId == nil,
+                                        action: handleCameraFlip
                                     )
                                 }
                             }
