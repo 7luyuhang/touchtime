@@ -48,8 +48,9 @@ struct HourlyNotificationCityPicker: View {
             Section {
                 notificationPreview
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 40)
+                    // Fixed row height so the section doesn't shift when the body wraps to two lines
                     .frame(maxWidth: .infinity)
+                    .frame(height: 160)
                     .listRowInsets(EdgeInsets())
                     .listRowSeparator(.hidden)
                     .listRowBackground(
@@ -142,10 +143,9 @@ struct HourlyNotificationCityPicker: View {
                 .scaledToFit()
                 .frame(width: 38, height: 38)
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("On the Hour")
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
+                    .font(.subheadline.weight(.semibold))
 
                 if !previewBodyText.isEmpty {
                     // Appears/disappears with blurReplace; in-place text changes use numericText
@@ -156,7 +156,6 @@ struct HourlyNotificationCityPicker: View {
                         .transition(.blurReplace)
                 }
             }
-
             Spacer(minLength: 0)
         }
         .padding(14)
