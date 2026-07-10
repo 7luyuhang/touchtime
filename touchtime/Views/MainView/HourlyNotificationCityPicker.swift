@@ -50,7 +50,6 @@ struct HourlyNotificationCityPicker: View {
             Section {
                 notificationPreview
                     .padding(.horizontal, 16)
-                    // Fixed row height so the section doesn't shift when the body wraps to two lines
                     .frame(maxWidth: .infinity)
                     .frame(height: 160)
                     .listRowInsets(EdgeInsets())

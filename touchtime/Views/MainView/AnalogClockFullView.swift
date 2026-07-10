@@ -669,10 +669,6 @@ struct AnalogClockFullView: View {
                 .onTapGesture {
                     if collections.count > 1 {
                         cycleToNextCollection()
-                    } else {
-                        triggerMenuHaptic()
-                        showTimeInsteadOfCityName.toggle()
-                        selectedDisplayPage = .time
                     }
                 }
         }
