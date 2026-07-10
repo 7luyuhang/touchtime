@@ -45,7 +45,7 @@ struct SettingsView: View {
     @AppStorage("showUTCHand") private var showUTCHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("hourlyNotificationEnabled") private var hourlyNotificationEnabled = false
-    @State private var hourlyNotificationCityIds: Set<UUID> = HourlyNotificationManager.loadSelectedCityIds()
+    @State private var hourlyNotificationCityIds: [UUID] = HourlyNotificationManager.loadSelectedCityIds()
     @State private var showNotificationPermissionAlert = false
     @State private var currentDate = Date()
     @State private var showLifetimeStore = false

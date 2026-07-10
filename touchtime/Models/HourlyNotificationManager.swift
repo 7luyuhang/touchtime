@@ -29,14 +29,15 @@ final class HourlyNotificationManager: NSObject {
 
     // MARK: - Selected cities persistence
 
-    static func loadSelectedCityIds() -> Set<UUID> {
+    /// Selection order is preserved (first selected city comes first).
+    static func loadSelectedCityIds() -> [UUID] {
         guard let raw = UserDefaults.standard.string(forKey: selectedCityIdsKey), !raw.isEmpty else {
             return []
         }
-        return Set(raw.split(separator: ",").compactMap { UUID(uuidString: String($0)) })
+        return raw.split(separator: ",").compactMap { UUID(uuidString: String($0)) }
     }
 
-    static func saveSelectedCityIds(_ ids: Set<UUID>) {
+    static func saveSelectedCityIds(_ ids: [UUID]) {
         let raw = ids.map(\.uuidString).joined(separator: ",")
         UserDefaults.standard.set(raw, forKey: selectedCityIdsKey)
     }
@@ -148,7 +149,7 @@ final class HourlyNotificationManager: NSObject {
         return content
     }
 
-    /// Selected world clocks, in the same order as the saved clock list.
+    /// Selected world clocks, in selection order (first selected city comes first).
     private func loadSelectedClocks() -> [WorldClock] {
         let selectedIds = Self.loadSelectedCityIds()
         guard !selectedIds.isEmpty else { return [] }
@@ -157,7 +158,7 @@ final class HourlyNotificationManager: NSObject {
               let clocks = try? JSONDecoder().decode([WorldClock].self, from: data) else {
             return []
         }
-        return clocks.filter { selectedIds.contains($0.id) }
+        return selectedIds.compactMap { id in clocks.first { $0.id == id } }
     }
 
     fileprivate func isHourlyNotification(_ notification: UNNotification) -> Bool {

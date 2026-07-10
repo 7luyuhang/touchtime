@@ -10,7 +10,8 @@ import WeatherKit
 
 struct HourlyNotificationCityPicker: View {
     let worldClocks: [WorldClock]
-    @Binding var selectedCityIds: Set<UUID>
+    /// Ordered: the first selected city appears first in the notification body.
+    @Binding var selectedCityIds: [UUID]
     var weatherCondition: WeatherCondition? = nil
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("use24HourFormat") private var use24HourFormat = false
@@ -30,13 +31,14 @@ struct HourlyNotificationCityPicker: View {
         ) ?? Date()
     }
 
-    /// Same body text as the scheduled notification: "Shanghai 17:00 · New York 05:00"
+    /// Same body text as the scheduled notification, in selection order:
+    /// "Shanghai 17:00 · New York 05:00"
     private var previewBodyText: String {
         let fireDate = previewFireDate
-        return worldClocks
-            .filter { selectedCityIds.contains($0.id) }
-            .compactMap { clock -> String? in
-                guard let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) else { return nil }
+        return selectedCityIds
+            .compactMap { id -> String? in
+                guard let clock = worldClocks.first(where: { $0.id == id }),
+                      let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) else { return nil }
                 return "\(clock.localizedCityName) \(timeString(for: fireDate, in: timeZone))"
             }
             .joined(separator: " · ")
@@ -73,7 +75,8 @@ struct HourlyNotificationCityPicker: View {
 
             Section {
                 ForEach(worldClocks) { clock in
-                    let isSelected = selectedCityIds.contains(clock.id)
+                    let selectionIndex = selectedCityIds.firstIndex(of: clock.id)
+                    let isSelected = selectionIndex != nil
 
                     Button(action: {
                         withAnimation {
@@ -89,7 +92,7 @@ struct HourlyNotificationCityPicker: View {
 
                             Spacer()
 
-                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                            Image(systemName: selectionIndex.map { "\($0 + 1).circle.fill" } ?? "circle")
                                 .font(.title3.weight(.medium))
                                 .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.25))
                                 .contentTransition(.symbolEffect(.replace))
@@ -110,7 +113,7 @@ struct HourlyNotificationCityPicker: View {
             // Drop ids of cities that no longer exist (e.g. deleted or reset),
             // otherwise they still count towards the selection limit
             let validIds = Set(worldClocks.map(\.id))
-            let pruned = selectedCityIds.intersection(validIds)
+            let pruned = selectedCityIds.filter { validIds.contains($0) }
             if pruned != selectedCityIds {
                 selectedCityIds = pruned
             }
@@ -165,10 +168,10 @@ struct HourlyNotificationCityPicker: View {
     }
 
     private func toggleSelection(for id: UUID) {
-        if selectedCityIds.contains(id) {
-            selectedCityIds.remove(id)
+        if let index = selectedCityIds.firstIndex(of: id) {
+            selectedCityIds.remove(at: index)
         } else if !isSelectionFull {
-            selectedCityIds.insert(id)
+            selectedCityIds.append(id)
         }
     }
 }
