@@ -6,8 +6,6 @@
 //
 
 import SwiftUI
-import SunKit
-import CoreLocation
 import WeatherKit
 
 struct SkyColorGradient {
@@ -97,7 +95,7 @@ struct SkyColorGradient {
         return wrapTo24Hours(calculateFallbackTime(date: date, timeZoneIdentifier: timeZoneIdentifier))
     }
     
-    // Calculate sun event times once per day (expensive SunKit calculation)
+    // Calculate sun event times once per day
     private static func calculateSunEventTimes(date: Date, timeZoneIdentifier: String) -> SunEventTimes {
         guard let coords = TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier) else {
             // Fallback: use approximate times
@@ -111,8 +109,12 @@ struct SkyColorGradient {
         }
         
         let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-        var sun = Sun(location: CLLocation(latitude: coords.latitude, longitude: coords.longitude), timeZone: timeZone)
-        sun.setDate(date)
+        let events = SolarCalculator.events(
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            date: date,
+            timeZone: timeZone
+        )
         
         var calendar = Calendar.current
         calendar.timeZone = timeZone
@@ -125,19 +127,19 @@ struct SkyColorGradient {
         }
         
         return SunEventTimes(
-            sunriseHour: hoursSinceMidnight(sun.sunrise),
-            sunsetHour: hoursSinceMidnight(sun.sunset),
-            civilDawnHour: hoursSinceMidnight(sun.civilDawn),
-            civilDuskHour: hoursSinceMidnight(sun.civilDusk),
-            nauticalDawnHour: hoursSinceMidnight(sun.nauticalDawn),
-            nauticalDuskHour: hoursSinceMidnight(sun.nauticalDusk),
-            astronomicalDawnHour: hoursSinceMidnight(sun.astronomicalDawn),
-            astronomicalDuskHour: hoursSinceMidnight(sun.astronomicalDusk),
-            solarNoonHour: hoursSinceMidnight(sun.solarNoon)
+            sunriseHour: hoursSinceMidnight(events.sunrise),
+            sunsetHour: hoursSinceMidnight(events.sunset),
+            civilDawnHour: hoursSinceMidnight(events.civilDawn),
+            civilDuskHour: hoursSinceMidnight(events.civilDusk),
+            nauticalDawnHour: hoursSinceMidnight(events.nauticalDawn),
+            nauticalDuskHour: hoursSinceMidnight(events.nauticalDusk),
+            astronomicalDawnHour: hoursSinceMidnight(events.astronomicalDawn),
+            astronomicalDuskHour: hoursSinceMidnight(events.astronomicalDusk),
+            solarNoonHour: hoursSinceMidnight(events.solarNoon)
         )
     }
     
-    // Fast calculation using cached sun times (no SunKit calls)
+    // Fast calculation using cached sun times
     private static func calculateNormalizedTimeFromSunTimes(date: Date, timeZoneIdentifier: String, sunTimes: SunEventTimes) -> Double {
         let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
         var calendar = Calendar.current

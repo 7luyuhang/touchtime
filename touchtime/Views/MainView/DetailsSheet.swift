@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SunKit
 import MoonKit
 import CoreLocation
 import Combine
@@ -126,10 +125,14 @@ struct SunriseSunsetSheet: View {
         let location = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
         let calendar = calendarForTimeZone()
 
-        var sun = Sun(location: location, timeZone: timeZone)
-        sun.setDate(adjustedDate)
-        sunTimes = (sun.sunrise, sun.sunset)
-        eveningGoldenHour = (sun.eveningGoldenHourStart, sun.eveningGoldenHourEnd)
+        let events = SolarCalculator.events(
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
+            date: adjustedDate,
+            timeZone: timeZone
+        )
+        sunTimes = (events.sunrise, events.sunset)
+        eveningGoldenHour = (events.eveningGoldenHourStart, events.eveningGoldenHourEnd)
 
         let moon = Moon(location: location, timeZone: timeZone)
         moon.setDate(adjustedDate)

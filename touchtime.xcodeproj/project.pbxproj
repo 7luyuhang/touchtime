@@ -11,7 +11,6 @@
 		5A864EA42EAE30FB009D5989 /* MoonKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5A864EA32EAE30FB009D5989 /* MoonKit */; };
 		5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */ = {isa = PBXBuildFile; productRef = 5AD93C242EB62099001DF8F4 /* Shimmer */; };
 		5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */; };
-		5AFDCE0E2EA3E2CC0002AC94 /* SunKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5AFDCE0D2EA3E2CC0002AC94 /* SunKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -61,7 +60,6 @@
 				5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */,
 				5A864EA42EAE30FB009D5989 /* MoonKit in Frameworks */,
 				5A5880A12EC78BEE00344D1D /* VariableBlur in Frameworks */,
-				5AFDCE0E2EA3E2CC0002AC94 /* SunKit in Frameworks */,
 				5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -114,7 +112,6 @@
 			);
 			name = touchtime;
 			packageProductDependencies = (
-				5AFDCE0D2EA3E2CC0002AC94 /* SunKit */,
 				5A864EA32EAE30FB009D5989 /* MoonKit */,
 				5AD93C242EB62099001DF8F4 /* Shimmer */,
 				5A5880A02EC78BEE00344D1D /* VariableBlur */,
@@ -150,7 +147,6 @@
 			mainGroup = 5A42D36F2E82CDCE0048963E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				5AFDCE0C2EA3E2CC0002AC94 /* XCRemoteSwiftPackageReference "SunKit" */,
 				5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */,
 				5AD93C232EB62099001DF8F4 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */,
 				5A58809F2EC78BEE00344D1D /* XCRemoteSwiftPackageReference "VariableBlur" */,
@@ -319,7 +315,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = touchtime/touchtime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 140;
+				CURRENT_PROJECT_VERSION = 141;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -365,7 +361,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = touchtime/touchtime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 140;
+				CURRENT_PROJECT_VERSION = 141;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
@@ -451,14 +447,6 @@
 				minimumVersion = 1.5.1;
 			};
 		};
-		5AFDCE0C2EA3E2CC0002AC94 /* XCRemoteSwiftPackageReference "SunKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/SunKit-Swift/SunKit.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.8.1;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -476,11 +464,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5AD93C232EB62099001DF8F4 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */;
 			productName = Shimmer;
-		};
-		5AFDCE0D2EA3E2CC0002AC94 /* SunKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 5AFDCE0C2EA3E2CC0002AC94 /* XCRemoteSwiftPackageReference "SunKit" */;
-			productName = SunKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -2028,15 +2028,14 @@ fileprivate enum RowTimeFormat {
         return Date(timeIntervalSinceReferenceDate: (interval / 60).rounded(.down) * 60)
     }
 
-    static func cityDate(timeZoneIdentifier: String, baseDate: Date, offset: TimeInterval, dateStyle: String) -> String {
+    static func cityDate(timeZoneIdentifier: String, displayDate: Date, referenceDate: Date, dateStyle: String) -> String {
         guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
             return ""
         }
-        let adjustedTime = baseDate.addingTimeInterval(offset)
-        return adjustedTime.formattedDate(
+        return displayDate.formattedDate(
             style: dateStyle,
             timeZone: targetTimeZone,
-            relativeTo: baseDate
+            relativeTo: referenceDate
         )
     }
 
@@ -2101,6 +2100,8 @@ fileprivate enum RowTimeFormat {
 // body. HomeView no longer reads the per-frame time values directly.
 
 /// Sky background for a single list row, computed from the time bindings.
+/// `HomeSkyListRowBackground` only receives plain values, so its subtree is
+/// pruned on frames where the quantized date and weather did not change.
 fileprivate struct RowSkyBackground: View {
     let timeZoneIdentifier: String
     @Binding var currentDate: Date
@@ -2139,9 +2140,31 @@ fileprivate struct LocalSkyGlowBackground: View {
 }
 
 /// Local time zone row content.
+///
+/// Thin wrapper: it is the only layer that reads the per-frame time bindings.
+/// It quantizes them to the minute and hands plain values to
+/// `LocalTimeRowBody`, so SwiftUI can prune the whole row subtree (via
+/// `.equatable()`) on frames where the displayed minute did not change.
 fileprivate struct LocalTimeRowContent: View {
     @Binding var currentDate: Date
     @Binding var timeOffset: TimeInterval
+    let complicationOptions: ComplicationDisplayOptions
+    @ObservedObject var weatherManager: WeatherManager
+
+    var body: some View {
+        LocalTimeRowBody(
+            displayDate: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
+            referenceDate: RowTimeFormat.minuteQuantized(date: currentDate, offset: 0),
+            complicationOptions: complicationOptions,
+            weatherManager: weatherManager
+        )
+        .equatable()
+    }
+}
+
+fileprivate struct LocalTimeRowBody: View, Equatable {
+    let displayDate: Date
+    let referenceDate: Date
     let complicationOptions: ComplicationDisplayOptions
     @ObservedObject var weatherManager: WeatherManager
 
@@ -2154,6 +2177,15 @@ fileprivate struct LocalTimeRowContent: View {
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
     @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6"
+
+    // Dynamic properties (@AppStorage / @ObservedObject) invalidate the view
+    // through their own dependency channel, so == only needs to cover the
+    // plain inputs coming from the wrapper.
+    static func == (lhs: LocalTimeRowBody, rhs: LocalTimeRowBody) -> Bool {
+        lhs.displayDate == rhs.displayDate
+            && lhs.referenceDate == rhs.referenceDate
+            && lhs.complicationOptions == rhs.complicationOptions
+    }
 
     private var hasVisibleComplication: Bool { complicationOptions.hasVisibleComplication }
     private var showsAvailableTime: Bool {
@@ -2181,10 +2213,10 @@ fileprivate struct LocalTimeRowContent: View {
                         .contentTransition(.numericText())
                     }
 
-                    Text(currentDate.formattedDate(
+                    Text(displayDate.formattedDate(
                         style: dateStyle,
-                        timeZoneIdentifier: TimeZone.current.identifier,
-                        timeOffset: timeOffset
+                        timeZone: TimeZone.current,
+                        relativeTo: referenceDate
                     ))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
@@ -2204,7 +2236,7 @@ fileprivate struct LocalTimeRowContent: View {
 
                     Spacer()
 
-                    Text(RowTimeFormat.time(date: currentDate, offset: timeOffset, timeZone: .current, use24Hour: use24HourFormat))
+                    Text(RowTimeFormat.time(date: displayDate, offset: 0, timeZone: .current, use24Hour: use24HourFormat))
                         .font(.system(size: 36))
                         .fontWeight(.light)
                         .fontDesign(.rounded)
@@ -2217,8 +2249,8 @@ fileprivate struct LocalTimeRowContent: View {
                 // Available Time Display with Progress Indicator
                 if showsAvailableTime {
                     AvailableTimeIndicator(
-                        currentDate: currentDate,
-                        timeOffset: timeOffset,
+                        currentDate: displayDate,
+                        timeOffset: 0,
                         availableStartTime: availableStartTime,
                         availableEndTime: availableEndTime,
                         use24HourFormat: use24HourFormat,
@@ -2230,7 +2262,7 @@ fileprivate struct LocalTimeRowContent: View {
 
             // Complication Overlays
             ComplicationOverlayView(
-                date: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
+                date: displayDate,
                 timeZone: TimeZone.current,
                 options: complicationOptions,
                 bottomPadding: showsAvailableTime ? 18 : 0
@@ -2243,10 +2275,32 @@ fileprivate struct LocalTimeRowContent: View {
 }
 
 /// World clock (city) row content.
+///
+/// Thin wrapper: reads the per-frame time bindings, quantizes to the minute,
+/// and hands plain values to `CityRowBody` so unchanged rows are pruned.
 fileprivate struct CityRowContent: View {
     let clock: WorldClock
     @Binding var currentDate: Date
     @Binding var timeOffset: TimeInterval
+    let complicationOptions: ComplicationDisplayOptions
+    @ObservedObject var weatherManager: WeatherManager
+
+    var body: some View {
+        CityRowBody(
+            clock: clock,
+            displayDate: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
+            referenceDate: RowTimeFormat.minuteQuantized(date: currentDate, offset: 0),
+            complicationOptions: complicationOptions,
+            weatherManager: weatherManager
+        )
+        .equatable()
+    }
+}
+
+fileprivate struct CityRowBody: View, Equatable {
+    let clock: WorldClock
+    let displayDate: Date
+    let referenceDate: Date
     let complicationOptions: ComplicationDisplayOptions
     @ObservedObject var weatherManager: WeatherManager
 
@@ -2256,13 +2310,23 @@ fileprivate struct CityRowContent: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
 
+    // Dynamic properties (@AppStorage / @ObservedObject) invalidate the view
+    // through their own dependency channel, so == only needs to cover the
+    // plain inputs coming from the wrapper.
+    static func == (lhs: CityRowBody, rhs: CityRowBody) -> Bool {
+        lhs.clock == rhs.clock
+            && lhs.displayDate == rhs.displayDate
+            && lhs.referenceDate == rhs.referenceDate
+            && lhs.complicationOptions == rhs.complicationOptions
+    }
+
     private var hasVisibleComplication: Bool { complicationOptions.hasVisibleComplication }
 
     private var cityDateText: String {
         RowTimeFormat.cityDate(
             timeZoneIdentifier: clock.timeZoneIdentifier,
-            baseDate: currentDate,
-            offset: timeOffset,
+            displayDate: displayDate,
+            referenceDate: referenceDate,
             dateStyle: dateStyle
         )
     }
@@ -2326,8 +2390,8 @@ fileprivate struct CityRowContent: View {
                     Spacer()
 
                     Text(RowTimeFormat.time(
-                        date: currentDate,
-                        offset: timeOffset,
+                        date: displayDate,
+                        offset: 0,
                         timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? .current,
                         use24Hour: use24HourFormat
                     ))
@@ -2344,7 +2408,7 @@ fileprivate struct CityRowContent: View {
 
             // Complication Overlays
             ComplicationOverlayView(
-                date: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
+                date: displayDate,
                 timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
                 options: complicationOptions,
                 bottomPadding: 0
@@ -2360,8 +2424,8 @@ fileprivate struct CityRowContent: View {
         if additionalTimeDisplay == "Weekday" {
             if let weekday = RowTimeFormat.weekdayDisplay(
                 for: clock.timeZoneIdentifier,
-                baseDate: currentDate,
-                offset: timeOffset
+                baseDate: displayDate,
+                offset: 0
             ) {
                 HStack(spacing: 5) {
                     Text(weekday.previous)
@@ -2401,8 +2465,8 @@ fileprivate struct CityRowContent: View {
             let text = RowTimeFormat.additionalText(
                 for: clock,
                 display: additionalTimeDisplay,
-                baseDate: currentDate,
-                offset: timeOffset
+                baseDate: displayDate,
+                offset: 0
             )
             if !text.isEmpty || additionalTimeDisplay == "UTC" {
                 Text(text)

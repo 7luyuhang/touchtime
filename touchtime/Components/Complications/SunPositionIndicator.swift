@@ -6,8 +6,6 @@
 //
 
 import SwiftUI
-import SunKit
-import CoreLocation
 
 struct SunPositionIndicator: View {
     let date: Date
@@ -15,7 +13,7 @@ struct SunPositionIndicator: View {
     let size: CGFloat
     let useMaterialBackground: Bool
     
-    // Cache daily sun times per timezone to avoid repeated SunKit calculations
+    // Cache daily sun times per timezone to avoid repeated calculations
     private struct SunTimes {
         let sunrise: Date?
         let sunset: Date?
@@ -50,7 +48,7 @@ struct SunPositionIndicator: View {
         let startOfDay = calendar.startOfDay(for: date)
         let dayInSeconds: Double = 24 * 60 * 60
         
-        // Fetch cached sun times for this day/timezone (uses SunKit when available)
+        // Fetch cached sun times for this day/timezone
         let sunTimes = cachedSunTimes(for: date)
         
         // Fallback to a simple approximation if we cannot get solar noon
@@ -105,10 +103,8 @@ struct SunPositionIndicator: View {
         
         let times: SunTimes
         if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
-            let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
-            var sun = Sun(location: location, timeZone: timeZone)
-            sun.setDate(date)
-            times = SunTimes(sunrise: sun.sunrise, sunset: sun.sunset, solarNoon: sun.solarNoon)
+            let events = SolarCalculator.events(latitude: coords.latitude, longitude: coords.longitude, date: date, timeZone: timeZone)
+            times = SunTimes(sunrise: events.sunrise, sunset: events.sunset, solarNoon: events.solarNoon)
         } else {
             // Fallback approximation when coordinates are unavailable
             times = SunTimes(

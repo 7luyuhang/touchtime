@@ -10,8 +10,6 @@
 //
 
 import SwiftUI
-import SunKit
-import CoreLocation
 
 struct DaylightIndicator: View {
     let date: Date
@@ -55,10 +53,8 @@ struct DaylightIndicator: View {
 
         let times: SunTimes
         if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
-            let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
-            var sun = Sun(location: location, timeZone: timeZone)
-            sun.setDate(date)
-            times = SunTimes(sunrise: sun.sunrise, sunset: sun.sunset)
+            let events = SolarCalculator.events(latitude: coords.latitude, longitude: coords.longitude, date: date, timeZone: timeZone)
+            times = SunTimes(sunrise: events.sunrise, sunset: events.sunset)
         } else {
             let startOfDay = calendar.startOfDay(for: date)
             times = SunTimes(

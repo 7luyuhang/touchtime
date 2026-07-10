@@ -13,8 +13,6 @@ import EventKit
 import EventKitUI
 import CoreLocation
 import WeatherKit
-import SunKit
-
 struct EarthView: View {
     private static let defaultMapSpan = MKCoordinateSpan(latitudeDelta: 180, longitudeDelta: 360)
 
@@ -1130,18 +1128,25 @@ fileprivate struct EarthSunCompassOverlay: View {
             return cached.data
         }
 
-        var sun = Sun(
-            location: CLLocation(latitude: mapCenterCoordinate.latitude, longitude: mapCenterCoordinate.longitude),
+        let events = SolarCalculator.events(
+            latitude: mapCenterCoordinate.latitude,
+            longitude: mapCenterCoordinate.longitude,
+            date: displayDate,
             timeZone: mapCenterTimeZone
         )
-        sun.setDate(displayDate)
 
-        let sunrise = sun.sunrise
-        let sunset = sun.sunset
-        sun.setDate(sunrise)
-        let sunriseAzimuth = sun.azimuth.degrees
-        sun.setDate(sunset)
-        let sunsetAzimuth = sun.azimuth.degrees
+        let sunrise = events.sunrise
+        let sunset = events.sunset
+        let sunriseAzimuth = SolarCalculator.position(
+            latitude: mapCenterCoordinate.latitude,
+            longitude: mapCenterCoordinate.longitude,
+            date: sunrise
+        ).azimuth
+        let sunsetAzimuth = SolarCalculator.position(
+            latitude: mapCenterCoordinate.latitude,
+            longitude: mapCenterCoordinate.longitude,
+            date: sunset
+        ).azimuth
 
         let data = MapSunTimesData(
             sunrise: sunrise,
@@ -1186,12 +1191,13 @@ fileprivate struct EarthSunCompassOverlay: View {
             return cached.azimuth
         }
 
-        var sun = Sun(
-            location: CLLocation(latitude: mapCenterCoordinate.latitude, longitude: mapCenterCoordinate.longitude),
-            timeZone: timeZone
+        let azimuth = normalizedAzimuth(
+            SolarCalculator.position(
+                latitude: mapCenterCoordinate.latitude,
+                longitude: mapCenterCoordinate.longitude,
+                date: calculationDate
+            ).azimuth
         )
-        sun.setDate(calculationDate)
-        let azimuth = normalizedAzimuth(sun.azimuth.degrees)
         Self.mapSunAzimuthCache.setObject(MapSunAzimuthDataWrapper(azimuth), forKey: cacheKey)
         return azimuth
     }

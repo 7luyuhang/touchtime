@@ -6,8 +6,6 @@
 //
 
 import SwiftUI
-import SunKit
-import CoreLocation
 
 struct SolarCurve: View {
     let date: Date
@@ -19,7 +17,7 @@ struct SolarCurve: View {
     @State private var cachedPath: Path?
     @State private var cachedDayKey: String = ""
     
-    // Cache daily sun times per timezone to avoid repeated SunKit calculations
+    // Cache daily sun times per timezone to avoid repeated calculations
     private struct SunTimes {
         let sunrise: Date?
         let sunset: Date?
@@ -110,10 +108,8 @@ struct SolarCurve: View {
         
         let times: SunTimes
         if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
-            let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
-            var sun = Sun(location: location, timeZone: timeZone)
-            sun.setDate(date)
-            times = SunTimes(sunrise: sun.sunrise, sunset: sun.sunset, solarNoon: sun.solarNoon)
+            let events = SolarCalculator.events(latitude: coords.latitude, longitude: coords.longitude, date: date, timeZone: timeZone)
+            times = SunTimes(sunrise: events.sunrise, sunset: events.sunset, solarNoon: events.solarNoon)
         } else {
             // Fallback approximation when coordinates are unavailable
             let startOfDay = calendar.startOfDay(for: date)
@@ -184,16 +180,11 @@ struct SolarCurve: View {
             return data
         }
         
-        // Use SunKit for accurate calculations - but cache the results
-        let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
-        var sun = Sun(location: location, timeZone: timeZone)
-        
-        // Calculate points every hour (24 points total)
+        // Calculate points every hour (24 points total) - cached per day
         for hour in 0...24 {
             let hours = Double(hour)
             let hourDate = startOfDay.addingTimeInterval(hours * 3600)
-            sun.setDate(hourDate)
-            let sunAltitude = sun.altitude.degrees
+            let sunAltitude = SolarCalculator.position(latitude: coords.latitude, longitude: coords.longitude, date: hourDate).altitude
             
             // Normalize altitude to -90 to 90 degrees, then map to y position
             let normalizedAltitude = max(-90, min(90, sunAltitude))

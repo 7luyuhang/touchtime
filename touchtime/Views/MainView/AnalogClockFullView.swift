@@ -12,7 +12,6 @@ import AVFoundation
 import CoreHaptics
 import WeatherKit
 import MoonKit
-import SunKit
 import CoreLocation
 import TipKit
 import AlarmKit
@@ -1682,7 +1681,7 @@ struct AnalogClockFaceView: View {
         return cache
     }()
     
-    // Calculate sunrise and sunset times using SunKit (with caching)
+    // Calculate sunrise and sunset times (with caching)
     private var sunTimes: SunTimesData? {
         guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
             return nil
@@ -1699,17 +1698,18 @@ struct AnalogClockFaceView: View {
             return cached.data
         }
         
-        var sun = Sun(
-            location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude),
+        let events = SolarCalculator.events(
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
+            date: date,
             timeZone: selectedTimeZone
         )
-        sun.setDate(date)
         
         let data = SunTimesData(
-            sunrise: sun.sunrise,
-            sunset: sun.sunset,
-            goldenHourStart: sun.eveningGoldenHourStart,
-            goldenHourEnd: sun.eveningGoldenHourEnd
+            sunrise: events.sunrise,
+            sunset: events.sunset,
+            goldenHourStart: events.eveningGoldenHourStart,
+            goldenHourEnd: events.eveningGoldenHourEnd
         )
         Self.sunTimesCache.setObject(SunTimesDataWrapper(data), forKey: cacheKey)
         return data

@@ -6,8 +6,6 @@
 //
 
 import SwiftUI
-import SunKit
-import CoreLocation
 
 struct SunAzimuthIndicator: View {
     let date: Date
@@ -101,15 +99,12 @@ struct SunAzimuthIndicator: View {
         var altitudes: [Double] = []
         
         if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
-            let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
-            var sun = Sun(location: location, timeZone: timeZone)
-            
             // Calculate for each hour (0-24)
             for hour in 0...24 {
                 let hourDate = startOfDay.addingTimeInterval(Double(hour) * 3600)
-                sun.setDate(hourDate)
-                azimuths.append(sun.azimuth.degrees)
-                altitudes.append(sun.altitude.degrees)
+                let position = SolarCalculator.position(latitude: coords.latitude, longitude: coords.longitude, date: hourDate)
+                azimuths.append(position.azimuth)
+                altitudes.append(position.altitude)
             }
         } else {
             // Fallback: estimate based on time of day

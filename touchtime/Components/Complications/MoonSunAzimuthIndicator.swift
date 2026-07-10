@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import SunKit
 import MoonKit
 import CoreLocation
 
@@ -120,14 +119,11 @@ struct MoonSunAzimuthIndicator: View {
         var altitudes: [Double] = []
 
         if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
-            let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
-            var sun = Sun(location: location, timeZone: timeZone)
-
             for hour in 0...24 {
                 let hourDate = startOfDay.addingTimeInterval(Double(hour) * 3600)
-                sun.setDate(hourDate)
-                azimuths.append(sun.azimuth.degrees)
-                altitudes.append(sun.altitude.degrees)
+                let position = SolarCalculator.position(latitude: coords.latitude, longitude: coords.longitude, date: hourDate)
+                azimuths.append(position.azimuth)
+                altitudes.append(position.altitude)
             }
         } else {
             for hour in 0...24 {
