@@ -116,21 +116,6 @@ final class HourlyNotificationManager: NSObject {
         }
     }
 
-    /// Fires a sample notification a moment from now, using the current time.
-    func sendTestNotification() {
-        Task {
-            guard await requestAuthorization() else { return }
-
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 2, repeats: false)
-            let request = UNNotificationRequest(
-                identifier: identifierPrefix + "test",
-                content: makeContent(for: Date()),
-                trigger: trigger
-            )
-            try? await UNUserNotificationCenter.current().add(request)
-        }
-    }
-
     /// Removes all pending hourly notifications.
     func cancelAll() {
         Task {

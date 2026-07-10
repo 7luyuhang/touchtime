@@ -103,21 +103,6 @@ struct HourlyNotificationCityPicker: View {
                 }
             }
 
-            Section {
-                Button(action: {
-                    if hapticEnabled {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    }
-                    HourlyNotificationManager.shared.sendTestNotification()
-                }) {
-                    HStack {
-                        Spacer()
-                        Text("Test Notification")
-                            .fontWeight(.semibold)
-                        Spacer()
-                    }
-                }
-            }
         }
         .navigationTitle("City Selection")
         .navigationBarTitleDisplayMode(.inline)
