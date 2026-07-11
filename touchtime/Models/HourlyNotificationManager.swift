@@ -18,6 +18,13 @@ final class HourlyNotificationManager: NSObject {
     static let enabledKey = "hourlyNotificationEnabled"
     static let selectedCityIdsKey = "hourlyNotificationCityIds"
 
+    // Time window (only chime between start and end, same format as Available Time: "HH:mm")
+    static let timeWindowEnabledKey = "hourlyNotificationTimeWindowEnabled"
+    static let startTimeKey = "hourlyNotificationStartTime"
+    static let endTimeKey = "hourlyNotificationEndTime"
+    static let defaultStartTime = "09:00"
+    static let defaultEndTime = "18:00"
+
     private let identifierPrefix = "hourlyNotification-"
     private let hoursToSchedule = 24
 
@@ -40,6 +47,34 @@ final class HourlyNotificationManager: NSObject {
     static func saveSelectedCityIds(_ ids: [UUID]) {
         let raw = ids.map(\.uuidString).joined(separator: ",")
         UserDefaults.standard.set(raw, forKey: selectedCityIdsKey)
+    }
+
+    // MARK: - Time window
+
+    /// True when the time window is disabled, or when `date` (local time of day)
+    /// falls within [start, end]. Handles overnight windows (e.g. 22:00–07:00).
+    static func isWithinTimeWindow(_ date: Date) -> Bool {
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: timeWindowEnabledKey) else { return true }
+
+        let start = minutesOfDay(from: defaults.string(forKey: startTimeKey) ?? defaultStartTime)
+        let end = minutesOfDay(from: defaults.string(forKey: endTimeKey) ?? defaultEndTime)
+
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        let minutes = (components.hour ?? 0) * 60 + (components.minute ?? 0)
+
+        if start <= end {
+            return minutes >= start && minutes <= end
+        } else {
+            // Overnight window, e.g. 22:00–07:00
+            return minutes >= start || minutes <= end
+        }
+    }
+
+    private static func minutesOfDay(from timeString: String) -> Int {
+        let parts = timeString.split(separator: ":").compactMap { Int($0) }
+        guard parts.count == 2 else { return 0 }
+        return parts[0] * 60 + parts[1]
     }
 
     // MARK: - Authorization
@@ -106,6 +141,7 @@ final class HourlyNotificationManager: NSObject {
 
             for hourOffset in 0..<hoursToSchedule {
                 guard let fireDate = calendar.date(byAdding: .hour, value: hourOffset, to: firstHour) else { continue }
+                guard Self.isWithinTimeWindow(fireDate) else { continue }
 
                 let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
                 let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)

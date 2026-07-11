@@ -787,7 +787,7 @@ struct SettingsView: View {
                     TouchTimeToggle(isOn: hourlyNotificationBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "bell.badge", topColor: .gray, bottomColor: .gray, style: .plain)
-                            Text("On the Hour")
+                            Text("Hourly Chime")
                         }
                     }
                     

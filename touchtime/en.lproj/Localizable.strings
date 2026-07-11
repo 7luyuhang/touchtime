@@ -68,11 +68,15 @@
 "Haptics" = "Haptics";
 "System Time" = "Local Time";
 "On the Hour" = "On the Hour";
+"Hourly Chime" = "Hourly Chime";
 "Get a notification at the top of every hour." = "Get a notification at the top of every hour.";
 "Notifications Disabled" = "Notifications Disabled";
 "Open Settings" = "Open Settings";
 "Allow notifications in Settings to get on-the-hour notifications." = "Allow notifications in Settings to get on-the-hour notifications.";
 "City Selection" = "City Selection";
+"Time Period" = "Time Period";
+"Only chime between the start and end time." = "Only chime between the start and end time.";
+"Enable to only chime within a time period." = "Enable to only chime within a time period.";
 "Notification" = "Notification";
 "Language" = "Language";
 "Widget" = "Widget";
