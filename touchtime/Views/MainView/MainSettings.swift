@@ -941,6 +941,26 @@ struct SettingsView: View {
                             Text("About")
                         }
                     }
+
+                    NavigationLink(destination: MoreAppsView()) {
+                        HStack {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "plus.app", topColor: .gray, bottomColor: .gray, style: .plain)
+                                Text("More Apps")
+                            }
+                            Spacer()
+                            HStack(spacing: 8) {
+                                Image("TouchTimeAppIcon")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 32, height: 32)
+                                Image("HandsTimeAppIcon")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 32, height: 32)
+                            }
+                        }
+                    }
                 }
             }
             .scrollIndicators(.hidden)

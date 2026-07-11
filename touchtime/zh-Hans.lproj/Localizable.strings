@@ -73,6 +73,7 @@
 "Open Settings" = "打开设置";
 "Allow notifications in Settings to get on-the-hour notifications." = "请在设置中允许通知，以接收准点通知。";
 "City Selection" = "选择城市";
+"More Apps" = "更多应用";
 "Time Period" = "时间段";
 "Only chime between the start and end time." = "仅在开始与结束时间之间报时。";
 "Enable to only chime within a time period." = "开启后仅在指定时间段内报时。";
