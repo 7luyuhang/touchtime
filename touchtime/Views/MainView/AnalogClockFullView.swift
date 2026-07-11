@@ -1168,12 +1168,6 @@ struct AnalogClockFullView: View {
                                         action: handleCameraClose
                                     )
                                 }
-                                .overlay(alignment: .top) { // Flip Camera Button
-                                    AnalogClockCameraFlipButton(
-                                        isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden && timeOffset == 0 && selectedCityId == nil,
-                                        action: handleCameraFlip
-                                    )
-                                }
                             }
                             .frame(height: (geometry.size.height - size) / 2)
                         }
@@ -1205,6 +1199,7 @@ struct AnalogClockFullView: View {
                             onSelectStandard: { setCameraFilter(.standard) },
                             onSelectBlur: { setCameraFilter(.blur) },
                             onSelectBlackAndWhite: { setCameraFilter(.blackAndWhite) },
+                            onFlipCamera: handleCameraFlip,
                             onEnableCamera: handleCameraToggle
                         )
                     }
