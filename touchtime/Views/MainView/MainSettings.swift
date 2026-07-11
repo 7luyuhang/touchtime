@@ -916,12 +916,6 @@ struct SettingsView: View {
                                 Text("Email")
                             }}
                         
-                        Section("More apps from team") {
-                            Link(destination: URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720")!) {
-                                Text("Hands Time - Minimalist Widget")
-                            }
-                        }
-                        
                     } label: {
                         Text("yuhang")
                             .font(.footnote)
