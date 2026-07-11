@@ -182,30 +182,40 @@ struct AboutView: View {
             
             // Acknowledgements Section
             Section {
-                Link(destination: URL(string: "https://github.com/davideilmito/MoonKit")!) {
+                Button {
+                    safariURL = URL(string: "https://github.com/davideilmito/MoonKit")
+                } label: {
                     Text("MoonKit")
-                        .tint(.primary)
                 }
+                .foregroundStyle(.primary)
 
-                Link(destination: URL(string: "https://github.com/markiv/SwiftUI-Shimmer")!) {
+                Button {
+                    safariURL = URL(string: "https://github.com/markiv/SwiftUI-Shimmer")
+                } label: {
                     Text("SwiftUI-Shimmer")
-                        .tint(.primary)
                 }
+                .foregroundStyle(.primary)
 
-                Link(destination: URL(string: "https://developer.apple.com/documentation/weatherkit/")!) {
+                Button {
+                    safariURL = URL(string: "https://developer.apple.com/documentation/weatherkit/")
+                } label: {
                     Text("WeatherKit")
-                        .tint(.primary)
                 }
+                .foregroundStyle(.primary)
 
-                Link(destination: URL(string: "https://github.com/nikstar/VariableBlur")!) {
+                Button {
+                    safariURL = URL(string: "https://github.com/nikstar/VariableBlur")
+                } label: {
                     Text("VariableBlur")
-                        .tint(.primary)
                 }
+                .foregroundStyle(.primary)
 
-                Link(destination: URL(string: "https://harshil.net/blog/swiftui-rotationeffect-is-kinda-funky")!) {
+                Button {
+                    safariURL = URL(string: "https://harshil.net/blog/swiftui-rotationeffect-is-kinda-funky")
+                } label: {
                     Text("Adventures in Orienting Views")
-                        .tint(.primary)
                 }
+                .foregroundStyle(.primary)
             } header: {
                 Text("Open Source Library")
             } footer: {
