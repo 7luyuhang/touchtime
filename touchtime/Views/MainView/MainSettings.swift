@@ -51,6 +51,7 @@ struct SettingsView: View {
     @State private var showLifetimeStore = false
     @State private var showSupportLove = false
     @State private var showComplicationsSheet = false
+    @State private var touchTimeIconShakes = 0
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var weatherManager: WeatherManager
     
@@ -936,23 +937,59 @@ struct SettingsView: View {
                         }
                     }
 
-                    NavigationLink(destination: MoreAppsView()) {
-                        HStack {
-                            HStack(spacing: 12) {
-                                SystemIconImage(systemName: "plus.app", topColor: .gray, bottomColor: .gray, style: .plain)
-                                Text("More Apps")
-                            }
-                            Spacer()
-                            HStack(spacing: 8) {
-                                Image("TouchTimeAppIcon")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 32, height: 32)
+                    HStack {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "plus.app", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("More Apps")
+                        }
+                        Spacer()
+                        HStack(spacing: 10) {
+                            Image("TouchTimeAppIcon")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 32, height: 32)
+                                .modifier(ShakeEffect(shakes: CGFloat(touchTimeIconShakes)))
+                                .onTapGesture {
+                                    if hapticEnabled {
+                                        let feedback = UINotificationFeedbackGenerator()
+                                        feedback.prepare()
+                                        feedback.notificationOccurred(.error)
+                                    }
+                                    withAnimation(.linear(duration: 0.4)) {
+                                        touchTimeIconShakes += 1
+                                    }
+                                }
+
+                            Menu {
+                                Button(action: {
+                                    // Open Hands Time app if installed, otherwise App Store
+                                    if let handsTimeURL = URL(string: "handstime://"),
+                                       UIApplication.shared.canOpenURL(handsTimeURL) {
+                                        UIApplication.shared.open(handsTimeURL)
+                                    } else if let appStoreURL = URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720") {
+                                        UIApplication.shared.open(appStoreURL)
+                                    }
+                                }) {
+                                    Text(verbatim: "Hands Time")
+                                    Text("Minimalist Widget")
+                                }
+
+                                Section("Teams") {
+                                    Link(destination: URL(string: "https://x.com/hwwaanng")!) {
+                                        Text(verbatim: "@Hwang")
+                                    }
+                                    
+                                    Link(destination: URL(string: "https://x.com/NSShuhari")!) {
+                                        Text(verbatim: "@Shuhari")
+                                    }
+                                }
+                            } label: {
                                 Image("HandsTimeAppIcon")
                                     .resizable()
                                     .scaledToFit()
                                     .frame(width: 32, height: 32)
                             }
+                            .buttonStyle(HapticPressButtonStyle(hapticEnabled: hapticEnabled))
                         }
                     }
                 }
@@ -1110,6 +1147,37 @@ struct SettingsView: View {
         }
     }
     
+}
+
+// Fires a light haptic on press-down; used on the Hands Time menu label
+// where tap gestures never fire because Menu intercepts the touch.
+private struct HapticPressButtonStyle: ButtonStyle {
+    let hapticEnabled: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed && hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+            }
+    }
+}
+
+// Horizontal shake, like the passcode "wrong code" animation
+private struct ShakeEffect: GeometryEffect {
+    var shakes: CGFloat
+
+    var animatableData: CGFloat {
+        get { shakes }
+        set { shakes = newValue }
+    }
+
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        ProjectionTransform(
+            CGAffineTransform(translationX: 2.0 * sin(shakes * 3 * .pi * 2), y: 0)
+        )
+    }
 }
 
 private struct SupportLoveIcon: View {
