@@ -2918,9 +2918,8 @@ struct DigitalTimeDisplayView: View {
                         useCelsius: useCelsius
                     )
                 }
-
                 Text(formattedDateText())
-                    .font(.subheadline.weight(.medium))
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)
                     .contentTransition(.numericText())

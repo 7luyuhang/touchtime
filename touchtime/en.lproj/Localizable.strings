@@ -132,6 +132,7 @@
 "Designed & built by" = "Designed & built by";
 "Contact" = "Contact";
 "Website" = "Website";
+"Email" = "Email";
 "App Website" = "App Website";
 "Instagram" = "Instagram";
 "X" = "X";
@@ -170,6 +171,8 @@
 "Standard" = "Standard";
 "Blur" = "Blur";
 "Black and White" = "Black and White";
+"Camera Tool" = "Camera Tool";
+"Flip" = "Flip";
 "Please allow camera access in Settings to show live camera background." = "Please allow camera access in Settings to show live camera background.";
 "Camera Unavailable" = "Camera Unavailable";
 "Photo Access Needed" = "Photo Access Needed";

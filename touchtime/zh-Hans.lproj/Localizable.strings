@@ -134,6 +134,7 @@
 "Designed & built by" = "设计与开发：";
 "Contact" = "联系";
 "Website" = "个人网站";
+"Email" = "邮箱";
 "App Website" = "App 网站";
 "Instagram" = "Instagram";
 "X" = "X";
@@ -172,6 +173,8 @@
 "Standard" = "标准";
 "Blur" = "模糊";
 "Black and White" = "黑白";
+"Camera Tool" = "相机工具";
+"Flip" = "翻转";
 "Please allow camera access in Settings to show live camera background." = "请在“设置”中允许相机访问以显示实时相机背景。";
 "Camera Unavailable" = "相机不可用";
 "Photo Access Needed" = "需要照片访问权限";

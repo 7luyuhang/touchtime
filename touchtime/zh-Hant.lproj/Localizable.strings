@@ -132,6 +132,7 @@
 "Designed & built by" = "設計與開發：";
 "Contact" = "聯絡";
 "Website" = "個人網站";
+"Email" = "電郵";
 "App Website" = "App 網站";
 "Instagram" = "Instagram";
 "X" = "X";
@@ -170,6 +171,8 @@
 "Standard" = "標準";
 "Blur" = "模糊";
 "Black and White" = "黑白";
+"Camera Tool" = "相機工具";
+"Flip" = "翻轉";
 "Please allow camera access in Settings to show live camera background." = "請在「設定」中允許相機存取以顯示即時相機背景。";
 "Camera Unavailable" = "相機無法使用";
 "Photo Access Needed" = "需要照片存取權限";
