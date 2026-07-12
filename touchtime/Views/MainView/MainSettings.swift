@@ -45,6 +45,9 @@ struct SettingsView: View {
     @AppStorage("showUTCHand") private var showUTCHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("hourlyNotificationEnabled") private var hourlyNotificationEnabled = false
+    @AppStorage(HourlyNotificationManager.timeWindowEnabledKey) private var chimeTimeWindowEnabled = false
+    @AppStorage(HourlyNotificationManager.startTimeKey) private var chimeStartTime = HourlyNotificationManager.defaultStartTime
+    @AppStorage(HourlyNotificationManager.endTimeKey) private var chimeEndTime = HourlyNotificationManager.defaultEndTime
     @State private var hourlyNotificationCityIds: [UUID] = HourlyNotificationManager.loadSelectedCityIds()
     @State private var showNotificationPermissionAlert = false
     @State private var currentDate = Date()
@@ -810,7 +813,11 @@ struct SettingsView: View {
                 } header: {
                     Text("Notification")
                 } footer: {
-                    Text("Get a notification at the top of every hour.")
+                    if hourlyNotificationEnabled && chimeTimeWindowEnabled {
+                        Text("Get a notification at the top of every hour at \(formatTimeForSetting(chimeStartTime))-\(formatTimeForSetting(chimeEndTime)).")
+                    } else {
+                        Text("Get a notification at the top of every hour.")
+                    }
                 }
                 .animation(.spring(), value: hourlyNotificationEnabled)
                 

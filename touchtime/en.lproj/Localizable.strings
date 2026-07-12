@@ -70,6 +70,7 @@
 "On the Hour" = "On the Hour";
 "Hourly Chime" = "Hourly Chime";
 "Get a notification at the top of every hour." = "Get a notification at the top of every hour.";
+"Get a notification at the top of every hour at %@-%@." = "Get a notification at the top of every hour at %1$@-%2$@.";
 "Notifications Disabled" = "Notifications Disabled";
 "Open Settings" = "Open Settings";
 "Allow notifications in Settings to get on-the-hour notifications." = "Allow notifications in Settings to get on-the-hour notifications.";

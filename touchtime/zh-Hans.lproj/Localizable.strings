@@ -69,6 +69,7 @@
 "On the Hour" = "准点通知";
 "Hourly Chime" = "整点报时";
 "Get a notification at the top of every hour." = "每小时收到准点通知。";
+"Get a notification at the top of every hour at %@-%@." = "在 %1$@-%2$@ 期间每小时收到准点通知。";
 "Notifications Disabled" = "通知未开启";
 "Open Settings" = "打开设置";
 "Allow notifications in Settings to get on-the-hour notifications." = "请在设置中允许通知，以接收准点通知。";
