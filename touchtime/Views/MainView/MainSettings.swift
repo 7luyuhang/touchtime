@@ -869,7 +869,11 @@ struct SettingsView: View {
                 Section{
                     
                     Button(action: {
-                        if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=Touch%20Time%20Feedback") {
+                        // Prefer Gmail if installed, otherwise fall back to the default mail app
+                        if let gmailURL = URL(string: "googlegmail://co?to=7luyuhang@gmail.com&subject=Touch%20Time%20Feedback"),
+                           UIApplication.shared.canOpenURL(gmailURL) {
+                            UIApplication.shared.open(gmailURL)
+                        } else if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=Touch%20Time%20Feedback") {
                             UIApplication.shared.open(url)
                         }
                     }) {

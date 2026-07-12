@@ -11,6 +11,7 @@
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>handstime</string>
+		<string>googlegmail</string>
 	</array>
 </dict>
 </plist>
