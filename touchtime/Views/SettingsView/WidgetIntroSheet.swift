@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import VariableBlur
 
 struct WidgetIntroSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -26,9 +27,39 @@ struct WidgetIntroSheet: View {
         return String(localized: String.LocalizationValue(cityName))
     }
 
+    // Apple's widget guide, localized to the language the app is running in
+    private var widgetSupportURL: URL {
+        let region: String
+        switch Bundle.main.preferredLocalizations.first {
+        case "zh-Hans":
+            region = "zh-cn"
+        case "zh-Hant":
+            region = "zh-tw"
+        default:
+            region = "en-gb"
+        }
+        return URL(string: "https://support.apple.com/\(region)/118610")!
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
+            ZStack {
+                // Dot matrix background, same treatment as OnboardingView
+                DotMatrixOverlay()
+                    .ignoresSafeArea()
+                    .blendMode(.plusLighter)
+                    .opacity(0.75)
+                    .allowsHitTesting(false)
+
+                // VariableBlur
+                GeometryReader { geom in
+                    VariableBlurView(maxBlurRadius: 10, direction: .blurredBottomClearTop)
+                        .frame(height: geom.safeAreaInsets.bottom + 100)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                        .ignoresSafeArea()
+                }
+
+                VStack(spacing: 0) {
                 Spacer()
 
                 TimelineView(.everyMinute) { context in
@@ -38,14 +69,27 @@ struct WidgetIntroSheet: View {
                         timeZoneIdentifier: TimeZone.current.identifier,
                         use24Hour: use24HourFormat
                     )
+                    // Blurred sky glow behind the widget, same treatment as
+                    // the local time row at the top of HomeView
+                    .background {
+                        SkyBackgroundView(
+                            date: context.date,
+                            timeZoneIdentifier: TimeZone.current.identifier,
+                            appliesCardChrome: false
+                        )
+                        .frame(width: 300, height: 300)
+                        .blur(radius: 50)
+                        .opacity(0.35)
+                        .allowsHitTesting(false)
+                    }
                 }
 
-                Text("Check the time in your favourite cities at a glance and show more information")
+                Text("Check the time in your favourite cities at a glance on the Home Screen.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)
                     .multilineTextAlignment(.center)
-                    .padding(.top, 32)
+                    .padding(.top, 24)
                     .padding(.horizontal, 24)
 
                 Spacer()
@@ -71,6 +115,7 @@ struct WidgetIntroSheet: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 24)
+                }
             }
             .navigationTitle("Widgets")
             .navigationBarTitleDisplayMode(.inline)
@@ -88,8 +133,8 @@ struct WidgetIntroSheet: View {
 
                 // Tips: Apple guide on adding widgets to the Home Screen
                 ToolbarItem(placement: .topBarTrailing) {
-                    Link(destination: URL(string: "https://support.apple.com/en-gb/118610")!) {
-                        Image(systemName: "questionmark")
+                    Link(destination: widgetSupportURL) {
+                        Image(systemName: "questionmark.circle")
                     }
                 }
             }
@@ -107,7 +152,7 @@ private struct CityWidgetPreview: View {
     let use24Hour: Bool
 
     private static let widgetSize: CGFloat = 164
-    private static let cornerRadius: CGFloat = 24
+    private static let cornerRadius: CGFloat = 28
     private static let complicationSize: CGFloat = 80
 
     private var timeZone: TimeZone {
@@ -127,7 +172,8 @@ private struct CityWidgetPreview: View {
             SunriseSunsetIndicator(
                 date: date,
                 timeZone: timeZone,
-                size: Self.complicationSize
+                size: Self.complicationSize,
+                useMaterialBackground: true
             )
             .overlay {
                 Circle()
