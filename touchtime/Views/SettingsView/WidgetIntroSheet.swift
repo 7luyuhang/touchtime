@@ -80,8 +80,8 @@ struct WidgetIntroSheet: View {
                             appliesCardChrome: false
                         )
                         .frame(width: 300, height: 300)
-                        .blur(radius: 50)
-                        .opacity(0.35)
+                        .blur(radius: 100)
+                        .opacity(0.60)
                         .allowsHitTesting(false)
                     }
                 }

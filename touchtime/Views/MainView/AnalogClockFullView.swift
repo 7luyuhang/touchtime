@@ -40,6 +40,7 @@ struct AnalogClockFullView: View {
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
+    @State private var showWidgetIntroSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
     @State private var collections: [CityCollection] = []
@@ -739,6 +740,13 @@ struct AnalogClockFullView: View {
             }) {
                 Label(String(localized: "Timer"), systemImage: "timer")
             }
+
+            Button(action: {
+                triggerMenuHaptic()
+                showWidgetIntroSheet = true
+            }) {
+                Label(String(localized: "Widgets"), systemImage: "widget.small")
+            }
         }
 
         Divider()
@@ -1275,6 +1283,9 @@ struct AnalogClockFullView: View {
                 SetTimerSheet(initialDurationSeconds: homeTimerConfiguredSeconds) { durationSeconds in
                     startHomeTimer(durationSeconds: durationSeconds)
                 }
+            }
+            .sheet(isPresented: $showWidgetIntroSheet) {
+                WidgetIntroSheet()
             }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(

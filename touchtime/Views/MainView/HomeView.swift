@@ -99,6 +99,7 @@ struct HomeView: View {
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
     @State private var showComplicationsSheet = false
+    @State private var showWidgetIntroSheet = false
     @State private var showEarthView = false
     @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
     @State private var showCalendarPermissionAlert = false
@@ -1612,6 +1613,17 @@ struct HomeView: View {
                             }) {
                                 Label(String(localized: "Complications"), systemImage: "watch.analog")
                             }
+
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showWidgetIntroSheet = true
+                            }) {
+                                Label(String(localized: "Widgets"), systemImage: "widget.small")
+                            }
                         }
 
                         Divider()
@@ -1847,6 +1859,11 @@ struct HomeView: View {
                 }
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.hidden)
+            }
+
+            // Widgets Sheet
+            .sheet(isPresented: $showWidgetIntroSheet) {
+                WidgetIntroSheet()
             }
             
             // Earth View
