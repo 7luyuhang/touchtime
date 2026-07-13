@@ -72,6 +72,11 @@ struct WidgetIntroSheet: View {
                         .allowsHitTesting(false)
                     }
                 }
+                .onTapGesture {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                }
                 // Entrance animation, same as the app icon in OnboardingView
                 .brightness(animateIcon ? 0 : 0.50)
                 .blur(radius: animateIcon ? 0 : 25)
