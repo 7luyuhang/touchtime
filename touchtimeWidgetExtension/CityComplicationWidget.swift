@@ -21,7 +21,17 @@ struct CityComplicationEntry: TimelineEntry {
 
 struct CityComplicationProvider: AppIntentTimelineProvider {
     private func makeEntry(for configuration: CityComplicationIntent, date: Date) -> CityComplicationEntry {
-        let city = configuration.city ?? SharedWidgetStore.loadWorldClocks().first.map { CityEntity(clock: $0) }
+        let savedCities = SharedWidgetStore.loadWorldClocks().map { CityEntity(clock: $0) }
+
+        // Only honour the configured city if it still exists in the app's saved
+        // list; otherwise (deleted in the app) fall back to the first saved city.
+        let city: CityEntity?
+        if let selected = configuration.city,
+           savedCities.contains(where: { $0.id == selected.id }) {
+            city = selected
+        } else {
+            city = savedCities.first
+        }
         return CityComplicationEntry(
             date: date,
             cityName: city?.cityName ?? "London",
