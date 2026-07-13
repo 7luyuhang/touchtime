@@ -118,6 +118,7 @@ struct CityComplicationWidgetView: View {
                     .font(.system(size: 15, weight: .semibold))
                     .lineLimit(1)
                     .truncationMode(.tail)
+                    .padding(.horizontal, 8)
 
                 Spacer(minLength: 0)
 
