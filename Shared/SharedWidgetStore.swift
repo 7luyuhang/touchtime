@@ -17,14 +17,15 @@ enum SharedWidgetStore {
         UserDefaults(suiteName: appGroupIdentifier)
     }
 
-    // Widget side: read the user's saved cities (falls back to default clocks)
+    // Widget side: read the user's saved cities.
+    // When the app has no saved cities, fall back to London only.
     static func loadWorldClocks() -> [WorldClock] {
         if let data = sharedDefaults?.data(forKey: worldClocksKey),
            let clocks = try? JSONDecoder().decode([WorldClock].self, from: data),
            !clocks.isEmpty {
             return clocks
         }
-        return WorldClockData.defaultClocks
+        return [WorldClock(cityName: "London", timeZoneIdentifier: "Europe/London")]
     }
 
     static func use24HourFormat() -> Bool {
