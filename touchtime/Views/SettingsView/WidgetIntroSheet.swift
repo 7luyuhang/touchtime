@@ -13,6 +13,8 @@ struct WidgetIntroSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @State private var animateIcon = false
+    @State private var animateText = false
 
     // Local city name derived from the current timezone (same as HomeView)
     private var localCityName: String {
@@ -83,6 +85,15 @@ struct WidgetIntroSheet: View {
                         .allowsHitTesting(false)
                     }
                 }
+                // Entrance animation, same as the app icon in OnboardingView
+                .brightness(animateIcon ? 0 : 0.50)
+                .blur(radius: animateIcon ? 0 : 25)
+                .scaleEffect(animateIcon ? 1.0 : 0.5)
+                .opacity(animateIcon ? 1.0 : 0.0)
+                .offset(y: animateText ? 0 : 50)
+                .animation(
+                    .bouncy(duration: 1.0), value: animateIcon
+                )
 
                 Text("Check the time in your favourite cities at a glance on the Home Screen.")
                     .font(.subheadline)
@@ -91,6 +102,13 @@ struct WidgetIntroSheet: View {
                     .multilineTextAlignment(.center)
                     .padding(.top, 24)
                     .padding(.horizontal, 24)
+                    // Entrance animation, same as the description in OnboardingView
+                    .blur(radius: animateText ? 0 : 10)
+                    .opacity(animateText ? 1.0 : 0.0)
+                    .offset(y: animateText ? 0 : 75)
+                    .animation(
+                        .smooth(duration: 1.0), value: animateText
+                    )
 
                 Spacer()
 
@@ -115,6 +133,7 @@ struct WidgetIntroSheet: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 24)
+                .padding(.bottom)
                 }
             }
             .navigationTitle("Widgets")
@@ -136,6 +155,15 @@ struct WidgetIntroSheet: View {
                     Link(destination: widgetSupportURL) {
                         Image(systemName: "questionmark.circle")
                     }
+                }
+            }
+            .onAppear {
+                // Defer one runloop so the sheet's first layout settles;
+                // otherwise the animation starts from the pre-layout frame
+                // (top-leading zero rect) and flies in from the corner.
+                DispatchQueue.main.async {
+                    animateIcon = true
+                    animateText = true
                 }
             }
         }
