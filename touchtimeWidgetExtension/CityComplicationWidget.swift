@@ -115,7 +115,7 @@ struct CityComplicationWidgetView: View {
 
             VStack {
                 Text(entry.cityName)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .medium))
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .padding(.horizontal, 8)
@@ -123,7 +123,7 @@ struct CityComplicationWidgetView: View {
                 Spacer(minLength: 0)
 
                 Text(timeString)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .medium))
                     .monospacedDigit()
             }
         }
