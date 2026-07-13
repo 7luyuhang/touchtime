@@ -16,19 +16,6 @@ struct WidgetIntroSheet: View {
     @State private var animateIcon = false
     @State private var animateText = false
 
-    // Local city name derived from the current timezone (same as HomeView)
-    private var localCityName: String {
-        let identifier = TimeZone.current.identifier
-        let components = identifier.split(separator: "/")
-        let cityName: String
-        if components.count >= 2 {
-            cityName = components.last!.replacingOccurrences(of: "_", with: " ")
-        } else {
-            cityName = identifier
-        }
-        return String(localized: String.LocalizationValue(cityName))
-    }
-
     // Apple's widget guide, localized to the language the app is running in
     private var widgetSupportURL: URL {
         let region: String
@@ -67,7 +54,7 @@ struct WidgetIntroSheet: View {
                 TimelineView(.everyMinute) { context in
                     CityWidgetPreview(
                         date: context.date,
-                        cityName: localCityName,
+                        cityName: String(localized: "City"),
                         timeZoneIdentifier: TimeZone.current.identifier,
                         use24Hour: use24HourFormat
                     )
@@ -112,6 +99,17 @@ struct WidgetIntroSheet: View {
 
                 Spacer()
 
+                // Use your current location, same as OnboardingView
+                HStack {
+                    Image(systemName: "location.fill")
+                        .font(.footnote.weight(.semibold))
+                    Text(String(localized: "Use your current location"))
+                        .font(.footnote.weight(.medium))
+                }
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
+                .padding(.bottom, 24)
+
                 Button {
                     if hapticEnabled {
                         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
@@ -132,8 +130,7 @@ struct WidgetIntroSheet: View {
                     .glassEffect(.clear.interactive().tint(.primary), in: Capsule(style: .continuous))
                 }
                 .buttonStyle(.plain)
-                .padding(.horizontal, 24)
-                .padding(.bottom)
+                .padding(.horizontal, 32)
                 }
             }
             .navigationTitle("Widgets")
