@@ -70,25 +70,34 @@ struct SolarCurve: View {
         return "\(timeZone.identifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
     }
     
-    // Create Path from curve data
+    // Create Path from curve data using a Catmull-Rom spline converted to cubic Béziers.
+    // The curve passes through every sample point with continuous tangents, avoiding
+    // visible kinks at the hourly sample points.
     private func createPath(from curveData: CurveData) -> Path {
         var path = Path()
-        guard !curveData.curvePoints.isEmpty else { return path }
+        let points = curveData.curvePoints
+        guard points.count > 1 else { return path }
         
-        path.move(to: curveData.curvePoints[0])
+        path.move(to: points[0])
         
-        // Use simpler quadratic curves instead of Catmull-Rom for better performance
-        for i in 1..<curveData.curvePoints.count {
-            let previousPoint = curveData.curvePoints[i - 1]
-            let currentPoint = curveData.curvePoints[i]
+        for i in 0..<(points.count - 1) {
+            // Neighbouring points, clamped at the ends
+            let p0 = points[max(i - 1, 0)]
+            let p1 = points[i]
+            let p2 = points[i + 1]
+            let p3 = points[min(i + 2, points.count - 1)]
             
-            // Control point for smooth quadratic curve
-            let controlPoint = CGPoint(
-                x: (previousPoint.x + currentPoint.x) / 2,
-                y: (previousPoint.y + currentPoint.y) / 2
+            // Catmull-Rom to cubic Bézier conversion (tension = 0)
+            let control1 = CGPoint(
+                x: p1.x + (p2.x - p0.x) / 6,
+                y: p1.y + (p2.y - p0.y) / 6
+            )
+            let control2 = CGPoint(
+                x: p2.x - (p3.x - p1.x) / 6,
+                y: p2.y - (p3.y - p1.y) / 6
             )
             
-            path.addQuadCurve(to: currentPoint, control: controlPoint)
+            path.addCurve(to: p2, control1: control1, control2: control2)
         }
         
         return path

@@ -11,11 +11,37 @@
 		5A864EA42EAE30FB009D5989 /* MoonKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5A864EA32EAE30FB009D5989 /* MoonKit */; };
 		5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */ = {isa = PBXBuildFile; productRef = 5AD93C242EB62099001DF8F4 /* Shimmer */; };
 		5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */; };
+		E100000000000000000000AD /* touchtimeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E100000000000000000000A1 /* touchtimeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		E100000000000000000000AE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5A42D3702E82CDCE0048963E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E100000000000000000000A2;
+			remoteInfo = touchtimeWidgetExtension;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		E100000000000000000000AC /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E100000000000000000000AD /* touchtimeWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		5A42D3782E82CDCE0048963E /* touchtime.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = touchtime.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		E100000000000000000000A1 /* touchtimeWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = touchtimeWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -27,6 +53,13 @@
 				Info.plist,
 			);
 			target = 5A42D3772E82CDCE0048963E /* touchtime */;
+		};
+		E100000000000000000000AB /* Exceptions for "touchtimeWidgetExtension" folder in "touchtimeWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E100000000000000000000A2 /* touchtimeWidgetExtension */;
 		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
@@ -50,6 +83,19 @@
 			path = touchtime;
 			sourceTree = "<group>";
 		};
+		E100000000000000000000A9 /* touchtimeWidgetExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E100000000000000000000AB /* Exceptions for "touchtimeWidgetExtension" folder in "touchtimeWidgetExtension" target */,
+			);
+			path = touchtimeWidgetExtension;
+			sourceTree = "<group>";
+		};
+		E100000000000000000000AA /* Shared */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -64,6 +110,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E100000000000000000000A4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -71,6 +124,8 @@
 			isa = PBXGroup;
 			children = (
 				5A42D37A2E82CDCE0048963E /* touchtime */,
+				E100000000000000000000AA /* Shared */,
+				E100000000000000000000A9 /* touchtimeWidgetExtension */,
 				5A42D3792E82CDCE0048963E /* Products */,
 				5AEB89DD2EA8FA7A0089C60A /* Frameworks */,
 			);
@@ -80,6 +135,7 @@
 			isa = PBXGroup;
 			children = (
 				5A42D3782E82CDCE0048963E /* touchtime.app */,
+				E100000000000000000000A1 /* touchtimeWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -102,13 +158,16 @@
 				5A42D3742E82CDCE0048963E /* Sources */,
 				5A42D3752E82CDCE0048963E /* Frameworks */,
 				5A42D3762E82CDCE0048963E /* Resources */,
+				E100000000000000000000AC /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E100000000000000000000AF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				5A42D37A2E82CDCE0048963E /* touchtime */,
+				E100000000000000000000AA /* Shared */,
 			);
 			name = touchtime;
 			packageProductDependencies = (
@@ -119,6 +178,29 @@
 			productName = touchtime;
 			productReference = 5A42D3782E82CDCE0048963E /* touchtime.app */;
 			productType = "com.apple.product-type.application";
+		};
+		E100000000000000000000A2 /* touchtimeWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E100000000000000000000A6 /* Build configuration list for PBXNativeTarget "touchtimeWidgetExtension" */;
+			buildPhases = (
+				E100000000000000000000A3 /* Sources */,
+				E100000000000000000000A4 /* Frameworks */,
+				E100000000000000000000A5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E100000000000000000000A9 /* touchtimeWidgetExtension */,
+				E100000000000000000000AA /* Shared */,
+			);
+			name = touchtimeWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = touchtimeWidgetExtension;
+			productReference = E100000000000000000000A1 /* touchtimeWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -131,6 +213,9 @@
 				LastUpgradeCheck = 2620;
 				TargetAttributes = {
 					5A42D3772E82CDCE0048963E = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					E100000000000000000000A2 = {
 						CreatedOnToolsVersion = 26.0;
 					};
 				};
@@ -157,12 +242,20 @@
 			projectRoot = "";
 			targets = (
 				5A42D3772E82CDCE0048963E /* touchtime */,
+				E100000000000000000000A2 /* touchtimeWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		5A42D3762E82CDCE0048963E /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E100000000000000000000A5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -179,7 +272,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E100000000000000000000A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		E100000000000000000000AF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E100000000000000000000A2 /* touchtimeWidgetExtension */;
+			targetProxy = E100000000000000000000AE /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		5A42D3812E82CDCF0048963E /* Debug */ = {
@@ -399,6 +507,70 @@
 			};
 			name = Release;
 		};
+		E100000000000000000000A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = touchtimeWidgetExtension/touchtimeWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 142;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = touchtimeWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Touch Time";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.0.4;
+				PRODUCT_BUNDLE_IDENTIFIER = com.time.touchtime.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		E100000000000000000000A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = touchtimeWidgetExtension/touchtimeWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 142;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = touchtimeWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Touch Time";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.0.4;
+				PRODUCT_BUNDLE_IDENTIFIER = com.time.touchtime.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -416,6 +588,15 @@
 			buildConfigurations = (
 				5A42D3842E82CDCF0048963E /* Debug */,
 				5A42D3852E82CDCF0048963E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E100000000000000000000A6 /* Build configuration list for PBXNativeTarget "touchtimeWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E100000000000000000000A7 /* Debug */,
+				E100000000000000000000A8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

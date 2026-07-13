@@ -8,6 +8,7 @@
 import SwiftUI
 import TipKit
 import UIKit
+import WidgetKit
 
 @main
 struct touchtimeApp: App {
@@ -42,6 +43,11 @@ struct touchtimeApp: App {
             if newPhase == .active {
                 HourlyNotificationManager.shared.syncEnabledWithAuthorization()
                 HourlyNotificationManager.shared.reschedule()
+                SharedWidgetStore.syncFromApp()
+            } else if newPhase == .background {
+                // Keep the widget's city list and time format up to date
+                SharedWidgetStore.syncFromApp()
+                WidgetCenter.shared.reloadAllTimelines()
             }
         }
     }
