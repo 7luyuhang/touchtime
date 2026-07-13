@@ -54,6 +54,7 @@ struct SettingsView: View {
     @State private var showLifetimeStore = false
     @State private var showSupportLove = false
     @State private var showComplicationsSheet = false
+    @State private var showWidgetSheet = false
     @State private var touchTimeIconShakes = 0
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var weatherManager: WeatherManager
@@ -501,34 +502,49 @@ struct SettingsView: View {
                 }
                 
                 // General Section
-                Section(header: Text("General"), footer: Text("Powered by Hands Time.")) {
+                Section(header: Text("General"), footer:
+                    HStack(spacing: 4) {
+                        Text("Explore more widgets on")
+                            .foregroundColor(.secondary)
+
+                        Button(action: {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                            }
+                            // Open Hands Time if installed, otherwise its App Store page
+                            if let handsTimeURL = URL(string: "handstime://"),
+                               UIApplication.shared.canOpenURL(handsTimeURL) {
+                                UIApplication.shared.open(handsTimeURL)
+                            } else if let appStoreURL = URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720") {
+                                UIApplication.shared.open(appStoreURL)
+                            }
+                        }) {
+                            Text(verbatim: "Hands Time")
+                                .fontWeight(.semibold)
+                        }
+                        .buttonStyle(.plain)
+
+                        Text(".")
+                            .foregroundColor(.secondary)
+                            .padding(.leading, -4)
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(.primary)
+                ) {
                     
                     Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                         }
-                        // Check if handstime app is installed
-                        if let handsTimeURL = URL(string: "handstime://"),
-                           UIApplication.shared.canOpenURL(handsTimeURL) {
-                            // Open handstime app
-                            UIApplication.shared.open(handsTimeURL)
-                        } else {
-                            // Open App Store page for handstime
-                            if let appStoreURL = URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720") {
-                                UIApplication.shared.open(appStoreURL)
-                            }
-                        }
+                        showWidgetSheet = true
                     }) {
                         HStack {
                             HStack(spacing: 12) {
                                 SystemIconImage(systemName: "widget.small",  topColor: .gray, bottomColor: .gray, style: .plain)
-                                Text("Widget")
+                                Text("Widgets")
                             }
                             .layoutPriority(1)
                             Spacer(minLength: 8)
-                            Image(systemName: "arrow.up.forward.app.fill")
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(.tertiary)
                         }
                     }
                     .foregroundStyle(.primary)
@@ -1101,6 +1117,10 @@ struct SettingsView: View {
                 }
                 .presentationDetents([.medium]) // Complication Sheet Height
                 .presentationDragIndicator(.visible)
+            }
+            // Widget Sheet
+            .sheet(isPresented: $showWidgetSheet) {
+                WidgetIntroSheet()
             }
         }
     }
