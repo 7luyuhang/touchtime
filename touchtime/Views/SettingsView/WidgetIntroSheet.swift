@@ -233,6 +233,8 @@ private struct CityWidgetPreview: View {
         .padding(14)
         .frame(width: Self.widgetSize, height: Self.widgetSize)
         .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        // Make the whole widget tappable, not just the opaque content inside
+        .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
     }
 }
 
