@@ -3,11 +3,28 @@
 //  touchtime
 //
 //  Introduces the home screen widget with a 1:1 preview of the small
-//  City Time widget, defaulting to the local city.
+//  City Time widget, defaulting to the local city. Tapping the preview
+//  cycles through the complications the widget supports.
 //
 
 import SwiftUI
 import VariableBlur
+
+// Mirrors WidgetComplicationKind from the widget extension (not visible to
+// the app target): the five complications the City Time widget supports.
+private enum WidgetPreviewComplication: CaseIterable {
+    case analogClock
+    case sunPosition
+    case sunriseSunset
+    case sunAzimuth
+    case solarCurve
+
+    var next: WidgetPreviewComplication {
+        let all = Self.allCases
+        let index = all.firstIndex(of: self)!
+        return all[(index + 1) % all.count]
+    }
+}
 
 struct WidgetIntroSheet: View {
     @Environment(\.dismiss) private var dismiss
@@ -15,6 +32,8 @@ struct WidgetIntroSheet: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var animateIcon = false
     @State private var animateText = false
+    // Widget default; tapping the preview cycles through all five
+    @State private var complication: WidgetPreviewComplication = .sunriseSunset
 
     // Apple's widget guide, localized to the language the app is running in
     private var widgetSupportURL: URL {
@@ -56,7 +75,8 @@ struct WidgetIntroSheet: View {
                         date: context.date,
                         cityName: String(localized: "City"),
                         timeZoneIdentifier: TimeZone.current.identifier,
-                        use24Hour: use24HourFormat
+                        use24Hour: use24HourFormat,
+                        complication: complication
                     )
                     // Blurred sky glow behind the widget, same treatment as
                     // the local time row at the top of HomeView
@@ -75,6 +95,9 @@ struct WidgetIntroSheet: View {
                 .onTapGesture {
                     if hapticEnabled {
                         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                    withAnimation(.smooth(duration: 0.5)) {
+                        complication = complication.next
                     }
                 }
                 // Entrance animation, same as the app icon in OnboardingView
@@ -173,13 +196,14 @@ struct WidgetIntroSheet: View {
 }
 
 // 1:1 replica of the small City Time widget (CityComplicationWidgetView):
-// city name on top, sunrise & sunset complication in the center,
+// city name on top, the chosen complication in the center,
 // time at the bottom, glass background.
 private struct CityWidgetPreview: View {
     let date: Date
     let cityName: String
     let timeZoneIdentifier: String
     let use24Hour: Bool
+    let complication: WidgetPreviewComplication
 
     private static let widgetSize: CGFloat = 164
     private static let cornerRadius: CGFloat = 28
@@ -199,18 +223,15 @@ private struct CityWidgetPreview: View {
 
     var body: some View {
         ZStack {
-            SunriseSunsetIndicator(
-                date: date,
-                timeZone: timeZone,
-                size: Self.complicationSize,
-                useMaterialBackground: true
-            )
-            .overlay {
-                Circle()
-                    .strokeBorder(.white.opacity(0.10), lineWidth: 1.50)
-                    .blendMode(.plusLighter)
-            }
-            .frame(width: Self.complicationSize, height: Self.complicationSize)
+            complicationView
+                .overlay {
+                    Circle()
+                        .strokeBorder(.white.opacity(0.10), lineWidth: 1.50)
+                        .blendMode(.plusLighter)
+                }
+                .frame(width: Self.complicationSize, height: Self.complicationSize)
+                .transition(.blurReplace)
+                .id(complication)
 
             VStack {
                 Text(cityName)
@@ -235,6 +256,25 @@ private struct CityWidgetPreview: View {
         .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
         // Make the whole widget tappable, not just the opaque content inside
         .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+    }
+
+    // Same complications as CityComplicationWidgetView, without the circular
+    // background fill: the sheet's glass card already provides the surface.
+    @ViewBuilder
+    private var complicationView: some View {
+        let size = Self.complicationSize
+        switch complication {
+        case .analogClock:
+            AnalogClockView(date: date, size: size, timeZone: timeZone, showBackground: false)
+        case .sunPosition:
+            SunPositionIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
+        case .sunriseSunset:
+            SunriseSunsetIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
+        case .sunAzimuth:
+            SunAzimuthIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
+        case .solarCurve:
+            SolarCurve(date: date, timeZone: timeZone, size: size, showBackground: false)
+        }
     }
 }
 
