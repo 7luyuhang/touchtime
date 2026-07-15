@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import Combine
 
 struct ComplicationsSettingsView: View {
     @Binding var showAnalogClock: Bool
@@ -26,7 +25,6 @@ struct ComplicationsSettingsView: View {
     @ObservedObject var weatherManager: WeatherManager
     @Environment(\.dismiss) private var dismiss
     
-    @State private var currentDate = Date()
     @State private var showLifetimeStore = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
@@ -34,8 +32,6 @@ struct ComplicationsSettingsView: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
     @AppStorage("weatherConditionUseColoredIcon") private var weatherConditionUseColoredIcon = false
-    
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Currently selected complication type
     private enum ComplicationType: CaseIterable {
@@ -115,7 +111,9 @@ struct ComplicationsSettingsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            complicationSelector
+            TimelineView(.everyMinute) { context in
+                complicationSelector(date: context.date)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding(.horizontal)
@@ -188,9 +186,6 @@ struct ComplicationsSettingsView: View {
                 }
             }
         }
-        .onReceive(timer) { _ in
-            currentDate = Date()
-        }
         .onAppear {
             enforceComplicationAvailability()
         }
@@ -208,7 +203,7 @@ struct ComplicationsSettingsView: View {
     }
     
     // MARK: - Complication Selector
-    private var complicationSelector: some View {
+    private func complicationSelector(date currentDate: Date) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
             VStack(alignment: .leading, spacing: 0) {
                 // General
