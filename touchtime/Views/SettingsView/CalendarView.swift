@@ -163,7 +163,9 @@ struct CalendarView: View {
                 .foregroundStyle(.primary)
             }
 
-            googleMeetSection
+            if hasCalendarPermission {
+                googleMeetSection
+            }
         }
         .navigationTitle("Calendar")
         .navigationBarTitleDisplayMode(.inline)
