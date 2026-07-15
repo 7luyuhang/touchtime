@@ -24,7 +24,9 @@ struct SolarCurve: View {
         let solarNoon: Date?
     }
     
-    // Cache curve points for a day (curve doesn't change during the day)
+    // Cache curve points for a day (curve doesn't change during the day).
+    // Points are normalized to a unit square (0...1) so every view size can
+    // share the same per-day cache entry.
     private struct CurveData {
         let curvePoints: [CGPoint]
         let daylightRatio: Double
@@ -70,12 +72,13 @@ struct SolarCurve: View {
         return "\(timeZone.identifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
     }
     
-    // Create Path from curve data using a Catmull-Rom spline converted to cubic Béziers.
-    // The curve passes through every sample point with continuous tangents, avoiding
-    // visible kinks at the hourly sample points.
+    // Create Path from normalized curve data using a Catmull-Rom spline converted to
+    // cubic Béziers. Scaling from unit space to the current size happens here, so the
+    // cached points stay size-independent. The curve passes through every sample point
+    // with continuous tangents, avoiding visible kinks at the hourly sample points.
     private func createPath(from curveData: CurveData) -> Path {
         var path = Path()
-        let points = curveData.curvePoints
+        let points = curveData.curvePoints.map { CGPoint(x: $0.x * size, y: $0.y * size) }
         guard points.count > 1 else { return path }
         
         path.move(to: points[0])
@@ -161,12 +164,11 @@ struct SolarCurve: View {
         
         let daylightRatio = daylightDuration / dayInSeconds
         
-        // Generate curve points - use 24 points (one per hour) for smooth curve
+        // Generate curve points - use 24 points (one per hour) for smooth curve.
+        // Points are in unit space (0...1); createPath(from:) scales them to size.
         var curvePoints: [CGPoint] = []
-        let width = size
-        let height = size
-        let horizonY = height / 2 // Horizon line at center
-        let amplitude = height * 0.35 // Maximum height of the curve above/below horizon
+        let horizonY = 0.5 // Horizon line at center
+        let amplitude = 0.35 // Maximum height of the curve above/below horizon
         
         // Calculate points every hour (24 points total: 0, 1, 2, ..., 24) - cached per day
         guard let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) else {
@@ -178,10 +180,7 @@ struct SolarCurve: View {
                 let sunAltitude = 90 * cos(2 * .pi * progress)
                 let normalizedAltitude = max(-90, min(90, sunAltitude))
                 let yPosition = horizonY - (normalizedAltitude / 90.0) * amplitude
-                // Ensure positions stay within bounds
-                let xPosition = max(0, min(width, (hours / 24.0) * width))
-                let clampedYPosition = max(0, min(height, yPosition))
-                curvePoints.append(CGPoint(x: xPosition, y: clampedYPosition))
+                curvePoints.append(CGPoint(x: hours / 24.0, y: yPosition))
             }
             
             let data = CurveData(curvePoints: curvePoints, daylightRatio: daylightRatio)
@@ -198,12 +197,7 @@ struct SolarCurve: View {
             // Normalize altitude to -90 to 90 degrees, then map to y position
             let normalizedAltitude = max(-90, min(90, sunAltitude))
             let yPosition = horizonY - (normalizedAltitude / 90.0) * amplitude
-            
-            // Ensure x position stays within bounds (0 to width)
-            let xPosition = max(0, min(width, (hours / 24.0) * width))
-            // Ensure y position stays within bounds (0 to height)
-            let clampedYPosition = max(0, min(height, yPosition))
-            curvePoints.append(CGPoint(x: xPosition, y: clampedYPosition))
+            curvePoints.append(CGPoint(x: hours / 24.0, y: yPosition))
         }
         
         let data = CurveData(curvePoints: curvePoints, daylightRatio: daylightRatio)
