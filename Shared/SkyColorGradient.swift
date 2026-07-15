@@ -2,7 +2,32 @@
 //  SkyColorGradient.swift
 //  touchtime
 //
-//  Shared sky gradient colors based on time of day
+//  Physically based sky gradient driven by solar elevation angle.
+//
+//  Astronomy — the sky's appearance is, to first order, a pure function of how
+//  far the sun sits above or below the horizon. Solar elevation is computed
+//  with the NOAA equations in SolarCalculator (microseconds, no Foundation
+//  date parsing), so seasons, latitude, polar day/night and "white nights"
+//  all fall out correctly with no special cases.
+//
+//  Atmospheric optics — the color keyframes below encode:
+//  - Rayleigh scattering (λ⁻⁴): saturated blue zenith, paler horizon where the
+//    slant path and multiple scattering desaturate the blue.
+//  - Ozone Chappuis-band absorption: keeps the twilight zenith blue instead of
+//    gray once direct sunlight only grazes the stratosphere.
+//  - Mie/aerosol scattering: bright whitish horizon haze by day, and the
+//    amplified gold/orange of the twilight arch near sunrise/sunset.
+//  - Airglow + scattered starlight: the near-black blue floor of true night.
+//
+//  Meteorology — dawn and dusk are intentionally asymmetric: aerosols settle
+//  overnight so dawns run cooler and pinker, while daytime convection loads
+//  the boundary layer with dust and moisture, making dusks warmer and more
+//  orange. Rain swaps in a nimbostratus palette where wavelength-independent
+//  Mie scattering flattens everything to soft, cool grays.
+//
+//  Rendering — keyframes are interpolated with smoothstep easing in the OKLab
+//  perceptual color space, so the whole day is one continuous, seam-free ramp
+//  with no muddy gray dead zones between hues.
 //
 
 import SwiftUI
@@ -12,622 +37,69 @@ struct SkyColorGradient {
     let date: Date
     let timeZoneIdentifier: String
     let weatherCondition: WeatherCondition?
-    
+
     // Whether current weather is a rainy condition
     private let isRainy: Bool
-    
-    // Cached normalized time value (calculated once during initialization)
-    private let normalizedTime: Double
-    
-    // Cached sun event times (same for entire day)
-    private struct SunEventTimes {
-        let sunriseHour: Double
-        let sunsetHour: Double
-        let civilDawnHour: Double
-        let civilDuskHour: Double
-        let nauticalDawnHour: Double
-        let nauticalDuskHour: Double
-        let astronomicalDawnHour: Double
-        let astronomicalDuskHour: Double
-        let solarNoonHour: Double
-    }
-    
-    // Wrapper class for NSCache (NSCache requires reference types)
-    private class SunEventTimesWrapper {
-        let times: SunEventTimes
-        init(_ times: SunEventTimes) { self.times = times }
-    }
-    
-    // Thread-safe, lock-free cache using NSCache
-    private static let sunTimesCache: NSCache<NSString, SunEventTimesWrapper> = {
-        let cache = NSCache<NSString, SunEventTimesWrapper>()
-        cache.countLimit = 30 // Keep last 30 entries
-        return cache
-    }()
-    
-    // Initialize and calculate normalized time once
+
+    // Solar elevation in degrees above the horizon (negative below it).
+    private let solarAltitude: Double
+
+    // 0 = pure dawn palette, 1 = pure dusk palette. Crosses 0.5 exactly at
+    // solar noon and solar midnight so the handoff never produces a seam.
+    private let duskFactor: Double
+
     init(date: Date, timeZoneIdentifier: String, weatherCondition: WeatherCondition? = nil) {
         self.date = date
         self.timeZoneIdentifier = timeZoneIdentifier
         self.weatherCondition = weatherCondition
         self.isRainy = weatherCondition?.isRainy ?? false
-        self.normalizedTime = SkyColorGradient.calculateNormalizedTimeWithCache(date: date, timeZoneIdentifier: timeZoneIdentifier)
-    }
 
-    
-    // Keep derived time values stable to prevent invalid RGB calculations.
-    private static func wrapTo24Hours(_ value: Double) -> Double {
-        guard value.isFinite else { return 12.0 }
-        let wrapped = value.truncatingRemainder(dividingBy: 24.0)
-        return wrapped >= 0 ? wrapped : wrapped + 24.0
-    }
-
-    // Clamp interpolation values to avoid transient out-of-range colors.
-    private static func clamp01(_ value: Double) -> Double {
-        min(max(value, 0.0), 1.0)
-    }
-    
-    // Get normalized time with caching (cached sun times per day, then fast calculation)
-    private static func calculateNormalizedTimeWithCache(date: Date, timeZoneIdentifier: String) -> Double {
-        // Create cache key based on day-level precision and timezone
-        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        let dayComponents = calendar.dateComponents([.year, .month, .day], from: date)
-        let cacheKey = "\(timeZoneIdentifier)_\(dayComponents.year ?? 0)_\(dayComponents.month ?? 0)_\(dayComponents.day ?? 0)" as NSString
-        
-        // Lock-free read from NSCache (thread-safe without blocking)
-        let sunTimes: SunEventTimes
-        if let cached = sunTimesCache.object(forKey: cacheKey) {
-            sunTimes = cached.times
-        } else {
-            // Calculate sun event times once per day
-            let times = calculateSunEventTimes(date: date, timeZoneIdentifier: timeZoneIdentifier)
-            sunTimesCache.setObject(SunEventTimesWrapper(times), forKey: cacheKey)
-            sunTimes = times
-        }
-        
-        // Fast calculation using cached sun times
-        let normalized = calculateNormalizedTimeFromSunTimes(date: date, timeZoneIdentifier: timeZoneIdentifier, sunTimes: sunTimes)
-        if normalized.isFinite {
-            return wrapTo24Hours(normalized)
-        }
-        return wrapTo24Hours(calculateFallbackTime(date: date, timeZoneIdentifier: timeZoneIdentifier))
-    }
-    
-    // Calculate sun event times once per day
-    private static func calculateSunEventTimes(date: Date, timeZoneIdentifier: String) -> SunEventTimes {
-        guard let coords = TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier) else {
-            // Fallback: use approximate times
-            return SunEventTimes(
-                sunriseHour: 6.0, sunsetHour: 18.0,
-                civilDawnHour: 5.5, civilDuskHour: 18.5,
-                nauticalDawnHour: 5.0, nauticalDuskHour: 19.0,
-                astronomicalDawnHour: 4.5, astronomicalDuskHour: 19.5,
-                solarNoonHour: 12.0
-            )
-        }
-        
-        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-        let events = SolarCalculator.events(
+        let coords = TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier)
+            ?? (latitude: 51.5074, longitude: -0.1278)
+        let altitude = SolarCalculator.position(
             latitude: coords.latitude,
             longitude: coords.longitude,
-            date: date,
-            timeZone: timeZone
-        )
-        
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        
-        func hoursSinceMidnight(_ date: Date) -> Double {
-            let hour = calendar.component(.hour, from: date)
-            let minute = calendar.component(.minute, from: date)
-            let second = calendar.component(.second, from: date)
-            return Double(hour) + Double(minute) / 60.0 + Double(second) / 3600.0
-        }
-        
-        return SunEventTimes(
-            sunriseHour: hoursSinceMidnight(events.sunrise),
-            sunsetHour: hoursSinceMidnight(events.sunset),
-            civilDawnHour: hoursSinceMidnight(events.civilDawn),
-            civilDuskHour: hoursSinceMidnight(events.civilDusk),
-            nauticalDawnHour: hoursSinceMidnight(events.nauticalDawn),
-            nauticalDuskHour: hoursSinceMidnight(events.nauticalDusk),
-            astronomicalDawnHour: hoursSinceMidnight(events.astronomicalDawn),
-            astronomicalDuskHour: hoursSinceMidnight(events.astronomicalDusk),
-            solarNoonHour: hoursSinceMidnight(events.solarNoon)
-        )
+            date: date
+        ).altitude
+        self.solarAltitude = altitude.isFinite ? altitude : 40.0
+
+        let hourAngle = SolarCalculator.hourAngle(longitude: coords.longitude, date: date)
+        let hoursFromNoon = hourAngle.isFinite ? hourAngle / 15.0 : -6.0
+        self.duskFactor = Self.duskFactor(hoursFromSolarNoon: hoursFromNoon)
     }
-    
-    // Fast calculation using cached sun times
-    private static func calculateNormalizedTimeFromSunTimes(date: Date, timeZoneIdentifier: String, sunTimes: SunEventTimes) -> Double {
-        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        
-        func hoursSinceMidnight(_ date: Date) -> Double {
-            let hour = calendar.component(.hour, from: date)
-            let minute = calendar.component(.minute, from: date)
-            let second = calendar.component(.second, from: date)
-            return Double(hour) + Double(minute) / 60.0 + Double(second) / 3600.0
-        }
-        
-        let currentHour = hoursSinceMidnight(date)
-        
-        // Use cached sun times
-        let sunriseHour = sunTimes.sunriseHour
-        let sunsetHour = sunTimes.sunsetHour
-        let civilDawnHour = sunTimes.civilDawnHour
-        let civilDuskHour = sunTimes.civilDuskHour
-        let nauticalDawnHour = sunTimes.nauticalDawnHour
-        let nauticalDuskHour = sunTimes.nauticalDuskHour
-        let astronomicalDawnHour = sunTimes.astronomicalDawnHour
-        let astronomicalDuskHour = sunTimes.astronomicalDuskHour
-        let solarNoonHour = sunTimes.solarNoonHour
-        
-        // Normalize times to handle day/night transitions across midnight
-        // We'll map the actual sun events to a standard 24-hour pattern:
-        // 0-4: Deep night
-        // 4-5: Astronomical twilight (dawn)
-        // 5-6: Nautical twilight (dawn)
-        // 6-7: Civil twilight (dawn)
-        // 7-8: Sunrise period
-        // 8-11: Morning
-        // 11-14: Noon period
-        // 14-17: Afternoon
-        // 17-18: Golden hour (before sunset)
-        // 18-19: Sunset period
-        // 19-20: Civil twilight (dusk)
-        // 20-21: Nautical twilight (dusk)
-        // 21-24: Astronomical twilight to night
-        
-        // Determine which phase of the day we're in
-        // Note: Order of events (evening): sunset -> civilDusk -> nauticalDusk -> astronomicalDusk -> night
-        // Order of events (morning): astronomicalDawn -> nauticalDawn -> civilDawn -> sunrise -> day
-        
-        if currentHour >= sunsetHour || currentHour < sunriseHour {
-            // Night period: between sunset and sunrise
-            if currentHour >= sunsetHour {
-                // Evening/night after sunset
-                if currentHour < sunsetHour + 1.0 {
-                    // Sunset period (18-19 equivalent)
-                    let progress = Self.clamp01((currentHour - sunsetHour) / 1.0)
-                    return 18.0 + progress
-                } else if currentHour < civilDuskHour {
-                    // Civil twilight evening (19-20 equivalent)
-                    let progress = Self.clamp01((currentHour - (sunsetHour + 1.0)) / max(0.1, civilDuskHour - (sunsetHour + 1.0)))
-                    return 19.0 + progress
-                } else if currentHour < nauticalDuskHour {
-                    // Nautical twilight evening (20-21 equivalent)
-                    let progress = Self.clamp01((currentHour - civilDuskHour) / max(0.1, nauticalDuskHour - civilDuskHour))
-                    return 20.0 + progress
-                } else if currentHour < astronomicalDuskHour {
-                    // Astronomical twilight evening (21-22 equivalent)
-                    let progress = Self.clamp01((currentHour - nauticalDuskHour) / max(0.1, astronomicalDuskHour - nauticalDuskHour))
-                    return 21.0 + progress
-                } else {
-                    // Deep night after astronomical dusk (21-24 or 0-4 equivalent)
-                    let hoursAfterDusk = currentHour - astronomicalDuskHour
-                    let nightEnd = astronomicalDawnHour < sunriseHour ? astronomicalDawnHour + 24.0 : astronomicalDawnHour
-                    let nightDuration = nightEnd - astronomicalDuskHour
-                    if nightDuration > 0 {
-                        let progress = Self.clamp01(hoursAfterDusk / nightDuration)
-                        if progress < 0.5 {
-                            return 21.0 + progress * 6.0  // 21-24
-                        } else {
-                            return (progress - 0.5) * 8.0  // 0-4
-                        }
-                    }
-                    return 22.0
-                }
-            } else {
-                // Pre-dawn: before sunrise
-                // Check from latest event to earliest: civilDawn -> nauticalDawn -> astronomicalDawn
-                // Order of events: astronomicalDawnHour < nauticalDawnHour < civilDawnHour < sunriseHour
-                if currentHour >= civilDawnHour {
-                    // Civil twilight morning (6-7 equivalent) - closest to sunrise
-                    let progress = Self.clamp01((currentHour - civilDawnHour) / max(0.1, sunriseHour - civilDawnHour))
-                    return 6.0 + progress
-                } else if currentHour >= nauticalDawnHour {
-                    // Nautical twilight morning (5-6 equivalent)
-                    let progress = Self.clamp01((currentHour - nauticalDawnHour) / max(0.1, civilDawnHour - nauticalDawnHour))
-                    return 5.0 + progress
-                } else if currentHour >= astronomicalDawnHour {
-                    // Astronomical twilight morning (4-5 equivalent) - earliest dawn
-                    let progress = Self.clamp01((currentHour - astronomicalDawnHour) / max(0.1, nauticalDawnHour - astronomicalDawnHour))
-                    return 4.0 + progress
-                } else {
-                    // Deep night before dawn (0-4 equivalent)
-                    let nightStart = astronomicalDuskHour
-                    let hoursIntoNight = currentHour + (24.0 - nightStart)
-                    let nightDuration = (astronomicalDawnHour + 24.0) - nightStart
-                    if nightDuration > 0 {
-                        let progress = Self.clamp01(hoursIntoNight / nightDuration)
-                        return progress * 4.0
-                    }
-                    return 2.0
-                }
-            }
-        } else {
-            // Day period: between astronomical dawn and astronomical dusk
-            if currentHour < sunriseHour + 1.0 {
-                // Sunrise period (7-8 equivalent)
-                let progress = Self.clamp01((currentHour - sunriseHour) / 1.0)
-                return 7.0 + progress
-            } else if currentHour < sunriseHour + 4.0 {
-                // Morning (8-11 equivalent)
-                let progress = Self.clamp01((currentHour - sunriseHour - 1.0) / 3.0)
-                return 8.0 + progress * 3.0
-            } else if abs(currentHour - solarNoonHour) < 1.5 {
-                // Noon period (11-14 equivalent)
-                let progress = Self.clamp01((currentHour - (solarNoonHour - 1.5)) / 3.0)
-                return 11.0 + progress
-            } else if currentHour < sunsetHour - 1.0 {
-                // Afternoon (14-17 equivalent)
-                let afternoonStart = solarNoonHour + 1.5
-                let progress = Self.clamp01((currentHour - afternoonStart) / max(0.1, (sunsetHour - 1.0) - afternoonStart))
-                return 14.0 + progress * 3.0
-            } else {
-                // Golden hour before sunset (17-18 equivalent)
-                let progress = Self.clamp01((currentHour - (sunsetHour - 1.0)) / 1.0)
-                return 17.0 + progress
-            }
-        }
-    }
-    
-    // Fallback time calculation (original implementation)
-    private static func calculateFallbackTime(date: Date, timeZoneIdentifier: String) -> Double {
-        let calendar = Calendar.current
-        let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-        var localCalendar = calendar
-        localCalendar.timeZone = timeZone
-        
-        let hour = localCalendar.component(.hour, from: date)
-        let minute = localCalendar.component(.minute, from: date)
-        return Double(hour) + Double(minute) / 60.0
-    }
-    
-    // Calculate time value for animation (using normalized time)
-    private var timeValue: Double {
-        return Self.wrapTo24Hours(normalizedTime)
-    }
-    
-    // Calculate star visibility based on time of day
-    // During rain: clouds completely block stars - opacity is always 0
+
+    // MARK: - Public API
+
+    // Star visibility: stars wash out as twilight sky brightness overtakes
+    // them — fully visible in astronomical night, mostly gone by mid-nautical
+    // twilight, only planets left near civil twilight. At latitudes where the
+    // sun never drops below -16° (white nights), stars correctly never reach
+    // full strength. Rain clouds block all starlight via Mie scattering.
     var starOpacity: Double {
-        // Rain clouds block all starlight via Mie scattering
         if isRainy { return 0.0 }
-        
-        let normalizedTime = timeValue
-        
-        switch normalizedTime {
-        case 0..<4:
-            // Deep night - full stars
-            return 1.0
-        case 4..<5:
-            // Astronomical twilight - stars fading
-            let progress = Self.clamp01(normalizedTime - 4)
-            return 1.0 - (progress * 0.3)
-        case 5..<6:
-            // Nautical twilight - stars mostly faded
-            let progress = Self.clamp01(normalizedTime - 5)
-            return 0.7 - (progress * 0.5)
-        case 6..<7:
-            // Civil twilight - stars barely visible
-            let progress = Self.clamp01(normalizedTime - 6)
-            return 0.2 - (progress * 0.2)
-        case 7..<19:
-            // Daytime - no stars
-            return 0.0
-        case 19..<20:
-            // Evening civil twilight - stars appearing
-            let progress = Self.clamp01(normalizedTime - 19)
-            return progress * 0.2
-        case 20..<21:
-            // Nautical twilight - stars becoming visible
-            let progress = Self.clamp01(normalizedTime - 20)
-            return 0.2 + (progress * 0.5)
-        case 21..<22:
-            // Astronomical twilight - stars brightening
-            let progress = Self.clamp01(normalizedTime - 21)
-            return 0.7 + (progress * 0.3)
-        default:
-            // Late night (22:00 - 24:00) - full stars
-            return 1.0
-        }
+        return 1.0 - Self.smoothstep(from: -16.0, to: -4.5, value: solarAltitude)
     }
-    
-    // Get the colors array based on time and weather condition
+
+    // Five vertical stops, zenith → horizon.
     var colors: [Color] {
-        // When raining, use atmospheric-science-based rainy gradient
-        if isRainy { return rainyColors }
-        
-        let normalizedTime = timeValue
-        
-        switch normalizedTime {
-        case 0..<4:
-            // Night (0:00 - 4:00) - Very dark blue to black
-            let progress = Self.clamp01(normalizedTime / 4)
-            return [
-                Color(red: 0.005, green: 0.008, blue: 0.02), // Deep Space
-                Color(red: 0.01, green: 0.015, blue: 0.04),  // Upper Atmosphere
-                Color(red: 0.015, green: 0.022, blue: 0.05 + 0.01 * (1 - progress)), // Lower Atmosphere (Interpolated)
-                Color(red: 0.02, green: 0.03, blue: 0.06 + 0.02 * (1 - progress)) // Horizon
-            ]
-            
-        case 4..<5:
-            // Astronomical Twilight (4:00 - 5:00)
-            // First hint of scattering, deep indigo/violet
-            let progress = Self.clamp01(normalizedTime - 4)
-            return [
-                Color(red: 0.01, green: 0.01, blue: 0.05),   // Zenith
-                Color(red: 0.02, green: 0.025, blue: 0.10 + 0.05 * progress), // Mid
-                Color(red: 0.025, green: 0.032, blue: 0.125 + 0.075 * progress), // Lower (Interpolated)
-                Color(red: 0.03, green: 0.04, blue: 0.15 + 0.10 * progress)   // Horizon (Indigo)
-            ]
-            
-        case 5..<6:
-            // Nautical Twilight (5:00 - 6:00)
-            // "Blue Hour" begins. Ozone absorption (Chappuis band) contributes to rich blues.
-            let progress = Self.clamp01(normalizedTime - 5)
-            return [
-                Color(red: 0.02, green: 0.03, blue: 0.12 + 0.05 * progress), // Zenith
-                Color(red: 0.05, green: 0.08, blue: 0.25 + 0.1 * progress),  // Upper
-                Color(red: 0.10 + 0.05 * progress, green: 0.15 + 0.05 * progress, blue: 0.40 + 0.1 * progress), // Mid
-                Color(red: 0.15 + 0.1 * progress, green: 0.20 + 0.1 * progress, blue: 0.45 + 0.05 * progress)   // Horizon
-            ]
-            
-        case 6..<7:
-            // Civil Twilight / Dawn (6:00 - 7:00)
-            // Scattering intensifies. Horizon transitions from blue to cool pink/lavender (Less yellow).
-            let progress = Self.clamp01(normalizedTime - 6)
-            return [
-                Color(red: 0.05, green: 0.1, blue: 0.35), // Zenith (Deep Blue)
-                Color(red: 0.2, green: 0.25, blue: 0.55), // Mid Sky
-                Color(red: 0.5 + 0.1 * progress, green: 0.35 + 0.05 * progress, blue: 0.55), // Transition (Lavender)
-                Color(red: 0.75 + 0.1 * progress, green: 0.5 + 0.1 * progress, blue: 0.5 + 0.1 * progress) // Horizon (Cool Pink -> Pale Peach)
-            ]
-            
-        case 7..<8:
-            // Sunrise (7:00 - 8:00)
-            // Sun breaches horizon. Intense brightness with clean white/blue tones (Less intense yellow).
-            let progress = Self.clamp01(normalizedTime - 7)
-            return [
-                Color(red: 0.15, green: 0.4 + 0.1 * progress, blue: 0.7 + 0.05 * progress), // Zenith (Clean Blue)
-                Color(red: 0.45 + 0.1 * progress, green: 0.6 + 0.1 * progress, blue: 0.85), // Upper (Sky Blue)
-                Color(red: 0.75 + 0.1 * progress, green: 0.75 + 0.1 * progress, blue: 0.9), // Mid (Pale Blue/White)
-                Color(red: 0.95, green: 0.85 - 0.05 * progress, blue: 0.7 + 0.2 * progress) // Horizon (Bright White-Gold)
-            ]
-            
-        case 8..<11:
-            // Morning (8:00 - 11:00)
-            // Atmosphere clears. Rayleigh scattering stabilizes to pure blue.
-            let progress = Self.clamp01((normalizedTime - 8) / 3)
-            return [
-                Color(red: 0.1 + 0.05 * progress, green: 0.4 + 0.1 * progress, blue: 0.75 + 0.05 * progress), // Zenith (Deep Blue)
-                Color(red: 0.25 + 0.05 * progress, green: 0.55 + 0.05 * progress, blue: 0.85), // Mid
-                Color(red: 0.5 + 0.1 * progress, green: 0.7 + 0.05 * progress, blue: 0.9), // Lower
-                Color(red: 0.7 + 0.1 * progress, green: 0.85 + 0.05 * progress, blue: 0.95) // Horizon (Pale due to Mie scattering)
-            ]
-            
-        case 11..<14:
-            // Noon (11:00 - 14:00)
-            // Maximum brightness. Shortest optical path.
-            return [
-                Color(red: 0.15, green: 0.48, blue: 0.85), // Zenith (Rich Nitrogen Blue)
-                Color(red: 0.30, green: 0.60, blue: 0.90), // Mid
-                Color(red: 0.60, green: 0.80, blue: 0.95), // Lower
-                Color(red: 0.85, green: 0.92, blue: 0.98)  // Horizon (Haze/White)
-            ]
-            
-        case 14..<17:
-            // Afternoon (14:00 - 17:00)
-            // Light warms slightly as path length increases.
-            let progress = Self.clamp01((normalizedTime - 14) / 3)
-            return [
-                Color(red: 0.15, green: 0.48 - 0.05 * progress, blue: 0.85 - 0.1 * progress), // Zenith
-                Color(red: 0.30 + 0.05 * progress, green: 0.60 - 0.05 * progress, blue: 0.90 - 0.05 * progress), // Mid
-                Color(red: 0.60 + 0.1 * progress, green: 0.80 - 0.05 * progress, blue: 0.95 - 0.05 * progress), // Lower
-                Color(red: 0.85 + 0.05 * progress, green: 0.92 - 0.05 * progress, blue: 0.98 - 0.05 * progress)  // Horizon
-            ]
-            
-        case 17..<18:
-            // Golden Hour (17:00 - 18:00)
-            // Blue scatters out, leaving warm golden tones. (Desaturated for realism)
-            let progress = Self.clamp01(normalizedTime - 17)
-            return [
-                Color(red: 0.2 + 0.05 * progress, green: 0.45 - 0.05 * progress, blue: 0.7 - 0.1 * progress), // Zenith (Softer Blue)
-                Color(red: 0.45 + 0.1 * progress, green: 0.58 - 0.03 * progress, blue: 0.75 - 0.1 * progress), // Mid
-                Color(red: 0.7 + 0.1 * progress, green: 0.75 - 0.15 * progress, blue: 0.85 - 0.25 * progress), // Lower
-                Color(red: 0.9 + 0.05 * progress, green: 0.85 - 0.15 * progress, blue: 0.8 - 0.3 * progress) // Horizon (Soft Gold/White)
-            ]
-            
-        case 18..<19:
-            // Sunset (18:00 - 19:00)
-            // Dramatic spectrum split. Deep blue above, soft red/orange below (Natural saturation)
-            let progress = Self.clamp01(normalizedTime - 18)
-            return [
-                Color(red: 0.15 + 0.05 * progress, green: 0.3 - 0.1 * progress, blue: 0.5 - 0.1 * progress), // Zenith
-                Color(red: 0.4 + 0.1 * progress, green: 0.4 - 0.05 * progress, blue: 0.55 - 0.15 * progress), // Upper
-                Color(red: 0.75 + 0.1 * progress, green: 0.55 - 0.15 * progress, blue: 0.5 - 0.15 * progress), // Mid (Soft Salmon)
-                Color(red: 0.95 - 0.1 * progress, green: 0.7 - 0.35 * progress, blue: 0.5 - 0.25 * progress) // Horizon (Soft Orange -> Burnt Orange)
-            ]
-            
-        case 19..<20:
-            // Civil Dusk (19:00 - 20:00)
-            // The "Belt of Venus" effect fading into blue hour.
-            let progress = Self.clamp01(normalizedTime - 19)
-            return [
-                Color(red: 0.05 + 0.05 * progress, green: 0.1 - 0.05 * progress, blue: 0.4 - 0.1 * progress), // Zenith
-                Color(red: 0.2, green: 0.25 - 0.1 * progress, blue: 0.5 - 0.1 * progress), // Upper
-                Color(red: 0.5 - 0.2 * progress, green: 0.35 - 0.2 * progress, blue: 0.45 - 0.1 * progress), // Mid (Purple/Fade)
-                Color(red: 0.8 - 0.4 * progress, green: 0.4 - 0.2 * progress, blue: 0.3 - 0.1 * progress) // Horizon (Fading Sunset)
-            ]
-            
-        case 20..<21:
-            // Nautical Dusk (20:00 - 21:00)
-            // Horizon glow remains, but colors desaturate rapidly.
-            let progress = Self.clamp01(normalizedTime - 20)
-            return [
-                Color(red: 0.02, green: 0.03, blue: 0.15 - 0.05 * progress), // Zenith
-                Color(red: 0.08, green: 0.1, blue: 0.25 - 0.05 * progress), // Upper
-                Color(red: 0.15 - 0.05 * progress, green: 0.15 - 0.05 * progress, blue: 0.3 - 0.1 * progress), // Mid
-                Color(red: 0.25 - 0.15 * progress, green: 0.2 - 0.1 * progress, blue: 0.3 - 0.1 * progress) // Horizon
-            ]
-            
-        default:
-            // Astronomical Dusk to Night (21:00 - 24:00)
-            // Returning to deep space black/navy.
-            let progress = Self.clamp01((normalizedTime - 21) / 3)
-            return [
-                Color(red: 0.01, green: 0.01, blue: 0.05 - 0.03 * progress), // Zenith
-                Color(red: 0.02, green: 0.02, blue: 0.08 - 0.04 * progress), // Mid
-                Color(red: 0.03 - 0.01 * progress, green: 0.035 - 0.01 * progress, blue: 0.10 - 0.05 * progress), // Lower (Interpolated)
-                Color(red: 0.04 - 0.02 * progress, green: 0.05 - 0.02 * progress, blue: 0.12 - 0.06 * progress) // Horizon
-            ]
+        let stops: [Lab]
+        if isRainy {
+            stops = Self.interpolatedStops(at: solarAltitude, in: Self.rainFrames)
+        } else if duskFactor <= 0.0 {
+            stops = Self.interpolatedStops(at: solarAltitude, in: Self.clearDawnFrames)
+        } else if duskFactor >= 1.0 {
+            stops = Self.interpolatedStops(at: solarAltitude, in: Self.clearDuskFrames)
+        } else {
+            let dawn = Self.interpolatedStops(at: solarAltitude, in: Self.clearDawnFrames)
+            let dusk = Self.interpolatedStops(at: solarAltitude, in: Self.clearDuskFrames)
+            stops = zip(dawn, dusk).map { $0 + ($1 - $0) * duskFactor }
+        }
+        return stops.map { lab in
+            let rgb = Self.labToSrgb(lab)
+            return Color(red: rgb.x, green: rgb.y, blue: rgb.z)
         }
     }
-    
-    // MARK: - Rainy Sky Gradient
-    // Atmospheric model for calm overcast rain:
-    // - Mie scattering dominates, making the sky low-saturation and soft.
-    // - Horizon is slightly brighter from forward scattering near low sun angles.
-    // - Warm sunrise/sunset hues are intentionally suppressed to keep a cool, quiet mood.
-    private var rainyColors: [Color] {
-        let normalizedTime = timeValue
-        
-        switch normalizedTime {
-        case 0..<4:
-            // Night rain: dark slate with subtle cloud-brightened horizon.
-            let progress = Self.clamp01(normalizedTime / 4)
-            return [
-                Color(red: 0.09 + 0.02 * progress, green: 0.11 + 0.02 * progress, blue: 0.16 + 0.03 * progress),
-                Color(red: 0.12 + 0.02 * progress, green: 0.14 + 0.02 * progress, blue: 0.20 + 0.03 * progress),
-                Color(red: 0.15 + 0.03 * progress, green: 0.17 + 0.03 * progress, blue: 0.24 + 0.04 * progress),
-                Color(red: 0.18 + 0.03 * progress, green: 0.20 + 0.03 * progress, blue: 0.27 + 0.04 * progress)
-            ]
-            
-        case 4..<5:
-            // Astronomical twilight: darkness lifts into cold steel-blue.
-            let progress = Self.clamp01(normalizedTime - 4)
-            return [
-                Color(red: 0.11 + 0.02 * progress, green: 0.13 + 0.02 * progress, blue: 0.19 + 0.04 * progress),
-                Color(red: 0.15 + 0.03 * progress, green: 0.17 + 0.03 * progress, blue: 0.24 + 0.04 * progress),
-                Color(red: 0.19 + 0.03 * progress, green: 0.21 + 0.03 * progress, blue: 0.29 + 0.04 * progress),
-                Color(red: 0.23 + 0.04 * progress, green: 0.25 + 0.04 * progress, blue: 0.34 + 0.04 * progress)
-            ]
-            
-        case 5..<6:
-            // Nautical twilight: diffuse light increases, still neutral-cool.
-            let progress = Self.clamp01(normalizedTime - 5)
-            return [
-                Color(red: 0.13 + 0.04 * progress, green: 0.15 + 0.04 * progress, blue: 0.23 + 0.06 * progress),
-                Color(red: 0.18 + 0.06 * progress, green: 0.20 + 0.06 * progress, blue: 0.28 + 0.06 * progress),
-                Color(red: 0.22 + 0.07 * progress, green: 0.24 + 0.07 * progress, blue: 0.33 + 0.06 * progress),
-                Color(red: 0.27 + 0.08 * progress, green: 0.29 + 0.08 * progress, blue: 0.38 + 0.06 * progress)
-            ]
-            
-        case 6..<7:
-            // Civil twilight: brighter overcast, no orange sunrise push.
-            let progress = Self.clamp01(normalizedTime - 6)
-            return [
-                Color(red: 0.17 + 0.06 * progress, green: 0.19 + 0.06 * progress, blue: 0.29 + 0.06 * progress),
-                Color(red: 0.24 + 0.07 * progress, green: 0.26 + 0.07 * progress, blue: 0.34 + 0.07 * progress),
-                Color(red: 0.29 + 0.08 * progress, green: 0.31 + 0.08 * progress, blue: 0.39 + 0.07 * progress),
-                Color(red: 0.35 + 0.09 * progress, green: 0.37 + 0.09 * progress, blue: 0.44 + 0.07 * progress)
-            ]
-            
-        case 7..<8:
-            // Sunrise window: brighter horizon from geometry, still cool-grey.
-            let progress = Self.clamp01(normalizedTime - 7)
-            return [
-                Color(red: 0.23 + 0.07 * progress, green: 0.25 + 0.07 * progress, blue: 0.35 + 0.07 * progress),
-                Color(red: 0.31 + 0.08 * progress, green: 0.33 + 0.08 * progress, blue: 0.41 + 0.07 * progress),
-                Color(red: 0.37 + 0.08 * progress, green: 0.39 + 0.08 * progress, blue: 0.46 + 0.07 * progress),
-                Color(red: 0.44 + 0.08 * progress, green: 0.46 + 0.08 * progress, blue: 0.51 + 0.07 * progress)
-            ]
-            
-        case 8..<11:
-            // Morning overcast: high diffuse skylight, silver-blue cast.
-            let progress = Self.clamp01((normalizedTime - 8) / 3)
-            return [
-                Color(red: 0.30 + 0.12 * progress, green: 0.32 + 0.12 * progress, blue: 0.42 + 0.09 * progress),
-                Color(red: 0.39 + 0.11 * progress, green: 0.41 + 0.11 * progress, blue: 0.48 + 0.08 * progress),
-                Color(red: 0.45 + 0.10 * progress, green: 0.47 + 0.10 * progress, blue: 0.53 + 0.08 * progress),
-                Color(red: 0.52 + 0.09 * progress, green: 0.54 + 0.09 * progress, blue: 0.58 + 0.08 * progress)
-            ]
-            
-        case 11..<14:
-            // Noon: brightest but still cool and desaturated.
-            return [
-                Color(red: 0.42, green: 0.44, blue: 0.51),
-                Color(red: 0.50, green: 0.52, blue: 0.56),
-                Color(red: 0.56, green: 0.58, blue: 0.62),
-                Color(red: 0.61, green: 0.63, blue: 0.67)
-            ]
-            
-        case 14..<17:
-            // Afternoon: gradual dimming while preserving soft contrast.
-            let progress = Self.clamp01((normalizedTime - 14) / 3)
-            return [
-                Color(red: 0.42 - 0.09 * progress, green: 0.44 - 0.09 * progress, blue: 0.51 - 0.07 * progress),
-                Color(red: 0.50 - 0.09 * progress, green: 0.52 - 0.09 * progress, blue: 0.56 - 0.07 * progress),
-                Color(red: 0.56 - 0.08 * progress, green: 0.58 - 0.08 * progress, blue: 0.62 - 0.07 * progress),
-                Color(red: 0.61 - 0.08 * progress, green: 0.63 - 0.08 * progress, blue: 0.67 - 0.07 * progress)
-            ]
-            
-        case 17..<18:
-            // Late afternoon: low-angle light, horizon remains only slightly brighter.
-            let progress = Self.clamp01(normalizedTime - 17)
-            return [
-                Color(red: 0.33 - 0.04 * progress, green: 0.35 - 0.04 * progress, blue: 0.44 - 0.05 * progress),
-                Color(red: 0.41 - 0.05 * progress, green: 0.43 - 0.05 * progress, blue: 0.49 - 0.06 * progress),
-                Color(red: 0.48 - 0.06 * progress, green: 0.50 - 0.06 * progress, blue: 0.55 - 0.07 * progress),
-                Color(red: 0.53 - 0.07 * progress, green: 0.55 - 0.07 * progress, blue: 0.60 - 0.08 * progress)
-            ]
-            
-        case 18..<19:
-            // Sunset period under cloud: avoid orange, stay steel-blue.
-            let progress = Self.clamp01(normalizedTime - 18)
-            return [
-                Color(red: 0.29 - 0.04 * progress, green: 0.31 - 0.04 * progress, blue: 0.39 - 0.04 * progress),
-                Color(red: 0.36 - 0.05 * progress, green: 0.38 - 0.05 * progress, blue: 0.43 - 0.05 * progress),
-                Color(red: 0.42 - 0.06 * progress, green: 0.44 - 0.06 * progress, blue: 0.48 - 0.06 * progress),
-                Color(red: 0.46 - 0.07 * progress, green: 0.48 - 0.07 * progress, blue: 0.52 - 0.07 * progress)
-            ]
-            
-        case 19..<20:
-            // Civil dusk: stronger cooling and desaturation.
-            let progress = Self.clamp01(normalizedTime - 19)
-            return [
-                Color(red: 0.25 - 0.05 * progress, green: 0.27 - 0.05 * progress, blue: 0.35 - 0.05 * progress),
-                Color(red: 0.31 - 0.07 * progress, green: 0.33 - 0.07 * progress, blue: 0.38 - 0.06 * progress),
-                Color(red: 0.36 - 0.08 * progress, green: 0.38 - 0.08 * progress, blue: 0.42 - 0.07 * progress),
-                Color(red: 0.39 - 0.09 * progress, green: 0.41 - 0.09 * progress, blue: 0.45 - 0.08 * progress)
-            ]
-            
-        case 20..<21:
-            // Nautical dusk: transition into rain-soaked night tones.
-            let progress = Self.clamp01(normalizedTime - 20)
-            return [
-                Color(red: 0.20 - 0.04 * progress, green: 0.22 - 0.04 * progress, blue: 0.30 - 0.05 * progress),
-                Color(red: 0.24 - 0.05 * progress, green: 0.26 - 0.05 * progress, blue: 0.32 - 0.06 * progress),
-                Color(red: 0.28 - 0.06 * progress, green: 0.30 - 0.06 * progress, blue: 0.35 - 0.06 * progress),
-                Color(red: 0.30 - 0.06 * progress, green: 0.32 - 0.07 * progress, blue: 0.37 - 0.07 * progress)
-            ]
-            
-        default:
-            // Late night rain: smooth return to pre-dawn palette.
-            let progress = Self.clamp01((normalizedTime - 21) / 3)
-            return [
-                Color(red: 0.16 - 0.05 * progress, green: 0.18 - 0.05 * progress, blue: 0.25 - 0.07 * progress),
-                Color(red: 0.19 - 0.06 * progress, green: 0.21 - 0.06 * progress, blue: 0.26 - 0.07 * progress),
-                Color(red: 0.22 - 0.07 * progress, green: 0.24 - 0.06 * progress, blue: 0.29 - 0.07 * progress),
-                Color(red: 0.24 - 0.06 * progress, green: 0.25 - 0.05 * progress, blue: 0.30 - 0.06 * progress)
-            ]
-        }
-    }
-    
+
     // Get linear gradient with specified opacity (default 1.0 for full opacity)
     func linearGradient(opacity: Double = 1.0) -> LinearGradient {
         let gradientColors = opacity < 1.0 ? colors.map { $0.opacity(opacity) } : colors
@@ -637,10 +109,352 @@ struct SkyColorGradient {
             endPoint: .bottom
         )
     }
-    
-    // Get the animation value for smooth transitions (hourly granularity to reduce animation overhead)
-    // Encodes both time (hour) and rain state so weather changes also trigger animation
+
+    // Animation trigger quantized to 0.5° of solar elevation: fires every few
+    // minutes during fast twilight color changes, almost never at midday or
+    // deep night when the sky is static. Encodes rain state so weather
+    // changes also animate.
     var animationValue: Int {
-        return Int(timeValue) * 2 + (isRainy ? 1 : 0)
+        let band = Int(((solarAltitude + 90.0) * 2.0).rounded())
+        return band * 2 + (isRainy ? 1 : 0)
+    }
+
+    // MARK: - Dawn/dusk blending
+
+    // Smooth crossfade between the dawn and dusk palettes. Away from solar
+    // noon/midnight the branches are used pure; within ±1 h of either the
+    // weights ease through 0.5 so high-latitude low-noon days and midnight-sun
+    // nights blend instead of snapping.
+    private static func duskFactor(hoursFromSolarNoon t: Double) -> Double {
+        let u = abs(t)
+        if u <= 1.0 {
+            let s = smoothstep01(u)
+            return t >= 0 ? 0.5 + 0.5 * s : 0.5 - 0.5 * s
+        }
+        if u >= 11.0 {
+            let s = smoothstep01(u - 11.0)
+            return t >= 0 ? 1.0 - 0.5 * s : 0.5 * s
+        }
+        return t >= 0 ? 1.0 : 0.0
+    }
+
+    // MARK: - Palette keyframes
+
+    private typealias RGB = SIMD3<Double> // sRGB, 0...1
+    private typealias Lab = SIMD3<Double> // OKLab (L, a, b)
+
+    private struct Keyframe {
+        let altitude: Double // solar elevation in degrees
+        let stops: [Lab]     // 5 stops, zenith → horizon, pre-converted to OKLab
+    }
+
+    private static func lab(_ r: Double, _ g: Double, _ b: Double) -> Lab {
+        srgbToLab(RGB(r, g, b))
+    }
+
+    // Shared anchors: below -18° there is no solar contribution, so dawn and
+    // dusk converge on the same night sky; above +15° both converge on the
+    // same daytime Rayleigh blue. This guarantees seam-free branch blending.
+
+    // Deep night (sun ≤ -24°): airglow, starlight and typical skyglow only.
+    private static let deepNightStops: [Lab] = [
+        lab(0.003, 0.005, 0.014),
+        lab(0.005, 0.008, 0.022),
+        lab(0.008, 0.012, 0.032),
+        lab(0.012, 0.018, 0.045),
+        lab(0.018, 0.026, 0.058),
+    ]
+
+    // Astronomical night boundary (-18°): last measurable trace of twilight.
+    private static let nightStops: [Lab] = [
+        lab(0.004, 0.007, 0.019),
+        lab(0.007, 0.011, 0.029),
+        lab(0.011, 0.017, 0.042),
+        lab(0.017, 0.025, 0.058),
+        lab(0.025, 0.035, 0.076),
+    ]
+
+    // Mid sun (+15°): fully developed clear-sky Rayleigh gradient.
+    private static let dayLowStops: [Lab] = [
+        lab(0.14, 0.40, 0.76),
+        lab(0.27, 0.52, 0.83),
+        lab(0.47, 0.66, 0.89),
+        lab(0.68, 0.80, 0.93),
+        lab(0.85, 0.89, 0.94),
+    ]
+
+    // High sun (+30°): deepest zenith blue, shortest optical path.
+    private static let dayMidStops: [Lab] = [
+        lab(0.12, 0.40, 0.79),
+        lab(0.24, 0.52, 0.86),
+        lab(0.43, 0.65, 0.91),
+        lab(0.66, 0.80, 0.95),
+        lab(0.83, 0.90, 0.97),
+    ]
+
+    // Overhead sun (≥ +50°, tropical/summer noon): maximum brightness.
+    private static let dayHighStops: [Lab] = [
+        lab(0.13, 0.42, 0.81),
+        lab(0.26, 0.54, 0.88),
+        lab(0.46, 0.68, 0.93),
+        lab(0.69, 0.83, 0.96),
+        lab(0.85, 0.92, 0.98),
+    ]
+
+    // Dawn branch: overnight aerosol settling gives a cleaner atmosphere —
+    // cooler, rosier, more delicate colors than the evening equivalents.
+    private static let clearDawnFrames: [Keyframe] = [
+        Keyframe(altitude: -24.0, stops: deepNightStops),
+        Keyframe(altitude: -18.0, stops: nightStops),
+        // Astronomical → nautical dawn: first scattered light, deep indigo.
+        Keyframe(altitude: -12.0, stops: [
+            lab(0.014, 0.028, 0.095),
+            lab(0.026, 0.048, 0.145),
+            lab(0.045, 0.075, 0.210),
+            lab(0.080, 0.110, 0.285),
+            lab(0.130, 0.155, 0.350),
+        ]),
+        // Civil dawn / blue hour: Chappuis-band blue with first warm hint.
+        Keyframe(altitude: -6.0, stops: [
+            lab(0.045, 0.095, 0.27),
+            lab(0.085, 0.150, 0.37),
+            lab(0.160, 0.230, 0.49),
+            lab(0.300, 0.320, 0.57),
+            lab(0.520, 0.410, 0.54),
+        ]),
+        // Dawn glow: rose-lavender twilight arch over a coral horizon.
+        Keyframe(altitude: -4.0, stops: [
+            lab(0.08, 0.16, 0.37),
+            lab(0.17, 0.25, 0.48),
+            lab(0.37, 0.35, 0.57),
+            lab(0.64, 0.47, 0.59),
+            lab(0.90, 0.59, 0.50),
+        ]),
+        // Sunrise (disc on horizon, -0.833° = refraction + solar radius).
+        Keyframe(altitude: -0.833, stops: [
+            lab(0.14, 0.28, 0.54),
+            lab(0.32, 0.40, 0.62),
+            lab(0.60, 0.52, 0.65),
+            lab(0.88, 0.62, 0.57),
+            lab(1.00, 0.72, 0.47),
+        ]),
+        // Morning golden hour: long slant path still reddens the horizon.
+        Keyframe(altitude: 2.0, stops: [
+            lab(0.17, 0.35, 0.64),
+            lab(0.37, 0.49, 0.72),
+            lab(0.64, 0.64, 0.78),
+            lab(0.88, 0.76, 0.74),
+            lab(1.00, 0.84, 0.66),
+        ]),
+        // Low morning sun: warmth drains, ivory haze lingers at the horizon.
+        Keyframe(altitude: 6.0, stops: [
+            lab(0.16, 0.38, 0.71),
+            lab(0.32, 0.51, 0.79),
+            lab(0.55, 0.66, 0.85),
+            lab(0.78, 0.79, 0.87),
+            lab(0.94, 0.88, 0.81),
+        ]),
+        Keyframe(altitude: 15.0, stops: dayLowStops),
+        Keyframe(altitude: 30.0, stops: dayMidStops),
+        Keyframe(altitude: 50.0, stops: dayHighStops),
+    ]
+
+    // Dusk branch: daytime convection loads the air with aerosols and
+    // moisture — richer golds, burnt oranges and violet in the twilight arch.
+    private static let clearDuskFrames: [Keyframe] = [
+        Keyframe(altitude: -24.0, stops: deepNightStops),
+        Keyframe(altitude: -18.0, stops: nightStops),
+        // Nautical dusk: last violet glow, slightly warmer than dawn indigo.
+        Keyframe(altitude: -12.0, stops: [
+            lab(0.015, 0.027, 0.090),
+            lab(0.028, 0.046, 0.140),
+            lab(0.050, 0.072, 0.200),
+            lab(0.088, 0.100, 0.270),
+            lab(0.150, 0.140, 0.320),
+        ]),
+        // Civil dusk / blue hour: fading rose-violet over deep blue.
+        Keyframe(altitude: -6.0, stops: [
+            lab(0.040, 0.085, 0.25),
+            lab(0.075, 0.135, 0.35),
+            lab(0.150, 0.200, 0.46),
+            lab(0.310, 0.280, 0.52),
+            lab(0.570, 0.370, 0.44),
+        ]),
+        // Sunset afterglow: violet arch over rose-red and burnt orange.
+        Keyframe(altitude: -4.0, stops: [
+            lab(0.075, 0.145, 0.34),
+            lab(0.160, 0.220, 0.44),
+            lab(0.390, 0.310, 0.52),
+            lab(0.700, 0.410, 0.47),
+            lab(0.940, 0.510, 0.35),
+        ]),
+        // Sunset (disc on horizon): maximum reddening, air mass ≈ 38.
+        Keyframe(altitude: -0.833, stops: [
+            lab(0.16, 0.27, 0.50),
+            lab(0.36, 0.37, 0.56),
+            lab(0.68, 0.47, 0.55),
+            lab(0.95, 0.55, 0.43),
+            lab(1.00, 0.62, 0.33),
+        ]),
+        // Evening golden hour: aerosol-rich gold, warmer than the morning.
+        Keyframe(altitude: 2.0, stops: [
+            lab(0.20, 0.35, 0.61),
+            lab(0.42, 0.48, 0.67),
+            lab(0.70, 0.61, 0.69),
+            lab(0.93, 0.72, 0.60),
+            lab(1.00, 0.78, 0.50),
+        ]),
+        // Low evening sun: warm ivory horizon under a softening blue.
+        Keyframe(altitude: 6.0, stops: [
+            lab(0.18, 0.38, 0.69),
+            lab(0.35, 0.51, 0.77),
+            lab(0.59, 0.65, 0.82),
+            lab(0.82, 0.77, 0.81),
+            lab(0.97, 0.86, 0.73),
+        ]),
+        Keyframe(altitude: 15.0, stops: dayLowStops),
+        Keyframe(altitude: 30.0, stops: dayMidStops),
+        Keyframe(altitude: 50.0, stops: dayHighStops),
+    ]
+
+    // Rain (nimbostratus): droplet Mie scattering is wavelength-independent,
+    // so hue collapses to cool neutral grays whose brightness simply tracks
+    // solar elevation. Warm sunrise/sunset hues never reach the cloud base.
+    // Symmetric — no dawn/dusk split.
+    private static let rainFrames: [Keyframe] = [
+        // Night rain: dark slate, cloud base faintly lit by skyglow.
+        Keyframe(altitude: -18.0, stops: [
+            lab(0.070, 0.080, 0.110),
+            lab(0.090, 0.100, 0.135),
+            lab(0.110, 0.120, 0.160),
+            lab(0.135, 0.145, 0.190),
+            lab(0.165, 0.175, 0.225),
+        ]),
+        // Nautical twilight: darkness lifts into cold steel-blue.
+        Keyframe(altitude: -12.0, stops: [
+            lab(0.085, 0.095, 0.130),
+            lab(0.105, 0.115, 0.155),
+            lab(0.130, 0.140, 0.185),
+            lab(0.160, 0.170, 0.220),
+            lab(0.195, 0.205, 0.255),
+        ]),
+        // Civil twilight: diffuse light grows, still neutral-cool.
+        Keyframe(altitude: -6.0, stops: [
+            lab(0.115, 0.125, 0.170),
+            lab(0.145, 0.155, 0.205),
+            lab(0.175, 0.185, 0.240),
+            lab(0.215, 0.225, 0.280),
+            lab(0.255, 0.265, 0.315),
+        ]),
+        // Sun at horizon: brighter from geometry alone, no warmth.
+        Keyframe(altitude: -0.833, stops: [
+            lab(0.175, 0.190, 0.245),
+            lab(0.220, 0.235, 0.290),
+            lab(0.265, 0.280, 0.335),
+            lab(0.315, 0.330, 0.380),
+            lab(0.365, 0.375, 0.420),
+        ]),
+        // Low sun: silver-blue overcast building toward full daylight.
+        Keyframe(altitude: 6.0, stops: [
+            lab(0.285, 0.305, 0.365),
+            lab(0.345, 0.365, 0.420),
+            lab(0.405, 0.425, 0.475),
+            lab(0.465, 0.485, 0.525),
+            lab(0.515, 0.535, 0.575),
+        ]),
+        // Mid sun: high diffuse skylight through the cloud deck.
+        Keyframe(altitude: 15.0, stops: [
+            lab(0.365, 0.385, 0.450),
+            lab(0.430, 0.450, 0.505),
+            lab(0.490, 0.510, 0.555),
+            lab(0.545, 0.565, 0.605),
+            lab(0.590, 0.610, 0.650),
+        ]),
+        // High sun: brightest the overcast sky gets, still desaturated.
+        Keyframe(altitude: 30.0, stops: [
+            lab(0.420, 0.440, 0.510),
+            lab(0.480, 0.500, 0.545),
+            lab(0.530, 0.550, 0.590),
+            lab(0.575, 0.595, 0.630),
+            lab(0.610, 0.630, 0.670),
+        ]),
+    ]
+
+    // MARK: - Keyframe interpolation
+
+    // Smoothstep easing inside each altitude segment gives zero-slope joins
+    // at every keyframe, so the ramp is C¹-continuous across the whole day.
+    private static func interpolatedStops(at altitude: Double, in frames: [Keyframe]) -> [Lab] {
+        guard let first = frames.first, let last = frames.last else { return [] }
+        if altitude <= first.altitude { return first.stops }
+        if altitude >= last.altitude { return last.stops }
+        for index in 1..<frames.count where altitude < frames[index].altitude {
+            let lower = frames[index - 1]
+            let upper = frames[index]
+            let t = smoothstep01((altitude - lower.altitude) / (upper.altitude - lower.altitude))
+            return zip(lower.stops, upper.stops).map { $0 + ($1 - $0) * t }
+        }
+        return last.stops
+    }
+
+    // MARK: - OKLab color space (Björn Ottosson)
+
+    // Interpolating in OKLab keeps perceived lightness and hue moving
+    // uniformly — sRGB lerps would pass through muddy gray between the
+    // saturated twilight hues.
+
+    private static func srgbToLinear(_ c: Double) -> Double {
+        c <= 0.04045 ? c / 12.92 : pow((c + 0.055) / 1.055, 2.4)
+    }
+
+    private static func linearToSrgb(_ c: Double) -> Double {
+        let v = max(0.0, c)
+        return v <= 0.0031308 ? v * 12.92 : 1.055 * pow(v, 1.0 / 2.4) - 0.055
+    }
+
+    private static func srgbToLab(_ rgb: RGB) -> Lab {
+        let r = srgbToLinear(rgb.x)
+        let g = srgbToLinear(rgb.y)
+        let b = srgbToLinear(rgb.z)
+        let l = cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b)
+        let m = cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b)
+        let s = cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b)
+        return Lab(
+            0.2104542553 * l + 0.7936177850 * m - 0.0040720468 * s,
+            1.9779984951 * l - 2.4285922050 * m + 0.4505937099 * s,
+            0.0259040371 * l + 0.7827717662 * m - 0.8086757660 * s
+        )
+    }
+
+    private static func labToSrgb(_ lab: Lab) -> RGB {
+        let l0 = lab.x + 0.3963377774 * lab.y + 0.2158037573 * lab.z
+        let m0 = lab.x - 0.1055613458 * lab.y - 0.0638541728 * lab.z
+        let s0 = lab.x - 0.0894841775 * lab.y - 1.2914855480 * lab.z
+        let l = l0 * l0 * l0
+        let m = m0 * m0 * m0
+        let s = s0 * s0 * s0
+        let r = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s
+        let g = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s
+        let b = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s
+        return RGB(
+            clamp01(linearToSrgb(r)),
+            clamp01(linearToSrgb(g)),
+            clamp01(linearToSrgb(b))
+        )
+    }
+
+    // MARK: - Math helpers
+
+    private static func clamp01(_ value: Double) -> Double {
+        min(max(value, 0.0), 1.0)
+    }
+
+    private static func smoothstep01(_ x: Double) -> Double {
+        let t = clamp01(x)
+        return t * t * (3.0 - 2.0 * t)
+    }
+
+    private static func smoothstep(from edge0: Double, to edge1: Double, value: Double) -> Double {
+        smoothstep01((value - edge0) / (edge1 - edge0))
     }
 }

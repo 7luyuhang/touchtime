@@ -128,6 +128,14 @@ enum SolarCalculator {
         )
     }
 
+    /// Solar hour angle in degrees at an exact instant, normalized to [-180, 180).
+    /// 0 at local solar noon, negative in the morning, positive in the afternoon.
+    /// Divide by 15 to get hours from solar noon. Timezone-independent.
+    static func hourAngle(longitude: Double, date: Date) -> Double {
+        let angles = solarAngles(julianCentury: julianCentury(for: date))
+        return hourAngleDegrees(date: date, longitude: longitude, eqTimeMinutes: angles.eqTimeMinutes)
+    }
+
     // MARK: - Calendar cache
 
     // Calendar(identifier:) + timeZone assignment is surprisingly expensive;
