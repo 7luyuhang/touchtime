@@ -8,6 +8,7 @@
 
 import WidgetKit
 import SwiftUI
+import WeatherKit
 
 // MARK: - Timeline
 
@@ -17,6 +18,7 @@ struct CityComplicationEntry: TimelineEntry {
     let timeZoneIdentifier: String
     let complication: WidgetComplicationKind
     let use24Hour: Bool
+    var weatherCondition: WeatherCondition? = nil
 }
 
 struct CityComplicationProvider: AppIntentTimelineProvider {
@@ -32,12 +34,14 @@ struct CityComplicationProvider: AppIntentTimelineProvider {
         } else {
             city = savedCities.first
         }
+        let timeZoneIdentifier = city?.timeZoneIdentifier ?? "Europe/London"
         return CityComplicationEntry(
             date: date,
             cityName: city?.cityName ?? "London",
-            timeZoneIdentifier: city?.timeZoneIdentifier ?? "Europe/London",
+            timeZoneIdentifier: timeZoneIdentifier,
             complication: configuration.complication,
-            use24Hour: SharedWidgetStore.use24HourFormat()
+            use24Hour: SharedWidgetStore.use24HourFormat(),
+            weatherCondition: SharedWidgetStore.weatherCondition(for: timeZoneIdentifier)
         )
     }
 
@@ -130,9 +134,12 @@ struct CityComplicationWidgetView: View {
         .foregroundStyle(.white)
         .padding(14)
         .containerBackground(for: .widget) {
+            // Rainy conditions switch the gradient to its nimbostratus palette
+            // and force starOpacity to 0, so stars never show through rain.
             let gradient = SkyColorGradient(
                 date: entry.date,
-                timeZoneIdentifier: entry.timeZoneIdentifier
+                timeZoneIdentifier: entry.timeZoneIdentifier,
+                weatherCondition: entry.weatherCondition
             )
             gradient.linearGradient()
                 .overlay {
@@ -185,4 +192,34 @@ struct CityComplicationWidget: Widget {
         .supportedFamilies([.systemSmall])
         .contentMarginsDisabled()
     }
+}
+
+// MARK: - Previews
+
+#Preview("City Time", as: .systemSmall) {
+    CityComplicationWidget()
+} timeline: {
+    CityComplicationEntry(
+        date: .now,
+        cityName: "London",
+        timeZoneIdentifier: "Europe/London",
+        complication: .sunriseSunset,
+        use24Hour: false,
+        weatherCondition: .rain
+    )
+    CityComplicationEntry(
+        date: .now,
+        cityName: "London",
+        timeZoneIdentifier: "Europe/London",
+        complication: .sunriseSunset,
+        use24Hour: false,
+        weatherCondition: .heavyRain
+    )
+    CityComplicationEntry(
+        date: .now,
+        cityName: "London",
+        timeZoneIdentifier: "Europe/London",
+        complication: .sunriseSunset,
+        use24Hour: false
+    )
 }

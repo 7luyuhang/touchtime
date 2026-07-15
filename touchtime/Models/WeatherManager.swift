@@ -84,6 +84,7 @@ class WeatherManager: ObservableObject {
             // Update cache
             let dailyWeather = weather.dailyForecast.first
             weatherCache[cacheKey] = (weather.currentWeather, dailyWeather, weeklyForecast, Date())
+            syncConditionsToWidget()
             
         } catch {
             self.weatherError = error
@@ -165,9 +166,22 @@ class WeatherManager: ObservableObject {
             weatherData = newWeatherData
             dailyWeatherData = newDailyData
             weeklyWeatherData = newWeeklyData
+            syncConditionsToWidget()
         }
         
         isLoading = false
+    }
+    
+    // Persist the latest conditions to the App Group so the widget can render
+    // rainy skies for its configured city.
+    private func syncConditionsToWidget() {
+        let conditions = weatherCache.mapValues { cached in
+            SharedWidgetStore.StoredWeatherCondition(
+                conditionRawValue: cached.weather.condition.rawValue,
+                fetchedAt: cached.timestamp
+            )
+        }
+        SharedWidgetStore.saveWeatherConditions(conditions)
     }
     
     // Get location (CLLocation) from timezone identifier
