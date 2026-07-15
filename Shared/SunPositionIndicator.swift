@@ -12,7 +12,6 @@ struct SunPositionIndicator: View {
     let timeZone: TimeZone
     let size: CGFloat
     let useMaterialBackground: Bool
-    let showBackground: Bool
     
     // Cache daily sun times per timezone to avoid repeated calculations
     private struct SunTimes {
@@ -34,12 +33,11 @@ struct SunPositionIndicator: View {
         return cache
     }()
     
-    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false, showBackground: Bool = true) {
+    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false) {
         self.date = date
         self.timeZone = timeZone
         self.size = size
         self.useMaterialBackground = useMaterialBackground
-        self.showBackground = showBackground
     }
     
     // Calculate sun position using real sunrise/sunset/solar noon for the city
@@ -131,20 +129,18 @@ struct SunPositionIndicator: View {
         let sunCenterOffset = -sunYOffset
         
         ZStack {
-            if showBackground {
-                if useMaterialBackground {
-                    Circle()
-                        .fill(.black.opacity(0.05))
-                        .blendMode(.plusDarker)
-                } else {
-                    Circle()
-                        .fill(.clear)
-                        .background(
-                            Circle()
-                                .fill(Color.black.opacity(0.10))
-                                .glassEffect(.clear)
-                        )
-                }
+            if useMaterialBackground {
+                Circle()
+                    .fill(.black.opacity(0.05))
+                    .blendMode(.plusDarker)
+            } else {
+                Circle()
+                    .fill(.clear)
+                    .background(
+                        Circle()
+                            .fill(Color.black.opacity(0.10))
+                            .glassEffect(.clear)
+                    )
             }
             
             // Horizontal Line

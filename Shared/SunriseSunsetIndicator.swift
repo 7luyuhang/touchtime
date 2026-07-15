@@ -12,7 +12,6 @@ struct SunriseSunsetIndicator: View {
     let timeZone: TimeZone
     let size: CGFloat
     let useMaterialBackground: Bool
-    let showBackground: Bool
     
     // Cache daily sun times per timezone to avoid repeated calculations
     private struct SunTimes {
@@ -34,12 +33,11 @@ struct SunriseSunsetIndicator: View {
         return cache
     }()
     
-    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false, showBackground: Bool = true) {
+    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false) {
         self.date = date
         self.timeZone = timeZone
         self.size = size
         self.useMaterialBackground = useMaterialBackground
-        self.showBackground = showBackground
     }
     
     // Get cached sun times for this day/timezone
@@ -109,20 +107,18 @@ struct SunriseSunsetIndicator: View {
         
         ZStack {
             // Background circle
-            if showBackground {
-                if useMaterialBackground {
-                    Circle()
-                        .fill(.black.opacity(0.05))
-                        .blendMode(.plusDarker)
-                } else {
-                    Circle()
-                        .fill(.clear)
-                        .background(
-                            Circle()
-                                .fill(Color.black.opacity(0.10))
-                                .glassEffect(.clear)
-                        )
-                }
+            if useMaterialBackground {
+                Circle()
+                    .fill(.black.opacity(0.05))
+                    .blendMode(.plusDarker)
+            } else {
+                Circle()
+                    .fill(.clear)
+                    .background(
+                        Circle()
+                            .fill(Color.black.opacity(0.10))
+                            .glassEffect(.clear)
+                    )
             }
             
             // Daylight arc fill between sunrise and sunset

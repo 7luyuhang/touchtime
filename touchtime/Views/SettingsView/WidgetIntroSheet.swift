@@ -258,22 +258,22 @@ private struct CityWidgetPreview: View {
         .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
     }
 
-    // Same complications as CityComplicationWidgetView, without the circular
-    // background fill: the sheet's glass card already provides the surface.
+    // Same complications as CityComplicationWidgetView, with the same
+    // material background as the real widget.
     @ViewBuilder
     private var complicationView: some View {
         let size = Self.complicationSize
         switch complication {
         case .analogClock:
-            AnalogClockView(date: date, size: size, timeZone: timeZone, showBackground: false)
+            AnalogClockView(date: date, size: size, timeZone: timeZone, useMaterialBackground: true)
         case .sunPosition:
-            SunPositionIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
+            SunPositionIndicator(date: date, timeZone: timeZone, size: size, useMaterialBackground: true)
         case .sunriseSunset:
-            SunriseSunsetIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
+            SunriseSunsetIndicator(date: date, timeZone: timeZone, size: size, useMaterialBackground: true)
         case .sunAzimuth:
-            SunAzimuthIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
+            SunAzimuthIndicator(date: date, timeZone: timeZone, size: size, useMaterialBackground: true)
         case .solarCurve:
-            SolarCurve(date: date, timeZone: timeZone, size: size, showBackground: false)
+            SolarCurve(date: date, timeZone: timeZone, size: size, useMaterialBackground: true)
         }
     }
 }
