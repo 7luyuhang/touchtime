@@ -93,7 +93,7 @@ struct ComplicationsSettingsView: View {
 
     private func isLocked(_ type: ComplicationType) -> Bool {
         switch type {
-        case .moonAzimuth, .moonSunAzimuth, .weatherCondition, .temperatureIndicator, .uvIndex, .windDirection, .daylight, .timeOverlay:
+        case .moonAzimuth, .moonSunAzimuth, .temperatureIndicator, .uvIndex, .windDirection, .daylight, .timeOverlay:
             return !hasLifetimeAccess
         default:
             return false
@@ -102,7 +102,7 @@ struct ComplicationsSettingsView: View {
 
     private func enforceComplicationAvailability() {
         if !hasLifetimeAccess {
-            if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
+            if showMoonAzimuth || showMoonSunAzimuth || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
                 selectComplication(nil)
             }
             return
@@ -210,14 +210,10 @@ struct ComplicationsSettingsView: View {
     // MARK: - Complication Selector
     private var complicationSelector: some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 16) {
-                LazyVGrid(
-                    columns: [
-                        GridItem(.flexible(), spacing: 8),
-                        GridItem(.flexible(), spacing: 8)
-                    ],
-                    spacing: 8
-                ) {
+            VStack(alignment: .leading, spacing: 0) {
+                // General
+                sectionHeader("General", topPadding: 8)
+                complicationGrid {
                     // Analog Clock
                     complicationOption(
                         type: .analogClock,
@@ -231,7 +227,26 @@ struct ComplicationsSettingsView: View {
                             showScale: analogClockShowScale
                         )
                     }
-                    
+
+                    if hasLifetimeAccess && availableTimeEnabled {
+                        // Time Overlay
+                        complicationOption(
+                            type: .timeOverlay,
+                            isSelected: showTimeOverlay
+                        ) {
+                            TimeOverlayIndicator(
+                                date: currentDate,
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                        }
+                    }
+                }
+
+                // Astronomy
+                sectionHeader("Astronomy")
+                complicationGrid {
                     // Sun Elevation
                     complicationOption(
                         type: .sunElevation,
@@ -297,21 +312,6 @@ struct ComplicationsSettingsView: View {
                         )
                     }
 
-                    if hasLifetimeAccess && availableTimeEnabled {
-                        // Time Overlay
-                        complicationOption(
-                            type: .timeOverlay,
-                            isSelected: showTimeOverlay
-                        ) {
-                            TimeOverlayIndicator(
-                                date: currentDate,
-                                timeZone: TimeZone.current,
-                                size: 64,
-                                useMaterialBackground: false
-                            )
-                        }
-                    }
-
                     // Moon Azimuth
                     complicationOption(
                         type: .moonAzimuth,
@@ -337,9 +337,12 @@ struct ComplicationsSettingsView: View {
                             useMaterialBackground: false
                         )
                     }
-                    
-                    // Weather Condition (only show if weather is enabled)
-                    if showWeather {
+                }
+
+                // Weather
+                sectionHeader("Weather")
+                if showWeather {
+                    complicationGrid {
                         complicationOption(
                             type: .weatherCondition,
                             isSelected: showWeatherCondition
@@ -388,16 +391,38 @@ struct ComplicationsSettingsView: View {
                             .environmentObject(weatherManager)
                         }
                     }
-
-                    if !showWeather {
-                        weatherReminderCard
-                            .gridCellColumns(2)
-                    }
+                } else {
+                    weatherReminderCard
                 }
 
                 locationHint
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 16)
             }
             .padding(.vertical, 4)
+        }
+    }
+
+    // Section header style matching DetailsSheet subtitles
+    private func sectionHeader(_ title: LocalizedStringKey, topPadding: CGFloat = 24) -> some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .blendMode(.plusLighter)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
+            .padding(.top, topPadding)
+    }
+
+    private func complicationGrid<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: 8),
+                GridItem(.flexible(), spacing: 8)
+            ],
+            spacing: 8
+        ) {
+            content()
         }
     }
 
@@ -415,7 +440,7 @@ struct ComplicationsSettingsView: View {
 
     private var weatherReminderCard: some View {
         Text(String(localized: "Enable Weather to discover more"))
-            .font(.caption.weight(.medium))
+            .font(.footnote.weight(.medium))
             .multilineTextAlignment(.center)
             .foregroundStyle(.secondary)
             .lineLimit(2)

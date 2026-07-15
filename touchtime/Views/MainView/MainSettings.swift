@@ -203,7 +203,7 @@ struct SettingsView: View {
     }
 
     private var effectiveShowWeatherCondition: Bool {
-        hasLifetimeAccess && showWeather && showWeatherCondition
+        showWeather && showWeatherCondition
     }
 
     private var effectiveShowTemperatureIndicator: Bool {

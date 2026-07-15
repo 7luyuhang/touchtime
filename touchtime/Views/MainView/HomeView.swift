@@ -475,7 +475,7 @@ struct HomeView: View {
     }
 
     private var effectiveShowWeatherCondition: Bool {
-        hasLifetimeAccess && showWeatherCondition
+        showWeatherCondition
     }
 
     private var effectiveShowTemperatureIndicator: Bool {

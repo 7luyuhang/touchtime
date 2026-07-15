@@ -246,7 +246,6 @@ struct OnboardingView: View {
         let hasLifetimeOnlySelection = [
             showMoonAzimuth,
             showMoonSunAzimuth,
-            showWeatherCondition,
             showTemperatureIndicator,
             showUVIndex,
             showWindDirection,
@@ -588,7 +587,7 @@ struct OnboardingView: View {
                                     )
                                 }
                                 
-                                if canShowLifetimeWeatherComplications && showWeatherCondition {
+                                if showWeather && showWeatherCondition {
                                     WeatherConditionView(
                                         timeZone: TimeZone.current,
                                         size: 64,
@@ -743,7 +742,7 @@ struct OnboardingView: View {
                                         }
                                     }
                                     
-                                    if canShowLifetimeWeatherComplications {
+                                    if showWeather {
                                         complicationOption(type: .weatherCondition, isSelected: showWeatherCondition) {
                                             WeatherConditionView(
                                                 timeZone: TimeZone.current,
@@ -752,7 +751,9 @@ struct OnboardingView: View {
                                             )
                                             .environmentObject(weatherManager)
                                         }
+                                    }
 
+                                    if canShowLifetimeWeatherComplications {
                                         complicationOption(type: .temperatureIndicator, isSelected: showTemperatureIndicator) {
                                             TemperatureIndicator(
                                                 timeZone: TimeZone.current,

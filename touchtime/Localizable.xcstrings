@@ -1756,6 +1756,22 @@
         }
       }
     },
+    "Astronomy" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天文"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天文"
+          }
+        }
+      }
+    },
     "Asuncion" : {
       "extractionState" : "manual",
       "localizations" : {
