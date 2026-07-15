@@ -44,6 +44,7 @@ struct SettingsView: View {
     @AppStorage("showMinuteHand") private var showMinuteHand = true
     @AppStorage("showUTCHand") private var showUTCHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("hasSeenWidgetIntro") private var hasSeenWidgetIntro = false
     @AppStorage("hourlyNotificationEnabled") private var hourlyNotificationEnabled = false
     @AppStorage(HourlyNotificationManager.timeWindowEnabledKey) private var chimeTimeWindowEnabled = false
     @AppStorage(HourlyNotificationManager.startTimeKey) private var chimeStartTime = HourlyNotificationManager.defaultStartTime
@@ -536,6 +537,7 @@ struct SettingsView: View {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                         }
+                        hasSeenWidgetIntro = true
                         showWidgetSheet = true
                     }) {
                         HStack {
@@ -545,6 +547,13 @@ struct SettingsView: View {
                             }
                             .layoutPriority(1)
                             Spacer(minLength: 8)
+                            if !hasSeenWidgetIntro {
+                                Circle()
+                                    .fill(.red)
+                                    .glassEffect(.regular.interactive())
+                                    .frame(width: 8, height: 8)
+                                    .padding(.trailing, 4)
+                            }
                         }
                     }
                     .foregroundStyle(.primary)
