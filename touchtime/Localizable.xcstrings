@@ -5645,22 +5645,6 @@
         }
       }
     },
-    "Features" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "功能"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "功能"
-          }
-        }
-      }
-    },
     "Fiji" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14367,6 +14351,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "湯加塔布"
+          }
+        }
+      }
+    },
+    "Tools" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工具"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "工具"
           }
         }
       }

@@ -17,6 +17,7 @@ struct AboutView: View {
     @State private var didResetSuccessfully = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("showLocalTime") private var showLocalTime = true
     @State private var rippleCounter: Int = 0
     @State private var rippleOrigin: CGPoint = .init(x: 50, y: 50)
     @State private var safariURL: URL?
@@ -75,6 +76,16 @@ struct AboutView: View {
             }
             .frame(maxWidth: .infinity, alignment: .center)
             .listRowBackground(Color.clear)
+
+            // Local Time
+            Section(footer: Text("System time shows at the top of the list with ambient background.")) {
+                TouchTimeToggle(isOn: $showLocalTime) {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "location.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                        Text("System Time")
+                    }
+                }
+            }
 
             Section {
                 // Language

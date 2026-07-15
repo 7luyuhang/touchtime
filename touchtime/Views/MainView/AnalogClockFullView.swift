@@ -726,7 +726,7 @@ struct AnalogClockFullView: View {
             }
         }
 
-        Section(String(localized: "Features")) {
+        Section(String(localized: "Tools")) {
             Button(action: {
                 triggerMenuHaptic()
                 showSetAlarmSheet = true

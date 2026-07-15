@@ -560,16 +560,6 @@ struct SettingsView: View {
                     
                 }
                 
-                // Local Time
-                Section(footer: Text("System time shows at the top of the list with ambient background.")) {
-                    TouchTimeToggle(isOn: $showLocalTime) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "location.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
-                            Text("System Time")
-                        }
-                    }
-                }
-                
                 // Temperature/Weather Section
                 Section {
                     TouchTimeToggle(isOn: Binding(

@@ -1580,7 +1580,7 @@ struct HomeView: View {
                             }
                         }
 
-                        Section(String(localized: "Features")) {
+                        Section(String(localized: "Tools")) {
                             Button(action: {
                                 if hapticEnabled {
                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
