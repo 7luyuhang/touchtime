@@ -12,6 +12,7 @@ struct SunAzimuthIndicator: View {
     let timeZone: TimeZone
     let size: CGFloat
     let useMaterialBackground: Bool
+    let showBackground: Bool
     
     // Cache hourly sun positions for a given day/timezone, then interpolate for smooth animation
     private struct HourlySunData {
@@ -32,11 +33,12 @@ struct SunAzimuthIndicator: View {
         return cache
     }()
     
-    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false) {
+    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false, showBackground: Bool = true) {
         self.date = date
         self.timeZone = timeZone
         self.size = size
         self.useMaterialBackground = useMaterialBackground
+        self.showBackground = showBackground
     }
     
     // Interpolated sun position based on cached hourly data
@@ -147,18 +149,20 @@ struct SunAzimuthIndicator: View {
         
         ZStack {
             // Background circle
-            if useMaterialBackground {
-                Circle()
-                    .fill(.black.opacity(0.05))
-                    .blendMode(.plusDarker)
-            } else {
-                Circle()
-                    .fill(.clear)
-                    .background(
-                        Circle()
-                            .fill(Color.black.opacity(0.10))
-                            .glassEffect(.clear)
-                    )
+            if showBackground {
+                if useMaterialBackground {
+                    Circle()
+                        .fill(.black.opacity(0.05))
+                        .blendMode(.plusDarker)
+                } else {
+                    Circle()
+                        .fill(.clear)
+                        .background(
+                            Circle()
+                                .fill(Color.black.opacity(0.10))
+                                .glassEffect(.clear)
+                        )
+                }
             }
             
             // Cross lines (combined)

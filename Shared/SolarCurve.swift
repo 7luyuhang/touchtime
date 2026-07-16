@@ -12,6 +12,7 @@ struct SolarCurve: View {
     let timeZone: TimeZone
     let size: CGFloat
     let useMaterialBackground: Bool
+    let showBackground: Bool
     
     // Cache the Path to avoid recreating it on every body update
     @State private var cachedPath: Path?
@@ -57,11 +58,12 @@ struct SolarCurve: View {
         return cache
     }()
     
-    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false) {
+    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false, showBackground: Bool = true) {
         self.date = date
         self.timeZone = timeZone
         self.size = size
         self.useMaterialBackground = useMaterialBackground
+        self.showBackground = showBackground
     }
     
     // Generate day key for caching (only changes when date changes, not time)
@@ -212,18 +214,20 @@ struct SolarCurve: View {
         
         ZStack {
             // Background circle
-            if useMaterialBackground {
-                Circle()
-                    .fill(.black.opacity(0.05))
-                    .blendMode(.plusDarker)
-            } else {
-                Circle()
-                    .fill(.clear)
-                    .background(
-                        Circle()
-                            .fill(Color.black.opacity(0.10))
-                            .glassEffect(.clear)
-                    )
+            if showBackground {
+                if useMaterialBackground {
+                    Circle()
+                        .fill(.black.opacity(0.05))
+                        .blendMode(.plusDarker)
+                } else {
+                    Circle()
+                        .fill(.clear)
+                        .background(
+                            Circle()
+                                .fill(Color.black.opacity(0.10))
+                                .glassEffect(.clear)
+                        )
+                }
             }
             
             // Curve above horizon (opacity 1.0)

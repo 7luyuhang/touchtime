@@ -42,6 +42,11 @@ struct WidgetSkyBackground: View {
                         )
                         .opacity(gradient.starOpacity)
                         .blendMode(.plusLighter)
+                        // Star positions derive from the seed: when the city
+                        // changes, swap the whole star field (default fade)
+                        // instead of letting WidgetKit slide each star from
+                        // its old position to the new one.
+                        .id(timeZoneIdentifier)
                     }
                 }
         }

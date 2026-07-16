@@ -2,9 +2,10 @@
 //  WidgetIntroSheet.swift
 //  touchtime
 //
-//  Introduces the home screen widget with a 1:1 preview of the small
-//  City Time widget, defaulting to the local city. Tapping the preview
-//  cycles through the complications the widget supports.
+//  Introduces the home screen widgets with 1:1 previews of the small
+//  City Time widget and the medium World Cities widget, shown in a
+//  swipeable carousel. Tapping a preview cycles through the
+//  complications the widget supports.
 //
 
 import SwiftUI
@@ -26,14 +27,32 @@ private enum WidgetPreviewComplication: CaseIterable {
     }
 }
 
+// The two pages of the widget preview carousel
+private enum WidgetPreviewPage: CaseIterable {
+    case small
+    case medium
+}
+
+// Shared by both previews: matches the height of a real home screen widget
+private let widgetPreviewHeight: CGFloat = 164
+
 struct WidgetIntroSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var animateIcon = false
     @State private var animateText = false
-    // Widget default; tapping the preview cycles through all five
+    // The medium widget and the page dots come in after the small widget
+    @State private var animateMediumWidget = false
+    @State private var currentPage: WidgetPreviewPage? = .small
+    // Widget defaults; tapping a preview cycles through all five
     @State private var complication: WidgetPreviewComplication = .sunriseSunset
+    @State private var mediumComplication: WidgetPreviewComplication = .analogClock
+
+    // Carousel layout: pages are inset so the medium widget peeks in
+    // from the trailing edge, hinting that the carousel can be swiped.
+    private static let pageInset: CGFloat = 40
+    private static let pageSpacing: CGFloat = 12
 
     // Apple's widget guide, localized to the language the app is running in
     private var widgetSupportURL: URL {
@@ -71,44 +90,85 @@ struct WidgetIntroSheet: View {
                 Spacer()
 
                 TimelineView(.everyMinute) { context in
-                    CityWidgetPreview(
-                        date: context.date,
-                        cityName: String(localized: "City"),
-                        timeZoneIdentifier: TimeZone.current.identifier,
-                        use24Hour: use24HourFormat,
-                        complication: complication
-                    )
-                    // Blurred sky glow behind the widget, same treatment as
-                    // the local time row at the top of HomeView
+                    GeometryReader { geometry in
+                        let pageWidth = max(geometry.size.width - Self.pageInset * 2, widgetPreviewHeight)
+                        // Same proportions as a real home screen medium widget:
+                        // two smalls plus the column gap, clamped to the sheet.
+                        let mediumWidth = min(widgetPreviewHeight * 2 + 22, geometry.size.width - 32)
+
+                        ScrollView(.horizontal) {
+                            HStack(spacing: Self.pageSpacing) {
+                                // Small City Time widget
+                                CityWidgetPreview(
+                                    date: context.date,
+                                    cityName: String(localized: "City"),
+                                    timeZoneIdentifier: TimeZone.current.identifier,
+                                    use24Hour: use24HourFormat,
+                                    complication: complication
+                                )
+                                .onTapGesture {
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                    }
+                                    withAnimation(.smooth(duration: 0.5)) {
+                                        complication = complication.next
+                                    }
+                                }
+                                // Entrance animation, same as the app icon in OnboardingView
+                                .brightness(animateIcon ? 0 : 0.50)
+                                .blur(radius: animateIcon ? 0 : 25)
+                                .scaleEffect(animateIcon ? 1.0 : 0.5)
+                                .opacity(animateIcon ? 1.0 : 0.0)
+                                .offset(y: animateText ? 0 : 50)
+                                .animation(
+                                    .bouncy(duration: 1.0), value: animateIcon
+                                )
+                                .frame(width: pageWidth)
+                                .id(WidgetPreviewPage.small)
+
+                                // Medium World Cities widget, revealed after the small one
+                                WorldCitiesWidgetPreview(
+                                    date: context.date,
+                                    use24Hour: use24HourFormat,
+                                    complication: mediumComplication,
+                                    width: mediumWidth
+                                )
+                                .onTapGesture {
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                    }
+                                    withAnimation(.smooth(duration: 0.5)) {
+                                        mediumComplication = mediumComplication.next
+                                    }
+                                }
+                                .brightness(animateMediumWidget ? 0 : 0.50)
+                                .blur(radius: animateMediumWidget ? 0 : 25)
+                                .scaleEffect(animateMediumWidget ? 1.0 : 0.5)
+                                .opacity(animateMediumWidget ? 1.0 : 0.0)
+                                .offset(y: animateMediumWidget ? 0 : 50)
+                                .animation(
+                                    .bouncy(duration: 1.0), value: animateMediumWidget
+                                )
+                                .frame(width: pageWidth)
+                                .id(WidgetPreviewPage.medium)
+                            }
+                            .scrollTargetLayout()
+                        }
+                        .contentMargins(.horizontal, Self.pageInset, for: .scrollContent)
+                        .scrollTargetBehavior(.viewAligned(limitBehavior: .always))
+                        .scrollPosition(id: $currentPage)
+                        .scrollIndicators(.hidden)
+                        .scrollClipDisabled()
+                    }
+                    .frame(height: widgetPreviewHeight)
+                    // One shared sky glow behind the carousel; it stays put
+                    // while the pages scroll over it.
                     .background {
-                        SkyBackgroundView(
-                            date: context.date,
-                            timeZoneIdentifier: TimeZone.current.identifier,
-                            appliesCardChrome: false
-                        )
-                        .frame(width: 300, height: 300)
-                        .blur(radius: 100)
-                        .opacity(0.60)
-                        .allowsHitTesting(false)
+                        skyGlow(date: context.date)
+                            .opacity(animateIcon ? 1.0 : 0.0)
+                            .animation(.bouncy(duration: 1.0), value: animateIcon)
                     }
                 }
-                .onTapGesture {
-                    if hapticEnabled {
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    }
-                    withAnimation(.smooth(duration: 0.5)) {
-                        complication = complication.next
-                    }
-                }
-                // Entrance animation, same as the app icon in OnboardingView
-                .brightness(animateIcon ? 0 : 0.50)
-                .blur(radius: animateIcon ? 0 : 25)
-                .scaleEffect(animateIcon ? 1.0 : 0.5)
-                .opacity(animateIcon ? 1.0 : 0.0)
-                .offset(y: animateText ? 0 : 50)
-                .animation(
-                    .bouncy(duration: 1.0), value: animateIcon
-                )
 
                 Text("Check the time in your favourite cities at a glance on the Home Screen.")
                     .font(.subheadline)
@@ -124,6 +184,22 @@ struct WidgetIntroSheet: View {
                     .animation(
                         .smooth(duration: 1.0), value: animateText
                     )
+
+                // Page dots, revealed together with the medium widget
+                HStack(spacing: 8) {
+                    ForEach(WidgetPreviewPage.allCases, id: \.self) { page in
+                        Circle()
+                            .fill(.primary)
+                            .frame(width: 7, height: 7)
+                            .opacity(currentPage == page ? 0.9 : 0.3)
+                    }
+                }
+                .blendMode(.plusLighter)
+                .padding(.top, 20)
+                .blur(radius: animateMediumWidget ? 0 : 10)
+                .opacity(animateMediumWidget ? 1.0 : 0.0)
+                .animation(.smooth(duration: 1.0), value: animateMediumWidget)
+                .animation(.smooth(duration: 0.3), value: currentPage)
 
                 Spacer()
 
@@ -190,8 +266,26 @@ struct WidgetIntroSheet: View {
                     animateIcon = true
                     animateText = true
                 }
+                // The medium widget peeks in once the small one has settled
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    animateMediumWidget = true
+                }
             }
         }
+    }
+
+    // Blurred sky glow behind the widget previews, same treatment as
+    // the local time row at the top of HomeView
+    private func skyGlow(date: Date) -> some View {
+        SkyBackgroundView(
+            date: date,
+            timeZoneIdentifier: TimeZone.current.identifier,
+            appliesCardChrome: false
+        )
+        .frame(width: 300, height: 300)
+        .blur(radius: 100)
+        .opacity(0.60)
+        .allowsHitTesting(false)
     }
 }
 
@@ -205,7 +299,7 @@ private struct CityWidgetPreview: View {
     let use24Hour: Bool
     let complication: WidgetPreviewComplication
 
-    private static let widgetSize: CGFloat = 164
+    private static let widgetSize: CGFloat = widgetPreviewHeight
     private static let cornerRadius: CGFloat = 28
     private static let complicationSize: CGFloat = 80
 
@@ -258,22 +352,150 @@ private struct CityWidgetPreview: View {
         .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
     }
 
-    // Same complications as CityComplicationWidgetView, with the same
-    // material background as the real widget.
+    // Same complications as CityComplicationWidgetView, without any
+    // background fill: the stroke overlay above is the only chrome.
     @ViewBuilder
     private var complicationView: some View {
         let size = Self.complicationSize
         switch complication {
         case .analogClock:
-            AnalogClockView(date: date, size: size, timeZone: timeZone, useMaterialBackground: true)
+            AnalogClockView(date: date, size: size, timeZone: timeZone, showBackground: false)
         case .sunPosition:
-            SunPositionIndicator(date: date, timeZone: timeZone, size: size, useMaterialBackground: true)
+            SunPositionIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
         case .sunriseSunset:
-            SunriseSunsetIndicator(date: date, timeZone: timeZone, size: size, useMaterialBackground: true)
+            SunriseSunsetIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
         case .sunAzimuth:
-            SunAzimuthIndicator(date: date, timeZone: timeZone, size: size, useMaterialBackground: true)
+            SunAzimuthIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
         case .solarCurve:
-            SolarCurve(date: date, timeZone: timeZone, size: size, useMaterialBackground: true)
+            SolarCurve(date: date, timeZone: timeZone, size: size, showBackground: false)
+        }
+    }
+}
+
+// 1:1 replica of the medium World Cities widget (WorldCitiesWidgetView):
+// four city columns side by side, each showing the chosen complication
+// with name / time below, glass background.
+private struct WorldCitiesWidgetPreview: View {
+    let date: Date
+    let use24Hour: Bool
+    let complication: WidgetPreviewComplication
+    let width: CGFloat
+
+    private static let cornerRadius: CGFloat = 28
+
+    private struct PreviewCity: Identifiable {
+        let name: String
+        let timeZoneIdentifier: String
+        var id: String { timeZoneIdentifier }
+    }
+
+    // Default cities shown in the preview
+    private static let cities: [PreviewCity] = [
+        PreviewCity(name: String(localized: "London"), timeZoneIdentifier: "Europe/London"),
+        PreviewCity(name: String(localized: "Shanghai"), timeZoneIdentifier: "Asia/Shanghai"),
+        PreviewCity(name: String(localized: "New York"), timeZoneIdentifier: "America/New_York"),
+        PreviewCity(name: String(localized: "Tokyo"), timeZoneIdentifier: "Asia/Tokyo")
+    ]
+
+    // Same 68pt complication as the real widget, shrunk evenly when the
+    // preview is narrower than a real medium widget.
+    private var complicationSize: CGFloat {
+        min(68, (width - 32 - 24) / 4)
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(Self.cities) { city in
+                WorldCityPreviewColumn(
+                    date: date,
+                    cityName: city.name,
+                    timeZoneIdentifier: city.timeZoneIdentifier,
+                    use24Hour: use24Hour,
+                    complication: complication,
+                    size: complicationSize,
+                    // The first city is "selected", like the real widget's default sky
+                    isSelected: city.id == Self.cities.first?.id
+                )
+            }
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 10)
+        .frame(width: width, height: widgetPreviewHeight)
+        .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        // Make the whole widget tappable, not just the opaque content inside
+        .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+    }
+}
+
+// Mirrors WorldCityColumn from the widget extension
+private struct WorldCityPreviewColumn: View {
+    let date: Date
+    let cityName: String
+    let timeZoneIdentifier: String
+    let use24Hour: Bool
+    let complication: WidgetPreviewComplication
+    let size: CGFloat
+    let isSelected: Bool
+
+    private var timeZone: TimeZone {
+        TimeZone(identifier: timeZoneIdentifier) ?? .current
+    }
+
+    private var timeString: String {
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = use24Hour ? "HH:mm" : "h:mm"
+        return formatter.string(from: date)
+    }
+
+    var body: some View {
+        VStack(spacing: 8) {
+            complicationView
+                .overlay {
+                    Circle()
+                        .strokeBorder(.white.opacity(0.10), lineWidth: 1.50)
+                        .blendMode(.plusLighter)
+                }
+                .frame(width: size, height: size)
+                .transition(.blurReplace)
+                .id(complication)
+
+            VStack(spacing: 0) {
+                Text(cityName)
+                    .font(.system(size: 13, weight: .semibold))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+
+                Text(timeString)
+                    .font(.system(size: 13, weight: .medium))
+                    .monospacedDigit()
+                    .foregroundStyle(isSelected ? HierarchicalShapeStyle.primary : .secondary)
+                    .transition(.blurReplace)
+                    .id(timeString)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .animation(.smooth(duration: 0.5), value: timeString)
+    }
+
+    // Same complications as WorldCityColumn, without any background
+    // fill, matching the small widget preview.
+    @ViewBuilder
+    private var complicationView: some View {
+        switch complication {
+        case .analogClock:
+            AnalogClockView(date: date, size: size, timeZone: timeZone, showBackground: false)
+        case .sunPosition:
+            SunPositionIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
+        case .sunriseSunset:
+            SunriseSunsetIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
+        case .sunAzimuth:
+            SunAzimuthIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
+        case .solarCurve:
+            SolarCurve(date: date, timeZone: timeZone, size: size, showBackground: false)
         }
     }
 }

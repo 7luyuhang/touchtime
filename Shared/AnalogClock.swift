@@ -13,15 +13,17 @@ struct AnalogClockView: View {
     let size: CGFloat
     let timeZone: TimeZone
     let useMaterialBackground: Bool
+    let showBackground: Bool
     let showScale: Bool
     
     @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
     
-    init(date: Date = Date(), size: CGFloat = 100, timeZone: TimeZone = .current, useMaterialBackground: Bool = false, showScale: Bool = false) {
+    init(date: Date = Date(), size: CGFloat = 100, timeZone: TimeZone = .current, useMaterialBackground: Bool = false, showBackground: Bool = true, showScale: Bool = false) {
         self.date = date
         self.size = size
         self.timeZone = timeZone
         self.useMaterialBackground = useMaterialBackground
+        self.showBackground = showBackground
         self.showScale = showScale
     }
     
@@ -53,18 +55,20 @@ struct AnalogClockView: View {
     var body: some View {
         ZStack {
             // 表盘背景
-            if useMaterialBackground {
-                Circle()
-                    .fill(.black.opacity(0.05))
-                    .blendMode(.plusDarker)
-            } else {
-                Circle()
-                    .fill(.clear)
-                    .background(
-                        Circle()
-                            .fill(Color.black.opacity(0.10))
-                            .glassEffect(.clear)
-                    )
+            if showBackground {
+                if useMaterialBackground {
+                    Circle()
+                        .fill(.black.opacity(0.05))
+                        .blendMode(.plusDarker)
+                } else {
+                    Circle()
+                        .fill(.clear)
+                        .background(
+                            Circle()
+                                .fill(Color.black.opacity(0.10))
+                                .glassEffect(.clear)
+                        )
+                }
             }
             // 刻度标记（4个刻度：12、3、6、9点）
             if showScale {
