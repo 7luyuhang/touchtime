@@ -3199,13 +3199,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在主屏幕上一眼查看你喜爱城市的时间。"
+            "value" : "在主屏幕上快速查看您喜爱的城市时间。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在主畫面上一眼查看你喜愛城市的時間。"
+            "value" : "在主畫面上快速查看您喜愛的城市時間。"
           }
         }
       }
