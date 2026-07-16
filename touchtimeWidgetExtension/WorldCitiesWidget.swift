@@ -221,6 +221,7 @@ private struct WorldCityColumn: View {
                     .font(.system(size: 13, weight: .medium))
                     .monospacedDigit()
                     .foregroundStyle(isSelected ? HierarchicalShapeStyle.primary : .secondary)
+                    .blendMode(.plusLighter)
             }
         }
         .frame(maxWidth: .infinity)

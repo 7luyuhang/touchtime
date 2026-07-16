@@ -267,7 +267,7 @@ struct WidgetIntroSheet: View {
                     animateText = true
                 }
                 // The medium widget peeks in once the small one has settled
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
                     animateMediumWidget = true
                 }
             }
@@ -412,9 +412,7 @@ private struct WorldCitiesWidgetPreview: View {
                     timeZoneIdentifier: city.timeZoneIdentifier,
                     use24Hour: use24Hour,
                     complication: complication,
-                    size: complicationSize,
-                    // The first city is "selected", like the real widget's default sky
-                    isSelected: city.id == Self.cities.first?.id
+                    size: complicationSize
                 )
             }
         }
@@ -436,7 +434,6 @@ private struct WorldCityPreviewColumn: View {
     let use24Hour: Bool
     let complication: WidgetPreviewComplication
     let size: CGFloat
-    let isSelected: Bool
 
     private var timeZone: TimeZone {
         TimeZone(identifier: timeZoneIdentifier) ?? .current
@@ -471,7 +468,8 @@ private struct WorldCityPreviewColumn: View {
                 Text(timeString)
                     .font(.system(size: 13, weight: .medium))
                     .monospacedDigit()
-                    .foregroundStyle(isSelected ? HierarchicalShapeStyle.primary : .secondary)
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
                     .transition(.blurReplace)
                     .id(timeString)
             }
