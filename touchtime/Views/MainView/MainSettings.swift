@@ -263,23 +263,6 @@ struct SettingsView: View {
         )
     }
 
-    private var sunriseSunsetLinesBinding: Binding<Bool> {
-        Binding(
-            get: { hasLifetimeAccess && showSunriseSunsetLines },
-            set: { newValue in
-                if newValue {
-                    if hasLifetimeAccess {
-                        showSunriseSunsetLines = true
-                    } else {
-                        showLifetimeStore = true
-                    }
-                } else {
-                    showSunriseSunsetLines = false
-                }
-            }
-        )
-    }
-
     private var hourlyNotificationBinding: Binding<Bool> {
         Binding(
             get: { hourlyNotificationEnabled },
@@ -758,19 +741,6 @@ struct SettingsView: View {
                         }
                     }
                     
-                    TouchTimeToggle(isOn: sunriseSunsetLinesBinding) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: .gray, style: .plain)
-                            Text(String(localized: "Sunrise & Sunset Lines"))
-                            Spacer()
-                            if !hasLifetimeAccess {
-                                Image(systemName: "lock.fill")
-                                    .font(.footnote.weight(.semibold))
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                    }
-
                     TouchTimeToggle(isOn: minuteHandBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "hand.raised.fill", topColor: .gray, bottomColor: .gray, style: .plain)
@@ -793,6 +763,13 @@ struct SettingsView: View {
                         }
                     }
                     
+                    TouchTimeToggle(isOn: $showSunriseSunsetLines) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text(String(localized: "Sunrise & Sunset Lines"))
+                        }
+                    }
+
                     TouchTimeToggle(isOn: $showArcIndicator) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "circle", topColor: .gray, bottomColor: .gray, style: .plain)
@@ -1146,7 +1123,6 @@ struct SettingsView: View {
 
         if !isUnlocked {
             showGoldenHour = false
-            showSunriseSunsetLines = false
             showMinuteHand = false
             availableTimeEnabled = false
         }

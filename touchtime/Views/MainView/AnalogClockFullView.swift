@@ -2076,7 +2076,7 @@ struct AnalogClockFaceView: View {
             }
             
             // Sunrise and Sunset indicator lines with daylight arc
-            if hasLifetimeAccess, showSunriseSunsetLines, let times = sunTimes {
+            if showSunriseSunsetLines, let times = sunTimes {
                 // Daylight arc fill between sunrise and sunset
                 if let sunriseAngle = angleForDate(times.sunrise),
                    let sunsetAngle = angleForDate(times.sunset) {
