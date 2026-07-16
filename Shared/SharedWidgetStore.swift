@@ -13,7 +13,9 @@ enum SharedWidgetStore {
     static let appGroupIdentifier = "group.com.time.touchtime"
     static let worldClocksKey = "savedWorldClocks"
     static let use24HourKey = "use24HourFormat"
+    static let showWeatherKey = "showWeather"
     static let weatherConditionsKey = "widgetWeatherConditions"
+    static let worldCitiesSelectedCityKey = "worldCitiesSelectedCityId"
 
     // Conditions older than this are ignored by the widget: the app may not
     // have been opened for a long time, and stale "rain" is worse than none.
@@ -43,11 +45,39 @@ enum SharedWidgetStore {
         sharedDefaults?.bool(forKey: use24HourKey) ?? false
     }
 
+    // Widget side: which city drives the medium widget's sky background.
+    static func worldCitiesSelectedCityId() -> String? {
+        sharedDefaults?.string(forKey: worldCitiesSelectedCityKey)
+    }
+
+    static func setWorldCitiesSelectedCityId(_ id: String) {
+        sharedDefaults?.set(id, forKey: worldCitiesSelectedCityKey)
+    }
+
+    // Widget side: whether the user has weather enabled in the app. Widgets
+    // only paint weather skies (and fetch conditions) when this is on, so
+    // they always match what the app itself would show.
+    static func showWeather() -> Bool {
+        guard let shared = sharedDefaults else { return false }
+        if shared.object(forKey: showWeatherKey) == nil {
+            // Key not synced yet (app not opened since it was added): infer
+            // from whether the app ever cached conditions, which only
+            // happens with weather enabled.
+            return shared.data(forKey: weatherConditionsKey) != nil
+        }
+        return shared.bool(forKey: showWeatherKey)
+    }
+
     // Widget side: latest known weather condition for a city, or nil when
-    // nothing fresh enough is stored.
+    // weather is disabled in the app or nothing fresh enough is stored.
     static func weatherCondition(for timeZoneIdentifier: String) -> WeatherCondition? {
-        guard let stored = loadStoredWeatherConditions()[timeZoneIdentifier],
-              Date().timeIntervalSince(stored.fetchedAt) < weatherConditionMaxAge else {
+        weatherCondition(for: timeZoneIdentifier, maxAge: weatherConditionMaxAge)
+    }
+
+    static func weatherCondition(for timeZoneIdentifier: String, maxAge: TimeInterval) -> WeatherCondition? {
+        guard showWeather(),
+              let stored = loadStoredWeatherConditions()[timeZoneIdentifier],
+              Date().timeIntervalSince(stored.fetchedAt) < maxAge else {
             return nil
         }
         return WeatherCondition(rawValue: stored.conditionRawValue)
@@ -85,5 +115,6 @@ enum SharedWidgetStore {
             shared.set(data, forKey: worldClocksKey)
         }
         shared.set(standard.bool(forKey: use24HourKey), forKey: use24HourKey)
+        shared.set(standard.bool(forKey: showWeatherKey), forKey: showWeatherKey)
     }
 }

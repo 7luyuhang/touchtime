@@ -22,26 +22,30 @@ struct CityComplicationEntry: TimelineEntry {
 }
 
 struct CityComplicationProvider: AppIntentTimelineProvider {
-    private func makeEntry(for configuration: CityComplicationIntent, date: Date) -> CityComplicationEntry {
+    // Only honour the configured city if it still exists in the app's saved
+    // list; otherwise (deleted in the app) fall back to the first saved city.
+    private func resolveCity(for configuration: CityComplicationIntent) -> CityEntity? {
         let savedCities = SharedWidgetStore.loadWorldClocks().map { CityEntity(clock: $0) }
-
-        // Only honour the configured city if it still exists in the app's saved
-        // list; otherwise (deleted in the app) fall back to the first saved city.
-        let city: CityEntity?
         if let selected = configuration.city,
            savedCities.contains(where: { $0.id == selected.id }) {
-            city = selected
-        } else {
-            city = savedCities.first
+            return selected
         }
-        let timeZoneIdentifier = city?.timeZoneIdentifier ?? "Europe/London"
-        return CityComplicationEntry(
+        return savedCities.first
+    }
+
+    private func makeEntry(
+        for configuration: CityComplicationIntent,
+        city: CityEntity?,
+        date: Date,
+        weatherCondition: WeatherCondition?
+    ) -> CityComplicationEntry {
+        CityComplicationEntry(
             date: date,
             cityName: city?.cityName ?? "London",
-            timeZoneIdentifier: timeZoneIdentifier,
+            timeZoneIdentifier: city?.timeZoneIdentifier ?? "Europe/London",
             complication: configuration.complication,
             use24Hour: SharedWidgetStore.use24HourFormat(),
-            weatherCondition: SharedWidgetStore.weatherCondition(for: timeZoneIdentifier)
+            weatherCondition: weatherCondition
         )
     }
 
@@ -56,10 +60,20 @@ struct CityComplicationProvider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: CityComplicationIntent, in context: Context) async -> CityComplicationEntry {
-        makeEntry(for: configuration, date: Date())
+        // Snapshots must render fast: use the stored condition, no fetching.
+        let city = resolveCity(for: configuration)
+        let condition = (city?.timeZoneIdentifier).flatMap { SharedWidgetStore.weatherCondition(for: $0) }
+        return makeEntry(for: configuration, city: city, date: Date(), weatherCondition: condition)
     }
 
     func timeline(for configuration: CityComplicationIntent, in context: Context) async -> Timeline<CityComplicationEntry> {
+        let city = resolveCity(for: configuration)
+
+        // Refresh the weather sky once per timeline reload so rain skies
+        // keep working even when the app hasn't been opened for hours.
+        let timeZoneIdentifier = city?.timeZoneIdentifier ?? "Europe/London"
+        let condition = await WidgetWeatherFetcher.conditions(for: [timeZoneIdentifier])[timeZoneIdentifier]
+
         var calendar = Calendar.current
         calendar.timeZone = TimeZone.current
 
@@ -71,7 +85,7 @@ struct CityComplicationProvider: AppIntentTimelineProvider {
         var entries: [CityComplicationEntry] = []
         for minuteOffset in 0..<60 {
             if let date = calendar.date(byAdding: .minute, value: minuteOffset, to: start) {
-                entries.append(makeEntry(for: configuration, date: date))
+                entries.append(makeEntry(for: configuration, city: city, date: date, weatherCondition: condition))
             }
         }
         return Timeline(entries: entries, policy: .atEnd)
@@ -134,25 +148,11 @@ struct CityComplicationWidgetView: View {
         .foregroundStyle(.white)
         .padding(14)
         .containerBackground(for: .widget) {
-            // Rainy conditions switch the gradient to its nimbostratus palette
-            // and force starOpacity to 0, so stars never show through rain.
-            let gradient = SkyColorGradient(
+            WidgetSkyBackground(
                 date: entry.date,
                 timeZoneIdentifier: entry.timeZoneIdentifier,
                 weatherCondition: entry.weatherCondition
             )
-            gradient.linearGradient()
-                .overlay {
-                    Color.black.opacity(0.20)
-                        .blendMode(.plusDarker)
-                }
-                .overlay {
-                    if gradient.starOpacity > 0 {
-                        WidgetStarsView(seed: entry.timeZoneIdentifier)
-                            .opacity(gradient.starOpacity)
-                            .blendMode(.plusLighter)
-                    }
-                }
         }
     }
 
@@ -192,34 +192,4 @@ struct CityComplicationWidget: Widget {
         .supportedFamilies([.systemSmall])
         .contentMarginsDisabled()
     }
-}
-
-// MARK: - Previews
-
-#Preview("City Time", as: .systemSmall) {
-    CityComplicationWidget()
-} timeline: {
-    CityComplicationEntry(
-        date: .now,
-        cityName: "London",
-        timeZoneIdentifier: "Europe/London",
-        complication: .sunriseSunset,
-        use24Hour: false,
-        weatherCondition: .rain
-    )
-    CityComplicationEntry(
-        date: .now,
-        cityName: "London",
-        timeZoneIdentifier: "Europe/London",
-        complication: .sunriseSunset,
-        use24Hour: false,
-        weatherCondition: .heavyRain
-    )
-    CityComplicationEntry(
-        date: .now,
-        cityName: "London",
-        timeZoneIdentifier: "Europe/London",
-        complication: .sunriseSunset,
-        use24Hour: false
-    )
 }
