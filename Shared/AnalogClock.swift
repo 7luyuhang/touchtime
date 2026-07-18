@@ -15,16 +15,20 @@ struct AnalogClockView: View {
     let useMaterialBackground: Bool
     let showBackground: Bool
     let showScale: Bool
+    // Widgets can't read the app's standard defaults, so they pass the shared
+    // store value explicitly; nil falls back to AppStorage (app side).
+    let showUTCHandOverride: Bool?
     
     @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
     
-    init(date: Date = Date(), size: CGFloat = 100, timeZone: TimeZone = .current, useMaterialBackground: Bool = false, showBackground: Bool = true, showScale: Bool = false) {
+    init(date: Date = Date(), size: CGFloat = 100, timeZone: TimeZone = .current, useMaterialBackground: Bool = false, showBackground: Bool = true, showScale: Bool = false, showUTCHand: Bool? = nil) {
         self.date = date
         self.size = size
         self.timeZone = timeZone
         self.useMaterialBackground = useMaterialBackground
         self.showBackground = showBackground
         self.showScale = showScale
+        self.showUTCHandOverride = showUTCHand
     }
     
     @Environment(\.colorScheme) private var colorScheme
@@ -42,7 +46,7 @@ struct AnalogClockView: View {
     }
     
     private var shouldShowUTCHand: Bool {
-        analogClockShowUTCHand && timeZone.secondsFromGMT(for: date) != utcTimeZone.secondsFromGMT(for: date)
+        (showUTCHandOverride ?? analogClockShowUTCHand) && timeZone.secondsFromGMT(for: date) != utcTimeZone.secondsFromGMT(for: date)
     }
     
     private func time(in zone: TimeZone) -> (hour: Int, minute: Int) {

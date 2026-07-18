@@ -330,6 +330,10 @@ private struct CityWidgetPreview: View {
     let use24Hour: Bool
     let complication: WidgetPreviewComplication
 
+    // Same customisations the real widget mirrors from the app
+    @AppStorage("analogClockShowScale") private var analogClockShowScale = false
+    @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
+
     private static let widgetSize: CGFloat = widgetPreviewHeight
     private static let cornerRadius: CGFloat = 28
     private static let complicationSize: CGFloat = 80
@@ -390,7 +394,7 @@ private struct CityWidgetPreview: View {
         let size = Self.complicationSize
         switch complication {
         case .analogClock:
-            AnalogClockView(date: date, size: size, timeZone: timeZone, showBackground: false)
+            AnalogClockView(date: date, size: size, timeZone: timeZone, showBackground: false, showScale: analogClockShowScale)
         case .sunPosition:
             SunPositionIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
         case .sunriseSunset:
@@ -398,7 +402,7 @@ private struct CityWidgetPreview: View {
         case .sunAzimuth:
             SunAzimuthIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
         case .solarCurve:
-            SolarCurve(date: date, timeZone: timeZone, size: size, showBackground: false)
+            SolarCurve(date: date, timeZone: timeZone, size: size, showBackground: false, showSun: solarCurveShowSun)
         }
     }
 }
@@ -466,6 +470,10 @@ private struct WorldCityPreviewColumn: View {
     let complication: WidgetPreviewComplication
     let size: CGFloat
 
+    // Same customisations the real widget mirrors from the app
+    @AppStorage("analogClockShowScale") private var analogClockShowScale = false
+    @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
+
     private var timeZone: TimeZone {
         TimeZone(identifier: timeZoneIdentifier) ?? .current
     }
@@ -516,7 +524,7 @@ private struct WorldCityPreviewColumn: View {
     private var complicationView: some View {
         switch complication {
         case .analogClock:
-            AnalogClockView(date: date, size: size, timeZone: timeZone, showBackground: false)
+            AnalogClockView(date: date, size: size, timeZone: timeZone, showBackground: false, showScale: analogClockShowScale)
         case .sunPosition:
             SunPositionIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
         case .sunriseSunset:
@@ -524,7 +532,7 @@ private struct WorldCityPreviewColumn: View {
         case .sunAzimuth:
             SunAzimuthIndicator(date: date, timeZone: timeZone, size: size, showBackground: false)
         case .solarCurve:
-            SolarCurve(date: date, timeZone: timeZone, size: size, showBackground: false)
+            SolarCurve(date: date, timeZone: timeZone, size: size, showBackground: false, showSun: solarCurveShowSun)
         }
     }
 }

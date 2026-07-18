@@ -19,6 +19,10 @@ struct CityComplicationEntry: TimelineEntry {
     let complication: WidgetComplicationKind
     let use24Hour: Bool
     var weatherCondition: WeatherCondition? = nil
+    // Complication customisations mirrored from the app via the App Group
+    var analogClockShowScale: Bool = false
+    var analogClockShowUTCHand: Bool = false
+    var solarCurveShowSun: Bool = false
 }
 
 struct CityComplicationProvider: AppIntentTimelineProvider {
@@ -45,7 +49,10 @@ struct CityComplicationProvider: AppIntentTimelineProvider {
             timeZoneIdentifier: city?.timeZoneIdentifier ?? "Europe/London",
             complication: configuration.complication,
             use24Hour: SharedWidgetStore.use24HourFormat(),
-            weatherCondition: weatherCondition
+            weatherCondition: weatherCondition,
+            analogClockShowScale: SharedWidgetStore.analogClockShowScale(),
+            analogClockShowUTCHand: SharedWidgetStore.analogClockShowUTCHand(),
+            solarCurveShowSun: SharedWidgetStore.solarCurveShowSun()
         )
     }
 
@@ -161,7 +168,13 @@ struct CityComplicationWidgetView: View {
         let size = Self.complicationSize
         switch entry.complication {
         case .analogClock:
-            AnalogClockView(date: entry.date, size: size, timeZone: timeZone)
+            AnalogClockView(
+                date: entry.date,
+                size: size,
+                timeZone: timeZone,
+                showScale: entry.analogClockShowScale,
+                showUTCHand: entry.analogClockShowUTCHand
+            )
         case .sunPosition:
             SunPositionIndicator(date: entry.date, timeZone: timeZone, size: size)
         case .sunriseSunset:
@@ -169,7 +182,7 @@ struct CityComplicationWidgetView: View {
         case .sunAzimuth:
             SunAzimuthIndicator(date: entry.date, timeZone: timeZone, size: size)
         case .solarCurve:
-            SolarCurve(date: entry.date, timeZone: timeZone, size: size)
+            SolarCurve(date: entry.date, timeZone: timeZone, size: size, showSun: entry.solarCurveShowSun)
         }
     }
 }

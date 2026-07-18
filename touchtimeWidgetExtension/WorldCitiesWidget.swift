@@ -53,6 +53,10 @@ struct WorldCitiesEntry: TimelineEntry {
     let complication: WidgetComplicationKind
     let use24Hour: Bool
     var weatherCondition: WeatherCondition? = nil
+    // Complication customisations mirrored from the app via the App Group
+    var analogClockShowScale: Bool = false
+    var analogClockShowUTCHand: Bool = false
+    var solarCurveShowSun: Bool = false
 
     var selectedCity: WorldCityItem? {
         cities.first { $0.id == selectedCityId } ?? cities.first
@@ -87,7 +91,10 @@ struct WorldCitiesProvider: AppIntentTimelineProvider {
             selectedCityId: resolved.selected?.id,
             complication: configuration.complication,
             use24Hour: SharedWidgetStore.use24HourFormat(),
-            weatherCondition: weatherCondition
+            weatherCondition: weatherCondition,
+            analogClockShowScale: SharedWidgetStore.analogClockShowScale(),
+            analogClockShowUTCHand: SharedWidgetStore.analogClockShowUTCHand(),
+            solarCurveShowSun: SharedWidgetStore.solarCurveShowSun()
         )
     }
 
@@ -152,7 +159,10 @@ struct WorldCitiesWidgetView: View {
                         complication: entry.complication,
                         use24Hour: entry.use24Hour,
                         isSelected: city.id == entry.selectedCity?.id,
-                        isPlaceholder: redactionReasons.contains(.placeholder)
+                        isPlaceholder: redactionReasons.contains(.placeholder),
+                        analogClockShowScale: entry.analogClockShowScale,
+                        analogClockShowUTCHand: entry.analogClockShowUTCHand,
+                        solarCurveShowSun: entry.solarCurveShowSun
                     )
                 }
                 .buttonStyle(.plain)
@@ -179,6 +189,9 @@ private struct WorldCityColumn: View {
     let use24Hour: Bool
     let isSelected: Bool
     let isPlaceholder: Bool
+    let analogClockShowScale: Bool
+    let analogClockShowUTCHand: Bool
+    let solarCurveShowSun: Bool
 
     private static let clockSize: CGFloat = 68
 
@@ -233,7 +246,13 @@ private struct WorldCityColumn: View {
         let size = Self.clockSize
         switch complication {
         case .analogClock:
-            AnalogClockView(date: date, size: size, timeZone: timeZone)
+            AnalogClockView(
+                date: date,
+                size: size,
+                timeZone: timeZone,
+                showScale: analogClockShowScale,
+                showUTCHand: analogClockShowUTCHand
+            )
         case .sunPosition:
             SunPositionIndicator(date: date, timeZone: timeZone, size: size)
         case .sunriseSunset:
@@ -241,7 +260,7 @@ private struct WorldCityColumn: View {
         case .sunAzimuth:
             SunAzimuthIndicator(date: date, timeZone: timeZone, size: size)
         case .solarCurve:
-            SolarCurve(date: date, timeZone: timeZone, size: size)
+            SolarCurve(date: date, timeZone: timeZone, size: size, showSun: solarCurveShowSun)
         }
     }
 }

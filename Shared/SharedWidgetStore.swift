@@ -16,6 +16,9 @@ enum SharedWidgetStore {
     static let showWeatherKey = "showWeather"
     static let weatherConditionsKey = "widgetWeatherConditions"
     static let worldCitiesSelectedCityKey = "worldCitiesSelectedCityId"
+    static let analogClockShowScaleKey = "analogClockShowScale"
+    static let analogClockShowUTCHandKey = "analogClockShowUTCHand"
+    static let solarCurveShowSunKey = "solarCurveShowSun"
 
     // Conditions older than this are ignored by the widget: the app may not
     // have been opened for a long time, and stale "rain" is worse than none.
@@ -43,6 +46,20 @@ enum SharedWidgetStore {
 
     static func use24HourFormat() -> Bool {
         sharedDefaults?.bool(forKey: use24HourKey) ?? false
+    }
+
+    // Widget side: complication customisations chosen in the app, so widgets
+    // always render the same Analog Clock / Solar Curve as the app itself.
+    static func analogClockShowScale() -> Bool {
+        sharedDefaults?.bool(forKey: analogClockShowScaleKey) ?? false
+    }
+
+    static func analogClockShowUTCHand() -> Bool {
+        sharedDefaults?.bool(forKey: analogClockShowUTCHandKey) ?? false
+    }
+
+    static func solarCurveShowSun() -> Bool {
+        sharedDefaults?.bool(forKey: solarCurveShowSunKey) ?? false
     }
 
     // Widget side: which city drives the medium widget's sky background.
@@ -116,5 +133,8 @@ enum SharedWidgetStore {
         }
         shared.set(standard.bool(forKey: use24HourKey), forKey: use24HourKey)
         shared.set(standard.bool(forKey: showWeatherKey), forKey: showWeatherKey)
+        shared.set(standard.bool(forKey: analogClockShowScaleKey), forKey: analogClockShowScaleKey)
+        shared.set(standard.bool(forKey: analogClockShowUTCHandKey), forKey: analogClockShowUTCHandKey)
+        shared.set(standard.bool(forKey: solarCurveShowSunKey), forKey: solarCurveShowSunKey)
     }
 }
