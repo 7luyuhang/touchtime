@@ -9,7 +9,6 @@
 //
 
 import SwiftUI
-import VariableBlur
 
 // Mirrors WidgetComplicationKind from the widget extension (not visible to
 // the app target): the five complications the City Time widget supports.
@@ -38,6 +37,7 @@ private let widgetPreviewHeight: CGFloat = 164
 
 struct WidgetIntroSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.layoutDirection) private var layoutDirection
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var animateIcon = false
@@ -48,6 +48,9 @@ struct WidgetIntroSheet: View {
     // Widget defaults; tapping a preview cycles through all five
     @State private var complication: WidgetPreviewComplication = .sunriseSunset
     @State private var mediumComplication: WidgetPreviewComplication = .analogClock
+    // Global frame of the carousel; swipes starting inside it are
+    // already handled by the ScrollView itself
+    @State private var carouselFrame: CGRect = .zero
 
     // Carousel layout: pages are inset so the medium widget peeks in
     // from the trailing edge, hinting that the carousel can be swiped.
@@ -77,14 +80,6 @@ struct WidgetIntroSheet: View {
                     .blendMode(.plusLighter)
                     .opacity(0.75)
                     .allowsHitTesting(false)
-
-                // VariableBlur
-                GeometryReader { geom in
-                    VariableBlurView(maxBlurRadius: 10, direction: .blurredBottomClearTop)
-                        .frame(height: geom.safeAreaInsets.bottom + 100)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-                        .ignoresSafeArea()
-                }
 
                 VStack(spacing: 0) {
                 Spacer()
@@ -161,6 +156,11 @@ struct WidgetIntroSheet: View {
                         .scrollClipDisabled()
                     }
                     .frame(height: widgetPreviewHeight)
+                    .onGeometryChange(for: CGRect.self) { proxy in
+                        proxy.frame(in: .global)
+                    } action: { frame in
+                        carouselFrame = frame
+                    }
                     // One shared sky glow behind the carousel; it stays put
                     // while the pages scroll over it.
                     .background {
@@ -237,6 +237,26 @@ struct WidgetIntroSheet: View {
                 .padding(.horizontal, 32)
                 }
             }
+            // Whole sheet is swipeable, not just the carousel: horizontal
+            // swipes anywhere else also turn the page. Swipes starting on
+            // the carousel are left to the ScrollView itself.
+            .contentShape(Rectangle())
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 20, coordinateSpace: .global)
+                    .onEnded { value in
+                        guard !carouselFrame.contains(value.startLocation) else { return }
+                        let dx = value.translation.width
+                        guard abs(dx) > abs(value.translation.height), abs(dx) > 30 else { return }
+                        let forward = layoutDirection == .rightToLeft ? dx > 0 : dx < 0
+                        turnPage(by: forward ? 1 : -1)
+                    }
+            )
+            // Light haptic whenever the carousel lands on a new page,
+            // whether swiped directly or from anywhere else on the sheet
+            .onChange(of: currentPage) { oldValue, newValue in
+                guard hapticEnabled, oldValue != nil, newValue != nil else { return }
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
             .navigationTitle("Widgets")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -271,6 +291,17 @@ struct WidgetIntroSheet: View {
                     animateMediumWidget = true
                 }
             }
+        }
+    }
+
+    // Advance the carousel by the given number of pages, clamped to the ends
+    private func turnPage(by delta: Int) {
+        let all = WidgetPreviewPage.allCases
+        let index = all.firstIndex(of: currentPage ?? .small) ?? 0
+        let newIndex = min(max(index + delta, 0), all.count - 1)
+        guard newIndex != index else { return }
+        withAnimation(.smooth(duration: 0.4)) {
+            currentPage = all[newIndex]
         }
     }
 
