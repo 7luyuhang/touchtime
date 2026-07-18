@@ -272,15 +272,18 @@ struct SolarCurve: View {
                 }
             
             // Curve below horizon (opacity 0.3)
+            // blendMode must come after drawingGroup: the offscreen Metal texture
+            // flattens any blend applied inside it, so applying plusLighter outside
+            // keeps the additive blend against the background.
             curvePath
                 .stroke(Color.white.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-                .blendMode(.plusLighter)
                 .mask {
                     Rectangle()
                         .frame(width: size * 2, height: size / 2)
                         .offset(y: size / 4)
                 }
                 .drawingGroup() // Optimize rendering with Metal
+                .blendMode(.plusLighter)
             
             // Horizon line (horizontal line at center)
             Capsule()
@@ -345,30 +348,50 @@ struct SolarCurve: View {
 }
 
 // MARK: - Sun Along Curve Modifier
-// Positions the sun dot for a given time. Animating `animatableData` (the time
-// itself) instead of the x/y position means that when a time change is animated
-// (e.g. resetting a scrubbed time offset), the dot is re-evaluated on the curve
-// every frame and travels along it, rather than sliding in a straight line
-// between the start and end positions.
+// Positions the sun dot for a given time. Animating the time (not the x/y
+// position) means that when a time change is animated (e.g. resetting a
+// scrubbed time offset), the dot is re-evaluated on the curve every frame and
+// travels along it, rather than sliding in a straight line.
+//
+// The time of day is animated as a point on the unit circle (cos, sin):
+// reconstructing the angle with atan2 always sweeps the shorter way around,
+// so no matter how many days the offset spans, the dot never laps the dial —
+// at most half a day of travel, in the nearest direction.
 private struct SunAlongCurveModifier: ViewModifier, Animatable {
-    var timeInterval: TimeInterval
+    var angle: AnimatablePair<Double, Double>
+    let startOfDay: Date
     let timeZone: TimeZone
     let size: CGFloat
     
+    private static let dayInSeconds: Double = 24 * 60 * 60
+    
     init(date: Date, timeZone: TimeZone, size: CGFloat) {
-        self.timeInterval = date.timeIntervalSinceReferenceDate
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let startOfDay = calendar.startOfDay(for: date)
+        let radians = date.timeIntervalSince(startOfDay) / Self.dayInSeconds * 2 * .pi
+        self.angle = AnimatablePair(cos(radians), sin(radians))
+        self.startOfDay = startOfDay
         self.timeZone = timeZone
         self.size = size
     }
     
-    var animatableData: TimeInterval {
-        get { timeInterval }
-        set { timeInterval = newValue }
+    var animatableData: AnimatablePair<Double, Double> {
+        get { angle }
+        set { angle = newValue }
+    }
+    
+    // Angle back to a concrete position on the curve. Anchored to the currently
+    // displayed day so the dot follows its curve.
+    private var sunPoint: CGPoint {
+        var radians = atan2(angle.second, angle.first)
+        if radians < 0 { radians += 2 * .pi }
+        let date = startOfDay.addingTimeInterval(radians / (2 * .pi) * Self.dayInSeconds)
+        return SolarCurve.sunUnitPosition(for: date, timeZone: timeZone)
     }
     
     func body(content: Content) -> some View {
-        let date = Date(timeIntervalSinceReferenceDate: timeInterval)
-        let point = SolarCurve.sunUnitPosition(for: date, timeZone: timeZone)
+        let point = sunPoint
         content.position(x: point.x * size, y: point.y * size)
     }
 }
