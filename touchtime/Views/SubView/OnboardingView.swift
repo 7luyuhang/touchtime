@@ -92,6 +92,7 @@ struct OnboardingView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
@@ -550,7 +551,8 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: true,
+                                        showSun: solarCurveShowSun
                                     )
                                     .overlay(
                                         Circle()
@@ -694,7 +696,8 @@ struct OnboardingView: View {
                                             date: currentDate,
                                             timeZone: TimeZone.current,
                                             size: 64,
-                                            useMaterialBackground: false
+                                            useMaterialBackground: false,
+                                            showSun: solarCurveShowSun
                                         )
                                     }
 

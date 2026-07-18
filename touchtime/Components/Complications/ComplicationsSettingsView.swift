@@ -32,6 +32,7 @@ struct ComplicationsSettingsView: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
     @AppStorage("weatherConditionUseColoredIcon") private var weatherConditionUseColoredIcon = false
+    @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
     
     // Currently selected complication type
     private enum ComplicationType: CaseIterable {
@@ -134,7 +135,7 @@ struct ComplicationsSettingsView: View {
             }
 
             ToolbarItem(placement: .topBarTrailing) {
-                if showAnalogClock || (showWeather && showWeatherCondition) {
+                if showAnalogClock || (showWeather && showWeatherCondition) || showSolarCurve {
                     Menu {
                         Section(String(localized: "Customisation")) {
                             if showAnalogClock {
@@ -176,6 +177,21 @@ struct ComplicationsSettingsView: View {
                                         Label(String(localized: "Multicolor Icon"), systemImage: "checkmark.circle")
                                     } else {
                                         Text(String(localized: "Multicolor Icon"))
+                                    }
+                                }
+                            }
+
+                            if showSolarCurve {
+                                Button {
+                                    solarCurveShowSun.toggle()
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                    }
+                                } label: {
+                                    if solarCurveShowSun {
+                                        Label(String(localized: "Sun Indicator"), systemImage: "checkmark.circle")
+                                    } else {
+                                        Text(String(localized: "Sun Indicator"))
                                     }
                                 }
                             }
@@ -290,7 +306,8 @@ struct ComplicationsSettingsView: View {
                             date: currentDate,
                             timeZone: TimeZone.current,
                             size: 64,
-                            useMaterialBackground: false
+                            useMaterialBackground: false,
+                            showSun: solarCurveShowSun
                         )
                     }
 

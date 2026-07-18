@@ -22,6 +22,7 @@ struct ComplicationDisplayOptions: Equatable {
     let showDaylight: Bool
     let showTimeOverlay: Bool
     let showSolarCurve: Bool
+    let solarCurveShowSun: Bool
 
     var hasVisibleComplication: Bool {
         showAnalogClock ||
@@ -164,7 +165,8 @@ struct ComplicationOverlayView: View {
                 SolarCurve(
                     date: date,
                     timeZone: timeZone,
-                    size: size
+                    size: size,
+                    showSun: options.solarCurveShowSun
                 )
                 .complicationOverlayStyle(bottomPadding: bottomPadding)
             }

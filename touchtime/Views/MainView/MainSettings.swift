@@ -38,6 +38,7 @@ struct SettingsView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
@@ -421,7 +422,8 @@ struct SettingsView: View {
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: true,
+                showSun: solarCurveShowSun
             )
         }
     }

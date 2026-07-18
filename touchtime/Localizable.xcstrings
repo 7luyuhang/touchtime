@@ -13378,6 +13378,22 @@
         }
       }
     },
+    "Sun Indicator" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太阳指示器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太陽指示器"
+          }
+        }
+      }
+    },
     "Sun Showers" : {
       "localizations" : {
         "zh-Hans" : {

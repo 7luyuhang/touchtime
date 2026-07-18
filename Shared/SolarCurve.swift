@@ -13,6 +13,11 @@ struct SolarCurve: View {
     let size: CGFloat
     let useMaterialBackground: Bool
     let showBackground: Bool
+    let showSun: Bool
+    
+    // Layout constants shared by the curve and the sun indicator (unit space)
+    private static let horizonY = 0.5 // Horizon line at center
+    private static let amplitude = 0.35 // Maximum height of the curve above/below horizon
     
     // Cache the Path to avoid recreating it on every body update
     @State private var cachedPath: Path?
@@ -58,12 +63,13 @@ struct SolarCurve: View {
         return cache
     }()
     
-    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false, showBackground: Bool = true) {
+    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false, showBackground: Bool = true, showSun: Bool = false) {
         self.date = date
         self.timeZone = timeZone
         self.size = size
         self.useMaterialBackground = useMaterialBackground
         self.showBackground = showBackground
+        self.showSun = showSun
     }
     
     // Generate day key for caching (only changes when date changes, not time)
@@ -169,8 +175,8 @@ struct SolarCurve: View {
         // Generate curve points - use 24 points (one per hour) for smooth curve.
         // Points are in unit space (0...1); createPath(from:) scales them to size.
         var curvePoints: [CGPoint] = []
-        let horizonY = 0.5 // Horizon line at center
-        let amplitude = 0.35 // Maximum height of the curve above/below horizon
+        let horizonY = Self.horizonY
+        let amplitude = Self.amplitude
         
         // Calculate points every hour (24 points total: 0, 1, 2, ..., 24) - cached per day
         guard let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) else {
@@ -206,6 +212,31 @@ struct SolarCurve: View {
         SolarCurve.curveDataCache.setObject(CurveDataWrapper(data), forKey: cacheKey)
         
         return data
+    }
+    
+    // Sun position at a given time in unit space (0...1). Uses the same
+    // altitude mapping as the curve points so the dot always sits on the curve.
+    fileprivate static func sunUnitPosition(for date: Date, timeZone: TimeZone) -> CGPoint {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let startOfDay = calendar.startOfDay(for: date)
+        let dayInSeconds: Double = 24 * 60 * 60
+        let elapsed = date.timeIntervalSince(startOfDay)
+        let x = min(max(elapsed / dayInSeconds, 0), 1)
+        
+        let sunAltitude: Double
+        if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
+            sunAltitude = SolarCalculator.position(latitude: coords.latitude, longitude: coords.longitude, date: date).altitude
+        } else {
+            // Fallback: same cosine approximation as the curve
+            let secondsFromNoon = elapsed - 12 * 3600
+            let progress = secondsFromNoon / dayInSeconds
+            sunAltitude = 90 * cos(2 * .pi * progress)
+        }
+        
+        let normalizedAltitude = max(-90, min(90, sunAltitude))
+        let y = horizonY - (normalizedAltitude / 90.0) * amplitude
+        return CGPoint(x: x, y: y)
     }
     
     var body: some View {
@@ -257,6 +288,37 @@ struct SolarCurve: View {
                 .frame(width: size, height: 1)
                 .offset(y: 0)
                 .blendMode(.plusLighter)
+            
+            // Sun indicator at the current time position on the curve:
+            // filled above the horizon, outlined below (like SunriseSunsetIndicator)
+            if showSun {
+                let sunDiameter = size * 0.15
+                
+                // Filled portion (above horizon) - masked by the day half
+                Circle()
+                    .fill(.white)
+                    .frame(width: sunDiameter + 1.5, height: sunDiameter + 1.5)
+                    .modifier(SunAlongCurveModifier(date: date, timeZone: timeZone, size: size))
+                    .mask {
+                        Rectangle()
+                            .frame(width: size * 2, height: size / 2)
+                            .offset(y: -size / 4)
+                    }
+                    .blendMode(.plusLighter)
+                
+                // Stroke portion (below horizon) - masked by the night half
+                Circle()
+                    .stroke(.white, lineWidth: 1.5)
+                    .frame(width: sunDiameter, height: sunDiameter)
+                    .modifier(SunAlongCurveModifier(date: date, timeZone: timeZone, size: size))
+                    .mask {
+                        Rectangle()
+                            .frame(width: size * 2, height: size / 2)
+                            .offset(y: size / 4)
+                    }
+                    .opacity(0.5)
+                    .blendMode(.plusLighter)
+            }
         }
         .frame(width: size, height: size)
         .clipShape(Circle()) // Ensure all content is clipped to circle boundary
@@ -279,6 +341,35 @@ struct SolarCurve: View {
                 cachedDayKey = currentDayKey
             }
         }
+    }
+}
+
+// MARK: - Sun Along Curve Modifier
+// Positions the sun dot for a given time. Animating `animatableData` (the time
+// itself) instead of the x/y position means that when a time change is animated
+// (e.g. resetting a scrubbed time offset), the dot is re-evaluated on the curve
+// every frame and travels along it, rather than sliding in a straight line
+// between the start and end positions.
+private struct SunAlongCurveModifier: ViewModifier, Animatable {
+    var timeInterval: TimeInterval
+    let timeZone: TimeZone
+    let size: CGFloat
+    
+    init(date: Date, timeZone: TimeZone, size: CGFloat) {
+        self.timeInterval = date.timeIntervalSinceReferenceDate
+        self.timeZone = timeZone
+        self.size = size
+    }
+    
+    var animatableData: TimeInterval {
+        get { timeInterval }
+        set { timeInterval = newValue }
+    }
+    
+    func body(content: Content) -> some View {
+        let date = Date(timeIntervalSinceReferenceDate: timeInterval)
+        let point = SolarCurve.sunUnitPosition(for: date, timeZone: timeZone)
+        content.position(x: point.x * size, y: point.y * size)
     }
 }
 

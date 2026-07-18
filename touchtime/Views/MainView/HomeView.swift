@@ -156,6 +156,7 @@ struct HomeView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     @AppStorage("showDoubleTapMoreActionTip") private var showDoubleTapMoreActionTip = true
     @AppStorage("showShakeToResetTip") private var showShakeToResetTip = false
@@ -521,7 +522,8 @@ struct HomeView: View {
             showSunriseSunset: showSunriseSunset,
             showDaylight: effectiveShowDaylight,
             showTimeOverlay: effectiveShowTimeOverlay,
-            showSolarCurve: showSolarCurve
+            showSolarCurve: showSolarCurve,
+            solarCurveShowSun: solarCurveShowSun
         )
     }
 
