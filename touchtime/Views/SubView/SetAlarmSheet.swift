@@ -327,8 +327,12 @@ struct SetAlarmSheet: View {
                             
                             Divider()
 
-                            Button(role: .destructive) {
-                                deleteRecord(record)
+                            Menu {
+                                Button(role: .destructive) {
+                                    deleteRecord(record)
+                                } label: {
+                                    Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                                }
                             } label: {
                                 Label(String(localized: "Remove"), systemImage: "minus.circle")
                             }
