@@ -24,6 +24,7 @@ struct SunriseSunsetSheet: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("show10DaysWeather") private var storedWeatherExpanded = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("showAddWidgetTip") private var showAddWidgetTip = true
     @Environment(\.dismiss) private var dismiss
     @State private var currentDate: Date = Date()
     @EnvironmentObject private var weatherManager: WeatherManager
@@ -31,6 +32,7 @@ struct SunriseSunsetSheet: View {
     @State private var isWeatherExpanded = false // Track weather section expansion
     @State private var currentDetent: PresentationDetent = .medium // Track current sheet size
     @State private var showMoonPhaseView = false // Track moon phase view navigation
+    @State private var showWidgetIntroSheet = false // Track widget intro sheet
     @State private var sunTimes: (sunrise: Date?, sunset: Date?)?
     @State private var eveningGoldenHour: (start: Date?, end: Date?)?
     @State private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)?
@@ -475,10 +477,63 @@ struct SunriseSunsetSheet: View {
         }
     }
     
+    @ViewBuilder
+    private var addWidgetTip: some View {
+        HStack(spacing: 16) {
+            Image(systemName: "widget.small")
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
+                .frame(width: 24, height: 24)
+
+            Text(String(localized: "Add widgets to see the city on Home Screen"))
+                .font(.subheadline)
+                .foregroundStyle(.primary)
+
+            Spacer()
+
+            Image(systemName: "xmark")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 24, height: 24)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    withAnimation(.spring()) {
+                        showAddWidgetTip = false
+                    }
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                }
+        }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                .fill(Color.black.opacity(0.10))
+                .glassEffect(.clear.interactive(),
+                             in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        )
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+            showWidgetIntroSheet = true
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .transition(.blurReplace())
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
                     VStack(spacing: 0) {
+                        // Add Widget Tip
+                        if showAddWidgetTip {
+                            addWidgetTip
+                        }
+
                         // Weather section - only show if weather is enabled in settings
                         if showWeather {
                             if let weather = currentWeather {
@@ -994,6 +1049,9 @@ struct SunriseSunsetSheet: View {
                     timeZoneIdentifier: timeZoneIdentifier,
                     timeOffset: timeOffset
                 )
+            }
+            .sheet(isPresented: $showWidgetIntroSheet) {
+                WidgetIntroSheet()
             }
         }
     }

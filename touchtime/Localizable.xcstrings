@@ -957,6 +957,22 @@
         }
       }
     },
+    "Add widgets to see the city on Home Screen" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加小组件，在主屏幕上查看城市"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "加入小工具，在主畫面上查看城市"
+          }
+        }
+      }
+    },
     "Addis Ababa" : {
       "extractionState" : "manual",
       "localizations" : {
