@@ -346,7 +346,7 @@ private struct DayCellView: View {
                 .foregroundStyle(isToday ? .black : .secondary)
             
             Image(systemName: moonPhaseIcon)
-                .font(.title2)
+                .font(.system(size: 24))
                 .symbolRenderingMode(.hierarchical)
                 .foregroundStyle(isToday ? .black : .primary)
         }
