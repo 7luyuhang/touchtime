@@ -1059,29 +1059,6 @@
     "Adventures in Orienting Views" : {
 
     },
-    "Africa" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Africa"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "非洲"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "非洲"
-          }
-        }
-      }
-    },
     "Alarm" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1208,29 +1185,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "阿拉木圖"
-          }
-        }
-      }
-    },
-    "Americas" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Americas"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "美洲"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "美洲"
           }
         }
       }
@@ -1430,29 +1384,6 @@
         }
       }
     },
-    "Antarctica" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Antarctica"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "南极洲"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "南極洲"
-          }
-        }
-      }
-    },
     "Antigua" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1570,29 +1501,6 @@
         }
       }
     },
-    "Arctic" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Arctic"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "北极"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "北極"
-          }
-        }
-      }
-    },
     "Are you sure want to remove all alarms?" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1621,29 +1529,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "確定要取代目前的計時器嗎？"
-          }
-        }
-      }
-    },
-    "Argentina" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Argentina"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "阿根廷"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "阿根廷"
           }
         }
       }
@@ -1711,29 +1596,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "阿什哈巴德"
-          }
-        }
-      }
-    },
-    "Asia" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Asia"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "亚洲"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "亞洲"
           }
         }
       }
@@ -1839,29 +1701,6 @@
         }
       }
     },
-    "Atlantic Ocean" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Atlantic Ocean"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "大西洋"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "大西洋"
-          }
-        }
-      }
-    },
     "Atyrau" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1892,52 +1731,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "奧克蘭"
-          }
-        }
-      }
-    },
-    "Australia" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Australia"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "澳大利亚"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "澳大利亞"
-          }
-        }
-      }
-    },
-    "Austria" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Austria"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "奥地利"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "奧地利"
           }
         }
       }
@@ -2094,29 +1887,6 @@
         }
       }
     },
-    "Bangladesh" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Bangladesh"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "孟加拉国"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "孟加拉"
-          }
-        }
-      }
-    },
     "Bangui" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2215,29 +1985,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "貝倫"
-          }
-        }
-      }
-    },
-    "Belgium" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Belgium"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "比利时"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "比利時"
           }
         }
       }
@@ -2556,29 +2303,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "布拉提斯拉瓦"
-          }
-        }
-      }
-    },
-    "Brazil" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Brazil"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "巴西"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "巴西"
           }
         }
       }
@@ -2917,29 +2641,6 @@
         }
       }
     },
-    "Canada" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Canada"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加拿大"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "加拿大"
-          }
-        }
-      }
-    },
     "Canary" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3256,52 +2957,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "奇瓦瓦"
-          }
-        }
-      }
-    },
-    "Chile" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Chile"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "智利"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "智利"
-          }
-        }
-      }
-    },
-    "China" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "China"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "中国"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "中國"
           }
         }
       }
@@ -3642,29 +3297,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "集合"
-          }
-        }
-      }
-    },
-    "Colombia" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Colombia"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "哥伦比亚"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "哥倫比亞"
           }
         }
       }
@@ -4148,29 +3780,6 @@
         }
       }
     },
-    "Cuba" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cuba"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "古巴"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "古巴"
-          }
-        }
-      }
-    },
     "Cuiaba" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4289,29 +3898,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "自訂計時器名稱"
-          }
-        }
-      }
-    },
-    "Czech Republic" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Czech Republic"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "捷克"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "捷克"
           }
         }
       }
@@ -4622,29 +4208,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "刪除計時器"
-          }
-        }
-      }
-    },
-    "Denmark" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Denmark"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "丹麦"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "丹麥"
           }
         }
       }
@@ -5148,29 +4711,6 @@
         }
       }
     },
-    "Egypt" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Egypt"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "埃及"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "埃及"
-          }
-        }
-      }
-    },
     "Eirunepe" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5469,29 +5009,6 @@
         }
       }
     },
-    "Europe" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Europe"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "欧洲"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "歐洲"
-          }
-        }
-      }
-    },
     "Event Duration" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5700,29 +5217,6 @@
         }
       }
     },
-    "Finland" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Finland"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "芬兰"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "芬蘭"
-          }
-        }
-      }
-    },
     "First Quarter" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5850,29 +5344,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "福塔雷薩"
-          }
-        }
-      }
-    },
-    "France" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "France"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "法国"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "法國"
           }
         }
       }
@@ -6077,29 +5548,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通用"
-          }
-        }
-      }
-    },
-    "Germany" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Germany"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "德国"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "德國"
           }
         }
       }
@@ -6368,29 +5816,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "大特克島"
-          }
-        }
-      }
-    },
-    "Greece" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Greece"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "希腊"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "希臘"
           }
         }
       }
@@ -6946,52 +6371,6 @@
         }
       }
     },
-    "India" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "India"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "印度"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "印度"
-          }
-        }
-      }
-    },
-    "Indian Ocean" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indian Ocean"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "印度洋"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "印度洋"
-          }
-        }
-      }
-    },
     "Indianapolis" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7027,29 +6406,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "本地時間中的可用性指示器。"
-          }
-        }
-      }
-    },
-    "Indonesia" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Indonesia"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "印度尼西亚"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "印尼"
           }
         }
       }
@@ -7104,75 +6460,6 @@
         }
       }
     },
-    "Iran" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Iran"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "伊朗"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "伊朗"
-          }
-        }
-      }
-    },
-    "Iraq" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Iraq"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "伊拉克"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "伊拉克"
-          }
-        }
-      }
-    },
-    "Ireland" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ireland"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "爱尔兰"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "愛爾蘭"
-          }
-        }
-      }
-    },
     "Irkutsk" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7223,29 +6510,6 @@
         }
       }
     },
-    "Israel" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Israel"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "以色列"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "以色列"
-          }
-        }
-      }
-    },
     "Istanbul" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -7259,29 +6523,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "伊斯坦堡"
-          }
-        }
-      }
-    },
-    "Italy" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Italy"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "意大利"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "義大利"
           }
         }
       }
@@ -7322,29 +6563,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "牙買加"
-          }
-        }
-      }
-    },
-    "Japan" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Japan"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "日本"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "日本"
           }
         }
       }
@@ -7430,29 +6648,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "強斯頓島"
-          }
-        }
-      }
-    },
-    "Jordan" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Jordan"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "约旦"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "約旦"
           }
         }
       }
@@ -7657,29 +6852,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "加德滿都"
-          }
-        }
-      }
-    },
-    "Kenya" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Kenya"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "肯尼亚"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "肯亞"
           }
         }
       }
@@ -8068,29 +7240,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下弦月"
-          }
-        }
-      }
-    },
-    "Lebanon" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Lebanon"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "黎巴嫩"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "黎巴嫩"
           }
         }
       }
@@ -8587,29 +7736,6 @@
         }
       }
     },
-    "Malaysia" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Malaysia"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "马来西亚"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "馬來西亞"
-          }
-        }
-      }
-    },
     "Maldives" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9050,29 +8176,6 @@
         }
       }
     },
-    "Mexico" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mexico"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "墨西哥"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "墨西哥"
-          }
-        }
-      }
-    },
     "Mexico City" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9491,29 +8594,6 @@
         }
       }
     },
-    "Morocco" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Morocco"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "摩洛哥"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "摩洛哥"
-          }
-        }
-      }
-    },
     "Moscow" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9612,29 +8692,6 @@
         }
       }
     },
-    "Myanmar" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Myanmar"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "缅甸"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "緬甸"
-          }
-        }
-      }
-    },
     "Nairobi" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9715,29 +8772,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "需要完整的日曆存取權限。"
-          }
-        }
-      }
-    },
-    "Netherlands" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Netherlands"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "荷兰"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "荷蘭"
           }
         }
       }
@@ -9825,29 +8859,6 @@
         }
       }
     },
-    "New Zealand" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "New Zealand"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新西兰"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "紐西蘭"
-          }
-        }
-      }
-    },
     "Newest First" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9910,29 +8921,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "尼科西亞"
-          }
-        }
-      }
-    },
-    "Nigeria" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Nigeria"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "尼日利亚"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "奈及利亞"
           }
         }
       }
@@ -10098,29 +9086,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "諾羅尼亞"
-          }
-        }
-      }
-    },
-    "Norway" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Norway"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "挪威"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "挪威"
           }
         }
       }
@@ -10526,29 +9491,6 @@
         }
       }
     },
-    "Pacific Ocean" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pacific Ocean"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "太平洋"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "太平洋"
-          }
-        }
-      }
-    },
     "Pago Pago" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10562,29 +9504,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "帕果帕果"
-          }
-        }
-      }
-    },
-    "Pakistan" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Pakistan"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "巴基斯坦"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "巴基斯坦"
           }
         }
       }
@@ -10746,29 +9665,6 @@
         }
       }
     },
-    "Peru" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Peru"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "秘鲁"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "祕魯"
-          }
-        }
-      }
-    },
     "Petersburg" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -10782,29 +9678,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "彼得堡"
-          }
-        }
-      }
-    },
-    "Philippines" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Philippines"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "菲律宾"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "菲律賓"
           }
         }
       }
@@ -10990,29 +9863,6 @@
         }
       }
     },
-    "Poland" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Poland"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "波兰"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "波蘭"
-          }
-        }
-      }
-    },
     "Ponape" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11128,29 +9978,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "波多諾伏"
-          }
-        }
-      }
-    },
-    "Portugal" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Portugal"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "葡萄牙"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "葡萄牙"
           }
         }
       }
@@ -11865,29 +10692,6 @@
         }
       }
     },
-    "Russia" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Russia"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "俄罗斯"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "俄羅斯"
-          }
-        }
-      }
-    },
     "Saipan" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12178,29 +10982,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "六"
-          }
-        }
-      }
-    },
-    "Saudi Arabia" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Saudi Arabia"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "沙特阿拉伯"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "沙烏地阿拉伯"
           }
         }
       }
@@ -12922,29 +11703,6 @@
         }
       }
     },
-    "South Africa" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "South Africa"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "南非"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "南非"
-          }
-        }
-      }
-    },
     "South Georgia" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12962,29 +11720,6 @@
         }
       }
     },
-    "South Korea" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "South Korea"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "韩国"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "韓國"
-          }
-        }
-      }
-    },
     "South Pole" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12998,29 +11733,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "南極點"
-          }
-        }
-      }
-    },
-    "Spain" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Spain"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "西班牙"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "西班牙"
           }
         }
       }
@@ -13491,29 +12203,6 @@
         }
       }
     },
-    "Sweden" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sweden"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "瑞典"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "瑞典"
-          }
-        }
-      }
-    },
     "Swift Current" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13563,29 +12252,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "滑動切換時區，與世界保持同步"
-          }
-        }
-      }
-    },
-    "Switzerland" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Switzerland"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "瑞士"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "瑞士"
           }
         }
       }
@@ -13692,29 +12358,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "台北"
-          }
-        }
-      }
-    },
-    "Taiwan" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Taiwan"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "台湾"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "台灣"
           }
         }
       }
@@ -13961,29 +12604,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "使用條款"
-          }
-        }
-      }
-    },
-    "Thailand" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Thailand"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "泰国"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "泰國"
           }
         }
       }
@@ -14659,76 +13279,6 @@
         }
       }
     },
-    "United Arab Emirates" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "United Arab Emirates"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "阿拉伯联合酋长国"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "阿拉伯聯合大公國"
-          }
-        }
-      }
-    },
-    "United Kingdom" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "United Kingdom"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "英国"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "英國"
-          }
-        }
-      }
-    },
-    "United States" : {
-      "comment" : "Regions",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "United States"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "美国"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "美國"
-          }
-        }
-      }
-    },
     "Unknown" : {
       "localizations" : {
         "zh-Hans" : {
@@ -14986,29 +13536,6 @@
         }
       }
     },
-    "Venezuela" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Venezuela"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "委内瑞拉"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "委內瑞拉"
-          }
-        }
-      }
-    },
     "Version" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15096,29 +13623,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "永珍"
-          }
-        }
-      }
-    },
-    "Vietnam" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vietnam"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "越南"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "越南"
           }
         }
       }
