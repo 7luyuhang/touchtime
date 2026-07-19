@@ -273,7 +273,7 @@ struct MoonPhaseView: View {
                 }
             }
             .animation(.spring(), value: selectedMonthIndex != 1)
-            .presentationDetents([.height(500)])
+            .presentationDetents([.height(520)])
         }
         .onAppear {
             prepareCalendarData()
