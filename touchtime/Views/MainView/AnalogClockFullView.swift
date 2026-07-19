@@ -2955,7 +2955,12 @@ struct DigitalTimeDisplayView: View {
                         .animation(timerIsAdjusting ? nil : .spring(duration: 0.25), value: remaining)
                 }
 
-                Text(formattedConfiguredDuration(seconds: timerConfiguredSeconds))
+                Text(
+                    String.localizedStringWithFormat(
+                        String(localized: "Set to %@"),
+                        formattedConfiguredDuration(seconds: timerConfiguredSeconds)
+                    )
+                )
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)
