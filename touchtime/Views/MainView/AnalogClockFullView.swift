@@ -36,6 +36,7 @@ struct AnalogClockFullView: View {
     @State private var currentDate = Date()
     @State private var selectedCityId: UUID? = nil // nil means Local is selected
     @State private var showDetailsSheet = false
+    @State private var showMoonPhaseView = false
     @State private var showShareSheet = false
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
@@ -1041,6 +1042,7 @@ struct AnalogClockFullView: View {
                                     selectedCityId: $selectedCityId,
                                     hapticEnabled: hapticEnabled,
                                     showDetailsSheet: $showDetailsSheet,
+                                    showMoonPhaseView: $showMoonPhaseView,
                                     weather: weatherManager.weatherData[selectedTimeZone.identifier],
                                     showWeather: showWeather,
                                     showTimeInsteadOfCityName: showTimeInsteadOfCityName
@@ -1252,6 +1254,13 @@ struct AnalogClockFullView: View {
                     )
                     .environmentObject(weatherManager)
                 }
+            }
+            .sheet(isPresented: $showMoonPhaseView) {
+                MoonPhaseView(
+                    cityName: selectedCityName,
+                    timeZoneIdentifier: selectedTimeZone.identifier,
+                    timeOffset: timeOffset
+                )
             }
             .sheet(isPresented: $showShareSheet) {
                 ShareCitiesSheet(
@@ -1475,6 +1484,7 @@ struct AnalogClockFaceView: View {
     @Binding var selectedCityId: UUID?
     let hapticEnabled: Bool
     @Binding var showDetailsSheet: Bool
+    @Binding var showMoonPhaseView: Bool
     let weather: CurrentWeather?
     let showWeather: Bool
     let showTimeInsteadOfCityName: Bool
@@ -2150,16 +2160,26 @@ struct AnalogClockFaceView: View {
             }
             
             // Moon phase icon
-            Image(systemName: moonPhaseIcon)
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .blendMode(.plusLighter)
-                .frame(height: 24)
-                .scaleEffect(hideOtherHands ? focusedIconScale : 1.0)
-                .position(x: size / 2, y: size / 2 - (size / 2 - 62) + (hideOtherHands ? focusedIconShift : 0))
-                .contentTransition(.symbolEffect(.replace))
-                .animation(.spring(), value: moonPhaseIcon)
-                .animation(.spring(), value: hideOtherHands)
+            Button {
+                if hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+                showMoonPhaseView = true
+            } label: {
+                Image(systemName: moonPhaseIcon)
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .blendMode(.plusLighter)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .scaleEffect(hideOtherHands ? focusedIconScale : 1.0)
+            .position(x: size / 2, y: size / 2 - (size / 2 - 62) + (hideOtherHands ? focusedIconShift : 0))
+            .accessibilityLabel(Text("Moon Phase"))
+            .contentTransition(.symbolEffect(.replace))
+            .animation(.spring(), value: moonPhaseIcon)
+            .animation(.spring(), value: hideOtherHands)
 
             if hideOtherHands {
                 Text(moonPhaseName)
