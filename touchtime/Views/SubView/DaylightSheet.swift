@@ -235,7 +235,7 @@ private struct DaylightIndicatorBar: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let indicatorSize: CGFloat = 20
+            let indicatorSize: CGFloat = 22
             let sunOffset = (geometry.size.width - indicatorSize) * CGFloat(dayProgress)
 
             ZStack(alignment: .leading) {
@@ -279,11 +279,15 @@ private struct DaylightIndicatorBar: View {
                 Circle()
                     .fill(.white)
                     .frame(width: indicatorSize, height: indicatorSize)
-//                    .overlay {
-//                        Circle()
-//                            .stroke(.black.opacity(0.10), lineWidth: 1)
-//                            .blendMode(.plusDarker)
-//                    }
+                    .background {
+                        // Shadow lives on its own layer: plusDarker on the
+                        // white disc itself would make it vanish.
+                        Circle()
+                            .fill(.black.opacity(0.05))
+                            .blur(radius: 5)
+                            .offset(y: 2.5)
+                            .blendMode(.plusDarker)
+                    }
                     .offset(x: sunOffset)
                     .animation(.spring(), value: dayProgress)
             }
