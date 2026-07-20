@@ -167,7 +167,7 @@ private struct DaylightIndicatorBar: View {
 
     var body: some View {
         GeometryReader { geometry in
-            let indicatorSize: CGFloat = 20 // Circle
+            let indicatorSize: CGFloat = 20
             let sunOffset = (geometry.size.width - indicatorSize) * CGFloat(dayProgress)
 
             ZStack(alignment: .leading) {
