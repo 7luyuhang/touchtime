@@ -123,7 +123,7 @@ struct DaylightSheet: View {
                     currentDate = now
                 }
             }
-            .presentationDetents([.height(250)])
+            .presentationDetents([.height(200)])
         }
     }
 }
