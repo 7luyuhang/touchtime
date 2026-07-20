@@ -68,14 +68,6 @@ struct LifetimeStoreView: View {
 
     var body: some View {
         ZStack {
-            
-            ParticleView()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .ignoresSafeArea()
-                .allowsHitTesting(false)
-                .opacity(0.75)
-                .blendMode(.plusLighter)
-
             GeometryReader { geometry in
                 ScrollView {
                     complicationShowcaseRow(cardWidth: geometry.size.width - 48)

@@ -399,6 +399,13 @@ struct SunriseSunsetSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     // Top row: Weather and Date
                     HStack {
+                        if cityName == String(localized: "Local") {
+                            Image(systemName: "location.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                        }
+
                         Spacer()
                         
                         // Weather display
