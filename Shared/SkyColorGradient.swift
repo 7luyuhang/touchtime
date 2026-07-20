@@ -82,22 +82,36 @@ struct SkyColorGradient {
 
     // Five vertical stops, zenith → horizon.
     var colors: [Color] {
-        let stops: [Lab]
+        labStops.map { Self.color(fromOKLab: $0) }
+    }
+
+    // The same five stops in OKLab, zenith → horizon, for callers that need
+    // to run their own color math (e.g. smoothing across time samples)
+    // before converting to display colors.
+    var oklabStops: [SIMD3<Double>] {
+        labStops
+    }
+
+    // Converts an OKLab value (such as a smoothed `oklabStops` sample) into
+    // a display color.
+    static func color(fromOKLab lab: SIMD3<Double>) -> Color {
+        let rgb = labToSrgb(lab)
+        return Color(red: rgb.x, green: rgb.y, blue: rgb.z)
+    }
+
+    private var labStops: [Lab] {
         if isRainy {
-            stops = Self.interpolatedStops(at: solarAltitude, in: Self.rainFrames)
-        } else if duskFactor <= 0.0 {
-            stops = Self.interpolatedStops(at: solarAltitude, in: Self.clearDawnFrames)
-        } else if duskFactor >= 1.0 {
-            stops = Self.interpolatedStops(at: solarAltitude, in: Self.clearDuskFrames)
-        } else {
-            let dawn = Self.interpolatedStops(at: solarAltitude, in: Self.clearDawnFrames)
-            let dusk = Self.interpolatedStops(at: solarAltitude, in: Self.clearDuskFrames)
-            stops = zip(dawn, dusk).map { $0 + ($1 - $0) * duskFactor }
+            return Self.interpolatedStops(at: solarAltitude, in: Self.rainFrames)
         }
-        return stops.map { lab in
-            let rgb = Self.labToSrgb(lab)
-            return Color(red: rgb.x, green: rgb.y, blue: rgb.z)
+        if duskFactor <= 0.0 {
+            return Self.interpolatedStops(at: solarAltitude, in: Self.clearDawnFrames)
         }
+        if duskFactor >= 1.0 {
+            return Self.interpolatedStops(at: solarAltitude, in: Self.clearDuskFrames)
+        }
+        let dawn = Self.interpolatedStops(at: solarAltitude, in: Self.clearDawnFrames)
+        let dusk = Self.interpolatedStops(at: solarAltitude, in: Self.clearDuskFrames)
+        return zip(dawn, dusk).map { $0 + ($1 - $0) * duskFactor }
     }
 
     // Get linear gradient with specified opacity (default 1.0 for full opacity)

@@ -134,7 +134,37 @@ private struct DaylightIndicatorBar: View {
     let date: Date
     let timeZoneIdentifier: String
 
-    private static let sampleCount = 96 // one sky sample every 15 minutes
+    private static let sampleCount = 288 // one sky sample every 5 minutes
+    // Gaussian smoothing window (±30 min) applied to the sampled sky colors
+    // in OKLab space, softening the night/twilight/day seams.
+    private static let smoothingRadius = 6
+    private static let barHeight: CGFloat = 36
+
+    private struct TimelineStar: Identifiable {
+        let id: Int
+        let x: CGFloat
+        let y: CGFloat
+        let size: CGFloat
+    }
+
+    // Fixed positions keep the sparse field balanced across both nightly ends
+    // of the 24-hour timeline.
+    private static let timelineStars: [TimelineStar] = [
+        .init(id: 0, x: 0.025, y: 0.22, size: 0.7),
+        .init(id: 1, x: 0.055, y: 0.66, size: 0.55),
+        .init(id: 2, x: 0.095, y: 0.38, size: 1.0),
+        .init(id: 3, x: 0.135, y: 0.76, size: 0.65),
+        .init(id: 4, x: 0.175, y: 0.18, size: 1.3),
+        .init(id: 5, x: 0.310, y: 0.55, size: 0.55),
+        .init(id: 6, x: 0.420, y: 0.25, size: 0.85),
+        .init(id: 7, x: 0.540, y: 0.72, size: 0.6),
+        .init(id: 8, x: 0.670, y: 0.42, size: 0.8),
+        .init(id: 9, x: 0.810, y: 0.75, size: 0.65),
+        .init(id: 10, x: 0.855, y: 0.31, size: 1.0),
+        .init(id: 11, x: 0.900, y: 0.58, size: 0.6),
+        .init(id: 12, x: 0.945, y: 0.20, size: 1.4),
+        .init(id: 13, x: 0.980, y: 0.72, size: 0.8)
+    ]
 
     private var dayInterval: DateInterval {
         var calendar = Calendar.current
@@ -145,17 +175,55 @@ private struct DaylightIndicatorBar: View {
 
     private var gradientColors: [Color] {
         let interval = dayInterval
-        return (0...Self.sampleCount).map { index in
+        let samples: [SIMD3<Double>] = (0...Self.sampleCount).map { index in
             let sampleDate = interval.start.addingTimeInterval(
                 Double(index) / Double(Self.sampleCount) * interval.duration
             )
             let stops = SkyColorGradient(
                 date: sampleDate,
                 timeZoneIdentifier: timeZoneIdentifier
-            ).colors
+            ).oklabStops
             // Blend the mid-sky and lower-sky stops so daytime stays blue
             // while sunrise/sunset keep their warm horizon glow.
-            return stops[2].mix(with: stops[3], by: 0.5)
+            return (stops[2] + stops[3]) * 0.5
+        }
+        return Self.gaussianSmoothed(samples).map { SkyColorGradient.color(fromOKLab: $0) }
+    }
+
+    // Gaussian blur along the time axis, performed in OKLab so hues blend
+    // perceptually instead of dipping through gray. Edges clamp to the first/
+    // last sample, which is safe because both ends sit in stable night sky.
+    private static func gaussianSmoothed(_ samples: [SIMD3<Double>]) -> [SIMD3<Double>] {
+        let radius = smoothingRadius
+        guard radius > 0, samples.count > 1 else { return samples }
+
+        let sigma = Double(radius) / 2.0
+        let weights = (-radius...radius).map { offset in
+            exp(-Double(offset * offset) / (2.0 * sigma * sigma))
+        }
+        let totalWeight = weights.reduce(0, +)
+
+        return samples.indices.map { index in
+            var sum = SIMD3<Double>()
+            for (weightIndex, offset) in (-radius...radius).enumerated() {
+                let neighbor = min(max(index + offset, 0), samples.count - 1)
+                sum += samples[neighbor] * weights[weightIndex]
+            }
+            return sum / totalWeight
+        }
+    }
+
+    private var starMaskColors: [Color] {
+        let interval = dayInterval
+        return (0...Self.sampleCount).map { index in
+            let sampleDate = interval.start.addingTimeInterval(
+                Double(index) / Double(Self.sampleCount) * interval.duration
+            )
+            let starOpacity = SkyColorGradient(
+                date: sampleDate,
+                timeZoneIdentifier: timeZoneIdentifier
+            ).starOpacity
+            return .white.opacity(starOpacity)
         }
     }
 
@@ -179,12 +247,33 @@ private struct DaylightIndicatorBar: View {
                             endPoint: .trailing
                         )
                     )
-                    .frame(height: 36)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(.white.opacity(0.05), lineWidth: 1)
-                            .blendMode(.plusLighter)
+                    .frame(width: geometry.size.width, height: Self.barHeight)
+
+                ZStack {
+                    ForEach(Self.timelineStars) { star in
+                        StarParticle(size: star.size)
+                            .position(
+                                x: star.x * geometry.size.width,
+                                y: star.y * Self.barHeight
+                            )
                     }
+                }
+                .frame(width: geometry.size.width, height: Self.barHeight)
+                .mask {
+                    LinearGradient(
+                        colors: starMaskColors,
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                }
+                .blendMode(.plusLighter)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                .allowsHitTesting(false)
+
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .stroke(.white.opacity(0.05), lineWidth: 1)
+                    .blendMode(.plusLighter)
+                    .frame(width: geometry.size.width, height: Self.barHeight)
 
                 // Sun position indicator
                 Circle()
@@ -198,7 +287,8 @@ private struct DaylightIndicatorBar: View {
                     .offset(x: sunOffset)
                     .animation(.spring(), value: dayProgress)
             }
-            .frame(width: geometry.size.width, height: geometry.size.height)
+            .frame(width: geometry.size.width, height: Self.barHeight)
         }
+        .frame(height: Self.barHeight)
     }
 }
