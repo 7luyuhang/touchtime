@@ -30,6 +30,7 @@ struct SunriseSunsetSheet: View {
     @EnvironmentObject private var weatherManager: WeatherManager
     @State private var weatherLoadAttempted = false // No Weather Data
     @State private var isWeatherExpanded = false // Track weather section expansion
+    @State private var showDaylightSheet = false // Track daylight sheet
     @State private var currentDetent: PresentationDetent = .medium // Track current sheet size
     @State private var showMoonPhaseView = false // Track moon phase view navigation
     @State private var showWidgetIntroSheet = false // Track widget intro sheet
@@ -368,7 +369,7 @@ struct SunriseSunsetSheet: View {
         let daysUntil = max(calendar.dateComponents([.day], from: startOfToday, to: startOfTargetDay).day ?? 0, 0)
         
         if Locale.current.language.languageCode?.identifier == "zh" {
-            return "\(daysUntil) 天"
+            return "\(daysUntil)天"
         }
         
         return daysUntil == 1 ? "1 day" : "\(daysUntil) days"
@@ -726,26 +727,41 @@ struct SunriseSunsetSheet: View {
                                 .padding(.horizontal, 16)
 
                                 // Daylight Duration Section
-                                HStack {
-                                    HStack(spacing: 16){
-                                        Image(systemName: "rays")
-                                            .font(.title3.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                            .frame(width: 24)
+                                Button {
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    }
+                                    showDaylightSheet = true
+                                } label: {
+                                    HStack {
+                                        HStack(spacing: 16){
+                                            Image(systemName: "rays")
+                                                .font(.title3.weight(.semibold))
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                                .frame(width: 24)
 
-                                        Text("Daylight")
-                                            .font(.headline)
-                                            .foregroundStyle(.secondary)
+                                            Text("Daylight")
+                                                .font(.headline)
+                                                .foregroundStyle(.secondary)
+                                                .blendMode(.plusLighter)
+                                        }
+                                        Spacer()
+
+                                        Text(formatDuration(from: times.sunrise, to: times.sunset))
+                                            .monospacedDigit()
+                                            .contentTransition(.numericText(countsDown: false))
+                                            .animation(.spring(), value: "\(times.sunrise?.description ?? "")\(times.sunset?.description ?? "")")
+
+                                        Image(systemName: "chevron.right")
+                                            .font(.footnote.weight(.semibold))
+                                            .foregroundStyle(.tertiary)
                                             .blendMode(.plusLighter)
                                     }
-                                    Spacer()
-                                    Text(formatDuration(from: times.sunrise, to: times.sunset))
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText(countsDown: false))
-                                        .animation(.spring(), value: "\(times.sunrise?.description ?? "")\(times.sunset?.description ?? "")")
+                                    .detailsSheetCard()
                                 }
-                                .detailsSheetCardRow()
+                                .buttonStyle(.plain)
+                                .padding(.horizontal, 16)
 
                                 // Evening Golden Hour Section
                                 if let goldenHour = eveningGoldenHour,
@@ -1052,6 +1068,12 @@ struct SunriseSunsetSheet: View {
             }
             .sheet(isPresented: $showWidgetIntroSheet) {
                 WidgetIntroSheet()
+            }
+            .sheet(isPresented: $showDaylightSheet) {
+                DaylightSheet(
+                    timeZoneIdentifier: timeZoneIdentifier,
+                    timeOffset: timeOffset
+                )
             }
         }
     }
