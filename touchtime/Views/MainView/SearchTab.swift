@@ -119,12 +119,7 @@ struct TimeZonePickerViewWrapper: View {
         let grouped = Dictionary(grouping: timeZones) { $0.groupKey }
         
         // Sort keys
-        let sorted = grouped.keys.sorted { key1, key2 in
-            // "#" symbol comes last
-            if key1 == "#" { return false }
-            if key2 == "#" { return true }
-            return key1 < key2
-        }
+        let sorted = Self.sortedGroupKeys(grouped.keys)
         
         precomputedTimeZones = timeZones
         groupedTimeZones = grouped
@@ -164,10 +159,9 @@ struct TimeZonePickerViewWrapper: View {
         }
     }
     
-    // Get sorted keys for filtered results
-    private var filteredSortedKeys: [String] {
-        filteredGroupedTimeZones.keys.sorted { key1, key2 in
-            // "#" symbol comes last
+    // Sort group keys alphabetically, with "#" last
+    private static func sortedGroupKeys(_ keys: some Sequence<String>) -> [String] {
+        keys.sorted { key1, key2 in
             if key1 == "#" { return false }
             if key2 == "#" { return true }
             return key1 < key2
@@ -175,9 +169,15 @@ struct TimeZonePickerViewWrapper: View {
     }
     
     var body: some View {
+        // Compute filtered data once per body evaluation:
+        // the filter walks all timezones, so it must not run per section
+        let displayedGroups = filteredGroupedTimeZones
+        let displayedKeys = searchText.isEmpty ? sortedKeys : Self.sortedGroupKeys(displayedGroups.keys)
+        let selectedIdentifiers = Set(worldClocks.map(\.timeZoneIdentifier))
+        
         NavigationStack {
             Group {
-                if filteredGroupedTimeZones.isEmpty {
+                if displayedGroups.isEmpty {
                     // Empty state when no search results
                     ContentUnavailableView.search(text: searchText)
                 } else {
@@ -222,12 +222,12 @@ struct TimeZonePickerViewWrapper: View {
                             }
                         }
                         
-                        ForEach(filteredSortedKeys, id: \.self) { key in
+                        ForEach(displayedKeys, id: \.self) { key in
                             Section(header: Text(key)) {
-                                ForEach(filteredGroupedTimeZones[key] ?? [], id: \.id) { timeZoneData in
+                                ForEach(displayedGroups[key] ?? [], id: \.id) { timeZoneData in
                                     TimeZoneCellView(
                                         timeZoneData: timeZoneData,
-                                        isSelected: worldClocks.contains(where: { $0.timeZoneIdentifier == timeZoneData.identifier }),
+                                        isSelected: selectedIdentifiers.contains(timeZoneData.identifier),
                                         currentDate: currentDate,
                                         use24HourFormat: use24HourFormat,
                                         collectionMenuItems: collectionMenuItems(for: timeZoneData.identifier),
