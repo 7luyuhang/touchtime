@@ -17,13 +17,22 @@ class WeatherManager: ObservableObject {
     @Published var weatherData: [String: CurrentWeather] = [:]
     @Published var dailyWeatherData: [String: DayWeather] = [:]
     @Published var weeklyWeatherData: [String: [DayWeather]] = [:]
+    @Published var hourlyWeatherData: [String: [HourWeather]] = [:]
     @Published var currentWeather: CurrentWeather?
     @Published var isLoading = false
     @Published var weatherError: Error?
     
     // Cache for weather data
-    private var weatherCache: [String: (weather: CurrentWeather, daily: DayWeather?, weekly: [DayWeather], timestamp: Date)] = [:]
+    private var weatherCache: [String: (weather: CurrentWeather, daily: DayWeather?, weekly: [DayWeather], hourly: [HourWeather], timestamp: Date)] = [:]
     private let cacheExpiration: TimeInterval = 3600 // 1 hour
+    
+    // Next 12 hours of forecast starting from the current hour
+    private func upcomingHours(from forecast: Forecast<HourWeather>) -> [HourWeather] {
+        let currentHourStart = Date(
+            timeIntervalSinceReferenceDate: (Date().timeIntervalSinceReferenceDate / 3600).rounded(.down) * 3600
+        )
+        return Array(forecast.filter { $0.date >= currentHourStart }.prefix(12))
+    }
     
     // Track in-flight fetches to avoid duplicate network requests
     private var inFlightFetches: Set<String> = []
@@ -48,6 +57,9 @@ class WeatherManager: ObservableObject {
             }
             if self.weeklyWeatherData[timeZoneIdentifier] == nil {
                 self.weeklyWeatherData[timeZoneIdentifier] = cached.weekly
+            }
+            if self.hourlyWeatherData[timeZoneIdentifier] == nil {
+                self.hourlyWeatherData[timeZoneIdentifier] = cached.hourly
             }
             if timeZoneIdentifier == TimeZone.current.identifier && self.currentWeather == nil {
                 self.currentWeather = cached.weather
@@ -76,6 +88,10 @@ class WeatherManager: ObservableObject {
             let weeklyForecast = Array(weather.dailyForecast.prefix(10))
             self.weeklyWeatherData[timeZoneIdentifier] = weeklyForecast
             
+            // Get hourly forecast (next 12 hours)
+            let hourlyForecast = upcomingHours(from: weather.hourlyForecast)
+            self.hourlyWeatherData[timeZoneIdentifier] = hourlyForecast
+            
             // Also set currentWeather if it's the system timezone
             if timeZoneIdentifier == TimeZone.current.identifier {
                 self.currentWeather = weather.currentWeather
@@ -83,7 +99,7 @@ class WeatherManager: ObservableObject {
             
             // Update cache
             let dailyWeather = weather.dailyForecast.first
-            weatherCache[cacheKey] = (weather.currentWeather, dailyWeather, weeklyForecast, Date())
+            weatherCache[cacheKey] = (weather.currentWeather, dailyWeather, weeklyForecast, hourlyForecast, Date())
             syncConditionsToWidget()
             
         } catch {
@@ -97,7 +113,7 @@ class WeatherManager: ObservableObject {
     // Batch fetch weather for multiple cities - reduces @Published update notifications
     func getWeatherForCities(_ identifiers: [String]) async {
         // Separate cached vs needs-fetch
-        var cachedResults: [(id: String, weather: CurrentWeather, daily: DayWeather?, weekly: [DayWeather])] = []
+        var cachedResults: [(id: String, weather: CurrentWeather, daily: DayWeather?, weekly: [DayWeather], hourly: [HourWeather])] = []
         var toFetch: [(id: String, location: CLLocation)] = []
         
         for id in identifiers {
@@ -105,7 +121,7 @@ class WeatherManager: ObservableObject {
                Date().timeIntervalSince(cached.timestamp) < cacheExpiration {
                 // Already have fresh data in @Published - skip entirely
                 if weatherData[id] != nil { continue }
-                cachedResults.append((id, cached.weather, cached.daily, cached.weekly))
+                cachedResults.append((id, cached.weather, cached.daily, cached.weekly, cached.hourly))
             } else if !inFlightFetches.contains(id),
                       let location = getLocation(for: id) {
                 toFetch.append((id, location))
@@ -117,14 +133,17 @@ class WeatherManager: ObservableObject {
             var newWeatherData = weatherData
             var newDailyData = dailyWeatherData
             var newWeeklyData = weeklyWeatherData
+            var newHourlyData = hourlyWeatherData
             for item in cachedResults {
                 newWeatherData[item.id] = item.weather
                 if let daily = item.daily { newDailyData[item.id] = daily }
                 newWeeklyData[item.id] = item.weekly
+                newHourlyData[item.id] = item.hourly
             }
             weatherData = newWeatherData
             dailyWeatherData = newDailyData
             weeklyWeatherData = newWeeklyData
+            hourlyWeatherData = newHourlyData
         }
         
         guard !toFetch.isEmpty else { return }
@@ -136,15 +155,16 @@ class WeatherManager: ObservableObject {
         isLoading = true
         
         // Fetch all in sequence, collect results, then apply at once
-        var fetchedResults: [(id: String, current: CurrentWeather, daily: DayWeather?, weekly: [DayWeather])] = []
+        var fetchedResults: [(id: String, current: CurrentWeather, daily: DayWeather?, weekly: [DayWeather], hourly: [HourWeather])] = []
         
         for item in toFetch {
             do {
                 let weather = try await weatherService.weather(for: item.location)
                 let daily = weather.dailyForecast.first
                 let weekly = Array(weather.dailyForecast.prefix(10))
-                weatherCache[item.id] = (weather.currentWeather, daily, weekly, Date())
-                fetchedResults.append((item.id, weather.currentWeather, daily, weekly))
+                let hourly = upcomingHours(from: weather.hourlyForecast)
+                weatherCache[item.id] = (weather.currentWeather, daily, weekly, hourly, Date())
+                fetchedResults.append((item.id, weather.currentWeather, daily, weekly, hourly))
             } catch {
                 print("Failed to fetch weather for \(item.id): \(error)")
             }
@@ -155,10 +175,12 @@ class WeatherManager: ObservableObject {
             var newWeatherData = weatherData
             var newDailyData = dailyWeatherData
             var newWeeklyData = weeklyWeatherData
+            var newHourlyData = hourlyWeatherData
             for item in fetchedResults {
                 newWeatherData[item.id] = item.current
                 if let daily = item.daily { newDailyData[item.id] = daily }
                 newWeeklyData[item.id] = item.weekly
+                newHourlyData[item.id] = item.hourly
                 if item.id == TimeZone.current.identifier {
                     currentWeather = item.current
                 }
@@ -166,6 +188,7 @@ class WeatherManager: ObservableObject {
             weatherData = newWeatherData
             dailyWeatherData = newDailyData
             weeklyWeatherData = newWeeklyData
+            hourlyWeatherData = newHourlyData
             syncConditionsToWidget()
         }
         

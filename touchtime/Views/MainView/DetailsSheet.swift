@@ -52,6 +52,10 @@ struct SunriseSunsetSheet: View {
     private var weeklyWeather: [DayWeather] {
         weatherManager.weeklyWeatherData[timeZoneIdentifier] ?? []
     }
+    
+    private var hourlyWeather: [HourWeather] {
+        weatherManager.hourlyWeatherData[timeZoneIdentifier] ?? []
+    }
 
     private var weatherConditionForSky: WeatherCondition? {
         guard showWeather else { return nil }
@@ -533,6 +537,61 @@ struct SunriseSunsetSheet: View {
         .transition(.blurReplace())
     }
 
+    // Today's precipitation chance (right) + next 12 hours of precipitation amount bars (mm)
+    @ViewBuilder
+    private var precipitationRow: some View {
+        let hours = Array(hourlyWeather.prefix(12))
+        let amounts = hours.map { max($0.precipitationAmount.converted(to: .millimeters).value, 0) }
+        let referenceAmount = max(amounts.max() ?? 0, 1) // Full bar at max amount, at least 1 mm
+        let chancePercent = Int(((dailyWeather?.precipitationChance ?? 0) * 100).rounded())
+
+        HStack {
+            HStack(spacing: 16) {
+                Image(systemName: "drop.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .frame(width: 24)
+
+                Text("Precipitation")
+                    .font(.headline)
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .lineLimit(1)
+            }
+
+            Spacer()
+
+            HStack(spacing: 16) {
+                // One bar per hour, height maps to precipitation amount (mm)
+                HStack(alignment: .bottom, spacing: 5) {
+                    ForEach(Array(amounts.enumerated()), id: \.offset) { _, amount in
+                        ZStack(alignment: .bottom) {
+                            Capsule()
+                                .fill(.white.opacity(0.10))
+                                .blendMode(.plusLighter)
+
+                            if amount > 0 {
+                                Capsule()
+                                    .fill(.white)
+                                    .frame(height: max(5, CGFloat(amount / referenceAmount) * 16))
+                            }
+                        }
+                        .frame(width: 5, height: 16)
+                    }
+                }
+
+                Text("\(chancePercent)%")
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .animation(.spring(), value: chancePercent)
+            }
+            .lineLimit(1)
+            .layoutPriority(1)
+        }
+        .detailsSheetCard()
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -662,6 +721,13 @@ struct SunriseSunsetSheet: View {
                                             .padding(.horizontal, 16)
                                         }
                                         .transition(.blurReplace())
+                                    }
+
+                                    // Precipitation section (expandable)
+                                    if isWeatherExpanded && !hourlyWeather.isEmpty {
+                                        precipitationRow
+                                            .padding(.horizontal, 16)
+                                            .transition(.blurReplace())
                                     }
                                 }
                                 .padding(.top, 16) // Row top padding
