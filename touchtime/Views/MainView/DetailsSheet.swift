@@ -491,7 +491,7 @@ struct SunriseSunsetSheet: View {
     
     @ViewBuilder
     private var addWidgetTip: some View {
-        HStack(spacing: 16) {
+        HStack(spacing: 12) {
             Image(systemName: "widget.small")
                 .font(.headline)
                 .foregroundStyle(.secondary)
@@ -546,7 +546,7 @@ struct SunriseSunsetSheet: View {
         let chancePercent = Int(((dailyWeather?.precipitationChance ?? 0) * 100).rounded())
 
         HStack {
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 Image(systemName: "drop.fill")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.secondary)
@@ -562,7 +562,7 @@ struct SunriseSunsetSheet: View {
 
             Spacer()
 
-            HStack(spacing: 16) {
+            HStack(spacing: 12) {
                 // One bar per hour, height maps to precipitation amount (mm)
                 HStack(alignment: .bottom, spacing: 5) {
                     ForEach(Array(amounts.enumerated()), id: \.offset) { _, amount in
@@ -573,11 +573,11 @@ struct SunriseSunsetSheet: View {
 
                             if amount > 0 {
                                 Capsule()
-                                    .fill(.white)
-                                    .frame(height: max(5, CGFloat(amount / referenceAmount) * 16))
+                                    .fill(.cyan)
+                                    .frame(height: max(4, CGFloat(amount / referenceAmount) * 18))
                             }
                         }
-                        .frame(width: 5, height: 16)
+                        .frame(width: 4, height: 18)
                     }
                 }
 
@@ -607,7 +607,7 @@ struct SunriseSunsetSheet: View {
                                 VStack(alignment: .leading, spacing: 8){
                                     // Weather info section
                                     HStack {
-                                        HStack(spacing: 16){
+                                        HStack(spacing: 12){
                                             Image(systemName: weather.condition.icon)
                                                 .symbolRenderingMode(.multicolor)
                                                 .font(.title3.weight(.semibold))
@@ -807,7 +807,7 @@ struct SunriseSunsetSheet: View {
                                     showDaylightSheet = true
                                 } label: {
                                     HStack {
-                                        HStack(spacing: 16){
+                                        HStack(spacing: 12){
                                             Image(systemName: "rays")
                                                 .font(.title3.weight(.semibold))
                                                 .foregroundStyle(.secondary)
@@ -844,7 +844,7 @@ struct SunriseSunsetSheet: View {
                                     let goldenHourFillProgress = goldenHourProgress(start: goldenHourStart, end: goldenHourEnd)
 
                                     ZStack(alignment: .leading) {
-                                        HStack(spacing: 16) {
+                                        HStack(spacing: 12) {
                                             // Icon
                                             Image(systemName: "sun.max.fill")
                                                 .font(.title3.weight(.semibold))
@@ -953,7 +953,7 @@ struct SunriseSunsetSheet: View {
                                         showMoonPhaseView = true
                                     } label: {
                                         HStack {
-                                            HStack(spacing: 16){
+                                            HStack(spacing: 12){
                                                 Image(systemName: moon.phaseIcon)
                                                     .font(.title3.weight(.semibold))
                                                     .foregroundStyle(.secondary)
@@ -985,7 +985,7 @@ struct SunriseSunsetSheet: View {
                                     // Next Full Moon Section
                                     if let nextFullMoon = nextFullMoonDate {
                                         HStack {
-                                            HStack(spacing: 16){
+                                            HStack(spacing: 12){
                                                 Image(systemName: "moonphase.full.moon")
                                                     .font(.title3.weight(.semibold))
                                                     .foregroundStyle(.secondary)
