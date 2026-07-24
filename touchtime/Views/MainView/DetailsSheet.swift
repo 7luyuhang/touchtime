@@ -537,13 +537,18 @@ struct SunriseSunsetSheet: View {
         .transition(.blurReplace())
     }
 
+    // Today's precipitation chance, rounded to whole percent
+    private var precipitationChancePercent: Int {
+        Int(((dailyWeather?.precipitationChance ?? 0) * 100).rounded())
+    }
+
     // Today's precipitation chance (right) + next 12 hours of precipitation amount bars (mm)
     @ViewBuilder
     private var precipitationRow: some View {
         let hours = Array(hourlyWeather.prefix(12))
         let amounts = hours.map { max($0.precipitationAmount.converted(to: .millimeters).value, 0) }
         let referenceAmount = max(amounts.max() ?? 0, 1) // Full bar at max amount, at least 1 mm
-        let chancePercent = Int(((dailyWeather?.precipitationChance ?? 0) * 100).rounded())
+        let chancePercent = precipitationChancePercent
 
         HStack {
             HStack(spacing: 12) {
@@ -723,8 +728,8 @@ struct SunriseSunsetSheet: View {
                                         .transition(.blurReplace())
                                     }
 
-                                    // Precipitation section (expandable)
-                                    if isWeatherExpanded && !hourlyWeather.isEmpty {
+                                    // Precipitation section (expandable), hidden when chance is 0%
+                                    if isWeatherExpanded && !hourlyWeather.isEmpty && precipitationChancePercent > 0 {
                                         precipitationRow
                                             .padding(.horizontal, 16)
                                             .transition(.blurReplace())

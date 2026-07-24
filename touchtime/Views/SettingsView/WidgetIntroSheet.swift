@@ -89,7 +89,10 @@ struct WidgetIntroSheet: View {
                         let pageWidth = max(geometry.size.width - Self.pageInset * 2, widgetPreviewHeight)
                         // Same proportions as a real home screen medium widget:
                         // two smalls plus the column gap, clamped to the sheet.
-                        let mediumWidth = min(widgetPreviewHeight * 2 + 22, geometry.size.width - 32)
+                        // The lower bound guards against the zero-width first
+                        // layout pass, which would push negative sizes into
+                        // the complication views (same clamp as pageWidth).
+                        let mediumWidth = max(min(widgetPreviewHeight * 2 + 22, geometry.size.width - 32), widgetPreviewHeight)
 
                         ScrollView(.horizontal) {
                             HStack(spacing: Self.pageSpacing) {
