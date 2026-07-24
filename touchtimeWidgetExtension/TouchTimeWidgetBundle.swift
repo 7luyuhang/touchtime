@@ -10,6 +10,7 @@ import SwiftUI
 struct TouchTimeWidgetBundle: WidgetBundle {
     var body: some Widget {
         CityComplicationWidget()
+        DaylightWidget()
         WorldCitiesWidget()
     }
 }
