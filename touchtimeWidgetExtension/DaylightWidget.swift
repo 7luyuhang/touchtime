@@ -132,7 +132,7 @@ struct DaylightWidgetView: View {
                         .foregroundStyle(.primary)
 
                     Text(dateString)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
@@ -228,13 +228,14 @@ private struct DaylightRing: View {
         dayFraction(of: date)
     }
 
-    // 1 = day (filled sun), 0 = night (outline sun), cross-fading through
-    // the same ±20 minute sunrise/sunset window as the app's
-    // DaylightIndicator complication.
+    // 1 = filled sun, 0 = outline sun. Outline only in the ring's night
+    // band, i.e. past civil dawn/dusk; twilight, golden hour and day all
+    // keep the filled disc. ±20 minute cross-fade at the boundary so the
+    // per-minute timeline transitions smoothly.
     private var sunDaylightBlend: Double {
         guard let coords = TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier) else {
             let fraction = dayFraction(of: date)
-            return fraction >= 0.25 && fraction <= 0.75 ? 1 : 0
+            return fraction >= 0.23 && fraction <= 0.77 ? 1 : 0
         }
         let events = SolarCalculator.events(
             latitude: coords.latitude,
@@ -243,22 +244,22 @@ private struct DaylightRing: View {
             timeZone: TimeZone(identifier: timeZoneIdentifier) ?? .current
         )
         // Polar night: events collapse to solar noon.
-        guard events.sunset > events.sunrise else { return 0 }
+        guard events.civilDusk > events.civilDawn else { return 0 }
 
         let transitionWindow: TimeInterval = 20 * 60
-        let sunriseStart = events.sunrise - transitionWindow
-        let sunriseEnd = events.sunrise + transitionWindow
-        let sunsetStart = events.sunset - transitionWindow
-        let sunsetEnd = events.sunset + transitionWindow
+        let dawnStart = events.civilDawn - transitionWindow
+        let dawnEnd = events.civilDawn + transitionWindow
+        let duskStart = events.civilDusk - transitionWindow
+        let duskEnd = events.civilDusk + transitionWindow
 
-        if date < sunriseStart { return 0 }
-        if date <= sunriseEnd {
-            let progress = date.timeIntervalSince(sunriseStart) / (transitionWindow * 2)
+        if date < dawnStart { return 0 }
+        if date <= dawnEnd {
+            let progress = date.timeIntervalSince(dawnStart) / (transitionWindow * 2)
             return min(max(progress, 0), 1)
         }
-        if date < sunsetStart { return 1 }
-        if date <= sunsetEnd {
-            let progress = date.timeIntervalSince(sunsetStart) / (transitionWindow * 2)
+        if date < duskStart { return 1 }
+        if date <= duskEnd {
+            let progress = date.timeIntervalSince(duskStart) / (transitionWindow * 2)
             return min(max(1 - progress, 0), 1)
         }
         return 0
@@ -269,12 +270,6 @@ private struct DaylightRing: View {
     private static let twilightOpacity = 0.20
     private static let goldenOpacity = 0.30
     private static let dayOpacity = 0.50
-
-//    private static let nightOpacity = 0.15
-//    private static let twilightOpacity = 0.3
-//    private static let goldenOpacity = 0.45
-//    private static let dayOpacity = 0.6
-
     
     // Hard-edged opacity bands mirroring the full-color ring's phases:
     // night / civil twilight / golden hour / day, split at civil dawn+dusk,
