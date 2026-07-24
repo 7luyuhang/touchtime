@@ -58,7 +58,7 @@ struct ScrollTimeView: View {
     @State private var pendingOffsetMinutes = 0
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
-    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
+    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = false
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""

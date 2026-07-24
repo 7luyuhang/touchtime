@@ -12,7 +12,7 @@ import UIKit
 struct CalendarView: View {
     let worldClocks: [WorldClock]
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
-    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
+    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = false
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @AppStorage("addMeetLinkToEvents") private var addMeetLinkToEvents = false
