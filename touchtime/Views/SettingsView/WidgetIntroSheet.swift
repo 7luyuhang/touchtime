@@ -3,9 +3,10 @@
 //  touchtime
 //
 //  Introduces the home screen widgets with 1:1 previews of the small
-//  City Time widget and the medium World Cities widget, shown in a
-//  swipeable carousel. Tapping a preview cycles through the
-//  complications the widget supports.
+//  City Time widget, the medium World Cities widget and the small
+//  Daylight widget (in its transparent home screen appearance), shown
+//  in a swipeable carousel. Tapping the City Time and World Cities
+//  previews cycles through the complications they support.
 //
 
 import SwiftUI
@@ -26,10 +27,11 @@ private enum WidgetPreviewComplication: CaseIterable {
     }
 }
 
-// The two pages of the widget preview carousel
+// The three pages of the widget preview carousel
 private enum WidgetPreviewPage: CaseIterable {
     case small
     case medium
+    case daylight
 }
 
 // Shared by both previews: matches the height of a real home screen widget
@@ -42,8 +44,8 @@ struct WidgetIntroSheet: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var animateIcon = false
     @State private var animateText = false
-    // The medium widget and the page dots come in after the small widget
-    @State private var animateMediumWidget = false
+    // The later pages and the page dots come in after the small widget
+    @State private var animateTrailingWidgets = false
     @State private var currentPage: WidgetPreviewPage? = .small
     // Widget defaults; tapping a preview cycles through all five
     @State private var complication: WidgetPreviewComplication = .sunriseSunset
@@ -124,7 +126,7 @@ struct WidgetIntroSheet: View {
                                 .frame(width: pageWidth)
                                 .id(WidgetPreviewPage.small)
 
-                                // Medium World Cities widget, revealed after the small one
+                                // Medium World Cities widget, peeking in after the small one
                                 WorldCitiesWidgetPreview(
                                     date: context.date,
                                     use24Hour: use24HourFormat,
@@ -139,16 +141,34 @@ struct WidgetIntroSheet: View {
                                         mediumComplication = mediumComplication.next
                                     }
                                 }
-                                .brightness(animateMediumWidget ? 0 : 0.50)
-                                .blur(radius: animateMediumWidget ? 0 : 25)
-                                .scaleEffect(animateMediumWidget ? 1.0 : 0.5)
-                                .opacity(animateMediumWidget ? 1.0 : 0.0)
-                                .offset(y: animateMediumWidget ? 0 : 50)
+                                .brightness(animateTrailingWidgets ? 0 : 0.50)
+                                .blur(radius: animateTrailingWidgets ? 0 : 25)
+                                .scaleEffect(animateTrailingWidgets ? 1.0 : 0.5)
+                                .opacity(animateTrailingWidgets ? 1.0 : 0.0)
+                                .offset(y: animateTrailingWidgets ? 0 : 50)
                                 .animation(
-                                    .bouncy(duration: 1.0), value: animateMediumWidget
+                                    .bouncy(duration: 1.0), value: animateTrailingWidgets
                                 )
                                 .frame(width: pageWidth)
                                 .id(WidgetPreviewPage.medium)
+
+                                // Small Daylight widget in its transparent home screen
+                                // appearance, revealed with the medium one
+                                DaylightWidgetPreview(
+                                    date: context.date,
+                                    timeZoneIdentifier: TimeZone.current.identifier,
+                                    use24Hour: use24HourFormat
+                                )
+                                .brightness(animateTrailingWidgets ? 0 : 0.50)
+                                .blur(radius: animateTrailingWidgets ? 0 : 25)
+                                .scaleEffect(animateTrailingWidgets ? 1.0 : 0.5)
+                                .opacity(animateTrailingWidgets ? 1.0 : 0.0)
+                                .offset(y: animateTrailingWidgets ? 0 : 50)
+                                .animation(
+                                    .bouncy(duration: 1.0), value: animateTrailingWidgets
+                                )
+                                .frame(width: pageWidth)
+                                .id(WidgetPreviewPage.daylight)
                             }
                             .scrollTargetLayout()
                         }
@@ -188,7 +208,7 @@ struct WidgetIntroSheet: View {
                         .smooth(duration: 1.0), value: animateText
                     )
 
-                // Page dots, revealed together with the medium widget
+                // Page dots, revealed together with the later pages
                 HStack(spacing: 8) {
                     ForEach(WidgetPreviewPage.allCases, id: \.self) { page in
                         Circle()
@@ -199,9 +219,9 @@ struct WidgetIntroSheet: View {
                 }
                 .blendMode(.plusLighter)
                 .padding(.top, 20)
-                .blur(radius: animateMediumWidget ? 0 : 10)
-                .opacity(animateMediumWidget ? 1.0 : 0.0)
-                .animation(.smooth(duration: 1.0), value: animateMediumWidget)
+                .blur(radius: animateTrailingWidgets ? 0 : 10)
+                .opacity(animateTrailingWidgets ? 1.0 : 0.0)
+                .animation(.smooth(duration: 1.0), value: animateTrailingWidgets)
                 .animation(.smooth(duration: 0.3), value: currentPage)
 
                 Spacer()
@@ -288,7 +308,7 @@ struct WidgetIntroSheet: View {
                 }
                 // The medium widget peeks in once the small one has settled
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
-                    animateMediumWidget = true
+                    animateTrailingWidgets = true
                 }
             }
         }
@@ -534,6 +554,77 @@ private struct WorldCityPreviewColumn: View {
         case .solarCurve:
             SolarCurve(date: date, timeZone: timeZone, size: size, showBackground: false, showSun: solarCurveShowSun)
         }
+    }
+}
+
+// 1:1 replica of the small Daylight widget (DaylightWidgetView) as it looks
+// with the transparent home screen appearance: the monochrome opacity-band
+// sky ring (shared DaylightRing) on glass, time and date in the center.
+private struct DaylightWidgetPreview: View {
+    let date: Date
+    let timeZoneIdentifier: String
+    let use24Hour: Bool
+
+    private static let widgetSize: CGFloat = widgetPreviewHeight
+    private static let cornerRadius: CGFloat = 28
+    // Same 12pt content inset as the real widget
+    private static let contentInset: CGFloat = 12
+
+    private var timeZone: TimeZone {
+        TimeZone(identifier: timeZoneIdentifier) ?? .current
+    }
+
+    private var timeString: String {
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = use24Hour ? "HH:mm" : "h:mm"
+        return formatter.string(from: date)
+    }
+
+    // City-local date via the app's shared formatter, weekday omitted
+    private var dateString: String {
+        date.formattedDate(style: "Date Only", timeZone: timeZone)
+    }
+
+    var body: some View {
+        // Same proportions as the real widget: ring width is 20% of the
+        // side, center text fits in 75% of the hole.
+        let side = Self.widgetSize - Self.contentInset * 2
+        let ringWidth = side * 0.20
+        let holeDiameter = side - ringWidth * 2
+
+        ZStack {
+            DaylightRing(
+                date: date,
+                timeZoneIdentifier: timeZoneIdentifier,
+                size: side,
+                ringWidth: ringWidth,
+                monochrome: true
+            )
+
+            VStack(spacing: 0) {
+                Text(timeString)
+                    .font(.system(size: 15, weight: .medium))
+                    .monospacedDigit()
+                    .transition(.blurReplace)
+                    .id(timeString)
+
+                Text(dateString)
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            .frame(width: holeDiameter * 0.75)
+        }
+        .animation(.smooth(duration: 0.5), value: timeString)
+        .foregroundStyle(.white)
+        .frame(width: Self.widgetSize, height: Self.widgetSize)
+        .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        // Make the whole widget tappable, not just the opaque content inside
+        .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
     }
 }
 
