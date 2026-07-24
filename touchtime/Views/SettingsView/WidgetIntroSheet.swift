@@ -222,16 +222,13 @@ struct WidgetIntroSheet: View {
                     // Send the app to the Home Screen so the user can add the widget
                     UIApplication.shared.perform(NSSelectorFromString("suspend"))
                 } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "apps.iphone")
-                        Text("Add to Home Screen")
-                    }
-                    .font(.headline)
-                    .foregroundStyle(Color(.systemBackground))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-                    .contentShape(Capsule(style: .continuous))
-                    .glassEffect(.clear.interactive().tint(.primary), in: Capsule(style: .continuous))
+                    Text("Add to Home Screen")
+                        .font(.headline)
+                        .foregroundStyle(Color(.systemBackground))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical)
+                        .contentShape(Capsule(style: .continuous))
+                        .glassEffect(.clear.interactive().tint(.primary), in: Capsule(style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 32)

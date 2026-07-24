@@ -574,10 +574,10 @@ struct SunriseSunsetSheet: View {
                             if amount > 0 {
                                 Capsule()
                                     .fill(.cyan)
-                                    .frame(height: max(5, CGFloat(amount / referenceAmount) * 18))
+                                    .frame(height: max(4, CGFloat(amount / referenceAmount) * 16))
                             }
                         }
-                        .frame(width: 5, height: 18)
+                        .frame(width: 4, height: 16)
                     }
                 }
 
@@ -1011,6 +1011,11 @@ struct SunriseSunsetSheet: View {
                             }
                         }
 
+                        // Dots world map with the current city highlighted
+                        DotsWorldMapView(timeZoneIdentifier: timeZoneIdentifier)
+                            .padding(.horizontal, 24)
+                            .padding(.top)
+                            .padding(.bottom)
                     }
                     .animation(.bouncy(), value: currentDetent)
                 }
