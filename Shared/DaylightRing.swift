@@ -20,6 +20,8 @@ struct DaylightRing: View {
     // modes draw an opacity-only ring instead.
     let monochrome: Bool
 
+    @Environment(\.colorScheme) private var colorScheme
+
     private static let sampleCount = 288 // one sky sample every 5 minutes
     // Gaussian smoothing window (±30 min) applied to the sampled sky colors
     // in OKLab space, softening the night/twilight/day seams.
@@ -310,14 +312,18 @@ struct DaylightRing: View {
             }
             .blendMode(.plusLighter)
 
-            // Hairline edges, like the bar's subtle border in the sheet.
+            // Hairline edges, like the bar's subtle border in the sheet:
+            // darkening on light backgrounds, lightening on dark ones.
+            let edgeColor: Color = colorScheme == .dark ? .white : .black
+            let edgeBlend: BlendMode = colorScheme == .dark ? .plusLighter : .plusDarker
+
             Circle()
-                .strokeBorder(.white.opacity(0.05), lineWidth: 1)
-                .blendMode(.plusLighter)
+                .strokeBorder(edgeColor.opacity(0.025), lineWidth: 1.0)
+                .blendMode(edgeBlend)
             Circle()
                 .inset(by: ringWidth)
-                .stroke(.white.opacity(0.05), lineWidth: 1)
-                .blendMode(.plusLighter)
+                .stroke(edgeColor.opacity(0.025), lineWidth: 1.0)
+                .blendMode(edgeBlend)
         }
     }
 

@@ -582,9 +582,14 @@ private struct DaylightWidgetPreview: View {
         return formatter.string(from: date)
     }
 
-    // City-local date via the app's shared formatter, weekday omitted
+    // City-local "Sat 25": abbreviated weekday + day number, ordered
+    // per locale (e.g. zh renders "25 周六"). Matches the real widget.
     private var dateString: String {
-        date.formattedDate(style: "Date Only", timeZone: timeZone)
+        date.formatted(
+            Date.FormatStyle(timeZone: timeZone)
+                .weekday(.abbreviated)
+                .day()
+        )
     }
 
     var body: some View {
