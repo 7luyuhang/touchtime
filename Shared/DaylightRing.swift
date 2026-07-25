@@ -25,6 +25,33 @@ struct DaylightRing: View {
     // in OKLab space, softening the night/twilight/day seams.
     private static let smoothingRadius = 6
 
+    private struct RingStar: Identifiable {
+        let id: Int
+        let x: CGFloat // fraction of the 24h day, i.e. angular position
+        let y: CGFloat // fraction across the ring width, outer -> inner
+        let size: CGFloat
+    }
+
+    // Same fixed star field as the Daylight sheet's timeline
+    // (DaylightIndicatorBar); both timeline ends are night and meet at the
+    // top of the ring, so the dense ends cluster around midnight.
+    private static let ringStars: [RingStar] = [
+        .init(id: 0, x: 0.025, y: 0.22, size: 0.7),
+        .init(id: 1, x: 0.055, y: 0.66, size: 0.55),
+        .init(id: 2, x: 0.095, y: 0.38, size: 1.0),
+        .init(id: 3, x: 0.135, y: 0.76, size: 0.65),
+        .init(id: 4, x: 0.175, y: 0.18, size: 1.3),
+        .init(id: 5, x: 0.310, y: 0.55, size: 0.55),
+        .init(id: 6, x: 0.420, y: 0.25, size: 0.85),
+        .init(id: 7, x: 0.540, y: 0.72, size: 0.6),
+        .init(id: 8, x: 0.670, y: 0.42, size: 0.8),
+        .init(id: 9, x: 0.810, y: 0.75, size: 0.65),
+        .init(id: 10, x: 0.855, y: 0.31, size: 1.0),
+        .init(id: 11, x: 0.900, y: 0.58, size: 0.6),
+        .init(id: 12, x: 0.945, y: 0.20, size: 1.4),
+        .init(id: 13, x: 0.980, y: 0.72, size: 0.8)
+    ]
+
     private var dayInterval: DateInterval {
         var calendar = Calendar.current
         calendar.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
@@ -70,6 +97,22 @@ struct DaylightRing: View {
                 sum += samples[neighbor] * weights[weightIndex]
             }
             return sum / totalWeight
+        }
+    }
+
+    // Star visibility around the ring, same sampling as the sheet's
+    // timeline mask: white with SkyColorGradient.starOpacity per sample.
+    private var starMaskColors: [Color] {
+        let interval = dayInterval
+        return (0...Self.sampleCount).map { index in
+            let sampleDate = interval.start.addingTimeInterval(
+                Double(index) / Double(Self.sampleCount) * interval.duration
+            )
+            let starOpacity = SkyColorGradient(
+                date: sampleDate,
+                timeZoneIdentifier: timeZoneIdentifier
+            ).starOpacity
+            return .white.opacity(starOpacity)
         }
     }
 
@@ -236,6 +279,36 @@ struct DaylightRing: View {
                     ),
                     lineWidth: ringWidth
                 )
+
+            // Stars over the night band, like the sheet's timeline. The mask
+            // is the ring band itself filled with the angular star-visibility
+            // gradient, so it fades the stars through twilight and clips
+            // their glow to the band.
+            ZStack {
+                ForEach(Self.ringStars) { star in
+                    let angle = star.x * 2 * .pi - .pi / 2
+                    let radius = size / 2 - star.y * ringWidth
+                    StarParticle(size: star.size)
+                        .position(
+                            x: size / 2 + radius * cos(angle),
+                            y: size / 2 + radius * sin(angle)
+                        )
+                }
+            }
+            .frame(width: size, height: size)
+            .mask {
+                Circle()
+                    .strokeBorder(
+                        AngularGradient(
+                            gradient: Gradient(colors: starMaskColors),
+                            center: .center,
+                            startAngle: .degrees(-90),
+                            endAngle: .degrees(270)
+                        ),
+                        lineWidth: ringWidth
+                    )
+            }
+            .blendMode(.plusLighter)
 
             // Hairline edges, like the bar's subtle border in the sheet.
             Circle()
