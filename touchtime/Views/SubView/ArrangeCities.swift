@@ -10,7 +10,6 @@ import SwiftUI
 struct ArrangeListView: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var showSheet: Bool
-    @State private var editMode: EditMode = .active
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showLocalTime") private var showLocalTimeInHome = true
     @AppStorage("customLocalName") private var customLocalName = ""
@@ -324,12 +323,20 @@ struct ArrangeListView: View {
                                                 .monospacedDigit()
                                                 .foregroundStyle(.secondary)
                                         }
+                                        
+                                        // Drag hint
+                                        Image(systemName: "line.3.horizontal")
+                                            .font(.title3)
+                                            .foregroundStyle(.tertiary)
                                     }
-                                }
-                                .onDelete { offsets in
-                                    for index in offsets {
-                                        let city = collection.cities[index]
-                                        removeCityFromCollection(city: city, collectionId: collection.id)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button(role: .destructive) {
+                                            withAnimation {
+                                                removeCityFromCollection(city: city, collectionId: collection.id)
+                                            }
+                                        } label: {
+                                            Label("", systemImage: "xmark.circle")
+                                        }
                                     }
                                 }
                                 .onMove { source, destination in
@@ -459,6 +466,25 @@ struct ArrangeListView: View {
                                     .monospacedDigit()
                                     .foregroundStyle(.secondary)
                             }
+                            
+                            // Drag hint
+                            Image(systemName: "line.3.horizontal")
+                                .font(.title3)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                withAnimation {
+                                    worldClocks.removeAll { $0.id == clock.id }
+                                }
+                                saveWorldClocks()
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.impactOccurred()
+                                }
+                            } label: {
+                                Label("", systemImage: "xmark.circle")
+                            }
                         }
                     }
                     .onMove { source, destination in
@@ -507,7 +533,6 @@ struct ArrangeListView: View {
             }
             .scrollIndicators(.hidden)
             .listStyle(.insetGrouped)
-            .environment(\.editMode, $editMode)
             .navigationTitle("Arrange")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
