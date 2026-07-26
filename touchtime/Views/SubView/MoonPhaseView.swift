@@ -19,69 +19,50 @@ final class MoonPhaseCache {
         cache.countLimit = 1500  // Cache up to ~4 years of daily data
     }
     
-    func getPhase(year: Int, month: Int, day: Int) -> String? {
-        let key = "\(year)-\(month)-\(day)" as NSString
-        return cache.object(forKey: key) as String?
+    private func key(year: Int, month: Int, day: Int) -> NSString {
+        "\(year)-\(month)-\(day)" as NSString
     }
     
-    func setPhase(_ icon: String, year: Int, month: Int, day: Int) {
-        let key = "\(year)-\(month)-\(day)" as NSString
-        cache.setObject(icon as NSString, forKey: key)
+    /// Cache-only lookup, cheap enough for view bodies. Returns nil until prefetched.
+    func imageName(for date: Date, calendar: Calendar) -> String? {
+        let c = calendar.dateComponents([.year, .month, .day], from: date)
+        return cache.object(forKey: key(year: c.year ?? 0, month: c.month ?? 0, day: c.day ?? 0)) as String?
     }
     
-    func computeAndCache(for date: Date, coordinates: (latitude: Double, longitude: Double)?, timeZone: TimeZone, calendar: Calendar) -> String {
-        let components = calendar.dateComponents([.year, .month, .day], from: date)
-        let year = components.year ?? 0
-        let month = components.month ?? 0
-        let day = components.day ?? 0
+    /// Computes moon ages for all given dates and stores asset names (moon_age_00...moon_age_29).
+    /// Call from a background queue: MoonKit recomputes rise/set times for every new day,
+    /// which is far too slow for the main thread. Reuses one Moon instance for the whole batch.
+    func prefetch(dates: [Date], coordinates: (latitude: Double, longitude: Double)?, timeZone: TimeZone, calendar: Calendar) {
+        var moon: Moon?
         
-        // Check cache first
-        if let cached = getPhase(year: year, month: month, day: day) {
-            return cached
-        }
-        
-        // Compute moon phase
-        let icon: String
-        if let coords = coordinates {
-            let moon = Moon(
-                location: CLLocation(latitude: coords.latitude, longitude: coords.longitude),
-                timeZone: timeZone
-            )
-            moon.setDate(date)
+        for date in dates {
+            let c = calendar.dateComponents([.year, .month, .day], from: date)
+            let cacheKey = key(year: c.year ?? 0, month: c.month ?? 0, day: c.day ?? 0)
+            if cache.object(forKey: cacheKey) != nil { continue }
             
-            let phase = moon.currentMoonPhase
-            let phaseString = String(describing: phase)
-                .replacingOccurrences(of: "MoonPhase.", with: "")
-                .replacingOccurrences(of: "_", with: " ")
-                .lowercased()
-            
-            switch phaseString {
-            case "newmoon", "new moon":
-                icon = "moonphase.new.moon"
-            case "waxingcrescent", "waxing crescent":
-                icon = "moonphase.waxing.crescent"
-            case "firstquarter", "first quarter":
-                icon = "moonphase.first.quarter"
-            case "waxinggibbous", "waxing gibbous":
-                icon = "moonphase.waxing.gibbous"
-            case "fullmoon", "full moon":
-                icon = "moonphase.full.moon"
-            case "waninggibbous", "waning gibbous":
-                icon = "moonphase.waning.gibbous"
-            case "lastquarter", "last quarter", "thirdquarter", "third quarter":
-                icon = "moonphase.last.quarter"
-            case "waningcrescent", "waning crescent":
-                icon = "moonphase.waning.crescent"
-            default:
-                icon = "moonphase.new.moon"
+            let icon: String
+            if let coords = coordinates {
+                let instance: Moon
+                if let moon {
+                    instance = moon
+                } else {
+                    instance = Moon(
+                        location: CLLocation(latitude: coords.latitude, longitude: coords.longitude),
+                        timeZone: timeZone
+                    )
+                    moon = instance
+                }
+                instance.setDate(date)
+                
+                // Age wraps at the end of the synodic cycle (~29.5 days) back to new moon
+                let imageIndex = Int(instance.ageOfTheMoonInDays.rounded()) % 30
+                icon = String(format: "moon_age_%02d", imageIndex)
+            } else {
+                icon = "moon_age_00"
             }
-        } else {
-            icon = "moonphase.new.moon"
+            
+            cache.setObject(icon as NSString, forKey: cacheKey)
         }
-        
-        // Store in cache
-        setPhase(icon, year: year, month: month, day: day)
-        return icon
     }
 }
 
@@ -99,6 +80,9 @@ struct MoonPhaseView: View {
     // Cached month data (lightweight, computed synchronously)
     @State private var cachedMonths: [Date] = []
     @State private var cachedDays: [[Date?]] = []
+    
+    // Bumped when background prefetch finishes, forcing grids to re-read the cache
+    @State private var phaseCacheVersion: Int = 0
     
     private var calendar: Calendar {
         var cal = Calendar.current
@@ -180,22 +164,21 @@ struct MoonPhaseView: View {
         cachedDays = allDays
     }
     
-    // Prefetch moon phases for visible and adjacent months in background
+    // Prefetch moon phases for visible and adjacent months in background,
+    // then bump the cache version so the grids re-read the cache.
     private func prefetchMoonPhases(around index: Int) {
-        let indicesToPrefetch = [index - 1, index, index + 1].filter { $0 >= 0 && $0 < cachedDays.count }
+        let indicesToPrefetch = [index, index - 1, index + 1].filter { $0 >= 0 && $0 < cachedDays.count }
+        let dates = indicesToPrefetch.flatMap { cachedDays[$0].compactMap { $0 } }
         let cal = calendar
         let coords = coordinates
         let tz = timeZone
         
         DispatchQueue.global(qos: .userInitiated).async {
-            for idx in indicesToPrefetch {
-                for date in cachedDays[idx].compactMap({ $0 }) {
-                    _ = MoonPhaseCache.shared.computeAndCache(
-                        for: date,
-                        coordinates: coords,
-                        timeZone: tz,
-                        calendar: cal
-                    )
+            MoonPhaseCache.shared.prefetch(dates: dates, coordinates: coords, timeZone: tz, calendar: cal)
+            
+            DispatchQueue.main.async {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    phaseCacheVersion += 1
                 }
             }
         }
@@ -225,10 +208,9 @@ struct MoonPhaseView: View {
                         MonthGridView(
                             days: cachedDays.indices.contains(index) ? cachedDays[index] : [],
                             calendar: calendar,
-                            coordinates: coordinates,
-                            timeZone: timeZone,
                             currentDate: currentDate,
-                            timeOffset: timeOffset
+                            timeOffset: timeOffset,
+                            cacheVersion: phaseCacheVersion
                         )
                         .tag(index)
                     }
@@ -273,7 +255,7 @@ struct MoonPhaseView: View {
                 }
             }
             .animation(.spring(), value: selectedMonthIndex != 1)
-            .presentationDetents([.height(520)])
+            .presentationDetents([.height(550)]) // Sheet Height
         }
         .onAppear {
             prepareCalendarData()
@@ -289,10 +271,9 @@ struct MoonPhaseView: View {
 private struct MonthGridView: View {
     let days: [Date?]
     let calendar: Calendar
-    let coordinates: (latitude: Double, longitude: Double)?
-    let timeZone: TimeZone
     let currentDate: Date
     let timeOffset: TimeInterval
+    let cacheVersion: Int
     
     private static let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
     
@@ -310,12 +291,7 @@ private struct MonthGridView: View {
                         DayCellView(
                             date: date,
                             dayNumber: calendar.component(.day, from: date),
-                            moonPhaseIcon: MoonPhaseCache.shared.computeAndCache(
-                                for: date,
-                                coordinates: coordinates,
-                                timeZone: timeZone,
-                                calendar: calendar
-                            ),
+                            moonPhaseIcon: MoonPhaseCache.shared.imageName(for: date, calendar: calendar),
                             isToday: isToday(date)
                         )
                     } else {
@@ -336,25 +312,37 @@ private struct MonthGridView: View {
 private struct DayCellView: View {
     let date: Date
     let dayNumber: Int
-    let moonPhaseIcon: String
+    let moonPhaseIcon: String?
     let isToday: Bool
     
     var body: some View {
         VStack(spacing: 8) {
             Text("\(dayNumber)")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(isToday ? .black : .secondary)
+                .foregroundStyle(isToday ? .primary : .secondary)
             
-            Image(systemName: moonPhaseIcon)
-                .font(.system(size: 24))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isToday ? .black : .primary)
+            Group {
+                if let moonPhaseIcon {
+                    Image(moonPhaseIcon)
+                        .resizable()
+                        .scaledToFill()
+                        .transition(.opacity)
+                } else {
+                    // Placeholder while the moon age is computed in the background
+                    Circle()
+                        .fill(.white.opacity(0.06))
+                }
+            }
+            .frame(width: 32, height: 32)
+            .clipShape(Circle())
+            .grayscale(1)
+            .blendMode(.plusLighter)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isToday ? Color.white : .clear)
+                .fill(isToday ? Color.white.opacity(0.15) : .clear)
         )
     }
 }
