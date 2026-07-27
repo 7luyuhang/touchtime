@@ -10,58 +10,109 @@ import MoonKit
 import CoreLocation
 
 // MARK: - Global Moon Phase Cache using NSCache
+
+/// Per-day moon data: asset name plus whether the day contains the exact full/new moon instant.
+final class MoonPhaseDayInfo {
+    let imageName: String
+    let isFullMoonDay: Bool
+    let isNewMoonDay: Bool
+    
+    init(imageName: String, isFullMoonDay: Bool, isNewMoonDay: Bool) {
+        self.imageName = imageName
+        self.isFullMoonDay = isFullMoonDay
+        self.isNewMoonDay = isNewMoonDay
+    }
+}
+
 final class MoonPhaseCache {
     static let shared = MoonPhaseCache()
     
-    private let cache = NSCache<NSString, NSString>()
+    private let cache = NSCache<NSString, MoonPhaseDayInfo>()
+    
+    private static let synodicMonth = 29.53058867
     
     private init() {
         cache.countLimit = 1500  // Cache up to ~4 years of daily data
     }
     
-    private func key(year: Int, month: Int, day: Int) -> NSString {
-        "\(year)-\(month)-\(day)" as NSString
+    private func key(for date: Date, calendar: Calendar) -> NSString {
+        let c = calendar.dateComponents([.year, .month, .day], from: date)
+        return "\(c.year ?? 0)-\(c.month ?? 0)-\(c.day ?? 0)" as NSString
     }
     
     /// Cache-only lookup, cheap enough for view bodies. Returns nil until prefetched.
-    func imageName(for date: Date, calendar: Calendar) -> String? {
-        let c = calendar.dateComponents([.year, .month, .day], from: date)
-        return cache.object(forKey: key(year: c.year ?? 0, month: c.month ?? 0, day: c.day ?? 0)) as String?
+    func dayInfo(for date: Date, calendar: Calendar) -> MoonPhaseDayInfo? {
+        cache.object(forKey: key(for: date, calendar: calendar))
     }
     
-    /// Computes moon ages for all given dates and stores asset names (moon_age_00...moon_age_29).
+    /// Computes moon ages for all given dates and stores asset names (moon_age_00...moon_age_29)
+    /// along with full/new moon day flags.
     /// Call from a background queue: MoonKit recomputes rise/set times for every new day,
     /// which is far too slow for the main thread. Reuses one Moon instance for the whole batch.
     func prefetch(dates: [Date], coordinates: (latitude: Double, longitude: Double)?, timeZone: TimeZone, calendar: Calendar) {
+        guard let coords = coordinates else {
+            for date in dates {
+                let cacheKey = key(for: date, calendar: calendar)
+                if cache.object(forKey: cacheKey) == nil {
+                    cache.setObject(
+                        MoonPhaseDayInfo(imageName: "moon_age_00", isFullMoonDay: false, isNewMoonDay: false),
+                        forKey: cacheKey
+                    )
+                }
+            }
+            return
+        }
+        
         var moon: Moon?
+        // Day-start ages memoized so consecutive days share their boundary computation
+        var agesByDay: [NSString: Double] = [:]
+        
+        func moonAge(atStartOf date: Date) -> Double {
+            let ageKey = key(for: date, calendar: calendar)
+            if let age = agesByDay[ageKey] { return age }
+            
+            let instance: Moon
+            if let moon {
+                instance = moon
+            } else {
+                instance = Moon(
+                    location: CLLocation(latitude: coords.latitude, longitude: coords.longitude),
+                    timeZone: timeZone
+                )
+                moon = instance
+            }
+            instance.setDate(date)
+            
+            let age = instance.ageOfTheMoonInDays
+            agesByDay[ageKey] = age
+            return age
+        }
         
         for date in dates {
-            let c = calendar.dateComponents([.year, .month, .day], from: date)
-            let cacheKey = key(year: c.year ?? 0, month: c.month ?? 0, day: c.day ?? 0)
+            let cacheKey = key(for: date, calendar: calendar)
             if cache.object(forKey: cacheKey) != nil { continue }
             
-            let icon: String
-            if let coords = coordinates {
-                let instance: Moon
-                if let moon {
-                    instance = moon
-                } else {
-                    instance = Moon(
-                        location: CLLocation(latitude: coords.latitude, longitude: coords.longitude),
-                        timeZone: timeZone
-                    )
-                    moon = instance
-                }
-                instance.setDate(date)
-                
-                // Age wraps at the end of the synodic cycle (~29.5 days) back to new moon
-                let imageIndex = Int(instance.ageOfTheMoonInDays.rounded()) % 30
-                icon = String(format: "moon_age_%02d", imageIndex)
-            } else {
-                icon = "moon_age_00"
-            }
+            let ageAtDayStart = moonAge(atStartOf: date)
+            let nextDayStart = calendar.date(byAdding: .day, value: 1, to: date) ?? date.addingTimeInterval(86400)
+            let ageAtDayEnd = moonAge(atStartOf: nextDayStart)
             
-            cache.setObject(icon as NSString, forKey: cacheKey)
+            // Age wraps at the end of the synodic cycle (~29.5 days) back to new moon
+            let imageIndex = Int(ageAtDayStart.rounded()) % 30
+            
+            // New moon day: the age wraps back to zero during the day.
+            // Full moon day: the age crosses half a synodic month during the day.
+            let halfCycle = Self.synodicMonth / 2
+            let isNewMoonDay = ageAtDayEnd < ageAtDayStart
+            let isFullMoonDay = ageAtDayStart <= halfCycle && ageAtDayEnd > halfCycle
+            
+            cache.setObject(
+                MoonPhaseDayInfo(
+                    imageName: String(format: "moon_age_%02d", imageIndex),
+                    isFullMoonDay: isFullMoonDay,
+                    isNewMoonDay: isNewMoonDay
+                ),
+                forKey: cacheKey
+            )
         }
     }
 }
@@ -288,10 +339,13 @@ private struct MonthGridView: View {
             LazyVGrid(columns: Self.gridColumns, spacing: 4) {
                 ForEach(Array(days.enumerated()), id: \.offset) { _, date in
                     if let date = date {
+                        let dayInfo = MoonPhaseCache.shared.dayInfo(for: date, calendar: calendar)
                         DayCellView(
                             date: date,
                             dayNumber: calendar.component(.day, from: date),
-                            moonPhaseIcon: MoonPhaseCache.shared.imageName(for: date, calendar: calendar),
+                            moonPhaseIcon: dayInfo?.imageName,
+                            isFullMoonDay: dayInfo?.isFullMoonDay ?? false,
+                            isNewMoonDay: dayInfo?.isNewMoonDay ?? false,
                             isToday: isToday(date)
                         )
                     } else {
@@ -313,6 +367,8 @@ private struct DayCellView: View {
     let date: Date
     let dayNumber: Int
     let moonPhaseIcon: String?
+    let isFullMoonDay: Bool
+    let isNewMoonDay: Bool
     let isToday: Bool
     
     var body: some View {
@@ -320,6 +376,25 @@ private struct DayCellView: View {
             Text("\(dayNumber)")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(isToday ? .primary : .secondary)
+                .overlay(alignment: .trailing) {
+                    // Filled dot marks a full moon day, outlined dot a new moon day
+                    if isFullMoonDay || isNewMoonDay {
+                        Group {
+                            if isFullMoonDay {
+                                Circle()
+                                    .fill(Color.white)
+                                    .frame(width: 6, height: 6)
+                            } else {
+                                // Negative inset draws the 1.5pt line entirely outside the 6pt circle
+                                Circle()
+                                    .inset(by: -0.75)
+                                    .stroke(Color.white, lineWidth: 1.5)
+                                    .frame(width: 5, height: 5)
+                            }
+                        }
+                        .offset(x: 12)
+                    }
+                }
             
             Group {
                 if let moonPhaseIcon {
