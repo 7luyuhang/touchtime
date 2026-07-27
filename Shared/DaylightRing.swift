@@ -130,14 +130,30 @@ struct DaylightRing: View {
         dayFraction(of: date)
     }
 
-    // 1 = filled sun, 0 = outline sun. Outline only in the ring's night
-    // band, i.e. past civil dawn/dusk; twilight, golden hour and day all
-    // keep the filled disc. ±20 minute cross-fade at the boundary so the
-    // per-minute timeline transitions smoothly.
-    private var sunDaylightBlend: Double {
+    // Sun angle as continuous turns: whole local days since the reference
+    // epoch plus today's fraction. Rendering is identical modulo full turns,
+    // but keeping the value monotonic (instead of resetting at midnight)
+    // means WidgetKit's implicit entry animation always sweeps the indicator
+    // forward along the ring, even across midnight or a long locked stretch.
+    private var sunTurns: Double {
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        let days = calendar.dateComponents(
+            [.day],
+            from: Date(timeIntervalSinceReferenceDate: 0),
+            to: dayInterval.start
+        ).day ?? 0
+        return Double(days) + dayProgress
+    }
+
+    // Outline sun only in the ring's night band, i.e. before civil dawn or
+    // past civil dusk; twilight, sunrise/sunset, golden hour and day all
+    // keep the filled disc. Hard switch, no cross-fade: WidgetKit's implicit
+    // entry animation already softens the flip at the boundary minute.
+    private var isSunFilled: Bool {
         guard let coords = TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier) else {
             let fraction = dayFraction(of: date)
-            return fraction >= 0.23 && fraction <= 0.77 ? 1 : 0
+            return fraction >= 0.23 && fraction <= 0.77
         }
         let events = SolarCalculator.events(
             latitude: coords.latitude,
@@ -146,25 +162,8 @@ struct DaylightRing: View {
             timeZone: TimeZone(identifier: timeZoneIdentifier) ?? .current
         )
         // Polar night: events collapse to solar noon.
-        guard events.civilDusk > events.civilDawn else { return 0 }
-
-        let transitionWindow: TimeInterval = 20 * 60
-        let dawnStart = events.civilDawn - transitionWindow
-        let dawnEnd = events.civilDawn + transitionWindow
-        let duskStart = events.civilDusk - transitionWindow
-        let duskEnd = events.civilDusk + transitionWindow
-
-        if date < dawnStart { return 0 }
-        if date <= dawnEnd {
-            let progress = date.timeIntervalSince(dawnStart) / (transitionWindow * 2)
-            return min(max(progress, 0), 1)
-        }
-        if date < duskStart { return 1 }
-        if date <= duskEnd {
-            let progress = date.timeIntervalSince(duskStart) / (transitionWindow * 2)
-            return min(max(1 - progress, 0), 1)
-        }
-        return 0
+        guard events.civilDusk > events.civilDawn else { return false }
+        return date >= events.civilDawn && date < events.civilDusk
     }
 
     // Band opacities for the monochrome ring, night -> full day.
@@ -226,11 +225,7 @@ struct DaylightRing: View {
     var body: some View {
         let ringRadius = (size - ringWidth) / 2
         let sunSize = ringWidth * 0.60
-        let sunAngle = dayProgress * 2 * .pi - .pi / 2
-        let sunCenter = CGPoint(
-            x: size / 2 + ringRadius * cos(sunAngle),
-            y: size / 2 + ringRadius * sin(sunAngle)
-        )
+        let sunAngle = Angle(degrees: sunTurns * 360)
 
         ZStack {
             if monochrome {
@@ -240,8 +235,12 @@ struct DaylightRing: View {
             }
 
             // Sun position indicator: filled disc by day, outline at night,
-            // like the app's DaylightIndicator complication.
-            let sunBlend = sunDaylightBlend
+            // like the app's DaylightIndicator complication. Positioned via
+            // offset + rotation rather than x/y so WidgetKit's implicit
+            // animation between timeline entries interpolates the angle,
+            // sweeping the sun along the ring instead of cutting straight
+            // across it (visible when the widget catches up after unlock).
+            let filled = isSunFilled
             ZStack {
                 Circle()
                     .fill(.white)
@@ -256,15 +255,20 @@ struct DaylightRing: View {
                                 .blendMode(.plusDarker)
                         }
                     }
-                    .opacity(sunBlend)
+                    .opacity(filled ? 1 : 0)
 
                 Circle()
                     .stroke(.white, lineWidth: 2.0)
-                    .opacity((1 - sunBlend) * 0.35)
+                    .opacity(filled ? 0 : 0.35)
                     .blendMode(.plusLighter)
             }
             .frame(width: sunSize, height: sunSize)
-            .position(sunCenter)
+            // Counter-spin so the disc's drop shadow keeps pointing down
+            // while the outer rotation carries it around the ring.
+            .rotationEffect(-sunAngle)
+            .offset(y: -ringRadius)
+            .rotationEffect(sunAngle)
+            .position(x: size / 2, y: size / 2)
         }
         .frame(width: size, height: size)
     }

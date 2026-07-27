@@ -398,7 +398,7 @@ struct OnboardingView: View {
                     VStack(spacing: 16) {
                         FeatureRow(
                             icon: "clock",
-                            title: String(localized: "450+ cities worldwide"),
+                            title: String(localized: "400+ cities worldwide"),
                             isAnimated: animateFeatures
                         )
                         
