@@ -12692,6 +12692,22 @@
         }
       }
     },
+    "Temperature Range" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "温度范围"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "溫度範圍"
+          }
+        }
+      }
+    },
     "Temperature Units" : {
       "localizations" : {
         "zh-Hans" : {

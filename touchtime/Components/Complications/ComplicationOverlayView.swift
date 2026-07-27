@@ -13,6 +13,7 @@ struct ComplicationDisplayOptions: Equatable {
     let showSunPosition: Bool
     let showWeatherCondition: Bool
     let showTemperatureIndicator: Bool
+    let showTemperatureRange: Bool
     let showUVIndex: Bool
     let showWindDirection: Bool
     let showSunAzimuth: Bool
@@ -29,6 +30,7 @@ struct ComplicationDisplayOptions: Equatable {
         showSunPosition ||
         showWeatherCondition ||
         showTemperatureIndicator ||
+        showTemperatureRange ||
         showUVIndex ||
         showWindDirection ||
         showSunAzimuth ||
@@ -86,6 +88,15 @@ struct ComplicationOverlayView: View {
                     size: size
                 )
                 .environmentObject(weatherManager)
+                .complicationOverlayStyle(bottomPadding: bottomPadding)
+            }
+
+            if options.showTemperatureRange {
+                TemperatureRangeIndicator(
+                    date: date,
+                    timeZone: timeZone,
+                    size: size
+                )
                 .complicationOverlayStyle(bottomPadding: bottomPadding)
             }
 

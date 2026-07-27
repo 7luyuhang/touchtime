@@ -87,6 +87,7 @@ struct OnboardingView: View {
     @AppStorage("showSunriseSunset") private var showSunriseSunset = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
+    @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showDaylight") private var showDaylight = false
@@ -108,6 +109,7 @@ struct OnboardingView: View {
         case sunriseSunset
         case weatherCondition
         case temperatureIndicator
+        case temperatureRange
         case uvIndex
         case windDirection
         case daylight
@@ -124,6 +126,7 @@ struct OnboardingView: View {
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
             case .temperatureIndicator: return String(localized: "Temperature Indicator")
+            case .temperatureRange: return String(localized: "Temperature Range")
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
             case .daylight: return String(localized: "Daylight Curve")
@@ -169,7 +172,7 @@ struct OnboardingView: View {
     private var hasAnyComplicationSelected: Bool {
         showAnalogClock || showSunPosition || showSunAzimuth || effectiveShowMoonAzimuth
             || effectiveShowMoonSunAzimuth || showSunriseSunset || showWeatherCondition
-            || showTemperatureIndicator || showUVIndex || showWindDirection
+            || showTemperatureIndicator || showTemperatureRange || showUVIndex || showWindDirection
             || effectiveShowDaylight || effectiveShowTimeOverlay || showSolarCurve
     }
     
@@ -235,6 +238,7 @@ struct OnboardingView: View {
             showSunriseSunset = selectedType == .sunriseSunset
             showWeatherCondition = selectedType == .weatherCondition
             showTemperatureIndicator = selectedType == .temperatureIndicator
+            showTemperatureRange = selectedType == .temperatureRange
             showUVIndex = selectedType == .uvIndex
             showWindDirection = selectedType == .windDirection
             showDaylight = selectedType == .daylight
@@ -248,6 +252,7 @@ struct OnboardingView: View {
             showMoonAzimuth,
             showMoonSunAzimuth,
             showTemperatureIndicator,
+            showTemperatureRange,
             showUVIndex,
             showWindDirection,
             showDaylight,
@@ -617,6 +622,20 @@ struct OnboardingView: View {
                                     )
                                 }
 
+                                if canShowLifetimeWeatherComplications && showTemperatureRange {
+                                    TemperatureRangeIndicator(
+                                        date: currentDate,
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
+
                                 if canShowLifetimeWeatherComplications && showUVIndex {
                                     UVIndexIndicator(
                                         timeZone: TimeZone.current,
@@ -764,6 +783,15 @@ struct OnboardingView: View {
                                                 useMaterialBackground: false
                                             )
                                             .environmentObject(weatherManager)
+                                        }
+
+                                        complicationOption(type: .temperatureRange, isSelected: showTemperatureRange) {
+                                            TemperatureRangeIndicator(
+                                                date: currentDate,
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
                                         }
 
                                         complicationOption(type: .uvIndex, isSelected: showUVIndex) {
@@ -928,6 +956,7 @@ struct OnboardingView: View {
             if !newValue {
                 showWeatherCondition = false
                 showTemperatureIndicator = false
+                showTemperatureRange = false
                 showUVIndex = false
                 showWindDirection = false
             }

@@ -29,6 +29,7 @@ struct SettingsView: View {
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
+    @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
@@ -96,6 +97,7 @@ struct SettingsView: View {
         case sunriseSunset
         case weatherCondition
         case temperatureIndicator
+        case temperatureRange
         case uvIndex
         case windDirection
         case daylight
@@ -120,6 +122,8 @@ struct SettingsView: View {
                 return String(localized: "Weather Condition")
             case .temperatureIndicator:
                 return String(localized: "Temperature Indicator")
+            case .temperatureRange:
+                return String(localized: "Temperature Range")
             case .uvIndex:
                 return String(localized: "UV Index")
             case .windDirection:
@@ -184,6 +188,8 @@ struct SettingsView: View {
             return .weatherCondition
         } else if effectiveShowTemperatureIndicator {
             return .temperatureIndicator
+        } else if effectiveShowTemperatureRange {
+            return .temperatureRange
         } else if effectiveShowUVIndex {
             return .uvIndex
         } else if effectiveShowWindDirection {
@@ -209,6 +215,10 @@ struct SettingsView: View {
 
     private var effectiveShowTemperatureIndicator: Bool {
         hasLifetimeAccess && showWeather && showTemperatureIndicator
+    }
+
+    private var effectiveShowTemperatureRange: Bool {
+        hasLifetimeAccess && showWeather && showTemperatureRange
     }
 
     private var effectiveShowUVIndex: Bool {
@@ -389,6 +399,13 @@ struct SettingsView: View {
                 useMaterialBackground: true
             )
             .environmentObject(weatherManager)
+        case .temperatureRange:
+            TemperatureRangeIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
         case .uvIndex:
             UVIndexIndicator(
                 timeZone: TimeZone.current,
@@ -558,6 +575,7 @@ struct SettingsView: View {
                             } else {
                                 showWeatherCondition = false
                                 showTemperatureIndicator = false
+                                showTemperatureRange = false
                                 showUVIndex = false
                                 showWindDirection = false
                             }
@@ -1084,6 +1102,7 @@ struct SettingsView: View {
                         showSunriseSunset: $showSunriseSunset,
                         showWeatherCondition: $showWeatherCondition,
                         showTemperatureIndicator: $showTemperatureIndicator,
+                        showTemperatureRange: $showTemperatureRange,
                         showUVIndex: $showUVIndex,
                         showWindDirection: $showWindDirection,
                         showDaylight: $showDaylight,

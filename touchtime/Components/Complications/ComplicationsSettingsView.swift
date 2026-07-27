@@ -16,6 +16,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showSunriseSunset: Bool
     @Binding var showWeatherCondition: Bool
     @Binding var showTemperatureIndicator: Bool
+    @Binding var showTemperatureRange: Bool
     @Binding var showUVIndex: Bool
     @Binding var showWindDirection: Bool
     @Binding var showDaylight: Bool
@@ -44,6 +45,7 @@ struct ComplicationsSettingsView: View {
         case sunriseSunset
         case weatherCondition
         case temperatureIndicator
+        case temperatureRange
         case uvIndex
         case windDirection
         case daylight
@@ -60,6 +62,7 @@ struct ComplicationsSettingsView: View {
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
             case .temperatureIndicator: return String(localized: "Temperature Indicator")
+            case .temperatureRange: return String(localized: "Temperature Range")
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
             case .daylight: return String(localized: "Daylight Curve")
@@ -80,6 +83,7 @@ struct ComplicationsSettingsView: View {
             showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
             showTemperatureIndicator = type == .temperatureIndicator
+            showTemperatureRange = type == .temperatureRange
             showUVIndex = type == .uvIndex
             showWindDirection = type == .windDirection
             showDaylight = type == .daylight
@@ -90,7 +94,7 @@ struct ComplicationsSettingsView: View {
 
     private func isLocked(_ type: ComplicationType) -> Bool {
         switch type {
-        case .moonAzimuth, .moonSunAzimuth, .temperatureIndicator, .uvIndex, .windDirection, .daylight, .timeOverlay:
+        case .moonAzimuth, .moonSunAzimuth, .temperatureIndicator, .temperatureRange, .uvIndex, .windDirection, .daylight, .timeOverlay:
             return !hasLifetimeAccess
         default:
             return false
@@ -99,7 +103,7 @@ struct ComplicationsSettingsView: View {
 
     private func enforceComplicationAvailability() {
         if !hasLifetimeAccess {
-            if showMoonAzimuth || showMoonSunAzimuth || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
+            if showMoonAzimuth || showMoonSunAzimuth || showTemperatureIndicator || showTemperatureRange || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
                 selectComplication(nil)
             }
             return
@@ -377,6 +381,18 @@ struct ComplicationsSettingsView: View {
                                 useMaterialBackground: false
                             )
                             .environmentObject(weatherManager)
+                        }
+
+                        complicationOption(
+                            type: .temperatureRange,
+                            isSelected: showTemperatureRange
+                        ) {
+                            TemperatureRangeIndicator(
+                                date: currentDate,
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
                         }
 
                         complicationOption(
