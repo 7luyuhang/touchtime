@@ -12,6 +12,7 @@
 		5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */ = {isa = PBXBuildFile; productRef = 5AD93C242EB62099001DF8F4 /* Shimmer */; };
 		5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */; };
 		E100000000000000000000AD /* touchtimeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E100000000000000000000A1 /* touchtimeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E100000000000000000000B0 /* MoonKit in Frameworks */ = {isa = PBXBuildFile; productRef = E100000000000000000000B1 /* MoonKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -102,6 +103,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E100000000000000000000B0 /* MoonKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -185,6 +187,7 @@
 			);
 			name = touchtimeWidgetExtension;
 			packageProductDependencies = (
+				E100000000000000000000B1 /* MoonKit */,
 			);
 			productName = touchtimeWidgetExtension;
 			productReference = E100000000000000000000A1 /* touchtimeWidgetExtension.appex */;
@@ -635,6 +638,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 5AD93C232EB62099001DF8F4 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */;
 			productName = Shimmer;
+		};
+		E100000000000000000000B1 /* MoonKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */;
+			productName = MoonKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -11,6 +11,7 @@ struct TouchTimeWidgetBundle: WidgetBundle {
     var body: some Widget {
         CityComplicationWidget()
         DaylightWidget()
+        MoonPhaseWidget()
         WorldCitiesWidget()
     }
 }
