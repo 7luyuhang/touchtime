@@ -11,16 +11,18 @@ import CoreLocation
 
 // MARK: - Global Moon Phase Cache using NSCache
 
-/// Per-day moon data: asset name plus whether the day contains the exact full/new moon instant.
+/// Per-day moon data: asset name, phase name, plus whether the day contains the exact full/new moon instant.
 final class MoonPhaseDayInfo {
     let imageName: String
     let isFullMoonDay: Bool
     let isNewMoonDay: Bool
+    let phase: MoonPhase
     
-    init(imageName: String, isFullMoonDay: Bool, isNewMoonDay: Bool) {
+    init(imageName: String, isFullMoonDay: Bool, isNewMoonDay: Bool, phase: MoonPhase) {
         self.imageName = imageName
         self.isFullMoonDay = isFullMoonDay
         self.isNewMoonDay = isNewMoonDay
+        self.phase = phase
     }
 }
 
@@ -30,6 +32,8 @@ final class MoonPhaseCache {
     private let cache = NSCache<NSString, MoonPhaseDayInfo>()
     
     private static let synodicMonth = 29.53058867
+    // MoonKit's conversion factor from moon age in days to degrees (see Moon.ageOfTheMoonDegress)
+    private static let degreesPerAgeDay = 12.1907
     
     private init() {
         cache.countLimit = 1500  // Cache up to ~4 years of daily data
@@ -55,7 +59,7 @@ final class MoonPhaseCache {
                 let cacheKey = key(for: date, calendar: calendar)
                 if cache.object(forKey: cacheKey) == nil {
                     cache.setObject(
-                        MoonPhaseDayInfo(imageName: "moon_age_00", isFullMoonDay: false, isNewMoonDay: false),
+                        MoonPhaseDayInfo(imageName: "moon_age_00", isFullMoonDay: false, isNewMoonDay: false, phase: .newMoon),
                         forKey: cacheKey
                     )
                 }
@@ -105,11 +109,36 @@ final class MoonPhaseCache {
             let isNewMoonDay = ageAtDayEnd < ageAtDayStart
             let isFullMoonDay = ageAtDayStart <= halfCycle && ageAtDayEnd > halfCycle
             
+            // Quarter days: the age crosses a quarter/three-quarter cycle during the day.
+            // Detected via crossings because MoonKit's own quarter windows span only ~4h,
+            // which a single midday sample would usually miss.
+            let quarterCycle = Self.synodicMonth / 4
+            let threeQuarterCycle = Self.synodicMonth * 3 / 4
+            let isFirstQuarterDay = ageAtDayStart <= quarterCycle && ageAtDayEnd > quarterCycle
+            let isLastQuarterDay = ageAtDayStart <= threeQuarterCycle && ageAtDayEnd > threeQuarterCycle
+            
+            let phase: MoonPhase
+            if isNewMoonDay {
+                phase = .newMoon
+            } else if isFullMoonDay {
+                phase = .fullMoon
+            } else if isFirstQuarterDay {
+                phase = .firstQuarter
+            } else if isLastQuarterDay {
+                phase = .lastQuarter
+            } else {
+                // Midday age gives a stable representative phase for the whole day
+                let middayDegrees = ((ageAtDayStart + ageAtDayEnd) / 2 * Self.degreesPerAgeDay)
+                    .truncatingRemainder(dividingBy: 360)
+                phase = MoonPhase.ageOfTheMoonDegrees2MoonPhase(middayDegrees)
+            }
+            
             cache.setObject(
                 MoonPhaseDayInfo(
                     imageName: String(format: "moon_age_%02d", imageIndex),
                     isFullMoonDay: isFullMoonDay,
-                    isNewMoonDay: isNewMoonDay
+                    isNewMoonDay: isNewMoonDay,
+                    phase: phase
                 ),
                 forKey: cacheKey
             )
@@ -127,6 +156,9 @@ struct MoonPhaseView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var currentDate: Date = Date()
     @State private var selectedMonthIndex: Int = 1
+    
+    // Day whose phase name is shown in the subtitle; nil means today
+    @State private var selectedDate: Date? = nil
     
     // Cached month data (lightweight, computed synchronously)
     @State private var cachedMonths: [Date] = []
@@ -171,6 +203,36 @@ struct MoonPhaseView: View {
     private func isToday(_ date: Date) -> Bool {
         let adjustedToday = currentDate.addingTimeInterval(timeOffset)
         return calendar.isDate(date, inSameDayAs: adjustedToday)
+    }
+    
+    // Phase name of the selected day (today by default), nil until prefetched
+    private var selectedDayPhaseName: String? {
+        let date = selectedDate ?? currentDate.addingTimeInterval(timeOffset)
+        guard let info = MoonPhaseCache.shared.dayInfo(for: date, calendar: calendar) else { return nil }
+        return Self.phaseName(for: info.phase)
+    }
+    
+    private static func phaseName(for phase: MoonKit.MoonPhase) -> String? {
+        switch phase {
+        case .newMoon:
+            return String(localized: "New Moon")
+        case .waxingCrescent:
+            return String(localized: "Waxing Crescent")
+        case .firstQuarter:
+            return String(localized: "First Quarter")
+        case .waxingGibbous:
+            return String(localized: "Waxing Gibbous")
+        case .fullMoon:
+            return String(localized: "Full Moon")
+        case .waningGibbous:
+            return String(localized: "Waning Gibbous")
+        case .lastQuarter:
+            return String(localized: "Last Quarter")
+        case .waningCrescent:
+            return String(localized: "Waning Crescent")
+        case .error:
+            return nil
+        }
     }
     
     // Synchronously prepare month and day data (fast, no moon calculation)
@@ -261,7 +323,14 @@ struct MoonPhaseView: View {
                             calendar: calendar,
                             currentDate: currentDate,
                             timeOffset: timeOffset,
-                            cacheVersion: phaseCacheVersion
+                            cacheVersion: phaseCacheVersion,
+                            selectedDate: selectedDate,
+                            onSelect: { date in
+                                if hapticEnabled {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                }
+                                selectedDate = date
+                            }
                         )
                         .tag(index)
                     }
@@ -282,11 +351,21 @@ struct MoonPhaseView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .principal) {
+                ToolbarItem(placement: .title) {
                     Text(monthYearString(for: currentDisplayedMonth))
                         .font(.headline)
                         .contentTransition(.numericText())
                         .animation(.spring(), value: selectedMonthIndex)
+                }
+                
+                ToolbarItem(placement: .subtitle) {
+                    if let phaseName = selectedDayPhaseName {
+                        Text(phaseName)
+                            .font(.caption.weight(.medium))
+                            .foregroundStyle(.secondary)
+                            .contentTransition(.numericText())
+                            .animation(.spring(), value: phaseName)
+                    }
                 }
                 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -325,12 +404,22 @@ private struct MonthGridView: View {
     let currentDate: Date
     let timeOffset: TimeInterval
     let cacheVersion: Int
+    let selectedDate: Date?
+    let onSelect: (Date) -> Void
     
     private static let gridColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
     
     private func isToday(_ date: Date) -> Bool {
         let adjustedToday = currentDate.addingTimeInterval(timeOffset)
         return calendar.isDate(date, inSameDayAs: adjustedToday)
+    }
+    
+    // Today acts as the default selection until the user picks another day
+    private func isSelected(_ date: Date) -> Bool {
+        if let selectedDate {
+            return calendar.isDate(date, inSameDayAs: selectedDate)
+        }
+        return isToday(date)
     }
     
     var body: some View {
@@ -346,8 +435,13 @@ private struct MonthGridView: View {
                             moonPhaseIcon: dayInfo?.imageName,
                             isFullMoonDay: dayInfo?.isFullMoonDay ?? false,
                             isNewMoonDay: dayInfo?.isNewMoonDay ?? false,
-                            isToday: isToday(date)
+                            isToday: isToday(date),
+                            isSelected: isSelected(date)
                         )
+                        .contentShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .onTapGesture {
+                            onSelect(date)
+                        }
                     } else {
                         Color.clear
                             .frame(maxWidth: .infinity)
@@ -370,6 +464,7 @@ private struct DayCellView: View {
     let isFullMoonDay: Bool
     let isNewMoonDay: Bool
     let isToday: Bool
+    let isSelected: Bool
     
     // The moon disc only spans ~86% of the source photo (626px of 730px),
     // the rest is black margin. Scaling inside the circular clip crops the
@@ -380,7 +475,7 @@ private struct DayCellView: View {
         VStack(spacing: 8) {
             Text("\(dayNumber)")
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(isToday ? .primary : .secondary)
+                .foregroundStyle(isToday || isSelected ? .primary : .secondary)
                 .overlay(alignment: .trailing) {
                     // Filled dot marks a full moon day, outlined dot a new moon day
                     if isFullMoonDay || isNewMoonDay {
@@ -421,9 +516,16 @@ private struct DayCellView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 8)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(isToday ? Color.white.opacity(0.15) : .clear)
-        )
+        .background {
+            // Selected day (today by default) is filled; today keeps an
+            // outline when another day is selected.
+            if isSelected {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.white.opacity(0.15))
+            } else if isToday {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .strokeBorder(Color.white.opacity(0.15), lineWidth: 1.5)
+            }
+        }
     }
 }
