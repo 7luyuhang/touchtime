@@ -3,35 +3,32 @@
 //  touchtime
 //
 //  Introduces the home screen widgets with 1:1 previews of the small
-//  City Time widget, the medium World Cities widget and the small
-//  Daylight widget (in its transparent home screen appearance), shown
-//  in a swipeable carousel. Tapping the City Time and World Cities
-//  previews cycles through the complications they support.
+//  City Time widget, the medium World Cities widget, the small Daylight
+//  widget (in its transparent home screen appearance) and the small
+//  Moon Phase widget (with the phase name shown), shown in a swipeable
+//  carousel.
 //
 
 import SwiftUI
+import MoonKit
+import CoreLocation
 
 // Mirrors WidgetComplicationKind from the widget extension (not visible to
 // the app target): the five complications the City Time widget supports.
-private enum WidgetPreviewComplication: CaseIterable {
+private enum WidgetPreviewComplication {
     case analogClock
     case sunPosition
     case sunriseSunset
     case sunAzimuth
     case solarCurve
-
-    var next: WidgetPreviewComplication {
-        let all = Self.allCases
-        let index = all.firstIndex(of: self)!
-        return all[(index + 1) % all.count]
-    }
 }
 
-// The three pages of the widget preview carousel
+// The four pages of the widget preview carousel
 private enum WidgetPreviewPage: CaseIterable {
     case small
     case medium
     case daylight
+    case moonPhase
 }
 
 // Shared by both previews: matches the height of a real home screen widget
@@ -47,9 +44,6 @@ struct WidgetIntroSheet: View {
     // The later pages and the page dots come in after the small widget
     @State private var animateTrailingWidgets = false
     @State private var currentPage: WidgetPreviewPage? = .small
-    // Widget defaults; tapping a preview cycles through all five
-    @State private var complication: WidgetPreviewComplication = .sunriseSunset
-    @State private var mediumComplication: WidgetPreviewComplication = .analogClock
     // Global frame of the carousel; swipes starting inside it are
     // already handled by the ScrollView itself
     @State private var carouselFrame: CGRect = .zero
@@ -104,16 +98,8 @@ struct WidgetIntroSheet: View {
                                     cityName: String(localized: "City"),
                                     timeZoneIdentifier: TimeZone.current.identifier,
                                     use24Hour: use24HourFormat,
-                                    complication: complication
+                                    complication: .sunriseSunset
                                 )
-                                .onTapGesture {
-                                    if hapticEnabled {
-                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                                    }
-                                    withAnimation(.smooth(duration: 0.5)) {
-                                        complication = complication.next
-                                    }
-                                }
                                 // Entrance animation, same as the app icon in OnboardingView
                                 .brightness(animateIcon ? 0 : 0.50)
                                 .blur(radius: animateIcon ? 0 : 25)
@@ -130,17 +116,9 @@ struct WidgetIntroSheet: View {
                                 WorldCitiesWidgetPreview(
                                     date: context.date,
                                     use24Hour: use24HourFormat,
-                                    complication: mediumComplication,
+                                    complication: .analogClock,
                                     width: mediumWidth
                                 )
-                                .onTapGesture {
-                                    if hapticEnabled {
-                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                                    }
-                                    withAnimation(.smooth(duration: 0.5)) {
-                                        mediumComplication = mediumComplication.next
-                                    }
-                                }
                                 .brightness(animateTrailingWidgets ? 0 : 0.50)
                                 .blur(radius: animateTrailingWidgets ? 0 : 25)
                                 .scaleEffect(animateTrailingWidgets ? 1.0 : 0.5)
@@ -169,6 +147,20 @@ struct WidgetIntroSheet: View {
                                 )
                                 .frame(width: pageWidth)
                                 .id(WidgetPreviewPage.daylight)
+
+                                // Small Moon Phase widget with the phase name
+                                // shown, revealed with the other trailing pages
+                                MoonPhaseWidgetPreview(date: context.date)
+                                    .brightness(animateTrailingWidgets ? 0 : 0.50)
+                                    .blur(radius: animateTrailingWidgets ? 0 : 25)
+                                    .scaleEffect(animateTrailingWidgets ? 1.0 : 0.5)
+                                    .opacity(animateTrailingWidgets ? 1.0 : 0.0)
+                                    .offset(y: animateTrailingWidgets ? 0 : 50)
+                                    .animation(
+                                        .bouncy(duration: 1.0), value: animateTrailingWidgets
+                                    )
+                                    .frame(width: pageWidth)
+                                    .id(WidgetPreviewPage.moonPhase)
                             }
                             .scrollTargetLayout()
                         }
@@ -379,8 +371,6 @@ private struct CityWidgetPreview: View {
                         .blendMode(.plusLighter)
                 }
                 .frame(width: Self.complicationSize, height: Self.complicationSize)
-                .transition(.blurReplace)
-                .id(complication)
 
             VStack {
                 Text(cityName)
@@ -402,9 +392,7 @@ private struct CityWidgetPreview: View {
         .foregroundStyle(.white)
         .padding(14)
         .frame(width: Self.widgetSize, height: Self.widgetSize)
-        .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
-        // Make the whole widget tappable, not just the opaque content inside
-        .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
     }
 
     // Same complications as CityComplicationWidgetView, without any
@@ -477,9 +465,7 @@ private struct WorldCitiesWidgetPreview: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .frame(width: width, height: widgetPreviewHeight)
-        .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
-        // Make the whole widget tappable, not just the opaque content inside
-        .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
     }
 }
 
@@ -518,8 +504,6 @@ private struct WorldCityPreviewColumn: View {
                         .blendMode(.plusLighter)
                 }
                 .frame(width: size, height: size)
-                .transition(.blurReplace)
-                .id(complication)
 
             VStack(spacing: 0) {
                 Text(cityName)
@@ -635,9 +619,110 @@ private struct DaylightWidgetPreview: View {
         .animation(.smooth(duration: 0.5), value: timeString)
         .foregroundStyle(.white)
         .frame(width: Self.widgetSize, height: Self.widgetSize)
-        .glassEffect(.clear.interactive(), in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
-        // Make the whole widget tappable, not just the opaque content inside
-        .contentShape(RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+    }
+}
+
+// 1:1 replica of the small Moon Phase widget (MoonPhaseWidgetView) in its
+// "Show Moon Phase Name" configuration: the current moon rendered large in
+// the center with the same grayscale + plus-lighter treatment as the app's
+// Moon Phase sheet, and the phase name at the bottom.
+private struct MoonPhaseWidgetPreview: View {
+    let date: Date
+
+    private static let widgetSize: CGFloat = widgetPreviewHeight
+    private static let cornerRadius: CGFloat = 28
+    // Same 16pt content inset as the real widget
+    private static let contentInset: CGFloat = 16
+    // Same crop as the real widget: the moon disc only spans ~86% of the
+    // source photo, the rest is black margin. Scaling inside the circular
+    // clip crops that margin away.
+    private static let discCropScale: CGFloat = 1.18
+
+    private struct MoonInfo {
+        let imageName: String
+        let phaseName: String
+    }
+
+    // Memoized per day: MoonKit recomputes rise/set times for every new
+    // day, too slow to redo on every minute tick of the TimelineView.
+    private static var cachedInfo: (day: Date, info: MoonInfo)?
+
+    // Same as MoonPhaseWidgetProvider in the widget extension: the moon's
+    // age (image and phase name) is the same for every city at a given
+    // instant, so the device time zone is fine. Coordinates only feed
+    // MoonKit's internal math.
+    private static func moonInfo(for date: Date) -> MoonInfo {
+        let day = Calendar.current.startOfDay(for: date)
+        if let cached = cachedInfo, cached.day == day {
+            return cached.info
+        }
+
+        let timeZone = TimeZone.current
+        let coordinate = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier)
+        let location = CLLocation(
+            latitude: coordinate?.latitude ?? 51.5074,
+            longitude: coordinate?.longitude ?? -0.1278
+        )
+
+        let moon = Moon(location: location, timeZone: timeZone)
+        moon.setDate(date)
+
+        // Age wraps at the end of the synodic cycle (~29.5 days) back to new moon
+        let imageIndex = Int(moon.ageOfTheMoonInDays.rounded()) % 30
+
+        let info = MoonInfo(
+            imageName: String(format: "moon_age_%02d", imageIndex),
+            phaseName: phaseName(for: moon.currentMoonPhase)
+        )
+        cachedInfo = (day, info)
+        return info
+    }
+
+    private static func phaseName(for phase: MoonKit.MoonPhase) -> String {
+        switch phase {
+        case .newMoon:
+            return String(localized: "New Moon")
+        case .waxingCrescent:
+            return String(localized: "Waxing Crescent")
+        case .firstQuarter:
+            return String(localized: "First Quarter")
+        case .waxingGibbous:
+            return String(localized: "Waxing Gibbous")
+        case .fullMoon:
+            return String(localized: "Full Moon")
+        case .waningGibbous:
+            return String(localized: "Waning Gibbous")
+        case .lastQuarter:
+            return String(localized: "Last Quarter")
+        case .waningCrescent:
+            return String(localized: "Waning Crescent")
+        case .error:
+            return String(localized: "Moon Phase")
+        }
+    }
+
+    var body: some View {
+        let info = Self.moonInfo(for: date)
+
+        VStack(spacing: 8) {
+            Image(info.imageName)
+                .resizable()
+                .scaledToFit()
+                .scaleEffect(Self.discCropScale)
+                .clipShape(Circle())
+                .grayscale(1)
+                .blendMode(.plusLighter)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            Text(info.phaseName)
+                .font(.system(size: 13, weight: .medium))
+                .lineLimit(1)
+        }
+        .padding(Self.contentInset)
+        .foregroundStyle(.white)
+        .frame(width: Self.widgetSize, height: Self.widgetSize)
+        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
     }
 }
 
