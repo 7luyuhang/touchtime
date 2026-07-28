@@ -748,6 +748,20 @@ struct SettingsView: View {
                 
                 // Analog Time Section
                 Section(header: Text("Clock")) {
+                    TouchTimeToggle(isOn: $showArcIndicator) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "circle", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Arc Indicator")
+                        }
+                    }
+
+                    TouchTimeToggle(isOn: $showSunriseSunsetLines) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text(String(localized: "Sunrise & Sunset Lines"))
+                        }
+                    }
+
                     TouchTimeToggle(isOn: goldenHourBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "angle", topColor: .gray, bottomColor: .gray, style: .plain)
@@ -783,19 +797,6 @@ struct SettingsView: View {
                         }
                     }
                     
-                    TouchTimeToggle(isOn: $showSunriseSunsetLines) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: .gray, style: .plain)
-                            Text(String(localized: "Sunrise & Sunset Lines"))
-                        }
-                    }
-
-                    TouchTimeToggle(isOn: $showArcIndicator) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "circle", topColor: .gray, bottomColor: .gray, style: .plain)
-                            Text("Arc Indicator")
-                        }
-                    }
                 }
                 
                 // Hourly Notification

@@ -95,39 +95,6 @@ struct HourlyNotificationCityPicker: View {
                     .frame(maxWidth: .infinity)
             }
 
-            Section {
-                ForEach(worldClocks) { clock in
-                    let selectionIndex = selectedCityIds.firstIndex(of: clock.id)
-                    let isSelected = selectionIndex != nil
-
-                    Button(action: {
-                        withAnimation {
-                            toggleSelection(for: clock.id)
-                        }
-
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
-                    }) {
-                        HStack {
-                            Text(clock.localizedCityName)
-
-                            Spacer()
-
-                            Image(systemName: selectionIndex.map { "\($0 + 1).circle.fill" } ?? "circle")
-                                .font(.title3.weight(.medium))
-                                .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.25))
-                                .contentTransition(.symbolEffect(.replace))
-                                .opacity(!isSelected && isSelectionFull ? 0 : 1)
-                                .animation(nil, value: isSelectionFull)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!isSelected && isSelectionFull)
-                }
-            }
-
             // Time window: only chime between start and end time
             Section {
                 TouchTimeToggle(isOn: $timeWindowEnabled) {
@@ -167,6 +134,39 @@ struct HourlyNotificationCityPicker: View {
                     Text("Only chime between the start and end time.")
                 } else {
                     Text("Enable to only chime within a time period.")
+                }
+            }
+
+            Section {
+                ForEach(worldClocks) { clock in
+                    let selectionIndex = selectedCityIds.firstIndex(of: clock.id)
+                    let isSelected = selectionIndex != nil
+
+                    Button(action: {
+                        withAnimation {
+                            toggleSelection(for: clock.id)
+                        }
+
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                    }) {
+                        HStack {
+                            Text(clock.localizedCityName)
+
+                            Spacer()
+
+                            Image(systemName: selectionIndex.map { "\($0 + 1).circle.fill" } ?? "circle")
+                                .font(.title3.weight(.medium))
+                                .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.25))
+                                .contentTransition(.symbolEffect(.replace))
+                                .opacity(!isSelected && isSelectionFull ? 0 : 1)
+                                .animation(nil, value: isSelectionFull)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(!isSelected && isSelectionFull)
                 }
             }
 
