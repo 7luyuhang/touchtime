@@ -371,6 +371,11 @@ private struct DayCellView: View {
     let isNewMoonDay: Bool
     let isToday: Bool
     
+    // The moon disc only spans ~86% of the source photo (626px of 730px),
+    // the rest is black margin. Scaling inside the circular clip crops the
+    // margin away, matching MoonPhaseWidget.
+    private static let discCropScale: CGFloat = 1.18
+    
     var body: some View {
         VStack(spacing: 8) {
             Text("\(dayNumber)")
@@ -401,6 +406,7 @@ private struct DayCellView: View {
                     Image(moonPhaseIcon)
                         .resizable()
                         .scaledToFill()
+                        .scaleEffect(Self.discCropScale)
                         .transition(.opacity)
                 } else {
                     // Placeholder while the moon age is computed in the background

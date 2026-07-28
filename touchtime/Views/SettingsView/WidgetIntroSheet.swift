@@ -467,7 +467,9 @@ private struct WorldCitiesWidgetPreview: View {
                     timeZoneIdentifier: city.timeZoneIdentifier,
                     use24Hour: use24Hour,
                     complication: complication,
-                    size: complicationSize
+                    size: complicationSize,
+                    // The real widget defaults its selection to the first city
+                    isSelected: city.id == Self.cities.first?.id
                 )
             }
         }
@@ -489,6 +491,7 @@ private struct WorldCityPreviewColumn: View {
     let use24Hour: Bool
     let complication: WidgetPreviewComplication
     let size: CGFloat
+    let isSelected: Bool
 
     // Same customisations the real widget mirrors from the app
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
@@ -527,10 +530,15 @@ private struct WorldCityPreviewColumn: View {
                 Text(timeString)
                     .font(.system(size: 13, weight: .medium))
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                    .blendMode(.plusLighter)
                     .transition(.blurReplace)
                     .id(timeString)
+
+                // Selection indicator: a small dot under the selected city's
+                // time. Kept in the layout (opacity 0) so columns stay aligned.
+                Circle()
+                    .frame(width: 5, height: 5)
+                    .padding(.top, 5)
+                    .opacity(isSelected ? 1 : 0)
             }
         }
         .frame(maxWidth: .infinity)
