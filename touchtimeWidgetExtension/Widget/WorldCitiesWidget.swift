@@ -233,8 +233,11 @@ private struct WorldCityColumn: View {
                 Text(timeString)
                     .font(.system(size: 13, weight: .medium))
                     .monospacedDigit()
-                    .foregroundStyle(isSelected ? HierarchicalShapeStyle.primary : .secondary)
-                    .blendMode(.plusLighter)
+
+                Circle()
+                    .frame(width: 5, height: 5)
+                    .padding(.top, 5)
+                    .opacity(isSelected ? 1 : 0)
             }
         }
         .frame(maxWidth: .infinity)
