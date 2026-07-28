@@ -38,6 +38,7 @@ struct SunriseSunsetSheet: View {
     @State private var eveningGoldenHour: (start: Date?, end: Date?)?
     @State private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)?
     @State private var nextFullMoonDate: Date?
+    @State private var showFullMoonDate = false // Toggle between day count and date
     @State private var astronomyDayCacheKey: String = ""
     
     // Computed properties to get weather data directly from weatherManager
@@ -89,21 +90,43 @@ struct SunriseSunsetSheet: View {
         return "\(timeZoneIdentifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
     }
 
-    private func findNextFullMoonDate(using moon: Moon, startingFrom date: Date, calendar: Calendar) -> Date? {
-        var searchDate = date
-        var attempts = 0
-        let maxAttempts = 60
+    /// Finds the exact instant of the next full moon: the moment the moon's age
+    /// crosses half a synodic month, matching the full moon dot in MoonPhaseView.
+    private func findNextFullMoonDate(using moon: Moon, startingFrom date: Date) -> Date? {
+        let halfCycle = 29.53058867 / 2
+        let dayInSeconds: TimeInterval = 86400
 
-        while attempts < maxAttempts {
-            searchDate = calendar.date(byAdding: .day, value: 1, to: searchDate) ?? searchDate
-            moon.setDate(searchDate)
+        func moonAge(at date: Date) -> Double {
+            moon.setDate(date)
+            return moon.ageOfTheMoonInDays
+        }
 
-            let phaseString = String(describing: moon.currentMoonPhase).lowercased()
-            if phaseString.contains("fullmoon") || phaseString.contains("full moon") {
-                return searchDate
+        // Scan forward in 24h windows for the one where the age crosses halfCycle;
+        // one crossing must occur within a synodic month (~29.5 days).
+        var windowStart = date
+        var ageAtStart = moonAge(at: windowStart)
+
+        for _ in 0..<31 {
+            let windowEnd = windowStart.addingTimeInterval(dayInSeconds)
+            let ageAtEnd = moonAge(at: windowEnd)
+
+            if ageAtStart <= halfCycle && ageAtEnd > halfCycle {
+                // Bisect the window down to ~1s to pin the crossing instant
+                var lowerBound = windowStart
+                var upperBound = windowEnd
+                for _ in 0..<17 {
+                    let midpoint = lowerBound.addingTimeInterval(upperBound.timeIntervalSince(lowerBound) / 2)
+                    if moonAge(at: midpoint) < halfCycle {
+                        lowerBound = midpoint
+                    } else {
+                        upperBound = midpoint
+                    }
+                }
+                return upperBound
             }
 
-            attempts += 1
+            windowStart = windowEnd
+            ageAtStart = ageAtEnd
         }
 
         return nil
@@ -130,7 +153,6 @@ struct SunriseSunsetSheet: View {
 
         let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
         let location = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
-        let calendar = calendarForTimeZone()
 
         let events = SolarCalculator.events(
             latitude: coordinates.latitude,
@@ -151,7 +173,7 @@ struct SunriseSunsetSheet: View {
             phaseIcon: getMoonPhaseIcon(phase)
         )
 
-        nextFullMoonDate = findNextFullMoonDate(using: moon, startingFrom: adjustedDate, calendar: calendar)
+        nextFullMoonDate = findNextFullMoonDate(using: moon, startingFrom: adjustedDate)
     }
     
     // Format moon phase to readable string
@@ -1004,13 +1026,26 @@ struct SunriseSunsetSheet: View {
                                             }
                                             Spacer()
 
-                                            Text(formatNextFullMoonDate(nextFullMoon))
+                                            // Tap toggles between the day count and the full moon date
+                                            Text(showFullMoonDate
+                                                 ? formatDSTDate(nextFullMoon)
+                                                 : formatNextFullMoonDate(nextFullMoon))
                                                 .foregroundStyle(.primary)
                                                 .monospacedDigit()
                                                 .contentTransition(.numericText())
                                                 .animation(.spring(), value: nextFullMoon)
                                         }
-                                        .detailsSheetCardRow()
+                                        .detailsSheetCard()
+                                        .contentShape(Rectangle())
+                                        .onTapGesture {
+                                            if hapticEnabled {
+                                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                            }
+                                            withAnimation(.spring()) {
+                                                showFullMoonDate.toggle()
+                                            }
+                                        }
+                                        .padding(.horizontal, 16)
                                     }
                                 }
                             }
