@@ -44,6 +44,7 @@ struct WidgetIntroSheet: View {
     // The later pages and the page dots come in after the small widget
     @State private var animateTrailingWidgets = false
     @State private var currentPage: WidgetPreviewPage? = .small
+    @State private var showWidgetSupport = false
     // Global frame of the carousel; swipes starting inside it are
     // already handled by the ScrollView itself
     @State private var carouselFrame: CGRect = .zero
@@ -285,7 +286,12 @@ struct WidgetIntroSheet: View {
 
                 // Tips: Apple guide on adding widgets to the Home Screen
                 ToolbarItem(placement: .topBarTrailing) {
-                    Link(destination: widgetSupportURL) {
+                    Button {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        showWidgetSupport = true
+                    } label: {
                         Image(systemName: "questionmark.circle")
                     }
                 }
@@ -302,6 +308,10 @@ struct WidgetIntroSheet: View {
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
                     animateTrailingWidgets = true
                 }
+            }
+            .sheet(isPresented: $showWidgetSupport) {
+                SafariView(url: widgetSupportURL)
+                    .ignoresSafeArea()
             }
         }
     }

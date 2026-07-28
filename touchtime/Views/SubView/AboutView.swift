@@ -227,6 +227,13 @@ struct AboutView: View {
                     Text("Adventures in Orienting Views")
                 }
                 .foregroundStyle(.primary)
+
+                Button {
+                    safariURL = URL(string: "https://svs.gsfc.nasa.gov/5587/")
+                } label: {
+                    Text("Moon Phase Images")
+                }
+                .foregroundStyle(.primary)
             } header: {
                 Text("Open Source Library")
             } footer: {

@@ -663,22 +663,6 @@
         }
       }
     },
-    "400+ cities worldwide" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "覆盖全球 400+ 城市"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "覆蓋全球 400+ 城市"
-          }
-        }
-      }
-    },
     "45 min" : {
       "comment" : "Event duration option",
       "localizations" : {
@@ -692,6 +676,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "45 分鐘"
+          }
+        }
+      }
+    },
+    "400+ cities worldwide" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "覆盖全球 400+ 城市"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "覆蓋全球 400+ 城市"
           }
         }
       }
@@ -8635,6 +8635,9 @@
           }
         }
       }
+    },
+    "Moon Phase Images" : {
+
     },
     "Moon Time" : {
       "localizations" : {
