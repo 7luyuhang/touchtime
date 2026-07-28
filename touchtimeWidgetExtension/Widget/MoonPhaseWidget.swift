@@ -4,13 +4,24 @@
 //
 //  Small widget: the current moon rendered large in the center, with the
 //  same grayscale + plus-lighter treatment as the app's Moon Phase sheet,
-//  and the phase name at the bottom.
+//  and an optional phase name at the bottom (edit-widget toggle).
 //
 
 import WidgetKit
 import SwiftUI
+import AppIntents
 import MoonKit
 import CoreLocation
+
+// MARK: - Intent
+
+struct MoonPhaseWidgetIntent: WidgetConfigurationIntent {
+    static let title: LocalizedStringResource = "Moon Phase"
+    static let description = IntentDescription("Shows the current moon phase.")
+
+    @Parameter(title: "Show Moon Phase Name", default: false)
+    var showPhaseName: Bool
+}
 
 // MARK: - Timeline
 
@@ -18,13 +29,14 @@ struct MoonPhaseWidgetEntry: TimelineEntry {
     let date: Date
     let imageName: String
     let phaseName: String
+    let showPhaseName: Bool
 }
 
-struct MoonPhaseWidgetProvider: TimelineProvider {
+struct MoonPhaseWidgetProvider: AppIntentTimelineProvider {
     // The moon's age (and therefore the image and phase name) is the same
     // for every city at a given instant, so the widget simply uses the
     // device time zone. Coordinates only feed MoonKit's internal math.
-    private func makeEntry(for date: Date) -> MoonPhaseWidgetEntry {
+    private func makeEntry(for date: Date, showPhaseName: Bool) -> MoonPhaseWidgetEntry {
         let timeZone = TimeZone.current
         let coordinate = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier)
         let location = CLLocation(
@@ -41,7 +53,8 @@ struct MoonPhaseWidgetProvider: TimelineProvider {
         return MoonPhaseWidgetEntry(
             date: date,
             imageName: String(format: "moon_age_%02d", imageIndex),
-            phaseName: Self.phaseName(for: moon.currentMoonPhase)
+            phaseName: Self.phaseName(for: moon.currentMoonPhase),
+            showPhaseName: showPhaseName
         )
     }
     
@@ -72,25 +85,26 @@ struct MoonPhaseWidgetProvider: TimelineProvider {
         MoonPhaseWidgetEntry(
             date: Date(),
             imageName: "moon_age_15",
-            phaseName: String(localized: "Full Moon")
+            phaseName: String(localized: "Full Moon"),
+            showPhaseName: false
         )
     }
     
-    func getSnapshot(in context: Context, completion: @escaping (MoonPhaseWidgetEntry) -> Void) {
-        completion(makeEntry(for: Date()))
+    func snapshot(for configuration: MoonPhaseWidgetIntent, in context: Context) async -> MoonPhaseWidgetEntry {
+        makeEntry(for: Date(), showPhaseName: configuration.showPhaseName)
     }
     
-    func getTimeline(in context: Context, completion: @escaping (Timeline<MoonPhaseWidgetEntry>) -> Void) {
+    func timeline(for configuration: MoonPhaseWidgetIntent, in context: Context) async -> Timeline<MoonPhaseWidgetEntry> {
         // The moon's appearance only changes on a daily scale; hourly
         // entries keep the transition to the next image reasonably sharp.
         let now = Date()
         var entries: [MoonPhaseWidgetEntry] = []
         for hourOffset in 0..<24 {
             if let date = Calendar.current.date(byAdding: .hour, value: hourOffset, to: now) {
-                entries.append(makeEntry(for: date))
+                entries.append(makeEntry(for: date, showPhaseName: configuration.showPhaseName))
             }
         }
-        completion(Timeline(entries: entries, policy: .atEnd))
+        return Timeline(entries: entries, policy: .atEnd)
     }
 }
 
@@ -117,21 +131,30 @@ struct MoonPhaseWidgetView: View {
     }
     
     var body: some View {
-        Image(entry.imageName)
-            .resizable()
-            .widgetAccentedRenderingMode(.desaturated)
-            .scaledToFit()
-            .scaleEffect(Self.discCropScale)
-            .clipShape(Circle())
-            .grayscale(1)
-            .blendMode(moonBlendMode)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .padding(16)
-            .containerBackground(for: .widget) {
-                // plusLighter needs a dark canvas: keep the widget black in
-                // both color schemes, matching the app's moon sheet.
-                Color.black
+        VStack(spacing: 8) {
+            Image(entry.imageName)
+                .resizable()
+                .widgetAccentedRenderingMode(.desaturated)
+                .scaledToFit()
+                .scaleEffect(Self.discCropScale)
+                .clipShape(Circle())
+                .grayscale(1)
+                .blendMode(moonBlendMode)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            
+            if entry.showPhaseName {
+                Text(entry.phaseName)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
             }
+        }
+        .padding(16)
+        .containerBackground(for: .widget) {
+            // plusLighter needs a dark canvas: keep the widget black in
+            // both color schemes, matching the app's moon sheet.
+            Color.black
+        }
     }
 }
 
@@ -141,7 +164,11 @@ struct MoonPhaseWidget: Widget {
     let kind: String = "MoonPhaseWidget"
     
     var body: some WidgetConfiguration {
-        StaticConfiguration(kind: kind, provider: MoonPhaseWidgetProvider()) { entry in
+        AppIntentConfiguration(
+            kind: kind,
+            intent: MoonPhaseWidgetIntent.self,
+            provider: MoonPhaseWidgetProvider()
+        ) { entry in
             MoonPhaseWidgetView(entry: entry)
         }
         .configurationDisplayName("Moon Phase")
