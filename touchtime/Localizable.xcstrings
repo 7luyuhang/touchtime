@@ -3227,6 +3227,22 @@
         }
       }
     },
+    "City Time" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "城市时间"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "城市時間"
+          }
+        }
+      }
+    },
     "Ciudad Juarez" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14283,6 +14299,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "帶星期"
+          }
+        }
+      }
+    },
+    "World Cities" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "世界城市"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "世界城市"
           }
         }
       }

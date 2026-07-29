@@ -29,6 +29,16 @@ private enum WidgetPreviewPage: CaseIterable {
     case medium
     case daylight
     case moonPhase
+
+    // Matches each widget's configurationDisplayName in the extension
+    var widgetName: String {
+        switch self {
+        case .small: String(localized: "City Time")
+        case .medium: String(localized: "World Cities")
+        case .daylight: String(localized: "Daylight")
+        case .moonPhase: String(localized: "Moon Phase")
+        }
+    }
 }
 
 // Shared by both previews: matches the height of a real home screen widget
@@ -216,6 +226,21 @@ struct WidgetIntroSheet: View {
                 .opacity(animateTrailingWidgets ? 1.0 : 0.0)
                 .animation(.smooth(duration: 1.0), value: animateTrailingWidgets)
                 .animation(.smooth(duration: 0.3), value: currentPage)
+
+                // Current widget's name in a glass capsule, swapping with a
+                // blur as the carousel turns; revealed with the page dots.
+                Text((currentPage ?? .small).widgetName)
+                    .font(.subheadline.weight(.semibold))
+                    .transition(.blurReplace)
+                    .id(currentPage)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .glassEffect(.clear, in: Capsule(style: .continuous))
+                    .padding(.top, 24)
+                    .blur(radius: animateTrailingWidgets ? 0 : 10)
+                    .opacity(animateTrailingWidgets ? 1.0 : 0.0)
+                    .animation(.smooth(duration: 1.0), value: animateTrailingWidgets)
+                    .animation(.smooth(duration: 0.5), value: currentPage)
 
                 Spacer()
 
