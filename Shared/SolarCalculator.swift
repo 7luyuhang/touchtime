@@ -136,6 +136,19 @@ enum SolarCalculator {
         return hourAngleDegrees(date: date, longitude: longitude, eqTimeMinutes: angles.eqTimeMinutes)
     }
 
+    /// The point on Earth where the sun is directly overhead at `date`.
+    /// Latitude equals the solar declination; longitude is where the local
+    /// hour angle is zero. Timezone-independent.
+    static func subsolarPoint(date: Date) -> (latitude: Double, longitude: Double) {
+        let angles = solarAngles(julianCentury: julianCentury(for: date))
+        // Hour angle grows with longitude, so the subsolar longitude is the
+        // one that cancels the value measured at Greenwich.
+        var longitude = -hourAngleDegrees(date: date, longitude: 0, eqTimeMinutes: angles.eqTimeMinutes)
+        if longitude >= 180 { longitude -= 360 }
+        if longitude < -180 { longitude += 360 }
+        return (latitude: angles.declinationRad * 180 / .pi, longitude: longitude)
+    }
+
     // MARK: - Calendar cache
 
     // Calendar(identifier:) + timeZone assignment is surprisingly expensive;

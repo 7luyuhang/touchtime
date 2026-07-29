@@ -1052,7 +1052,11 @@ struct SunriseSunsetSheet: View {
                         }
 
                         // Dots world map with the current city highlighted
-                        DotsWorldMapView(timeZoneIdentifier: timeZoneIdentifier)
+                        // and the solar terminator curve for the shown time
+                        DotsWorldMapView(
+                            timeZoneIdentifier: timeZoneIdentifier,
+                            date: currentDate.addingTimeInterval(timeOffset)
+                        )
                             .padding(.horizontal, 24)
                             .padding(.top)
                             .padding(.bottom)

@@ -492,7 +492,7 @@ private struct DayCellView: View {
                                     .frame(width: 5, height: 5)
                             }
                         }
-                        .offset(x: 12)
+                        .offset(x: 10)
                     }
                 }
             
