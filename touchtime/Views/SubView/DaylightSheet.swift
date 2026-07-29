@@ -233,6 +233,23 @@ private struct DaylightIndicatorBar: View {
         return min(max(date.timeIntervalSince(interval.start) / interval.duration, 0), 1)
     }
 
+    // Filled sun only between civil dawn and civil dusk, outline otherwise —
+    // same rule as the Daylight widget's ring (DaylightRing.isSunFilled).
+    private var isSunFilled: Bool {
+        guard let coords = TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier) else {
+            return dayProgress >= 0.23 && dayProgress <= 0.77
+        }
+        let events = SolarCalculator.events(
+            latitude: coords.latitude,
+            longitude: coords.longitude,
+            date: date,
+            timeZone: TimeZone(identifier: timeZoneIdentifier) ?? .current
+        )
+        // Polar night: events collapse to solar noon.
+        guard events.civilDusk > events.civilDawn else { return false }
+        return date >= events.civilDawn && date < events.civilDusk
+    }
+
     var body: some View {
         GeometryReader { geometry in
             let indicatorSize: CGFloat = 22
@@ -275,21 +292,31 @@ private struct DaylightIndicatorBar: View {
                     .blendMode(.plusLighter)
                     .frame(width: geometry.size.width, height: Self.barHeight)
 
-                // Sun position indicator
-                Circle()
-                    .fill(.white)
-                    .frame(width: indicatorSize, height: indicatorSize)
-                    .background {
-                        // Shadow lives on its own layer: plusDarker on the
-                        // white disc itself would make it vanish.
-                        Circle()
-                            .fill(.black.opacity(0.05))
-                            .blur(radius: 5)
-                            .offset(y: 2.5)
-                            .blendMode(.plusDarker)
-                    }
-                    .offset(x: sunOffset)
-                    .animation(.spring(), value: dayProgress)
+                // Sun position indicator: filled disc by day, outline at
+                // night, matching the Daylight widget's ring indicator.
+                let filled = isSunFilled
+                ZStack {
+                    Circle()
+                        .fill(.white)
+                        .background {
+                            // Shadow lives on its own layer: plusDarker on the
+                            // white disc itself would make it vanish.
+                            Circle()
+                                .fill(.black.opacity(0.05))
+                                .blur(radius: 5)
+                                .offset(y: 2.5)
+                                .blendMode(.plusDarker)
+                        }
+                        .opacity(filled ? 1 : 0)
+
+                    Circle()
+                        .stroke(.white, lineWidth: 2.0)
+                        .opacity(filled ? 0 : 0.35)
+                        .blendMode(.plusLighter)
+                }
+                .frame(width: indicatorSize, height: indicatorSize)
+                .offset(x: sunOffset)
+                .animation(.spring(), value: dayProgress)
             }
             .frame(width: geometry.size.width, height: Self.barHeight)
         }
