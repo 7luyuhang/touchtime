@@ -150,9 +150,20 @@ struct DotsWorldMapView: View {
                 var curveContext = context
                 curveContext.clip(to: Path(CGRect(origin: .zero, size: size)))
                 curveContext.blendMode = .plusLighter
+                // Fade the curve out toward the left/right edges so it doesn't
+                // end abruptly at the map bounds.
                 curveContext.stroke(
                     Self.terminatorPath(subsolar: subsolar, grid: grid, size: size),
-                    with: .color(.white.opacity(0.25)),
+                    with: .linearGradient(
+                        Gradient(stops: [
+                            .init(color: .white.opacity(0), location: 0),
+                            .init(color: .white.opacity(0.25), location: 0.15),
+                            .init(color: .white.opacity(0.25), location: 0.85),
+                            .init(color: .white.opacity(0), location: 1)
+                        ]),
+                        startPoint: .zero,
+                        endPoint: CGPoint(x: size.width, y: 0)
+                    ),
                     style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
                 )
             }

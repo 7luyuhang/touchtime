@@ -153,6 +153,7 @@ struct MoonPhaseView: View {
     let timeOffset: TimeInterval
     
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var currentDate: Date = Date()
     @State private var selectedMonthIndex: Int = 1
@@ -393,6 +394,17 @@ struct MoonPhaseView: View {
         }
         .onChange(of: selectedMonthIndex) { _, newIndex in
             prefetchMoonPhases(around: newIndex)
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            // iOS purges the NSCache-backed moon data while the app is
+            // backgrounded. The sheet stays presented, so onAppear never
+            // re-fires and the grid would be stuck on empty placeholders.
+            // Re-prefetch (already-cached days are skipped) and refresh
+            // "today" in case the date rolled over while suspended.
+            guard newPhase == .active else { return }
+            currentDate = Date()
+            prepareCalendarData()
+            prefetchMoonPhases(around: selectedMonthIndex)
         }
     }
 }
