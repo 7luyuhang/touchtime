@@ -182,6 +182,19 @@ struct TimeZonePickerViewWrapper: View {
                     ContentUnavailableView.search(text: searchText)
                 } else {
                     List {
+                        // Dots world map with every added city highlighted and
+                        // the solar terminator curve (hidden while searching)
+                        if searchText.isEmpty {
+                            Section {
+                                DotsWorldMapView(
+                                    timeZoneIdentifiers: worldClocks.map(\.timeZoneIdentifier),
+                                    date: currentDate
+                                )
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                            }
+                        }
+                        
                         // What's New Section
                         if showWhatsNewLongpressCity {
                             Section {
@@ -415,13 +428,13 @@ struct TimeZoneCellView: View {
                     // Show checkmark if already added
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.body.weight(.bold))
+                            .font(.title3.weight(.bold))
                             .frame(width: 24)
                             .transition(.identity)
                             .id("checkmark-\(timeZoneData.identifier)")
                     } else {
                         Image(systemName: "circle")
-                            .font(.body.weight(.medium))
+                            .font(.title3.weight(.medium))
                             .foregroundStyle(.secondary)
                             .frame(width: 24)
                             .transition(.identity)

@@ -84,21 +84,42 @@ private struct DotsWorldMapGrid {
     }
 }
 
-/// Dotted world map where the current city's dot is fully opaque and every
-/// other land dot is dimmed. A smooth Bézier curve traces the solar
+/// One tapped city cell on the map; `id` is the row-major cell index.
+private struct DotsWorldMapSelection: Identifiable, Equatable {
+    let id: Int
+}
+
+/// Dotted world map where each highlighted city's dot is fully opaque and
+/// every other land dot is dimmed. A smooth Bézier curve traces the solar
 /// terminator (the sunrise/sunset line) for `date`, and dots on the night
-/// side of it are rendered darker than dots in daylight.
+/// side of it are rendered darker than dots in daylight. Tapping a city dot
+/// opens a popover listing the city (or cities) sharing that dot.
 struct DotsWorldMapView: View {
-    let timeZoneIdentifier: String
+    let timeZoneIdentifiers: [String]
     let date: Date
 
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @State private var canvasSize: CGSize = .zero
+    @State private var selection: DotsWorldMapSelection?
+
     private static let grid = DotsWorldMapGrid(imageName: "WorldMap", columns: 72)
+    /// How far (in points) a tap may land from a city dot and still count.
+    private static let tapTolerance: CGFloat = 24
+
+    init(timeZoneIdentifier: String, date: Date) {
+        self.init(timeZoneIdentifiers: [timeZoneIdentifier], date: date)
+    }
+
+    init(timeZoneIdentifiers: [String], date: Date) {
+        self.timeZoneIdentifiers = timeZoneIdentifiers
+        self.date = date
+    }
 
     var body: some View {
         if let grid = Self.grid {
-            let cityCell = TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier).map {
-                grid.cell(latitude: $0.latitude, longitude: $0.longitude)
-            }
+            // Timezone identifiers grouped by the row-major index of their map
+            // cell, so drawing and tap hit-testing share one lookup table.
+            let citiesByCell = Self.citiesByCell(for: timeZoneIdentifiers, grid: grid)
 
             Canvas { context, size in
                 let spacing = size.width / CGFloat(grid.columns)
@@ -122,7 +143,7 @@ struct DotsWorldMapView: View {
                     let cosLatFactor = cos(latitudeRad) * cosDeclination
 
                     for column in 0..<grid.columns {
-                        let isCity = cityCell?.column == column && cityCell?.row == row
+                        let isCity = citiesByCell[row * grid.columns + column] != nil
                         // Coastal cities can fall on an ocean cell; draw their dot anyway.
                         guard isCity || grid.isLand(column: column, row: row) else { continue }
 
@@ -168,7 +189,88 @@ struct DotsWorldMapView: View {
                 )
             }
             .aspectRatio(CGFloat(grid.columns) / CGFloat(grid.rows), contentMode: .fit)
+            .contentShape(Rectangle())
+            .onGeometryChange(for: CGSize.self) { proxy in
+                proxy.size
+            } action: { size in
+                canvasSize = size
+            }
+            .onTapGesture { location in
+                guard let cellIndex = nearestCityCell(to: location, in: citiesByCell.keys, grid: grid) else { return }
+                if hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+                selection = DotsWorldMapSelection(id: cellIndex)
+            }
+            .popover(
+                item: $selection,
+                attachmentAnchor: .rect(.rect(anchorRect(for: selection, grid: grid)))
+            ) { selected in
+                let selectedCities = citiesByCell[selected.id] ?? []
+
+                VStack(alignment: .center, spacing: 10) {
+                    ForEach(Array(selectedCities.enumerated()), id: \.offset) { index, identifier in
+                        Text(Self.cityDisplayName(for: identifier))
+                            .font(.subheadline.weight(.medium))
+
+                        if index < selectedCities.count - 1 {
+                            Divider()
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .presentationCompactAdaptation(.popover)
+            }
         }
+    }
+
+    /// Timezone identifiers grouped by the row-major index of their map cell.
+    private static func citiesByCell(for identifiers: [String], grid: DotsWorldMapGrid) -> [Int: [String]] {
+        var cities: [Int: [String]] = [:]
+        for identifier in identifiers {
+            guard let coordinate = TimeZoneCoordinates.getCoordinate(for: identifier) else { continue }
+            let cell = grid.cell(latitude: coordinate.latitude, longitude: coordinate.longitude)
+            cities[cell.row * grid.columns + cell.column, default: []].append(identifier)
+        }
+        return cities
+    }
+
+    /// City name for the popover, localized the same way as the city list.
+    private static func cityDisplayName(for identifier: String) -> String {
+        let cityName = identifier.split(separator: "/").last
+            .map { $0.replacingOccurrences(of: "_", with: " ") } ?? identifier
+        return String(localized: String.LocalizationValue(cityName))
+    }
+
+    /// The city cell nearest to a tap, or nil when none is within tolerance.
+    private func nearestCityCell(to location: CGPoint, in cells: some Sequence<Int>, grid: DotsWorldMapGrid) -> Int? {
+        guard canvasSize.width > 0 else { return nil }
+        let spacing = canvasSize.width / CGFloat(grid.columns)
+        var nearest: (index: Int, distance: CGFloat)?
+        for index in cells {
+            let center = CGPoint(
+                x: (CGFloat(index % grid.columns) + 0.5) * spacing,
+                y: (CGFloat(index / grid.columns) + 0.5) * spacing
+            )
+            let distance = hypot(center.x - location.x, center.y - location.y)
+            if distance <= Self.tapTolerance, distance < (nearest?.distance ?? .infinity) {
+                nearest = (index, distance)
+            }
+        }
+        return nearest?.index
+    }
+
+    /// Cell rect in canvas coordinates, used to anchor the popover arrow.
+    private func anchorRect(for selection: DotsWorldMapSelection?, grid: DotsWorldMapGrid) -> CGRect {
+        guard let selection, canvasSize.width > 0 else { return .zero }
+        let spacing = canvasSize.width / CGFloat(grid.columns)
+        return CGRect(
+            x: CGFloat(selection.id % grid.columns) * spacing,
+            y: CGFloat(selection.id / grid.columns) * spacing,
+            width: spacing,
+            height: spacing
+        )
     }
 
     /// The day/night terminator across the artwork's longitude window as a
