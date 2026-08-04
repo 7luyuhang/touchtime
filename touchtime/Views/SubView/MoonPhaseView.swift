@@ -206,6 +206,12 @@ struct MoonPhaseView: View {
         return calendar.isDate(date, inSameDayAs: adjustedToday)
     }
     
+    // Show the Today button when the user picked a day other than today
+    private var isNonTodaySelected: Bool {
+        guard let selectedDate else { return false }
+        return !isToday(selectedDate)
+    }
+    
     // Phase name of the selected day (today by default), nil until prefetched
     private var selectedDayPhaseName: String? {
         let date = selectedDate ?? currentDate.addingTimeInterval(timeOffset)
@@ -339,6 +345,32 @@ struct MoonPhaseView: View {
                 .tabViewStyle(.page(indexDisplayMode: .always))
                 .indexViewStyle(.page(backgroundDisplayMode: .always))
             }
+            .overlay(alignment: .bottomTrailing) {
+                if isNonTodaySelected {
+                    Button {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        withAnimation(.spring()) {
+                            selectedDate = nil
+                            selectedMonthIndex = 1
+                        }
+                    } label: {
+                        Text("Today")
+                            .font(.headline)
+                            .foregroundStyle(.black)
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 16)
+                            .contentShape(Capsule(style: .continuous))
+                            .glassEffect(.regular.tint(.white).interactive())
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 4)
+                    .transition(.blurReplace.combined(with: .opacity))
+                }
+            }
+            .animation(.spring(), value: isNonTodaySelected)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -386,7 +418,7 @@ struct MoonPhaseView: View {
                 }
             }
             .animation(.spring(), value: selectedMonthIndex != 1)
-            .presentationDetents([.height(550)]) // Sheet Height
+            .presentationDetents([.height(600)]) // Sheet Height
         }
         .onAppear {
             prepareCalendarData()
