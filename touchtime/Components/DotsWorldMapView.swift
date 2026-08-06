@@ -188,6 +188,11 @@ struct DotsWorldMapView: View {
                     style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
                 )
             }
+            // View-level blend so the whole canvas layer composites
+            // additively with the views behind it (e.g. the sky gradient in
+            // DetailsSheet). GraphicsContext.blendMode can't do this: it only
+            // blends draws against the canvas's own transparent layer.
+            .blendMode(.plusLighter)
             .aspectRatio(CGFloat(grid.columns) / CGFloat(grid.rows), contentMode: .fit)
             .contentShape(Rectangle())
             .onGeometryChange(for: CGSize.self) { proxy in
