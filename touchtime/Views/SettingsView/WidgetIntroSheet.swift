@@ -643,7 +643,7 @@ private struct DaylightWidgetPreview: View {
                     .id(timeString)
 
                 Text(dateString)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)
                     .lineLimit(1)

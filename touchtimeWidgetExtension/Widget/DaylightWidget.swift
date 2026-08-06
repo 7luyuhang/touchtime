@@ -137,7 +137,7 @@ struct DaylightWidgetView: View {
                         .foregroundStyle(.primary)
 
                     Text(dateString)
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 15, weight: .medium))
                         .foregroundStyle(.secondary)
                         .lineLimit(1)
                         .truncationMode(.tail)
