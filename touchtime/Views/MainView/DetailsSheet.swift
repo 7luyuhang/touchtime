@@ -407,14 +407,12 @@ struct SunriseSunsetSheet: View {
             SkyBackgroundView(
                 date: currentDate.addingTimeInterval(timeOffset),
                 timeZoneIdentifier: timeZoneIdentifier,
-                weatherCondition: weatherConditionForSky
+                weatherCondition: weatherConditionForSky,
+                appliesCardChrome: false
             )
-            .frame(width: 500, height: 500)
-            .blur(radius: 50)
-            .offset(y: -250)
-            .opacity(0.35)
             .allowsHitTesting(false)
             .ignoresSafeArea()
+            .transition(.opacity)
         }
     }
     
@@ -1075,8 +1073,9 @@ struct SunriseSunsetSheet: View {
                 }
                 .animation(.bouncy(), value: currentDetent)
             }
-            .background(alignment: .top) {
+            .background {
                 sheetSkyBackground
+                    .animation(.bouncy(), value: currentDetent)
             }
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
