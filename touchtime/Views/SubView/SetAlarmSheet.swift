@@ -474,6 +474,11 @@ struct SetAlarmSheet: View {
 
     @MainActor
     private func synchronizeWithAlarmUpdates(_ alarms: [Alarm]) {
+        // Reload first: a record saved after this sheet loaded (e.g. an alarm
+        // just created from CityTimeAdjustmentSheet) would otherwise stay
+        // invisible and be clobbered when the stale copy is saved below.
+        loadAlarmRecords()
+
         let activeAlarmIDs = Set(alarms.map(\.id))
         var didChange = false
 

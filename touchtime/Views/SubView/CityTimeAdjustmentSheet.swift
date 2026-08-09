@@ -337,6 +337,10 @@ struct CityTimeAdjustmentSheet: View {
                 updatedRecord.eventTitle = eventTitle
                 updatedRecords[existingIndex] = updatedRecord
 
+                // Save before the async AlarmKit round-trip so alarm lists
+                // reflect the change immediately; rolled back on failure.
+                saveAlarmRecords(updatedRecords)
+
                 try? alarmManager.cancel(id: updatedRecord.id)
                 try await AlarmSupport.scheduleAlarm(
                     id: updatedRecord.id,
@@ -347,7 +351,6 @@ struct CityTimeAdjustmentSheet: View {
                     repeatWeekdays: updatedRecord.repeatWeekdays,
                     using: alarmManager
                 )
-                saveAlarmRecords(updatedRecords)
             } else {
                 let record = AlarmRecord(
                     id: UUID(),
@@ -363,6 +366,12 @@ struct CityTimeAdjustmentSheet: View {
                     eventTitle: eventTitle
                 )
 
+                // Save before the async AlarmKit round-trip so alarm lists
+                // reflect the change immediately; rolled back on failure.
+                var updatedRecords = records
+                updatedRecords.append(record)
+                saveAlarmRecords(updatedRecords)
+
                 try await AlarmSupport.scheduleAlarm(
                     id: record.id,
                     hour: localTime.hour,
@@ -370,10 +379,6 @@ struct CityTimeAdjustmentSheet: View {
                     eventTitle: eventTitle,
                     using: alarmManager
                 )
-
-                var updatedRecords = records
-                updatedRecords.append(record)
-                saveAlarmRecords(updatedRecords)
             }
 
             if hapticEnabled {
@@ -383,6 +388,8 @@ struct CityTimeAdjustmentSheet: View {
             }
             showAlarmSuccessTemporarily()
         } catch {
+            // Scheduling failed: undo the optimistic save.
+            saveAlarmRecords(records)
             alarmErrorMessage = error.localizedDescription
             showAlarmErrorAlert = true
         }
