@@ -13,5 +13,16 @@
 		<string>handstime</string>
 		<string>googlegmail</string>
 	</array>
+	<key>UIApplicationShortcutItems</key>
+	<array>
+		<dict>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.time.touchtime.setTimer</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Set Timer</string>
+			<key>UIApplicationShortcutItemIconSymbolName</key>
+			<string>timer</string>
+		</dict>
+	</array>
 </dict>
 </plist>

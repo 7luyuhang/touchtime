@@ -12,6 +12,8 @@ import WidgetKit
 
 @main
 struct touchtimeApp: App {
+    // Captures Home Screen quick actions (Set Alarm / Set Timer)
+    @UIApplicationDelegateAdaptor(QuickActionsAppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
 
     init() {

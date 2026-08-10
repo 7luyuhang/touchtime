@@ -1700,6 +1700,11 @@ struct HomeView: View {
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSetTimerSheet"))) { _ in
                 showSetTimerSheet = true
             }
+
+            // Home Screen quick action (long-press the app icon)
+            .onReceive(NotificationCenter.default.publisher(for: .quickActionSetTimer)) { _ in
+                showSetTimerSheet = true
+            }
             
             // Rename
             .alert("Rename", isPresented: $showingRenameAlert) {
