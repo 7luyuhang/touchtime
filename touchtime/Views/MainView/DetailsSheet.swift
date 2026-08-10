@@ -1154,6 +1154,7 @@ struct SunriseSunsetSheet: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
+                        .blendMode(.plusLighter)
                         .frame(maxWidth: .infinity)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 8)
