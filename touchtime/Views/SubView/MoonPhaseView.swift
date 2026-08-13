@@ -147,6 +147,14 @@ final class MoonPhaseCache {
 }
 
 // MARK: - Moon Phase View
+
+/// Identifiable wrapper so tapping a day can drive a details sheet.
+private struct MoonDetailsSelection: Identifiable {
+    let id = UUID()
+    /// Exact instant the details view should open with.
+    let date: Date
+}
+
 struct MoonPhaseView: View {
     let cityName: String
     let timeZoneIdentifier: String
@@ -160,6 +168,9 @@ struct MoonPhaseView: View {
     
     // Day whose phase name is shown in the subtitle; nil means today
     @State private var selectedDate: Date? = nil
+    
+    // Set when the user taps a day; presents the moon details sheet
+    @State private var detailsSelection: MoonDetailsSelection? = nil
     
     // Cached month data (lightweight, computed synchronously)
     @State private var cachedMonths: [Date] = []
@@ -212,6 +223,24 @@ struct MoonPhaseView: View {
         return !isToday(selectedDate)
     }
     
+    // Instant the details view opens with: the adjusted "now" for today,
+    // local noon for any other day (a representative mid-day moment).
+    private func detailInstant(for dayStart: Date) -> Date {
+        if isToday(dayStart) {
+            return currentDate.addingTimeInterval(timeOffset)
+        }
+        return calendar.date(byAdding: .hour, value: 12, to: dayStart) ?? dayStart
+    }
+    
+    // Mirrors MonthGridView's selection: today is the default selection
+    // until the user picks another day.
+    private func isSelectedDay(_ date: Date) -> Bool {
+        if let selectedDate {
+            return calendar.isDate(date, inSameDayAs: selectedDate)
+        }
+        return isToday(date)
+    }
+    
     // Phase name of the selected day (today by default), nil until prefetched
     private var selectedDayPhaseName: String? {
         let date = selectedDate ?? currentDate.addingTimeInterval(timeOffset)
@@ -219,7 +248,7 @@ struct MoonPhaseView: View {
         return Self.phaseName(for: info.phase)
     }
     
-    private static func phaseName(for phase: MoonKit.MoonPhase) -> String? {
+    static func phaseName(for phase: MoonKit.MoonPhase) -> String? {
         switch phase {
         case .newMoon:
             return String(localized: "New Moon")
@@ -336,7 +365,12 @@ struct MoonPhaseView: View {
                                 if hapticEnabled {
                                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 }
-                                selectedDate = date
+                                if isSelectedDay(date) {
+                                    // Second tap on the already-selected day opens the details
+                                    detailsSelection = MoonDetailsSelection(date: detailInstant(for: date))
+                                } else {
+                                    selectedDate = date
+                                }
                             }
                         )
                         .tag(index)
@@ -419,6 +453,12 @@ struct MoonPhaseView: View {
             }
             .animation(.spring(), value: selectedMonthIndex != 1)
             .presentationDetents([.height(600)]) // Sheet Height
+            .sheet(item: $detailsSelection) { selection in
+                MoonPhaseDetailsView(
+                    timeZoneIdentifier: timeZoneIdentifier,
+                    initialDate: selection.date
+                )
+            }
         }
         .onAppear {
             prepareCalendarData()
