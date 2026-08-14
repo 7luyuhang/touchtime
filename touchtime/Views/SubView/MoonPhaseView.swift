@@ -380,31 +380,33 @@ struct MoonPhaseView: View {
                 .indexViewStyle(.page(backgroundDisplayMode: .always))
             }
             .overlay(alignment: .bottomTrailing) {
-                if isNonTodaySelected {
-                    Button {
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                ZStack {
+                    if isNonTodaySelected {
+                        Button {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            withAnimation(.spring()) {
+                                selectedDate = nil
+                                selectedMonthIndex = 1
+                            }
+                        } label: {
+                            Text("Today")
+                                .font(.headline)
+                                .foregroundStyle(.black)
+                                .padding(.vertical, 12)
+                                .padding(.horizontal, 16)
+                                .contentShape(Capsule(style: .continuous))
+                                .glassEffect(.regular.tint(.white).interactive())
                         }
-                        withAnimation(.spring()) {
-                            selectedDate = nil
-                            selectedMonthIndex = 1
-                        }
-                    } label: {
-                        Text("Today")
-                            .font(.headline)
-                            .foregroundStyle(.black)
-                            .padding(.vertical, 12)
-                            .padding(.horizontal, 16)
-                            .contentShape(Capsule(style: .continuous))
-                            .glassEffect(.regular.tint(.white).interactive())
+                        .buttonStyle(.plain)
+                        .padding(.horizontal, 24)
+                        .padding(.bottom, 4)
+                        .transition(.blurReplace.combined(with: .opacity))
                     }
-                    .buttonStyle(.plain)
-                    .padding(.horizontal, 24)
-                    .padding(.bottom, 4)
-                    .transition(.blurReplace.combined(with: .opacity))
                 }
+                .animation(.spring(), value: isNonTodaySelected)
             }
-            .animation(.spring(), value: isNonTodaySelected)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -463,6 +465,10 @@ struct MoonPhaseView: View {
         .onAppear {
             prepareCalendarData()
             prefetchMoonPhases(around: selectedMonthIndex)
+            MoonPhaseDetailsView.warmupFormatters()
+            if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .light).prepare()
+            }
         }
         .onChange(of: selectedMonthIndex) { _, newIndex in
             prefetchMoonPhases(around: newIndex)

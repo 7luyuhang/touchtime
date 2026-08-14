@@ -174,7 +174,7 @@ struct MoonPhaseDetailsView: View {
         return Self.distanceFormatter.string(from: measurement)
     }
 
-    private let dateFormatter: DateFormatter = {
+    private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.dateStyle = .medium
         formatter.timeStyle = .none
@@ -182,8 +182,16 @@ struct MoonPhaseDetailsView: View {
     }()
 
     private var dateText: String {
-        dateFormatter.timeZone = timeZone
-        return dateFormatter.string(from: displayedDate)
+        let formatter = Self.dateFormatter
+        formatter.timeZone = timeZone
+        return formatter.string(from: displayedDate)
+    }
+
+    /// Prime locale-heavy formatters while the calendar is on screen, so the
+    /// details sheet's first frame doesn't hitch on ICU setup.
+    static func warmupFormatters() {
+        _ = dateFormatter
+        _ = distanceFormatter
     }
 
     // True once the user scrubbed away from the initially opened moment
@@ -201,7 +209,6 @@ struct MoonPhaseDetailsView: View {
             .frame(width: Self.moonSize, height: Self.moonSize)
             .clipShape(Circle())
             .grayscale(1)
-            .shadow(color: .white.opacity(0.10), radius: 50)
             .id(displayedDayInfo.imageName)
             .transition(.opacity)
     }
@@ -439,18 +446,18 @@ struct MoonPhaseDetailsView: View {
             VStack(spacing: 24) {
                 Spacer(minLength: 0)
 
-                // Entrance is animated with explicit properties (blur in +
-                // rise + fade, the blurReplace/move look) instead of an
-                // insertion transition: transitions inside a presenting sheet
-                // get their animation stripped and the moon just popped in.
+                // Entrance is rise + fade + scale, not an insertion transition:
+                // transitions inside a presenting sheet get their animation
+                // stripped and the moon just popped in. No entrance blur —
+                // a 40pt blur on the first hidden frame hitches the nested sheet.
                 moonImage
                     .animation(.spring(duration: 0.35), value: displayedDayInfo.imageName)
                     .opacity(hasAppeared ? 1 : 0)
-                    .blur(radius: hasAppeared ? 0 : 40)
                     .offset(y: hasAppeared ? 0 : 80)
                     .scaleEffect(hasAppeared ? 1 : 0.75)
+                    .shadow(color: .white.opacity(hasAppeared ? 0.10 : 0), radius: hasAppeared ? 50 : 0)
                     .animation(.spring(duration: 0.35), value: hasAppeared)
-                    // Last so opacity/blur/shadow don't flatten it into an isolated layer.
+                    // Last so opacity/shadow don't flatten it into an isolated layer.
                     .blendMode(.plusLighter)
 
                 Spacer(minLength: 0)
