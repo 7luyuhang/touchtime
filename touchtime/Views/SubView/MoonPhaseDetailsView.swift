@@ -475,27 +475,29 @@ struct MoonPhaseDetailsView: View {
                         .blendMode(.plusLighter)
                 }
 
-                scrubber
-                    .overlay(alignment: .top) {
-                        // Kept permanently in the hierarchy with property-driven
-                        // visibility: inserting it with `if` mid-drag (the first
-                        // scrub flips isScrubbed) restructures the pill that owns
-                        // the drag gesture and resets it, freezing that drag.
-                        resetButton
-                            .opacity(isScrubbed ? 1 : 0)
-                            .blur(radius: isScrubbed ? 0 : 8)
-                            .scaleEffect(isScrubbed ? 1 : 0.8)
-                            .offset(y: isScrubbed ? -42 : -34)
-                            .allowsHitTesting(isScrubbed)
-                            .animation(.spring(), value: isScrubbed)
-                    }
+                VStack(spacing: 16) {
+                    scrubber
+                        .overlay(alignment: .top) {
+                            // Kept permanently in the hierarchy with property-driven
+                            // visibility: inserting it with `if` mid-drag (the first
+                            // scrub flips isScrubbed) restructures the pill that owns
+                            // the drag gesture and resets it, freezing that drag.
+                            resetButton
+                                .opacity(isScrubbed ? 1 : 0)
+                                .blur(radius: isScrubbed ? 0 : 8)
+                                .scaleEffect(isScrubbed ? 1 : 0.8)
+                                .offset(y: isScrubbed ? -42 : -34)
+                                .allowsHitTesting(isScrubbed)
+                                .animation(.spring(), value: isScrubbed)
+                        }
 
-                Text(dateText)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .blendMode(.plusLighter)
+                    Text(dateText)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .blendMode(.plusLighter)
+                }
             }
             .padding(.horizontal, 24)
             .padding(.top, 16)
