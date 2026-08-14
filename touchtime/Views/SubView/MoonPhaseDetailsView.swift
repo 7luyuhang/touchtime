@@ -450,6 +450,8 @@ struct MoonPhaseDetailsView: View {
                     .offset(y: hasAppeared ? 0 : 80)
                     .scaleEffect(hasAppeared ? 1 : 0.75)
                     .animation(.spring(duration: 0.35), value: hasAppeared)
+                    // Last so opacity/blur/shadow don't flatten it into an isolated layer.
+                    .blendMode(.plusLighter)
 
                 Spacer(minLength: 0)
 
