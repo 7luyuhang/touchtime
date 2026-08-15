@@ -1098,6 +1098,10 @@ struct SunriseSunsetSheet: View {
                     refreshAstronomyData(referenceDate: now)
                 }
             }
+            .onChange(of: timeOffset) { _, _ in
+                // Keep sun/moon data in sync when scroll time is reset while the sheet is open
+                refreshAstronomyData(referenceDate: currentDate)
+            }
             .onChange(of: currentDetent) { oldValue, newValue in
                 if newValue == .large && hapticEnabled {
                     UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
@@ -1132,6 +1136,25 @@ struct SunriseSunsetSheet: View {
                     }
                 }
                 
+                // Bottom bar: location + DST (if any) + reset (if time is scrolled)
+                // Open in Map
+                if getCoordinatesForTimeZone(timeZoneIdentifier) != nil {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            openCityInMap()
+                        } label: {
+                            Image(systemName: "location.fill")
+                        }
+                    }
+                }
+                
+                if getCoordinatesForTimeZone(timeZoneIdentifier) != nil && dstInfo != nil {
+                    ToolbarSpacer(.fixed, placement: .bottomBar)
+                }
+                
                 // DST information in bottom bar
                 if let dst = dstInfo, let transitionDate = dst.transitionDate {
                     ToolbarItem(placement: .bottomBar) {
@@ -1161,21 +1184,29 @@ struct SunriseSunsetSheet: View {
                     }
                 }
                 
-                if dstInfo != nil && getCoordinatesForTimeZone(timeZoneIdentifier) != nil {
-                    ToolbarSpacer(.fixed, placement: .bottomBar)
-                }
-                
-                // Open in Map
-                if getCoordinatesForTimeZone(timeZoneIdentifier) != nil {
+                if timeOffset != 0 {
+                    // DST pill already expands to fill the middle; without it,
+                    // a flexible spacer pushes the reset button to the far right.
+                    if dstInfo != nil {
+                        ToolbarSpacer(.fixed, placement: .bottomBar)
+                    } else if getCoordinatesForTimeZone(timeZoneIdentifier) != nil {
+                        ToolbarSpacer(.flexible, placement: .bottomBar)
+                    }
+                    
+                    // Reset scroll time
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                             }
-                            openCityInMap()
+                            NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
                         } label: {
-                            Image(systemName: "location.fill")
+                            Image(systemName: "arrow.counterclockwise")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.black)
                         }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.white)
                     }
                 }
             }
