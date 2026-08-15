@@ -14,12 +14,17 @@ struct SetTimerSheet: View {
     let onConfirm: (Int) -> Void
     private let requiresReplacementConfirmation: Bool
 
+    // Remembers the last duration the user confirmed, used as the default for new timers
+    private static let lastSetDurationKey = "lastSetTimerDurationSeconds"
+
     @State private var selectedDuration: Int
     @State private var showReplaceTimerConfirmation = false
 
     init(initialDurationSeconds: Int, onConfirm: @escaping (Int) -> Void) {
         let defaultDurationSeconds = 2 * 60
-        let effectiveDuration = initialDurationSeconds > 0 ? initialDurationSeconds : defaultDurationSeconds
+        let lastSetDuration = UserDefaults.standard.integer(forKey: Self.lastSetDurationKey)
+        let fallbackDuration = lastSetDuration > 0 ? lastSetDuration : defaultDurationSeconds
+        let effectiveDuration = initialDurationSeconds > 0 ? initialDurationSeconds : fallbackDuration
         let clampedDuration = min(max(effectiveDuration, 0), 59 * 60 + 59)
         self.onConfirm = onConfirm
         self.requiresReplacementConfirmation = initialDurationSeconds > 0
@@ -61,6 +66,7 @@ struct SetTimerSheet: View {
     }
 
     private func confirmTimer() {
+        UserDefaults.standard.set(totalSeconds, forKey: Self.lastSetDurationKey)
         onConfirm(totalSeconds)
         dismiss()
     }
