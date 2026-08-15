@@ -551,6 +551,16 @@ struct MoonPhaseDetailsView: View {
                 }
             }
             .presentationDetents([.height(600)])
+            // Custom background replaces the default Liquid Glass, avoiding
+            // its compositing artifacts during interactive dismissal: solid
+            // black on top fading to fully transparent at the bottom.
+            .presentationBackground {
+                LinearGradient(
+                    colors: [.black, .black.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
         }
         .onReceive(frameDriver.publisher) { dt in
             advanceInertia(dt: dt)
