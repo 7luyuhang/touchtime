@@ -83,6 +83,9 @@ struct MoonPhaseDetailsView: View {
     let timeZoneIdentifier: String
     /// The moment shown when the view opens (the tapped day).
     let initialDate: Date
+    /// Scrubbing can't leave this window: the previous, current and next
+    /// month, matching the pages of the moon phase calendar.
+    let dateRange: ClosedRange<Date>
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
@@ -103,11 +106,6 @@ struct MoonPhaseDetailsView: View {
 
     // Center of the day range already prefetched into MoonPhaseCache
     @State private var prefetchAnchor: Date? = nil
-    // Bumped when a background prefetch finishes so the view re-reads the cache
-    @State private var phaseCacheVersion: Int = 0
-
-    // Drives the moon's entrance transition as the sheet is presented
-    @State private var hasAppeared = false
 
     /// One day of scrubbing per 60 points of drag.
     private static let pointsPerDay: CGFloat = 60
@@ -133,6 +131,14 @@ struct MoonPhaseDetailsView: View {
     private var displayedDate: Date {
         let dragSeconds = TimeInterval(dragOffset / Self.pointsPerDay) * 86400
         return initialDate.addingTimeInterval(accumulatedOffset + dragSeconds)
+    }
+
+    /// Clamps a total scrub offset (seconds relative to initialDate) so the
+    /// displayed date stays inside the allowed month window.
+    private func clampedTotalOffset(_ offset: TimeInterval) -> TimeInterval {
+        let minOffset = dateRange.lowerBound.timeIntervalSince(initialDate)
+        let maxOffset = dateRange.upperBound.timeIntervalSince(initialDate)
+        return min(max(offset, minOffset), maxOffset)
     }
 
     private var snapshot: MoonSnapshot {
@@ -234,10 +240,15 @@ struct MoonPhaseDetailsView: View {
         // that starts on a Button gets captured by it and never reaches the
         // pill's drag gesture, while a tap gesture fails as soon as the finger
         // moves and lets the drag through.
-        HStack {
+        let canStepBackward = stepTarget(byDays: -1) != nil
+        let canStepForward = stepTarget(byDays: 1) != nil
+
+        return HStack {
             Image(systemName: "chevron.left")
                 .fontWeight(.semibold)
                 .foregroundStyle(.primary)
+                .opacity(canStepBackward ? 1 : 0.3)
+                .animation(.spring(), value: canStepBackward)
                 .frame(width: 32, height: 44)
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -253,6 +264,8 @@ struct MoonPhaseDetailsView: View {
             Image(systemName: "chevron.right")
                 .fontWeight(.semibold)
                 .foregroundStyle(.primary)
+                .opacity(canStepForward ? 1 : 0.3)
+                .animation(.spring(), value: canStepForward)
                 .frame(width: 32, height: 44)
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -273,13 +286,21 @@ struct MoonPhaseDetailsView: View {
             .onChanged { value in
                 // Grabbing the scrubber stops any ongoing inertia, like ScrollTimeView
                 stopInertia()
-                dragOffset = value.translation.width
+                // Clamp the live translation so the displayed date can't
+                // leave the allowed month window: dragging past the edge
+                // goes dead and the haptic ticks stop with it.
+                let proposedSeconds = accumulatedOffset
+                    + TimeInterval(value.translation.width / Self.pointsPerDay) * 86400
+                let clampedSeconds = clampedTotalOffset(proposedSeconds)
+                dragOffset = CGFloat((clampedSeconds - accumulatedOffset) / 86400) * Self.pointsPerDay
                 checkAndPlayHapticTick()
             }
             .onEnded { value in
                 // Fold the drag into the committed offset without animation:
                 // the sum stays constant so nothing on screen jumps.
-                accumulatedOffset += TimeInterval(dragOffset / Self.pointsPerDay) * 86400
+                accumulatedOffset = clampedTotalOffset(
+                    accumulatedOffset + TimeInterval(dragOffset / Self.pointsPerDay) * 86400
+                )
                 dragOffset = 0
                 lastHapticOffset = 0
 
@@ -330,7 +351,18 @@ struct MoonPhaseDetailsView: View {
         }
 
         let deltaPoints = inertiaVelocity * CGFloat(dt)
-        accumulatedOffset += TimeInterval(deltaPoints / Self.pointsPerDay) * 86400
+        let proposedOffset = accumulatedOffset + TimeInterval(deltaPoints / Self.pointsPerDay) * 86400
+        let clampedOffset = clampedTotalOffset(proposedOffset)
+        accumulatedOffset = clampedOffset
+
+        // Coasting into the edge of the month window stops the fling there
+        if clampedOffset != proposedOffset {
+            if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            }
+            stopInertia()
+            return
+        }
 
         checkAndPlayInertiaHapticTick()
     }
@@ -370,14 +402,20 @@ struct MoonPhaseDetailsView: View {
 
     // MARK: Actions
 
+    // Where a one-day step would land; nil when it would leave the month window
+    private func stepTarget(byDays days: Int) -> Date? {
+        let target = calendar.date(byAdding: .day, value: days, to: displayedDate)
+            ?? displayedDate.addingTimeInterval(TimeInterval(days) * 86400)
+        return dateRange.contains(target) ? target : nil
+    }
+
     private func step(byDays days: Int) {
         stopInertia()
+        // Step through the calendar so DST shifts never skip a day
+        guard let target = stepTarget(byDays: days) else { return }
         if hapticEnabled {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
-        // Step through the calendar so DST shifts never skip a day
-        let target = calendar.date(byAdding: .day, value: days, to: displayedDate)
-            ?? displayedDate.addingTimeInterval(TimeInterval(days) * 86400)
         withAnimation(.spring()) {
             accumulatedOffset = target.timeIntervalSince(initialDate)
         }
@@ -413,6 +451,9 @@ struct MoonPhaseDetailsView: View {
 
     // Keep MoonPhaseCache warm around the displayed day so the image and
     // phase name stay consistent with the calendar grid while scrubbing.
+    // The age math is cheap enough to run inline, which also means the cache
+    // is warm before this sheet's first frame instead of a version bump
+    // re-rendering it mid-presentation.
     private func prefetchIfNeeded(force: Bool = false) {
         let displayed = displayedDate
         if !force,
@@ -423,20 +464,9 @@ struct MoonPhaseDetailsView: View {
         prefetchAnchor = displayed
 
         let cal = calendar
-        let coords = TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier)
-        let tz = timeZone
         let dayStart = cal.startOfDay(for: displayed)
         let dates = (-12...12).compactMap { cal.date(byAdding: .day, value: $0, to: dayStart) }
-
-        DispatchQueue.global(qos: .userInitiated).async {
-            MoonPhaseCache.shared.prefetch(dates: dates, coordinates: coords, timeZone: tz, calendar: cal)
-
-            DispatchQueue.main.async {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    phaseCacheVersion += 1
-                }
-            }
-        }
+        MoonPhaseCache.shared.prefetch(dates: dates, calendar: cal)
     }
 
     // MARK: Body
@@ -446,17 +476,9 @@ struct MoonPhaseDetailsView: View {
             VStack(spacing: 24) {
                 Spacer(minLength: 0)
 
-                // Entrance is rise + fade + scale, not an insertion transition:
-                // transitions inside a presenting sheet get their animation
-                // stripped and the moon just popped in. No entrance blur —
-                // a 40pt blur on the first hidden frame hitches the nested sheet.
                 moonImage
                     .animation(.spring(duration: 0.35), value: displayedDayInfo.imageName)
-                    .opacity(hasAppeared ? 1 : 0)
-                    .offset(y: hasAppeared ? 0 : 80)
-                    .scaleEffect(hasAppeared ? 1 : 0.75)
-                    .shadow(color: .white.opacity(hasAppeared ? 0.10 : 0), radius: hasAppeared ? 50 : 0)
-                    .animation(.spring(duration: 0.35), value: hasAppeared)
+                    .shadow(color: .white.opacity(0.10), radius: 50)
                     // Last so opacity/shadow don't flatten it into an isolated layer.
                     .blendMode(.plusLighter)
 
@@ -536,14 +558,6 @@ struct MoonPhaseDetailsView: View {
         .onAppear {
             prefetchIfNeeded(force: true)
         }
-        .task {
-            // Let the hidden state commit a first frame (flipping the flag
-            // synchronously in onAppear coalesces into the sheet's first
-            // rendered frame), then rise the moon while the sheet settles.
-            guard !hasAppeared else { return }
-            try? await Task.sleep(for: .milliseconds(150))
-            hasAppeared = true
-        }
         .onDisappear {
             stopInertia()
         }
@@ -560,11 +574,4 @@ struct MoonPhaseDetailsView: View {
             prefetchIfNeeded(force: true)
         }
     }
-}
-
-#Preview {
-    MoonPhaseDetailsView(
-        timeZoneIdentifier: "Europe/London",
-        initialDate: Date()
-    )
 }

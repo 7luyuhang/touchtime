@@ -7,7 +7,6 @@
 
 import SwiftUI
 import MoonKit
-import CoreLocation
 
 // MARK: - Global Moon Phase Cache using NSCache
 
@@ -51,23 +50,12 @@ final class MoonPhaseCache {
     
     /// Computes moon ages for all given dates and stores asset names (moon_age_00...moon_age_29)
     /// along with full/new moon day flags.
-    /// Call from a background queue: MoonKit recomputes rise/set times for every new day,
-    /// which is far too slow for the main thread. Reuses one Moon instance for the whole batch.
-    func prefetch(dates: [Date], coordinates: (latitude: Double, longitude: Double)?, timeZone: TimeZone, calendar: Calendar) {
-        guard let coords = coordinates else {
-            for date in dates {
-                let cacheKey = key(for: date, calendar: calendar)
-                if cache.object(forKey: cacheKey) == nil {
-                    cache.setObject(
-                        MoonPhaseDayInfo(imageName: "moon_age_00", isFullMoonDay: false, isNewMoonDay: false, phase: .newMoon),
-                        forKey: cacheKey
-                    )
-                }
-            }
-            return
-        }
-        
-        var moon: Moon?
+    /// Uses the lightweight MoonAstronomy math instead of MoonKit's Moon: setting a new
+    /// day on a Moon triggers its moonrise/moonset search (dozens of full coordinate
+    /// passes per day), while the age alone is location independent and just a handful
+    /// of trig calls. Months of days cost well under a millisecond, so callers can run
+    /// this synchronously and have the data ready for their first frame.
+    func prefetch(dates: [Date], calendar: Calendar) {
         // Day-start ages memoized so consecutive days share their boundary computation
         var agesByDay: [NSString: Double] = [:]
         
@@ -75,19 +63,7 @@ final class MoonPhaseCache {
             let ageKey = key(for: date, calendar: calendar)
             if let age = agesByDay[ageKey] { return age }
             
-            let instance: Moon
-            if let moon {
-                instance = moon
-            } else {
-                instance = Moon(
-                    location: CLLocation(latitude: coords.latitude, longitude: coords.longitude),
-                    timeZone: timeZone
-                )
-                moon = instance
-            }
-            instance.setDate(date)
-            
-            let age = instance.ageOfTheMoonInDays
+            let age = MoonAstronomy.snapshot(for: date).ageDays
             agesByDay[ageKey] = age
             return age
         }
@@ -176,7 +152,8 @@ struct MoonPhaseView: View {
     @State private var cachedMonths: [Date] = []
     @State private var cachedDays: [[Date?]] = []
     
-    // Bumped when background prefetch finishes, forcing grids to re-read the cache
+    // Bumped after each prefetch, forcing grids to re-read the cache even when
+    // none of their other inputs changed (e.g. a refill after an NSCache purge)
     @State private var phaseCacheVersion: Int = 0
     
     private var calendar: Calendar {
@@ -184,14 +161,6 @@ struct MoonPhaseView: View {
         cal.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
         cal.firstWeekday = 2 // Monday
         return cal
-    }
-    
-    private var coordinates: (latitude: Double, longitude: Double)? {
-        TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier)
-    }
-    
-    private var timeZone: TimeZone {
-        TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
     }
     
     private let dateFormatter: DateFormatter = {
@@ -230,6 +199,25 @@ struct MoonPhaseView: View {
             return currentDate.addingTimeInterval(timeOffset)
         }
         return calendar.date(byAdding: .hour, value: 12, to: dayStart) ?? dayStart
+    }
+    
+    // Scrub window for the details view: the same previous/current/next
+    // months this calendar shows, from the first month's start to the last
+    // second of the last month.
+    private var detailsDateRange: ClosedRange<Date> {
+        let cal = calendar
+        if let firstMonth = cachedMonths.first,
+           let lastMonth = cachedMonths.last,
+           let end = cal.date(byAdding: .month, value: 1, to: lastMonth) {
+            return firstMonth...end.addingTimeInterval(-1)
+        }
+        
+        // Fallback before the calendar data exists, same window derived from now
+        let adjustedNow = currentDate.addingTimeInterval(timeOffset)
+        let monthStart = cal.date(from: cal.dateComponents([.year, .month], from: adjustedNow)) ?? adjustedNow
+        let lower = cal.date(byAdding: .month, value: -1, to: monthStart) ?? monthStart
+        let upper = (cal.date(byAdding: .month, value: 2, to: monthStart) ?? monthStart).addingTimeInterval(-1)
+        return lower...max(lower, upper)
     }
     
     // Mirrors MonthGridView's selection: today is the default selection
@@ -313,24 +301,17 @@ struct MoonPhaseView: View {
         cachedDays = allDays
     }
     
-    // Prefetch moon phases for visible and adjacent months in background,
-    // then bump the cache version so the grids re-read the cache.
+    // Prefetch moon phases for visible and adjacent months, then bump the cache
+    // version so the grids re-read the cache. The age math is cheap enough to run
+    // synchronously, so the calendar is fully populated on its very first frame —
+    // the old background pass left placeholder circles during the sheet's open
+    // animation and its completion re-rendered every cell mid-flight.
     private func prefetchMoonPhases(around index: Int) {
         let indicesToPrefetch = [index, index - 1, index + 1].filter { $0 >= 0 && $0 < cachedDays.count }
         let dates = indicesToPrefetch.flatMap { cachedDays[$0].compactMap { $0 } }
-        let cal = calendar
-        let coords = coordinates
-        let tz = timeZone
         
-        DispatchQueue.global(qos: .userInitiated).async {
-            MoonPhaseCache.shared.prefetch(dates: dates, coordinates: coords, timeZone: tz, calendar: cal)
-            
-            DispatchQueue.main.async {
-                withAnimation(.easeOut(duration: 0.25)) {
-                    phaseCacheVersion += 1
-                }
-            }
-        }
+        MoonPhaseCache.shared.prefetch(dates: dates, calendar: calendar)
+        phaseCacheVersion += 1
     }
     
     private static let weekdayKeys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -458,14 +439,19 @@ struct MoonPhaseView: View {
             .sheet(item: $detailsSelection) { selection in
                 MoonPhaseDetailsView(
                     timeZoneIdentifier: timeZoneIdentifier,
-                    initialDate: selection.date
+                    initialDate: selection.date,
+                    dateRange: detailsDateRange
                 )
             }
         }
         .onAppear {
             prepareCalendarData()
             prefetchMoonPhases(around: selectedMonthIndex)
-            MoonPhaseDetailsView.warmupFormatters()
+            // Prime the details sheet's formatters off the main thread so this
+            // sheet's first frame doesn't pay for their ICU setup either.
+            DispatchQueue.global(qos: .utility).async {
+                MoonPhaseDetailsView.warmupFormatters()
+            }
             if hapticEnabled {
                 UIImpactFeedbackGenerator(style: .light).prepare()
             }
