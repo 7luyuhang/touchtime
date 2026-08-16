@@ -90,6 +90,7 @@ struct MoonPhaseDetailsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
 
     // Committed scrub offset (seconds relative to initialDate) plus the live
     // drag translation, mirroring ScrollTimeView's accumulate-then-commit model.
@@ -180,23 +181,49 @@ struct MoonPhaseDetailsView: View {
             .formatted(Self.distanceStyle)
     }
 
+    // Month and day without the year, following the current locale
+    // (e.g. "Aug 10" or "8月10日").
     private static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateStyle = .medium
-        formatter.timeStyle = .none
+        formatter.setLocalizedDateFormatFromTemplate("MMMd")
         return formatter
     }()
 
+    // Same 12/24-hour treatment as DetailsSheet's time labels
+    private static let timeFormatter24: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    private static let timeFormatter12: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "h:mm a"
+        formatter.amSymbol = "am"
+        formatter.pmSymbol = "pm"
+        return formatter
+    }()
+
+    /// "Aug 10 · 10:24": scrubbed date (no year) and time of day.
     private var dateText: String {
-        let formatter = Self.dateFormatter
-        formatter.timeZone = timeZone
-        return formatter.string(from: displayedDate)
+        let dateFormatter = Self.dateFormatter
+        dateFormatter.timeZone = timeZone
+
+        let timeFormatter = use24HourFormat ? Self.timeFormatter24 : Self.timeFormatter12
+        timeFormatter.timeZone = timeZone
+
+        let date = displayedDate
+        return "\(dateFormatter.string(from: date)) · \(timeFormatter.string(from: date))"
     }
 
     /// Prime locale-heavy formatters while the calendar is on screen, so the
     /// details sheet's first frame doesn't hitch on ICU setup.
     static func warmupFormatters() {
         _ = dateFormatter
+        _ = timeFormatter24
+        _ = timeFormatter12
         // Formatting once primes the format style's ICU data
         _ = Measurement(value: 384400, unit: UnitLength.kilometers).formatted(distanceStyle)
     }
