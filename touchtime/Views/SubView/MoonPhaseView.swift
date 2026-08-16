@@ -199,12 +199,21 @@ struct MoonPhaseView: View {
     }
     
     // Instant the details view opens with: the adjusted "now" for today,
-    // local noon for any other day (a representative mid-day moment).
+    // and the same current time of day carried onto any other tapped day,
+    // so the details sheet always opens showing the current clock time.
     private func detailInstant(for dayStart: Date) -> Date {
+        let adjustedNow = currentDate.addingTimeInterval(timeOffset)
         if isToday(dayStart) {
-            return currentDate.addingTimeInterval(timeOffset)
+            return adjustedNow
         }
-        return calendar.date(byAdding: .hour, value: 12, to: dayStart) ?? dayStart
+        let cal = calendar
+        let time = cal.dateComponents([.hour, .minute, .second], from: adjustedNow)
+        return cal.date(
+            bySettingHour: time.hour ?? 12,
+            minute: time.minute ?? 0,
+            second: time.second ?? 0,
+            of: dayStart
+        ) ?? dayStart
     }
     
     // Scrub window for the details view: the same previous/current/next

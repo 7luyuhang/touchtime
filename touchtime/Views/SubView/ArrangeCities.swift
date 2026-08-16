@@ -537,10 +537,14 @@ struct ArrangeListView: View {
                                         Label(String(localized: "West to East"), systemImage: "arrow.right")
                                     }
 
-                                    Button {
-                                        sortCitiesByClosestTimeZone()
-                                    } label: {
-                                        Label(String(localized: "Close to Local"), systemImage: "location.fill.viewfinder")
+                                    // Sorting against the local time only makes
+                                    // sense while the home list shows it
+                                    if showLocalTimeInHome {
+                                        Button {
+                                            sortCitiesByClosestTimeZone()
+                                        } label: {
+                                            Label(String(localized: "Close to Local"), systemImage: "location.fill.viewfinder")
+                                        }
                                     }
                                 }
                             } label: {
