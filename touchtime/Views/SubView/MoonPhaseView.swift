@@ -568,43 +568,47 @@ private struct DayCellView: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            Text("\(dayNumber)")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(isToday || isSelected ? .primary : .secondary)
-                .overlay(alignment: .trailing) {
-                    // Filled dot marks a full moon day, outlined dot a new moon day,
-                    // half-filled dot a first/last quarter day
-                    if isFullMoonDay || isNewMoonDay || isFirstQuarterDay || isLastQuarterDay {
-                        Group {
-                            if isFullMoonDay {
+            // The day number and (on key phase days) the small phase dot are
+            // laid out as one group, so the pair centers in the cell together
+            // instead of the number staying centered with the dot hanging off
+            // its trailing edge.
+            HStack(spacing: 4) {
+                Text("\(dayNumber)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(isToday || isSelected ? .primary : .secondary)
+
+                // Filled dot marks a full moon day, outlined dot a new moon day,
+                // half-filled dot a first/last quarter day
+                if isFullMoonDay || isNewMoonDay || isFirstQuarterDay || isLastQuarterDay {
+                    Group {
+                        if isFullMoonDay {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 6, height: 6)
+                        } else if isNewMoonDay {
+                            // Negative inset draws the 1.5pt line entirely outside the 6pt circle
+                            Circle()
+                                .inset(by: -0.75)
+                                .stroke(Color.white, lineWidth: 1.5)
+                                .frame(width: 5, height: 5)
+                        } else {
+                            // Outlined dot with the lit half filled: right half while
+                            // waxing (first quarter), left half while waning (last quarter)
+                            ZStack {
                                 Circle()
+                                    .trim(from: 0, to: 0.5)
+                                    .rotation(.degrees(isFirstQuarterDay ? -90 : 90))
                                     .fill(Color.white)
                                     .frame(width: 6, height: 6)
-                            } else if isNewMoonDay {
-                                // Negative inset draws the 1.5pt line entirely outside the 6pt circle
                                 Circle()
                                     .inset(by: -0.75)
                                     .stroke(Color.white, lineWidth: 1.5)
                                     .frame(width: 5, height: 5)
-                            } else {
-                                // Outlined dot with the lit half filled: right half while
-                                // waxing (first quarter), left half while waning (last quarter)
-                                ZStack {
-                                    Circle()
-                                        .trim(from: 0, to: 0.5)
-                                        .rotation(.degrees(isFirstQuarterDay ? -90 : 90))
-                                        .fill(Color.white)
-                                        .frame(width: 6, height: 6)
-                                    Circle()
-                                        .inset(by: -0.75)
-                                        .stroke(Color.white, lineWidth: 1.5)
-                                        .frame(width: 5, height: 5)
-                                }
                             }
                         }
-                        .offset(x: 10)
                     }
                 }
+            }
             
             Group {
                 if let moonPhaseIcon {
