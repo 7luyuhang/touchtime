@@ -511,11 +511,25 @@ struct ScrollTimeView: View {
     
     // MARK: - Sub Views
     
-    /// Dragging indicator with dots and chevrons
+    /// Dragging indicator with the tick tape and chevrons
     @ViewBuilder
     private var draggingIndicator: some View {
         ZStack {
-            ScrollTimeDotsIndicator()
+            // The tape tracks the committed offset (flushed once per display
+            // frame while dragging), converted at the drag mapping of
+            // 15 points per hour so it moves 1:1 with the finger.
+            ScrollTimeDotsIndicator(scrollOffset: CGFloat(timeOffset / 3600) * 15)
+                .transaction { transaction in
+                    // While actively scrubbing the tape must track raw, so
+                    // strip any animation the outer value-keyed springs try
+                    // to inject. This also cancels a leftover reset spring
+                    // when the indicator is re-entered mid-transition
+                    // (slide → reset → slide quickly), which otherwise
+                    // replays as a sweep before snapping back to the finger.
+                    if isDragging || inertiaActive {
+                        transaction.animation = nil
+                    }
+                }
             HStack {
                 Image(systemName: "chevron.left")
                     .fontWeight(.semibold)
@@ -1109,26 +1123,64 @@ final class ScrollTimeFrameDriver: NSObject {
     }
 }
 
-// MARK: - Static Dots Indicator
-struct ScrollTimeDotsIndicator: View {
-    // Pre-calculated static values - computed once
-    private static let dotOpacities: [Double] = {
-        let center = 11.5
-        let maxDistance = 11.5
-        return (0..<24).map { index in
-            let distance = abs(Double(index) - center)
-            return 1.0 - (distance / maxDistance)
-        }
-    }()
-    
+// MARK: - Ticks Indicator
+/// Ruler-style tick tape inside the scrub pill. The ticks translate with
+/// `scrollOffset` and wrap seamlessly, so the tape appears to move under the
+/// finger while scrubbing; every 4th tick is a taller major graduation, like
+/// a tape measure. With the default offset of 0 it renders as a static row.
+struct ScrollTimeDotsIndicator: View, Animatable {
+    /// Horizontal tape position in points; positive moves the ticks right.
+    var scrollOffset: CGFloat = 0
+
+    // Animatable so `withAnimation` changes (e.g. reset springing the offset
+    // back to zero) glide the tape instead of snapping it.
+    var animatableData: CGFloat {
+        get { scrollOffset }
+        set { scrollOffset = newValue }
+    }
+
+    // 2pt ticks every 10pt: the same density as the previous static row of
+    // 24 dots with 8pt gaps.
+    private static let tickSpacing: CGFloat = 10
+    private static let tickWidth: CGFloat = 2
+    private static let minorHeight: CGFloat = 8
+    private static let majorHeight: CGFloat = 12
+    /// Every 4th tick is drawn taller.
+    private static let majorInterval = 4
+
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(0..<24, id: \.self) { index in
-                Capsule()
-                    .fill(.primary.opacity(Self.dotOpacities[index]))
-                    .frame(width: 2, height: 12)
+        Canvas { context, size in
+            let halfWidth = size.width / 2
+            let midY = size.height / 2
+
+            // Global tick indices whose x position falls inside the canvas
+            let firstIndex = Int(floor((-Self.tickWidth - scrollOffset) / Self.tickSpacing))
+            let lastIndex = Int(ceil((size.width + Self.tickWidth - scrollOffset) / Self.tickSpacing))
+
+            for index in firstIndex...lastIndex {
+                let x = CGFloat(index) * Self.tickSpacing + scrollOffset
+                // Same center-out linear fade as the previous static dots
+                let opacity = max(0, 1 - abs(x - halfWidth) / halfWidth)
+                guard opacity > 0 else { continue }
+
+                let height = index.isMultiple(of: Self.majorInterval)
+                    ? Self.majorHeight
+                    : Self.minorHeight
+                let rect = CGRect(
+                    x: x - Self.tickWidth / 2,
+                    y: midY - height / 2,
+                    width: Self.tickWidth,
+                    height: height
+                )
+                context.fill(
+                    Capsule().path(in: rect),
+                    with: .color(.primary.opacity(opacity))
+                )
             }
         }
+        // Same footprint as the previous 24-dot row (24 × 2pt + 23 × 8pt)
+        .frame(width: 232, height: Self.majorHeight)
+        .allowsHitTesting(false)
     }
 }
 
