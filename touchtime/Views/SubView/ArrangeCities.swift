@@ -540,7 +540,7 @@ struct ArrangeListView: View {
                                     Button {
                                         sortCitiesByClosestTimeZone()
                                     } label: {
-                                        Label(String(localized: "Closest to Local"), systemImage: "location.fill.viewfinder")
+                                        Label(String(localized: "Close to Local"), systemImage: "location.fill.viewfinder")
                                     }
                                 }
                             } label: {

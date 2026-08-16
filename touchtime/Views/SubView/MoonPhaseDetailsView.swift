@@ -166,18 +166,18 @@ struct MoonPhaseDetailsView: View {
         "\(Int((snapshot.illuminatedFraction * 100).rounded()))%"
     }
 
-    private static let distanceFormatter: MeasurementFormatter = {
-        let formatter = MeasurementFormatter()
-        formatter.unitOptions = .naturalScale
-        formatter.unitStyle = .medium
-        formatter.numberFormatter.numberStyle = .decimal
-        formatter.numberFormatter.maximumFractionDigits = 0
-        return formatter
-    }()
+    // Road-usage formatting converts to km or miles following the system
+    // Measurement System setting (Language & Region), which the older
+    // MeasurementFormatter ignores in favour of the region default.
+    private static let distanceStyle = Measurement<UnitLength>.FormatStyle(
+        width: .abbreviated,
+        usage: .road,
+        numberFormatStyle: .number.precision(.fractionLength(0))
+    )
 
     private var distanceText: String {
-        let measurement = Measurement(value: snapshot.distanceKilometers, unit: UnitLength.kilometers)
-        return Self.distanceFormatter.string(from: measurement)
+        Measurement(value: snapshot.distanceKilometers, unit: UnitLength.kilometers)
+            .formatted(Self.distanceStyle)
     }
 
     private static let dateFormatter: DateFormatter = {
@@ -197,7 +197,8 @@ struct MoonPhaseDetailsView: View {
     /// details sheet's first frame doesn't hitch on ICU setup.
     static func warmupFormatters() {
         _ = dateFormatter
-        _ = distanceFormatter
+        // Formatting once primes the format style's ICU data
+        _ = Measurement(value: 384400, unit: UnitLength.kilometers).formatted(distanceStyle)
     }
 
     // True once the user scrubbed away from the initially opened moment
