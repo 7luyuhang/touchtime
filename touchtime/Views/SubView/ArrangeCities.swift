@@ -212,6 +212,28 @@ struct ArrangeListView: View {
         }
     }
     
+    // Sort cities by how close their wall-clock time is to the local time,
+    // wrapping around midnight so e.g. UTC+14 counts as 2h from UTC-10
+    func sortCitiesByClosestTimeZone() {
+        let now = currentDate.addingTimeInterval(timeOffset)
+        let localOffset = TimeZone.current.secondsFromGMT(for: now)
+        let secondsPerDay = 24 * 3600
+        
+        func distanceFromLocal(_ clock: WorldClock) -> Int {
+            guard let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) else { return .max }
+            let diff = abs(timeZone.secondsFromGMT(for: now) - localOffset) % secondsPerDay
+            return min(diff, secondsPerDay - diff)
+        }
+        
+        worldClocks.sort { distanceFromLocal($0) < distanceFromLocal($1) }
+        saveWorldClocks()
+        
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             List {
@@ -513,6 +535,12 @@ struct ArrangeListView: View {
                                         sortCitiesWestToEast()
                                     } label: {
                                         Label(String(localized: "West to East"), systemImage: "arrow.right")
+                                    }
+
+                                    Button {
+                                        sortCitiesByClosestTimeZone()
+                                    } label: {
+                                        Label(String(localized: "Closest to Local"), systemImage: "location.fill.viewfinder")
                                     }
                                 }
                             } label: {

@@ -3320,6 +3320,22 @@
         }
       }
     },
+    "Closest to Local" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最接近本地时间"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最接近本地時間"
+          }
+        }
+      }
+    },
     "Cloudy" : {
       "localizations" : {
         "zh-Hans" : {
