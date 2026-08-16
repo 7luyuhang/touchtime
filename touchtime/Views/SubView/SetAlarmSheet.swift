@@ -116,6 +116,24 @@ struct SetAlarmSheet: View {
                                 Divider()
                             }
 
+                            Section(String(localized: "Action")) {
+                                Button {
+                                    Task {
+                                        await enableAllRecords()
+                                    }
+                                } label: {
+                                    Label(String(localized: "Turn On All"), systemImage: "bell")
+                                }
+
+                                Button {
+                                    disableAllRecords()
+                                } label: {
+                                    Label(String(localized: "Turn Off All"), systemImage: "bell.slash")
+                                }
+                            }
+
+                            Divider()
+
                             Button(role: .destructive) {
                                 showRemoveAllConfirmationDialog = true
                             } label: {
@@ -593,6 +611,56 @@ struct SetAlarmSheet: View {
         }
 
         alarmRecords.removeAll()
+        saveAlarmRecords()
+        triggerHaptic()
+    }
+
+    @MainActor
+    private func enableAllRecords() async {
+        guard await ensureAuthorizationForAlarmActions() else { return }
+
+        var firstError: Error? = nil
+
+        for index in alarmRecords.indices where !alarmRecords[index].isEnabled {
+            let record = alarmRecords[index]
+            do {
+                // Avoid duplicate-ID failures if a system alarm with the same ID still exists.
+                try? alarmManager.cancel(id: record.id)
+                try await AlarmSupport.scheduleAlarm(
+                    id: record.id,
+                    hour: record.hour,
+                    minute: record.minute,
+                    eventTitle: record.eventTitle,
+                    repeatRule: record.repeatRule,
+                    repeatWeekdays: record.repeatWeekdays,
+                    using: alarmManager
+                )
+                alarmRecords[index].isEnabled = true
+            } catch {
+                if firstError == nil {
+                    firstError = error
+                }
+            }
+        }
+
+        saveAlarmRecords()
+        synchronizeWithSystemAlarms()
+        triggerHaptic()
+
+        if let firstError {
+            presentError(firstError)
+        }
+    }
+
+    @MainActor
+    private func disableAllRecords() {
+        // Same fire-and-forget cancel as deleteRecord: a missing system
+        // alarm just means it is already off.
+        for index in alarmRecords.indices where alarmRecords[index].isEnabled {
+            try? alarmManager.cancel(id: alarmRecords[index].id)
+            alarmRecords[index].isEnabled = false
+        }
+
         saveAlarmRecords()
         triggerHaptic()
     }

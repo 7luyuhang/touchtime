@@ -793,6 +793,22 @@
         }
       }
     },
+    "Action" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "操作"
+          }
+        }
+      }
+    },
     "Adak" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13442,6 +13458,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "突尼斯"
+          }
+        }
+      }
+    },
+    "Turn Off All" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部关闭"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部關閉"
+          }
+        }
+      }
+    },
+    "Turn On All" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部打开"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全部打開"
           }
         }
       }
