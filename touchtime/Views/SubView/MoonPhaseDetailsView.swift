@@ -276,6 +276,16 @@ struct MoonPhaseDetailsView: View {
         .font(.subheadline)
         .frame(maxWidth: .infinity)
         .frame(height: 52)
+        // Same border treatment as the info card above: hairline white
+        // stroke lifted with plusLighter. Applied before glassEffect so the
+        // border lives inside the glass container and follows the interactive
+        // glass as it deforms, instead of separating from it.
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                .blendMode(.plusLighter)
+                .allowsHitTesting(false)
+        }
         .contentShape(Capsule(style: .continuous))
         .glassEffect(.regular.interactive())
         .gesture(scrubGesture)
