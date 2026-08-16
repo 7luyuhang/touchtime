@@ -840,7 +840,7 @@ struct SettingsView: View {
                     // Available Time Section - only show when System Time is enabled
                     if showLocalTime {
                         if hasLifetimeAccess {
-                            NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
+                            NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks, weatherManager: weatherManager)) {
                                 HStack(spacing: 12) {
                                     SystemIconImage(systemName: "checkmark.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                                     Text("Available Time")
