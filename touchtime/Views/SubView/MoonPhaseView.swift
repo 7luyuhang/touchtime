@@ -10,17 +10,21 @@ import MoonKit
 
 // MARK: - Global Moon Phase Cache using NSCache
 
-/// Per-day moon data: asset name, phase name, plus whether the day contains the exact full/new moon instant.
+/// Per-day moon data: asset name, phase name, plus whether the day contains the exact full/new/quarter moon instant.
 final class MoonPhaseDayInfo {
     let imageName: String
     let isFullMoonDay: Bool
     let isNewMoonDay: Bool
+    let isFirstQuarterDay: Bool
+    let isLastQuarterDay: Bool
     let phase: MoonPhase
     
-    init(imageName: String, isFullMoonDay: Bool, isNewMoonDay: Bool, phase: MoonPhase) {
+    init(imageName: String, isFullMoonDay: Bool, isNewMoonDay: Bool, isFirstQuarterDay: Bool, isLastQuarterDay: Bool, phase: MoonPhase) {
         self.imageName = imageName
         self.isFullMoonDay = isFullMoonDay
         self.isNewMoonDay = isNewMoonDay
+        self.isFirstQuarterDay = isFirstQuarterDay
+        self.isLastQuarterDay = isLastQuarterDay
         self.phase = phase
     }
 }
@@ -114,6 +118,8 @@ final class MoonPhaseCache {
                     imageName: String(format: "moon_age_%02d", imageIndex),
                     isFullMoonDay: isFullMoonDay,
                     isNewMoonDay: isNewMoonDay,
+                    isFirstQuarterDay: isFirstQuarterDay,
+                    isLastQuarterDay: isLastQuarterDay,
                     phase: phase
                 ),
                 forKey: cacheKey
@@ -511,6 +517,8 @@ private struct MonthGridView: View {
                             moonPhaseIcon: dayInfo?.imageName,
                             isFullMoonDay: dayInfo?.isFullMoonDay ?? false,
                             isNewMoonDay: dayInfo?.isNewMoonDay ?? false,
+                            isFirstQuarterDay: dayInfo?.isFirstQuarterDay ?? false,
+                            isLastQuarterDay: dayInfo?.isLastQuarterDay ?? false,
                             isToday: isToday(date),
                             isSelected: isSelected(date)
                         )
@@ -539,6 +547,8 @@ private struct DayCellView: View {
     let moonPhaseIcon: String?
     let isFullMoonDay: Bool
     let isNewMoonDay: Bool
+    let isFirstQuarterDay: Bool
+    let isLastQuarterDay: Bool
     let isToday: Bool
     let isSelected: Bool
     
@@ -553,19 +563,34 @@ private struct DayCellView: View {
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(isToday || isSelected ? .primary : .secondary)
                 .overlay(alignment: .trailing) {
-                    // Filled dot marks a full moon day, outlined dot a new moon day
-                    if isFullMoonDay || isNewMoonDay {
+                    // Filled dot marks a full moon day, outlined dot a new moon day,
+                    // half-filled dot a first/last quarter day
+                    if isFullMoonDay || isNewMoonDay || isFirstQuarterDay || isLastQuarterDay {
                         Group {
                             if isFullMoonDay {
                                 Circle()
                                     .fill(Color.white)
                                     .frame(width: 6, height: 6)
-                            } else {
+                            } else if isNewMoonDay {
                                 // Negative inset draws the 1.5pt line entirely outside the 6pt circle
                                 Circle()
                                     .inset(by: -0.75)
                                     .stroke(Color.white, lineWidth: 1.5)
                                     .frame(width: 5, height: 5)
+                            } else {
+                                // Outlined dot with the lit half filled: right half while
+                                // waxing (first quarter), left half while waning (last quarter)
+                                ZStack {
+                                    Circle()
+                                        .trim(from: 0, to: 0.5)
+                                        .rotation(.degrees(isFirstQuarterDay ? -90 : 90))
+                                        .fill(Color.white)
+                                        .frame(width: 6, height: 6)
+                                    Circle()
+                                        .inset(by: -0.75)
+                                        .stroke(Color.white, lineWidth: 1.5)
+                                        .frame(width: 5, height: 5)
+                                }
                             }
                         }
                         .offset(x: 10)
