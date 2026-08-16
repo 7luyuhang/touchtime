@@ -285,7 +285,13 @@ struct MoonPhaseDetailsView: View {
 
             Spacer(minLength: 0)
 
-            ScrollTimeDotsIndicator()
+            // The tick tape scrolls with the scrub: committed offset plus the
+            // live drag translation (their sum stays continuous across drag
+            // end), converted at this view's 60-points-per-day mapping so it
+            // moves 1:1 with the finger.
+            ScrollTimeDotsIndicator(
+                scrollOffset: dragOffset + CGFloat(accumulatedOffset / 86400) * Self.pointsPerDay
+            )
 
             Spacer(minLength: 0)
 
