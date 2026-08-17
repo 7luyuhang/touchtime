@@ -46,7 +46,7 @@ struct SunriseSunsetSheet: View {
     @State private var sunTimes: (sunrise: Date?, sunset: Date?)?
     @State private var eveningGoldenHour: (start: Date?, end: Date?)?
     @State private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)?
-    @State private var nextFullMoonDate: Date?
+    @State private var selectedMoonPhaseIcon = "moonphase.full.moon" // Phase shown in the "Next ..." row
     @State private var upcomingMoonPhases: [UpcomingMoonPhase] = []
     @State private var isMoonPhasesExpanded = false // Track upcoming phases expansion
     @State private var astronomyDayCacheKey: String = ""
@@ -153,7 +153,6 @@ struct SunriseSunsetSheet: View {
             sunTimes = nil
             eveningGoldenHour = nil
             moonInfo = nil
-            nextFullMoonDate = nil
             upcomingMoonPhases = []
             astronomyDayCacheKey = ""
             return
@@ -204,8 +203,25 @@ struct SunriseSunsetSheet: View {
                     .map { UpcomingMoonPhase(icon: phase.icon, name: phase.name, date: $0) }
             }
             .sorted { $0.date < $1.date }
+    }
 
-        nextFullMoonDate = upcomingMoonPhases.first { $0.icon == "moonphase.full.moon" }?.date
+    /// The upcoming phase shown in the "Next ..." row. Tapping one of the
+    /// four phase cards below changes it; defaults to the full moon.
+    private var selectedMoonPhase: UpcomingMoonPhase? {
+        upcomingMoonPhases.first { $0.icon == selectedMoonPhaseIcon } ?? upcomingMoonPhases.first
+    }
+
+    private func nextMoonPhaseTitle(for icon: String) -> String {
+        switch icon {
+        case "moonphase.new.moon":
+            return String(localized: "Next New Moon")
+        case "moonphase.first.quarter":
+            return String(localized: "Next First Quarter")
+        case "moonphase.last.quarter":
+            return String(localized: "Next Last Quarter")
+        default:
+            return String(localized: "Next Full Moon")
+        }
     }
     
     // Format moon phase to readable string
@@ -417,7 +433,7 @@ struct SunriseSunsetSheet: View {
         UIApplication.shared.open(url)
     }
     
-    private func formatNextFullMoonDate(_ date: Date) -> String {
+    private func formatDaysUntil(_ date: Date) -> String {
         let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
         var calendar = Calendar.current
         calendar.timeZone = timeZone
@@ -1041,30 +1057,36 @@ struct SunriseSunsetSheet: View {
                                     .buttonStyle(.plain)
                                     .padding(.horizontal, 16)
 
-                                    // Next Full Moon Section: tap expands the
-                                    // four upcoming principal phases below,
-                                    // mirroring the weather section
-                                    if let nextFullMoon = nextFullMoonDate {
+                                    // Next phase section: shows the selected
+                                    // upcoming phase (full moon by default).
+                                    // Tap expands the four phase cards below;
+                                    // tapping a card swaps the phase shown here
+                                    if let selectedPhase = selectedMoonPhase {
                                         HStack {
                                             HStack(spacing: 12){
-                                                Image(systemName: "moonphase.full.moon")
+                                                Image(systemName: selectedPhase.icon)
+                                                    .symbolRenderingMode(.monochrome)
                                                     .font(.title3.weight(.semibold))
                                                     .foregroundStyle(.secondary)
                                                     .blendMode(.plusLighter)
                                                     .frame(width: 24)
+                                                    .contentTransition(.symbolEffect(.replace))
+                                                    .animation(.spring(), value: selectedPhase.icon)
 
-                                                Text(String(localized: "Next Full Moon"))
+                                                Text(nextMoonPhaseTitle(for: selectedPhase.icon))
                                                     .font(.headline)
                                                     .foregroundStyle(.secondary)
                                                     .blendMode(.plusLighter)
+                                                    .contentTransition(.numericText())
+                                                    .animation(.spring(), value: selectedPhase.icon)
                                             }
                                             Spacer()
 
-                                            Text(formatNextFullMoonDate(nextFullMoon))
+                                            Text(formatDaysUntil(selectedPhase.date))
                                                 .foregroundStyle(.primary)
                                                 .monospacedDigit()
                                                 .contentTransition(.numericText())
-                                                .animation(.spring(), value: nextFullMoon)
+                                                .animation(.spring(), value: selectedPhase.date)
 
                                             // Chevron icon
                                             Image(systemName: "chevron.right")
@@ -1119,6 +1141,15 @@ struct SunriseSunsetSheet: View {
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 12)
                                                 .detailsSheetCardChrome()
+                                                .contentShape(Rectangle())
+                                                .onTapGesture {
+                                                    if hapticEnabled {
+                                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                                    }
+                                                    withAnimation(.spring()) {
+                                                        selectedMoonPhaseIcon = phase.icon
+                                                    }
+                                                }
                                             }
                                         }
                                         .padding(.horizontal, 16)

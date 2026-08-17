@@ -9128,6 +9128,22 @@
         }
       }
     },
+    "Next First Quarter" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次上弦月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次上弦月"
+          }
+        }
+      }
+    },
     "Next Full Moon" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9140,6 +9156,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下次滿月"
+          }
+        }
+      }
+    },
+    "Next Last Quarter" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次下弦月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次下弦月"
+          }
+        }
+      }
+    },
+    "Next New Moon" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次新月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下次新月"
           }
         }
       }
