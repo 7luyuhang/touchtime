@@ -43,8 +43,11 @@ final class MoonPhaseCache {
     }
     
     private func key(for date: Date, calendar: Calendar) -> NSString {
+        // The timezone is part of the key: the same instant belongs to
+        // different local days in different cities, so day flags computed
+        // for one city must never be reused for another.
         let c = calendar.dateComponents([.year, .month, .day], from: date)
-        return "\(c.year ?? 0)-\(c.month ?? 0)-\(c.day ?? 0)" as NSString
+        return "\(calendar.timeZone.identifier)_\(c.year ?? 0)-\(c.month ?? 0)-\(c.day ?? 0)" as NSString
     }
     
     /// Cache-only lookup, cheap enough for view bodies. Returns nil until prefetched.

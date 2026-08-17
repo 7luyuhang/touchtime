@@ -11,6 +11,14 @@ import CoreLocation
 import Combine
 import WeatherKit
 
+/// One of the four principal moon phases with the instant it next occurs.
+private struct UpcomingMoonPhase: Identifiable {
+    let icon: String
+    let name: String
+    let date: Date
+    var id: String { icon }
+}
+
 struct SunriseSunsetSheet: View {
     let cityName: String
     let timeZoneIdentifier: String
@@ -23,6 +31,7 @@ struct SunriseSunsetSheet: View {
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("show10DaysWeather") private var storedWeatherExpanded = false
+    @AppStorage("showUpcomingMoonPhases") private var storedMoonPhasesExpanded = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showAddWidgetTip") private var showAddWidgetTip = true
     @Environment(\.dismiss) private var dismiss
@@ -38,7 +47,8 @@ struct SunriseSunsetSheet: View {
     @State private var eveningGoldenHour: (start: Date?, end: Date?)?
     @State private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)?
     @State private var nextFullMoonDate: Date?
-    @State private var showFullMoonDate = false // Toggle between day count and date
+    @State private var upcomingMoonPhases: [UpcomingMoonPhase] = []
+    @State private var isMoonPhasesExpanded = false // Track upcoming phases expansion
     @State private var astronomyDayCacheKey: String = ""
     
     // Computed properties to get weather data directly from weatherManager
@@ -90,33 +100,39 @@ struct SunriseSunsetSheet: View {
         return "\(timeZoneIdentifier)_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)"
     }
 
-    /// Finds the exact instant of the next full moon: the moment the moon's age
-    /// crosses half a synodic month, matching the full moon dot in MoonPhaseView.
-    private func findNextFullMoonDate(using moon: Moon, startingFrom date: Date) -> Date? {
-        let halfCycle = 29.53058867 / 2
+    /// Finds the exact instant the moon's age next reaches `targetAgeDays`
+    /// (0 = new moon, then quarter-cycle steps for first quarter, full moon
+    /// and last quarter). Uses the same lightweight MoonAstronomy math as the
+    /// moon phase calendar's day dots, so the dates always match them — and
+    /// unlike MoonKit's Moon it never triggers a moonrise/moonset search.
+    private func findNextMoonPhaseDate(targetAgeDays: Double, startingFrom date: Date) -> Date? {
+        let cycle = 29.53058867
         let dayInSeconds: TimeInterval = 86400
 
-        func moonAge(at date: Date) -> Double {
-            moon.setDate(date)
-            return moon.ageOfTheMoonInDays
+        // Days left until the target age, wrapping at the cycle boundary:
+        // counts down to zero at the phase instant, then jumps back up.
+        func remainingDays(at date: Date) -> Double {
+            let diff = (targetAgeDays - MoonAstronomy.snapshot(for: date).ageDays)
+                .truncatingRemainder(dividingBy: cycle)
+            return diff < 0 ? diff + cycle : diff
         }
 
-        // Scan forward in 24h windows for the one where the age crosses halfCycle;
-        // one crossing must occur within a synodic month (~29.5 days).
+        // Scan forward in 24h windows for the one containing the countdown wrap;
+        // one must occur within a synodic month (~29.5 days).
         var windowStart = date
-        var ageAtStart = moonAge(at: windowStart)
+        var remainingAtStart = remainingDays(at: windowStart)
 
         for _ in 0..<31 {
             let windowEnd = windowStart.addingTimeInterval(dayInSeconds)
-            let ageAtEnd = moonAge(at: windowEnd)
+            let remainingAtEnd = remainingDays(at: windowEnd)
 
-            if ageAtStart <= halfCycle && ageAtEnd > halfCycle {
+            if remainingAtEnd > remainingAtStart {
                 // Bisect the window down to ~1s to pin the crossing instant
                 var lowerBound = windowStart
                 var upperBound = windowEnd
                 for _ in 0..<17 {
                     let midpoint = lowerBound.addingTimeInterval(upperBound.timeIntervalSince(lowerBound) / 2)
-                    if moonAge(at: midpoint) < halfCycle {
+                    if remainingDays(at: midpoint) <= remainingAtStart {
                         lowerBound = midpoint
                     } else {
                         upperBound = midpoint
@@ -126,7 +142,7 @@ struct SunriseSunsetSheet: View {
             }
 
             windowStart = windowEnd
-            ageAtStart = ageAtEnd
+            remainingAtStart = remainingAtEnd
         }
 
         return nil
@@ -138,6 +154,7 @@ struct SunriseSunsetSheet: View {
             eveningGoldenHour = nil
             moonInfo = nil
             nextFullMoonDate = nil
+            upcomingMoonPhases = []
             astronomyDayCacheKey = ""
             return
         }
@@ -173,7 +190,22 @@ struct SunriseSunsetSheet: View {
             phaseIcon: getMoonPhaseIcon(phase)
         )
 
-        nextFullMoonDate = findNextFullMoonDate(using: moon, startingFrom: adjustedDate)
+        // The four principal phases coming up, soonest first
+        let quarterCycle = 29.53058867 / 4
+        let principalPhases: [(icon: String, name: String, targetAgeDays: Double)] = [
+            ("moonphase.new.moon", String(localized: "New"), 0),
+            ("moonphase.first.quarter", String(localized: "First"), quarterCycle),
+            ("moonphase.full.moon", String(localized: "Full"), quarterCycle * 2),
+            ("moonphase.last.quarter", String(localized: "Last"), quarterCycle * 3)
+        ]
+        upcomingMoonPhases = principalPhases
+            .compactMap { phase in
+                findNextMoonPhaseDate(targetAgeDays: phase.targetAgeDays, startingFrom: adjustedDate)
+                    .map { UpcomingMoonPhase(icon: phase.icon, name: phase.name, date: $0) }
+            }
+            .sorted { $0.date < $1.date }
+
+        nextFullMoonDate = upcomingMoonPhases.first { $0.icon == "moonphase.full.moon" }?.date
     }
     
     // Format moon phase to readable string
@@ -325,6 +357,7 @@ struct SunriseSunsetSheet: View {
         formatter.dateFormat = "EEEEE"
         return formatter.string(from: date)
     }
+    
     
     // Calculate DST information
     private var dstInfo: (transitionDate: Date?, isStart: Bool, offsetHours: Int)? {
@@ -1007,7 +1040,9 @@ struct SunriseSunsetSheet: View {
                                     .buttonStyle(.plain)
                                     .padding(.horizontal, 16)
 
-                                    // Next Full Moon Section
+                                    // Next Full Moon Section: tap expands the
+                                    // four upcoming principal phases below,
+                                    // mirroring the weather section
                                     if let nextFullMoon = nextFullMoonDate {
                                         HStack {
                                             HStack(spacing: 12){
@@ -1024,14 +1059,19 @@ struct SunriseSunsetSheet: View {
                                             }
                                             Spacer()
 
-                                            // Tap toggles between the day count and the full moon date
-                                            Text(showFullMoonDate
-                                                 ? formatDSTDate(nextFullMoon)
-                                                 : formatNextFullMoonDate(nextFullMoon))
+                                            Text(formatNextFullMoonDate(nextFullMoon))
                                                 .foregroundStyle(.primary)
                                                 .monospacedDigit()
                                                 .contentTransition(.numericText())
                                                 .animation(.spring(), value: nextFullMoon)
+
+                                            // Chevron icon
+                                            Image(systemName: "chevron.right")
+                                                .font(.footnote.weight(.semibold))
+                                                .frame(width: 14, height: 14)
+                                                .foregroundStyle(isMoonPhasesExpanded ? .primary : .tertiary)
+                                                .blendMode(.plusLighter)
+                                                .rotationEffect(.degrees(isMoonPhasesExpanded ? 90 : 0), anchor: .center)
                                         }
                                         .detailsSheetCard()
                                         .contentShape(Rectangle())
@@ -1039,11 +1079,48 @@ struct SunriseSunsetSheet: View {
                                             if hapticEnabled {
                                                 UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                                             }
-                                            withAnimation(.spring()) {
-                                                showFullMoonDate.toggle()
+                                            let newValue = !isMoonPhasesExpanded
+                                            withAnimation(.snappy(duration: 0.50)) { // upcoming phases animation
+                                                isMoonPhasesExpanded = newValue
+                                            }
+                                            storedMoonPhasesExpanded = newValue
+                                        }
+                                        .padding(.horizontal, 16)
+                                    }
+
+                                    // Upcoming principal phases (expandable):
+                                    // weather-card styling, but the four cards
+                                    // share the full row width
+                                    if isMoonPhasesExpanded && !upcomingMoonPhases.isEmpty {
+                                        HStack(spacing: 8) {
+                                            ForEach(upcomingMoonPhases) { phase in
+                                                VStack(spacing: 8) {
+                                                    // Phase name
+                                                    Text(phase.name)
+                                                        .font(.footnote.weight(.medium))
+                                                        .foregroundStyle(.secondary)
+                                                        .blendMode(.plusLighter)
+                                                        .lineLimit(1)
+
+                                                    // Phase icon
+                                                    Image(systemName: phase.icon)
+                                                        .font(.title3)
+                                                        .foregroundStyle(.primary)
+                                                        .frame(height: 28)
+
+                                                    // Date of the phase
+                                                    Text(formatDSTDate(phase.date))
+                                                        .font(.footnote.weight(.medium))
+                                                        .monospacedDigit()
+                                                        .lineLimit(1)
+                                                }
+                                                .frame(maxWidth: .infinity)
+                                                .padding(.vertical, 12)
+                                                .detailsSheetCardChrome()
                                             }
                                         }
                                         .padding(.horizontal, 16)
+                                        .transition(.blurReplace())
                                     }
                                 }
                             }
@@ -1081,6 +1158,7 @@ struct SunriseSunsetSheet: View {
             .onAppear {
                 currentDate = initialDate
                 isWeatherExpanded = storedWeatherExpanded
+                isMoonPhasesExpanded = storedMoonPhasesExpanded
                 refreshAstronomyData(force: true, referenceDate: initialDate)
             }
             .task(id: timeZoneIdentifier) {

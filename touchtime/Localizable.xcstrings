@@ -5383,6 +5383,23 @@
         }
       }
     },
+    "First" : {
+      "comment" : "Short label for the first quarter moon in the upcoming phases cards.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上弦"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上弦"
+          }
+        }
+      }
+    },
     "First Quarter" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5597,6 +5614,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "極寒"
+          }
+        }
+      }
+    },
+    "Full" : {
+      "comment" : "Short label for the full moon in the upcoming phases cards.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "满月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滿月"
           }
         }
       }
@@ -7410,6 +7444,23 @@
         }
       }
     },
+    "Last" : {
+      "comment" : "Short label for the last quarter moon in the upcoming phases cards.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下弦"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下弦"
+          }
+        }
+      }
+    },
     "Last Quarter" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8973,6 +9024,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建集合"
+          }
+        }
+      }
+    },
+    "New" : {
+      "comment" : "Short label for the new moon in the upcoming phases cards.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新月"
           }
         }
       }
