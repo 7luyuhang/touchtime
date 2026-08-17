@@ -1013,6 +1013,7 @@ struct SunriseSunsetSheet: View {
                                         HStack {
                                             HStack(spacing: 12){
                                                 Image(systemName: moon.phaseIcon)
+                                                    .symbolRenderingMode(.monochrome)
                                                     .font(.title3.weight(.semibold))
                                                     .foregroundStyle(.secondary)
                                                     .blendMode(.plusLighter)
@@ -1104,6 +1105,7 @@ struct SunriseSunsetSheet: View {
 
                                                     // Phase icon
                                                     Image(systemName: phase.icon)
+                                                        .symbolRenderingMode(.monochrome)
                                                         .font(.title3)
                                                         .foregroundStyle(.primary)
                                                         .frame(height: 28)
