@@ -303,6 +303,8 @@ struct SetTimerSheet: View {
                                     .font(.subheadline.weight(.medium))
                                     .foregroundStyle(.secondary)
                                     .lineLimit(1)
+                                    .contentTransition(.numericText())
+                                    .animation(.smooth(duration: 0.25), value: recent.name)
                                     .blendMode(.plusLighter)
 
                                 Text(formattedDuration(recent.durationSeconds))

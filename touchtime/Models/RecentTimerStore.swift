@@ -18,7 +18,7 @@ struct RecentTimer: Identifiable, Codable, Equatable {
 /// Persists recently started timers in UserDefaults, most recently used first.
 enum RecentTimerStore {
     private static let storageKey = "recentTimers"
-    private static let maxCount = 12
+    private static let maxCount = 24
 
     static func load() -> [RecentTimer] {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
