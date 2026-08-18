@@ -1853,9 +1853,13 @@ struct HomeView: View {
 
             // Set Timer Sheet
             .sheet(isPresented: $showSetTimerSheet) {
-                SetTimerSheet(initialDurationSeconds: homeTimerConfiguredSeconds) { durationSeconds in
-                    startHomeTimer(durationSeconds: durationSeconds)
-                }
+                SetTimerSheet(
+                    initialDurationSeconds: homeTimerConfiguredSeconds,
+                    onConfirm: { durationSeconds in
+                        startHomeTimer(durationSeconds: durationSeconds)
+                    },
+                    onPlayPause: handleHomeTimerTap
+                )
             }
 
             // Complications Sheet

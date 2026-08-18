@@ -1298,9 +1298,13 @@ struct AnalogClockFullView: View {
                 SetAlarmSheet()
             }
             .sheet(isPresented: $showSetTimerSheet) {
-                SetTimerSheet(initialDurationSeconds: homeTimerConfiguredSeconds) { durationSeconds in
-                    startHomeTimer(durationSeconds: durationSeconds)
-                }
+                SetTimerSheet(
+                    initialDurationSeconds: homeTimerConfiguredSeconds,
+                    onConfirm: { durationSeconds in
+                        startHomeTimer(durationSeconds: durationSeconds)
+                    },
+                    onPlayPause: handleHomeTimerTap
+                )
             }
             .sheet(isPresented: $showWidgetIntroSheet) {
                 WidgetIntroSheet()

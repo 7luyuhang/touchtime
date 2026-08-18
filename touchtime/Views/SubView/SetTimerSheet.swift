@@ -11,8 +11,14 @@ struct SetTimerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("homeTimerName") private var homeTimerName = ""
+    @AppStorage("homeTimerConfiguredSeconds") private var homeTimerConfiguredSeconds = 0
+    @AppStorage("homeTimerEndDateEpoch") private var homeTimerEndDateEpoch: Double = 0
+    @AppStorage("homeTimerPaused") private var homeTimerPaused = false
+    @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
 
     let onConfirm: (Int) -> Void
+    // Toggles pause/resume of the running home timer, used by the active Recents row
+    let onPlayPause: (() -> Void)?
     private let requiresReplacementConfirmation: Bool
 
     // Remembers the last duration the user confirmed, used as the default for new timers
@@ -33,13 +39,18 @@ struct SetTimerSheet: View {
     @State private var renameRecentNameInput = ""
     @State private var renameTargetRecentID: UUID? = nil
 
-    init(initialDurationSeconds: Int, onConfirm: @escaping (Int) -> Void) {
+    init(
+        initialDurationSeconds: Int,
+        onConfirm: @escaping (Int) -> Void,
+        onPlayPause: (() -> Void)? = nil
+    ) {
         let defaultDurationSeconds = 2 * 60
         let lastSetDuration = UserDefaults.standard.integer(forKey: Self.lastSetDurationKey)
         let fallbackDuration = lastSetDuration > 0 ? lastSetDuration : defaultDurationSeconds
         let effectiveDuration = initialDurationSeconds > 0 ? initialDurationSeconds : fallbackDuration
         let clampedDuration = min(max(effectiveDuration, 0), Self.maxDurationSeconds)
         self.onConfirm = onConfirm
+        self.onPlayPause = onPlayPause
         self.requiresReplacementConfirmation = initialDurationSeconds > 0
         _selectedDuration = State(initialValue: clampedDuration)
         _recentTimers = State(initialValue: RecentTimerStore.load())
@@ -120,6 +131,27 @@ struct SetTimerSheet: View {
 
     private func formattedDuration(_ seconds: Int) -> String {
         String(format: "%02d:%02d", seconds / 60, seconds % 60)
+    }
+
+    // MARK: - Running home timer
+
+    /// Whether this recent entry is the timer currently configured on the home screen
+    private func matchesHomeTimer(_ recent: RecentTimer) -> Bool {
+        homeTimerConfiguredSeconds > 0
+            && recent.durationSeconds == homeTimerConfiguredSeconds
+            && recent.name == RecentTimerStore.normalizedName(homeTimerName)
+    }
+
+    private func homeTimerRemainingSeconds(at date: Date) -> Int {
+        guard homeTimerConfiguredSeconds > 0 else { return 0 }
+
+        if homeTimerPaused {
+            return max(0, min(homeTimerPausedRemainingSeconds, Self.maxDurationSeconds))
+        }
+
+        guard homeTimerEndDateEpoch > 0 else { return 0 }
+        let endDate = Date(timeIntervalSince1970: homeTimerEndDateEpoch)
+        return max(Int(ceil(endDate.timeIntervalSince(date))), 0)
     }
 
     // MARK: - Recents
@@ -315,36 +347,7 @@ struct SetTimerSheet: View {
 
                             Spacer()
 
-                            Button {
-                                startRecentTimer(recent)
-                            } label: {
-                                Image(systemName: "play.fill")
-                                    .font(.title3.weight(.semibold))
-                                    .foregroundStyle(.black)
-                                    .frame(width: 40, height: 40)
-                                    .contentShape(Circle())
-                            }
-                            .buttonStyle(.plain)
-                            .glassEffect(.regular.tint(.white).interactive(), in: Circle())
-                            .confirmationDialog(
-                                String(localized: "Are you sure you want to replace current timer?"),
-                                isPresented: Binding(
-                                    get: { replaceConfirmationRecentID == recent.id },
-                                    set: { isPresented in
-                                        if !isPresented {
-                                            replaceConfirmationRecentID = nil
-                                        }
-                                    }
-                                ),
-                                titleVisibility: .visible
-                            ) {
-                                Button(String(localized: "Replace"), role: .destructive) {
-                                    confirmTimer()
-                                }
-                                Button(String(localized: "Cancel"), role: .cancel) {
-                                    pendingTimerName = nil
-                                }
-                            }
+                            recentTimerControl(for: recent)
                         }
                         .padding(.vertical, 4)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
@@ -378,6 +381,85 @@ struct SetTimerSheet: View {
             }
             .listSectionSpacing(12) // List paddings
             .scrollIndicators(.hidden)
+        }
+    }
+
+    /// Play button for a Recents row. When the row matches the running home
+    /// timer it becomes a pause/resume button with a countdown ring around
+    /// its border, like the timers in the system Clock app.
+    @ViewBuilder
+    private func recentTimerControl(for recent: RecentTimer) -> some View {
+        let isHomeTimerRow = matchesHomeTimer(recent)
+
+        Button {
+            if isHomeTimerRow && homeTimerRemainingSeconds(at: Date()) > 0 {
+                onPlayPause?()
+            } else {
+                startRecentTimer(recent)
+            }
+        } label: {
+            if isHomeTimerRow {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    let remaining = homeTimerRemainingSeconds(at: context.date)
+                    let symbol = (remaining > 0 && !homeTimerPaused) ? "pause.fill" : "play.fill"
+                    Image(systemName: symbol)
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.black)
+                        .contentTransition(.symbolEffect(.replace, options: .speed(2.0)))
+                        .animation(.spring(), value: symbol)
+                        .frame(width: 40, height: 40)
+                        .contentShape(Circle())
+                }
+            } else {
+                Image(systemName: "play.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.black)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Circle())
+            }
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.tint(.white), in: Circle())
+        .overlay {
+            if isHomeTimerRow {
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    let remaining = homeTimerRemainingSeconds(at: context.date)
+                    if remaining > 0 {
+                        let progress = min(max(Double(remaining) / Double(max(homeTimerConfiguredSeconds, 1)), 0), 1)
+                        ZStack {
+                            Circle()
+                                .stroke(.white.opacity(0.10), lineWidth: 3.0)
+                                .blendMode(.plusLighter)
+                            Circle()
+                                .trim(from: 0, to: progress)
+                                .stroke(.white, style: StrokeStyle(lineWidth: 3.0, lineCap: .round))
+                                .rotationEffect(.degrees(-90))
+                                .animation(.linear(duration: 1), value: progress)
+                        }
+                        .padding(-6)
+                    }
+                }
+                .allowsHitTesting(false)
+            }
+        }
+        .confirmationDialog(
+            String(localized: "Are you sure you want to replace current timer?"),
+            isPresented: Binding(
+                get: { replaceConfirmationRecentID == recent.id },
+                set: { isPresented in
+                    if !isPresented {
+                        replaceConfirmationRecentID = nil
+                    }
+                }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Replace"), role: .destructive) {
+                confirmTimer()
+            }
+            Button(String(localized: "Cancel"), role: .cancel) {
+                pendingTimerName = nil
+            }
         }
     }
 }
