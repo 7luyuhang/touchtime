@@ -9292,6 +9292,22 @@
         }
       }
     },
+    "No Recent Timers" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "没有最近的计时器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "沒有最近的計時器"
+          }
+        }
+      }
+    },
     "No cities in this collection." : {
       "localizations" : {
         "zh-Hans" : {
@@ -10578,6 +10594,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "拉羅湯加"
+          }
+        }
+      }
+    },
+    "Recents" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近使用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近使用"
           }
         }
       }
@@ -13267,6 +13299,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "計時器"
+          }
+        }
+      }
+    },
+    "Timers you start will appear here" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "启动过的计时器会显示在这里"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "啟動過的計時器會顯示在這裡"
           }
         }
       }

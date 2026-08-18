@@ -362,10 +362,19 @@ struct AnalogClockFullView: View {
 
     private func saveHomeTimerName() {
         let trimmedName = newTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let previousName = homeTimerName
         withAnimation(.smooth(duration: 0.25)) {
             homeTimerName = trimmedName
         }
         newTimerName = ""
+
+        // Keep the Timer Recents entry for this timer in sync with the latest name
+        RecentTimerStore.renameMatching(
+            durationSeconds: homeTimerConfiguredSeconds,
+            oldName: RecentTimerStore.normalizedName(previousName),
+            newName: RecentTimerStore.normalizedName(trimmedName)
+        )
+
         refreshHomeTimerAlarm(requestAuthorization: false)
     }
 
