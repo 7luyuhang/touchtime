@@ -27,6 +27,8 @@ struct SetTimerSheet: View {
     @State private var recentTimers: [RecentTimer]
     // Name to restore when starting a timer from Recents; nil when starting from the picker
     @State private var pendingTimerName: String? = nil
+    // Recent whose play button is awaiting the replace confirmation
+    @State private var replaceConfirmationRecentID: UUID? = nil
     @State private var showRenameRecentAlert = false
     @State private var renameRecentNameInput = ""
     @State private var renameTargetRecentID: UUID? = nil
@@ -81,7 +83,8 @@ struct SetTimerSheet: View {
         activeDetent == .large
     }
 
-    private func requestTimerStart() {
+    private func startTimerFromPicker() {
+        pendingTimerName = nil
         if requiresReplacementConfirmation {
             showReplaceTimerConfirmation = true
         } else {
@@ -108,7 +111,11 @@ struct SetTimerSheet: View {
         }
         selectedDuration = min(max(recent.durationSeconds, 1), Self.maxDurationSeconds)
         pendingTimerName = recent.name ?? ""
-        requestTimerStart()
+        if requiresReplacementConfirmation {
+            replaceConfirmationRecentID = recent.id
+        } else {
+            confirmTimer()
+        }
     }
 
     private func formattedDuration(_ seconds: Int) -> String {
@@ -193,8 +200,7 @@ struct SetTimerSheet: View {
                 if !isShowingRecents {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button {
-                            pendingTimerName = nil
-                            requestTimerStart()
+                            startTimerFromPicker()
                         } label: {
                             Image(systemName: "play.fill")
                                 .foregroundStyle(totalSeconds == 0 ? .white.opacity(0.50) : .black)
@@ -202,19 +208,16 @@ struct SetTimerSheet: View {
                         .buttonStyle(.borderedProminent)
                         .tint(.white)
                         .disabled(totalSeconds == 0)
+                        .confirmationDialog(
+                            String(localized: "Are you sure you want to replace current timer?"),
+                            isPresented: $showReplaceTimerConfirmation,
+                            titleVisibility: .visible
+                        ) {
+                            Button(String(localized: "Replace"), role: .destructive) {
+                                confirmTimer()
+                            }
+                        }
                     }
-                }
-            }
-            .confirmationDialog(
-                String(localized: "Are you sure you want to replace current timer?"),
-                isPresented: $showReplaceTimerConfirmation,
-                titleVisibility: .visible
-            ) {
-                Button(String(localized: "Replace"), role: .destructive) {
-                    confirmTimer()
-                }
-                Button(String(localized: "Cancel"), role: .cancel) {
-                    pendingTimerName = nil
                 }
             }
             .alert(String(localized: "Rename Timer"), isPresented: $showRenameRecentAlert) {
@@ -321,6 +324,25 @@ struct SetTimerSheet: View {
                             }
                             .buttonStyle(.plain)
                             .glassEffect(.regular.tint(.white).interactive(), in: Circle())
+                            .confirmationDialog(
+                                String(localized: "Are you sure you want to replace current timer?"),
+                                isPresented: Binding(
+                                    get: { replaceConfirmationRecentID == recent.id },
+                                    set: { isPresented in
+                                        if !isPresented {
+                                            replaceConfirmationRecentID = nil
+                                        }
+                                    }
+                                ),
+                                titleVisibility: .visible
+                            ) {
+                                Button(String(localized: "Replace"), role: .destructive) {
+                                    confirmTimer()
+                                }
+                                Button(String(localized: "Cancel"), role: .cancel) {
+                                    pendingTimerName = nil
+                                }
+                            }
                         }
                         .padding(.vertical, 4)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
