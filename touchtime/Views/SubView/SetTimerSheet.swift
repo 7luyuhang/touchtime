@@ -38,6 +38,7 @@ struct SetTimerSheet: View {
     @State private var showRenameRecentAlert = false
     @State private var renameRecentNameInput = ""
     @State private var renameTargetRecentID: UUID? = nil
+    @State private var showRemoveAllRecentsConfirmation = false
 
     init(
         initialDurationSeconds: Int,
@@ -165,6 +166,15 @@ struct SetTimerSheet: View {
         }
     }
 
+    private func deleteAllRecentTimers() {
+        recentTimers.removeAll()
+        RecentTimerStore.save(recentTimers)
+
+        if hapticEnabled {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+    }
+
     private func beginRename(for recent: RecentTimer) {
         renameTargetRecentID = recent.id
         renameRecentNameInput = recent.name ?? ""
@@ -247,6 +257,27 @@ struct SetTimerSheet: View {
                         ) {
                             Button(String(localized: "Replace"), role: .destructive) {
                                 confirmTimer()
+                            }
+                        }
+                    }
+                } else if !recentTimers.isEmpty {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Menu {
+                            Button(role: .destructive) {
+                                showRemoveAllRecentsConfirmation = true
+                            } label: {
+                                Label(String(localized: "Remove All"), systemImage: "minus.circle")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                        }
+                        .confirmationDialog(
+                            String(localized: "Are you sure want to remove all recent timers?"),
+                            isPresented: $showRemoveAllRecentsConfirmation,
+                            titleVisibility: .visible
+                        ) {
+                            Button(String(localized: "Remove"), role: .destructive) {
+                                deleteAllRecentTimers()
                             }
                         }
                     }
@@ -339,10 +370,7 @@ struct SetTimerSheet: View {
                                     .animation(.smooth(duration: 0.25), value: recent.name)
                                     .blendMode(.plusLighter)
 
-                                Text(formattedDuration(recent.durationSeconds))
-                                    .font(.headline)
-                                    .foregroundStyle(.primary)
-                                    .monospacedDigit()
+                                recentDurationText(for: recent)
                             }
 
                             Spacer()
@@ -381,6 +409,28 @@ struct SetTimerSheet: View {
             }
             .listSectionSpacing(12) // List paddings
             .scrollIndicators(.hidden)
+        }
+    }
+
+    /// Duration label for a Recents row. While the row's timer is running it
+    /// counts down live.
+    @ViewBuilder
+    private func recentDurationText(for recent: RecentTimer) -> some View {
+        if matchesHomeTimer(recent) {
+            TimelineView(.periodic(from: .now, by: 1)) { context in
+                let remaining = homeTimerRemainingSeconds(at: context.date)
+                Text(formattedDuration(remaining > 0 ? remaining : recent.durationSeconds))
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                    .monospacedDigit()
+                    .contentTransition(.numericText(countsDown: true))
+                    .animation(.smooth(duration: 0.20), value: remaining)
+            }
+        } else {
+            Text(formattedDuration(recent.durationSeconds))
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .monospacedDigit()
         }
     }
 

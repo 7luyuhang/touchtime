@@ -46,7 +46,7 @@ struct SunriseSunsetSheet: View {
     @State private var sunTimes: (sunrise: Date?, sunset: Date?)?
     @State private var eveningGoldenHour: (start: Date?, end: Date?)?
     @State private var moonInfo: (moonrise: Date?, moonset: Date?, phase: String, phaseIcon: String)?
-    @State private var selectedMoonPhaseIcon = "moonphase.full.moon" // Phase shown in the "Next ..." row
+    @AppStorage("selectedMoonPhaseIcon") private var selectedMoonPhaseIcon = "moonphase.full.moon" // Phase shown in the "Next ..." row
     @State private var upcomingMoonPhases: [UpcomingMoonPhase] = []
     @State private var isMoonPhasesExpanded = false // Track upcoming phases expansion
     @State private var astronomyDayCacheKey: String = ""
