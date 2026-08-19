@@ -4,9 +4,9 @@
 //
 //  Introduces the home screen widgets with 1:1 previews of the small
 //  City Time widget, the medium World Cities widget, the small Daylight
-//  widget (in its transparent home screen appearance) and the small
-//  Moon Phase widget (with the phase name shown), shown in a swipeable
-//  carousel.
+//  widget (in its transparent home screen appearance), the small
+//  Moon Phase widget (with the phase name shown) and the small Moon
+//  Calendar widget, shown in a swipeable carousel.
 //
 
 import SwiftUI
@@ -23,12 +23,13 @@ private enum WidgetPreviewComplication {
     case solarCurve
 }
 
-// The four pages of the widget preview carousel
+// The five pages of the widget preview carousel
 private enum WidgetPreviewPage: CaseIterable {
     case small
     case medium
     case daylight
     case moonPhase
+    case moonCalendar
 
     // Matches each widget's configurationDisplayName in the extension
     var widgetName: String {
@@ -37,6 +38,7 @@ private enum WidgetPreviewPage: CaseIterable {
         case .medium: String(localized: "World Cities")
         case .daylight: String(localized: "Daylight")
         case .moonPhase: String(localized: "Moon Phase")
+        case .moonCalendar: String(localized: "Moon Calendar")
         }
     }
 }
@@ -172,6 +174,21 @@ struct WidgetIntroSheet: View {
                                     )
                                     .frame(width: pageWidth)
                                     .id(WidgetPreviewPage.moonPhase)
+
+                                // Small Moon Calendar widget: the whole month's
+                                // moon phases with a dot under today, revealed
+                                // with the other trailing pages
+                                MoonCalendarWidgetPreview(date: context.date)
+                                    .brightness(animateTrailingWidgets ? 0 : 0.50)
+                                    .blur(radius: animateTrailingWidgets ? 0 : 25)
+                                    .scaleEffect(animateTrailingWidgets ? 1.0 : 0.5)
+                                    .opacity(animateTrailingWidgets ? 1.0 : 0.0)
+                                    .offset(y: animateTrailingWidgets ? 0 : 50)
+                                    .animation(
+                                        .bouncy(duration: 1.0), value: animateTrailingWidgets
+                                    )
+                                    .frame(width: pageWidth)
+                                    .id(WidgetPreviewPage.moonCalendar)
                             }
                             .scrollTargetLayout()
                         }
@@ -756,6 +773,130 @@ private struct MoonPhaseWidgetPreview: View {
         }
         .padding(Self.contentInset)
         .foregroundStyle(.white)
+        .frame(width: Self.widgetSize, height: Self.widgetSize)
+        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+    }
+}
+
+// 1:1 replica of the small Moon Calendar widget (MoonCalendarWidgetView):
+// the current month as a grid of moon phases in the same Monday-first
+// weekday-aligned layout as the app's Moon Phase calendar — no weekday
+// headers or day numbers — with a small dot under today's moon.
+private struct MoonCalendarWidgetPreview: View {
+    let date: Date
+
+    private static let widgetSize: CGFloat = widgetPreviewHeight
+    private static let cornerRadius: CGFloat = 28
+    // Same 14pt content inset as the real widget
+    private static let contentInset: CGFloat = 14
+    // Same crop as the real widget: the moon disc only spans ~86% of the
+    // source photo, the rest is black margin. Scaling inside the circular
+    // clip crops that margin away.
+    private static let discCropScale: CGFloat = 1.18
+
+    private static let columnSpacing: CGFloat = 4
+    private static let rowSpacing: CGFloat = 2
+    private static let dotGap: CGFloat = 2
+    private static let dotSize: CGFloat = 3
+
+    private struct MonthInfo {
+        /// nil for the blank slots before the 1st, then one image name per day.
+        let cells: [String?]
+        let todayIndex: Int
+    }
+
+    // Memoized per day: the grid only changes at midnight, no need to
+    // recompute the whole month on every minute tick of the TimelineView.
+    private static var cachedInfo: (day: Date, info: MonthInfo)?
+
+    // Same math as MoonCalendarWidgetProvider in the widget extension:
+    // day-start ages via the lightweight MoonAstronomy, rounded to the
+    // moon_age_00...29 assets, Monday-first leading blanks.
+    private static func monthInfo(for date: Date) -> MonthInfo {
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: date)
+        if let cached = cachedInfo, cached.day == day {
+            return cached.info
+        }
+
+        let monthStart = calendar.date(
+            from: calendar.dateComponents([.year, .month], from: date)
+        ) ?? date
+        let dayCount = calendar.range(of: .day, in: .month, for: date)?.count ?? 30
+
+        let weekdayOfFirst = calendar.component(.weekday, from: monthStart) // 1 = Sunday
+        let leadingBlanks = (weekdayOfFirst + 5) % 7
+
+        var cells: [String?] = Array(repeating: nil, count: leadingBlanks)
+        for offset in 0..<dayCount {
+            let dayStart = calendar.date(byAdding: .day, value: offset, to: monthStart) ?? monthStart
+            let age = MoonAstronomy.snapshot(for: dayStart).ageDays
+            cells.append(String(format: "moon_age_%02d", Int(age.rounded()) % 30))
+        }
+
+        let info = MonthInfo(
+            cells: cells,
+            todayIndex: leadingBlanks + calendar.component(.day, from: date) - 1
+        )
+        cachedInfo = (day, info)
+        return info
+    }
+
+    private static func rows(for info: MonthInfo) -> [[(index: Int, imageName: String?)]] {
+        let cells = info.cells.enumerated().map { (index: $0.offset, imageName: $0.element) }
+        return stride(from: 0, to: cells.count, by: 7).map {
+            Array(cells[$0..<min($0 + 7, cells.count)])
+        }
+    }
+
+    var body: some View {
+        let info = Self.monthInfo(for: date)
+
+        // Same space-driven cell sizing as the real widget: weekday-aligned
+        // months span 4 to 6 rows, so the cells adapt instead of overflowing.
+        GeometryReader { geometry in
+            let rows = Self.rows(for: info)
+            let rowCount = CGFloat(rows.count)
+            let cellWidth = (geometry.size.width - Self.columnSpacing * 6) / 7
+            let cellHeight = (geometry.size.height - Self.rowSpacing * (rowCount - 1)) / rowCount
+            let moonSize = min(cellWidth, cellHeight - Self.dotGap - Self.dotSize)
+
+            VStack(spacing: Self.rowSpacing) {
+                ForEach(Array(rows.enumerated()), id: \.offset) { _, row in
+                    HStack(spacing: Self.columnSpacing) {
+                        ForEach(row, id: \.index) { cell in
+                            VStack(spacing: Self.dotGap) {
+                                if let imageName = cell.imageName {
+                                    Image(imageName)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .scaleEffect(Self.discCropScale)
+                                        .clipShape(Circle())
+                                        .grayscale(1)
+                                        .blendMode(.plusLighter)
+                                        .frame(width: moonSize, height: moonSize)
+                                } else {
+                                    // Blank slot before the 1st of the month
+                                    Color.clear
+                                        .frame(width: moonSize, height: moonSize)
+                                }
+
+                                // Today marker; kept in every cell (opacity 0
+                                // elsewhere) so all rows keep the same height.
+                                Circle()
+                                    .fill(.white)
+                                    .frame(width: Self.dotSize, height: Self.dotSize)
+                                    .opacity(cell.index == info.todayIndex ? 1 : 0)
+                            }
+                            .frame(width: cellWidth, height: cellHeight)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+        .padding(Self.contentInset)
         .frame(width: Self.widgetSize, height: Self.widgetSize)
         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
     }

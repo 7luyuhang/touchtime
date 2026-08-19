@@ -269,6 +269,22 @@
         }
       }
     },
+    "Moon Calendar" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月相日历"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月相日曆"
+          }
+        }
+      }
+    },
     "Moon Phase" : {
       "localizations" : {
         "zh-Hans" : {
@@ -431,6 +447,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "將輕點的城市的天空顯示為小組件背景。"
+          }
+        }
+      }
+    },
+    "Shows this month's moon phases with today marked." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示本月的月相，并标记今天。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示本月的月相，並標記今天。"
           }
         }
       }

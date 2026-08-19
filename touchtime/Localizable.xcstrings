@@ -8769,6 +8769,22 @@
         }
       }
     },
+    "Moon Calendar" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月相日历"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月相日曆"
+          }
+        }
+      }
+    },
     "Moon Phase" : {
       "localizations" : {
         "zh-Hans" : {
