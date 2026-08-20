@@ -81,21 +81,35 @@ struct MoonPhaseDetailsView: View {
         MoonAstronomy.snapshot(for: displayedDate)
     }
 
-    // Image and phase for the displayed day: prefer the shared cache so the
-    // sheet always matches the calendar grid, fall back to the lightweight
+    // Phase for the displayed day: prefer the shared cache so the title
+    // always matches the calendar grid, fall back to the lightweight
     // computation while the cache warms up.
-    private var displayedDayInfo: (imageName: String, phase: MoonPhase) {
+    private var displayedDayPhase: MoonPhase {
         if let cached = MoonPhaseCache.shared.dayInfo(for: displayedDate, calendar: calendar) {
-            return (cached.imageName, cached.phase)
+            return cached.phase
         }
-        let dayStartAge = MoonAstronomy.snapshot(for: calendar.startOfDay(for: displayedDate))
-        let imageIndex = Int(dayStartAge.ageDays.rounded()) % 30
-        let phase = MoonPhase.ageOfTheMoonDegrees2MoonPhase(snapshot.ageDegrees)
-        return (String(format: "moon_age_%02d", imageIndex), phase)
+        return MoonPhase.ageOfTheMoonDegrees2MoonPhase(snapshot.ageDegrees)
     }
 
     private var phaseTitle: String {
-        MoonPhaseView.phaseName(for: displayedDayInfo.phase) ?? ""
+        MoonPhaseView.phaseName(for: displayedDayPhase) ?? ""
+    }
+
+    /// Number of bundled moon_scrub frames: one per ~6 hours of moon age,
+    /// sampled age-uniformly from NASA SVS's hourly renders by
+    /// scripts/fetch_moon_scrub_frames.py.
+    private static let scrubFrameCount = 118
+    /// Mean synodic month length in days, the age span the frames cover.
+    private static let synodicMonthDays = 29.530589
+
+    // Frame for the instantaneous moon age. Unlike the calendar grid's 30
+    // daily moon_age images, the scrub set advances every quarter day —
+    // the same spacing as the haptic ticks — so the moon changes
+    // continuously while scrubbing.
+    private var moonImageName: String {
+        let steps = snapshot.ageDays / Self.synodicMonthDays * Double(Self.scrubFrameCount)
+        let index = Int(steps.rounded()) % Self.scrubFrameCount
+        return String(format: "moon_scrub_%03d", index)
     }
 
     private var illuminationText: String {
@@ -171,14 +185,14 @@ struct MoonPhaseDetailsView: View {
     // MARK: Sub Views
 
     private var moonImage: some View {
-        Image(displayedDayInfo.imageName)
+        Image(moonImageName)
             .resizable()
             .scaledToFill()
             .scaleEffect(Self.discCropScale)
             .frame(width: Self.moonSize, height: Self.moonSize)
             .clipShape(Circle())
             .grayscale(1)
-            .id(displayedDayInfo.imageName)
+            .id(moonImageName)
             .transition(.opacity)
     }
 
@@ -428,8 +442,8 @@ struct MoonPhaseDetailsView: View {
         }
     }
 
-    // Keep MoonPhaseCache warm around the displayed day so the image and
-    // phase name stay consistent with the calendar grid while scrubbing.
+    // Keep MoonPhaseCache warm around the displayed day so the phase name
+    // stays consistent with the calendar grid while scrubbing.
     // The age math is cheap enough to run inline, which also means the cache
     // is warm before this sheet's first frame instead of a version bump
     // re-rendering it mid-presentation.
@@ -455,8 +469,11 @@ struct MoonPhaseDetailsView: View {
             VStack(spacing: 24) {
                 Spacer(minLength: 0)
 
+                // Quick cross-fade: frames are a quarter day apart, so fades
+                // chain densely during a fast scrub and a longer duration
+                // would stack many partially-faded moons on top of each other.
                 moonImage
-                    .animation(.spring(duration: 0.35), value: displayedDayInfo.imageName)
+                    .animation(.easeInOut(duration: 0.15), value: moonImageName)
                     .shadow(color: .white.opacity(0.10), radius: 50)
                     // Last so opacity/shadow don't flatten it into an isolated layer.
                     .blendMode(.plusLighter)
@@ -559,7 +576,7 @@ struct MoonPhaseDetailsView: View {
                 return
             }
             // iOS may purge the NSCache-backed moon data while backgrounded;
-            // re-prefetch so the image doesn't fall back mid-scrub.
+            // re-prefetch so the phase title doesn't fall back mid-scrub.
             prefetchIfNeeded(force: true)
         }
     }
