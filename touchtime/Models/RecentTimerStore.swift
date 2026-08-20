@@ -33,14 +33,16 @@ enum RecentTimerStore {
         UserDefaults.standard.set(data, forKey: storageKey)
     }
 
-    /// Inserts a started timer at the front, keeping duration + name unique
-    /// and capping the history size. Returns the updated list.
+    /// Inserts a newly started timer at the front, capping the history size.
+    /// Restarting a timer already in the list keeps it at its current
+    /// position instead of moving it to the top. Returns the updated list.
     @discardableResult
     static func remember(durationSeconds: Int, name: String?) -> [RecentTimer] {
         guard durationSeconds > 0 else { return load() }
 
-        var timers = load().filter {
-            !($0.durationSeconds == durationSeconds && $0.name == name)
+        var timers = load()
+        if timers.contains(where: { $0.durationSeconds == durationSeconds && $0.name == name }) {
+            return timers
         }
         timers.insert(
             RecentTimer(id: UUID(), durationSeconds: durationSeconds, name: name, lastUsedAt: Date()),
