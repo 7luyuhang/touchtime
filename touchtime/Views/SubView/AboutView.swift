@@ -142,7 +142,17 @@ struct AboutView: View {
                     showResetConfirmation = true
                 }) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                        // Same metrics as SystemIconImage's plain style, but
+                        // red.gradient instead of its two-color LinearGradient
+                        Image(systemName: "arrowshape.backward.fill")
+                            .symbolRenderingMode(.monochrome)
+                            .font(.system(size: 22))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(
+                                Color.red.gradient
+                                    .shadow(.inner(color: .white.opacity(0.50), radius: 0, x: 0, y: 0.50))
+                            )
+                            .frame(width: 28, height: 28)
                         Text(didResetSuccessfully ? "Reset Successfully" : "Reset Cities")
                             .contentTransition(.numericText())
                     }

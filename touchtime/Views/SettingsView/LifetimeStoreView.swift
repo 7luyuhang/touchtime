@@ -578,7 +578,7 @@ private struct ShowcaseStepCaption: View {
     var body: some View {
         VStack(alignment: .leading) {
             Image(systemName: "\(number).circle.fill")
-                .font(.headline)
+                .font(.title3.weight(.semibold))
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
 
