@@ -435,24 +435,7 @@ struct MoonPhaseView: View {
                             .animation(.spring(), value: phaseName)
                     }
                 }
-                
-                ToolbarItem(placement: .topBarTrailing) {
-                    if selectedMonthIndex != 1 {
-                        Button {
-                            if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
-                            withAnimation(.spring()) {
-                                selectedMonthIndex = 1
-                            }
-                        } label: {
-                            Image(systemName: selectedMonthIndex < 1 ? "arrow.forward" : "arrow.backward")
-                                .font(.headline)
-                        }
-                    }
-                }
             }
-            .animation(.spring(), value: selectedMonthIndex != 1)
             .presentationDetents([.height(600)]) // Sheet Height
             .sheet(item: $detailsSelection) { selection in
                 MoonPhaseDetailsView(
