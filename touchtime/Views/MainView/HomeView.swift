@@ -98,6 +98,7 @@ struct HomeView: View {
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
+    @State private var showCountdownSheet = false
     @State private var showComplicationsSheet = false
     @State private var showWidgetIntroSheet = false
     @State private var showEarthView = false
@@ -1626,6 +1627,17 @@ struct HomeView: View {
                                     impactFeedback.prepare()
                                     impactFeedback.impactOccurred()
                                 }
+                                showCountdownSheet = true
+                            }) {
+                                Label(String(localized: "Countdown"), systemImage: "hourglass")
+                            }
+
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
                                 showComplicationsSheet = true
                             }) {
                                 Label(String(localized: "Complications"), systemImage: "watch.analog")
@@ -1860,6 +1872,11 @@ struct HomeView: View {
                     },
                     onPlayPause: handleHomeTimerTap
                 )
+            }
+
+            // Countdown Sheet
+            .sheet(isPresented: $showCountdownSheet) {
+                CountdownSheet()
             }
 
             // Complications Sheet
