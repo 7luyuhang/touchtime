@@ -36,6 +36,7 @@ struct CountdownSheet: View {
     @State private var editingCountdown: CountdownItem? = nil
     @State private var selectedDetent: PresentationDetent = .medium
     @State private var filter: CountdownFilter? = nil
+    @Namespace private var editorTransition
 
     private var unitOptions: CountdownUnitOptions {
         CountdownUnitOptions(years: showYears, months: showMonths, days: showDays)
@@ -154,6 +155,7 @@ struct CountdownSheet: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.blue)
+                        .matchedTransitionSource(id: "newCountdown", in: editorTransition)
                     }
                 }
         }
@@ -161,6 +163,7 @@ struct CountdownSheet: View {
             CountdownEditorSheet { title, targetDate in
                 addCountdown(title: title, targetDate: targetDate)
             }
+            .navigationTransition(.zoom(sourceID: "newCountdown", in: editorTransition))
         }
         .sheet(item: $editingCountdown) { item in
             CountdownEditorSheet(countdown: item, onDelete: {
@@ -309,8 +312,7 @@ struct CountdownSheet: View {
     }
 
     private func addCountdown(title: String, targetDate: Date) {
-        let normalizedDate = Calendar.current.startOfDay(for: targetDate)
-        let item = CountdownItem(id: UUID(), title: title, targetDate: normalizedDate, createdAt: Date())
+        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date())
         withAnimation(.spring()) {
             countdowns.append(item)
         }
@@ -331,7 +333,7 @@ struct CountdownSheet: View {
         guard let index = countdowns.firstIndex(where: { $0.id == item.id }) else { return }
         withAnimation(.spring()) {
             countdowns[index].title = title
-            countdowns[index].targetDate = Calendar.current.startOfDay(for: targetDate)
+            countdowns[index].targetDate = targetDate
         }
         CountdownStore.save(countdowns)
         triggerHaptic()
@@ -502,9 +504,7 @@ private struct CountdownEditorSheet: View {
 
     private var hasChanges: Bool {
         guard let original else { return false }
-        let calendar = Calendar.current
-        return trimmedTitle != original.title
-            || calendar.startOfDay(for: targetDate) != calendar.startOfDay(for: original.targetDate)
+        return trimmedTitle != original.title || targetDate != original.targetDate
     }
 
     var body: some View {
@@ -521,6 +521,13 @@ private struct CountdownEditorSheet: View {
                         String(localized: "Date"),
                         selection: $targetDate,
                         displayedComponents: [.date]
+                    )
+                    .datePickerStyle(.compact)
+
+                    DatePicker(
+                        String(localized: "Time"),
+                        selection: $targetDate,
+                        displayedComponents: [.hourAndMinute]
                     )
                     .datePickerStyle(.compact)
                 }
