@@ -493,11 +493,12 @@ private struct CountdownEditorSheet: View {
         self.onDelete = onDelete
         self.original = countdown
         _title = State(initialValue: countdown?.title ?? "")
-        _targetDate = State(
-            initialValue: countdown?.targetDate
-                ?? Calendar.current.date(byAdding: .day, value: 1, to: .now)
-                ?? .now
-        )
+
+        // New countdowns default to tomorrow at 10:00 AM.
+        let calendar = Calendar.current
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: .now) ?? .now
+        let defaultDate = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: tomorrow) ?? tomorrow
+        _targetDate = State(initialValue: countdown?.targetDate ?? defaultDate)
     }
 
     private var trimmedTitle: String {
