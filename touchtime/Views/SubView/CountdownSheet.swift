@@ -437,6 +437,7 @@ private struct CountdownRow: View {
                     .foregroundStyle(.secondary)
                     .lineLimit(1)
                     .blendMode(.plusLighter)
+                    .contentTransition(.numericText())
 
                 if item.isPinned {
                     Spacer()
@@ -451,6 +452,7 @@ private struct CountdownRow: View {
             Text(countText)
                 .font(.headline)
                 .foregroundStyle(.primary)
+                .contentTransition(.numericText())
 
             Group {
                 if isTargetInCurrentYear {
@@ -462,6 +464,7 @@ private struct CountdownRow: View {
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .blendMode(.plusLighter)
+            .contentTransition(.numericText())
         }
     }
 }
@@ -478,6 +481,7 @@ private struct CountdownEditorSheet: View {
 
     @State private var title: String
     @State private var targetDate: Date
+    @State private var showDiscardDialog = false
 
     private var isEditing: Bool {
         original != nil
@@ -540,9 +544,23 @@ private struct CountdownEditorSheet: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         triggerHaptic()
-                        dismiss()
+                        if !isEditing && !trimmedTitle.isEmpty {
+                            showDiscardDialog = true
+                        } else {
+                            dismiss()
+                        }
                     } label: {
                         Image(systemName: "xmark")
+                    }
+                    .confirmationDialog(
+                        String(localized: "Are you sure you want to discard this countdown?"),
+                        isPresented: $showDiscardDialog,
+                        titleVisibility: .visible
+                    ) {
+                        Button(String(localized: "Discard"), role: .destructive) {
+                            triggerHaptic()
+                            dismiss()
+                        }
                     }
                 }
 
@@ -574,6 +592,7 @@ private struct CountdownEditorSheet: View {
                 }
             }
         }
+        .interactiveDismissDisabled(!isEditing && !trimmedTitle.isEmpty)
     }
 
     private func saveAndDismiss() {
