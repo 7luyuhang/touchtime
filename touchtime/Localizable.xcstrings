@@ -10413,6 +10413,22 @@
         }
       }
     },
+    "Pin" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置顶"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置頂"
+          }
+        }
+      }
+    },
     "Pitcairn" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14155,6 +14171,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "解鎖全部複雜功能、可用時間以及更多內容。"
+          }
+        }
+      }
+    },
+    "Unpin" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消置顶"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "取消置頂"
           }
         }
       }

@@ -231,6 +231,15 @@ struct CountdownSheet: View {
                         }
                         .contextMenu {
                             Button {
+                                togglePin(item)
+                            } label: {
+                                Label(
+                                    item.isPinned ? String(localized: "Unpin") : String(localized: "Pin"),
+                                    systemImage: item.isPinned ? "pin.slash" : "pin"
+                                )
+                            }
+
+                            Button {
                                 triggerHaptic()
                                 editingCountdown = item
                             } label: {
@@ -275,9 +284,13 @@ struct CountdownSheet: View {
         }
     }
 
-    /// Upcoming countdowns first (soonest at the top), past dates after (most recent first).
+    /// Pinned countdowns first, then upcoming ones (soonest at the top),
+    /// past dates after (most recent first).
     private func sortedCountdowns(at now: Date) -> [CountdownItem] {
         countdowns.sorted { lhs, rhs in
+            if lhs.isPinned != rhs.isPinned {
+                return lhs.isPinned
+            }
             let lhsPast = isPast(lhs, at: now)
             let rhsPast = isPast(rhs, at: now)
             if lhsPast != rhsPast {
@@ -295,6 +308,15 @@ struct CountdownSheet: View {
         let item = CountdownItem(id: UUID(), title: title, targetDate: normalizedDate, createdAt: Date())
         withAnimation(.spring()) {
             countdowns.append(item)
+        }
+        CountdownStore.save(countdowns)
+        triggerHaptic()
+    }
+
+    private func togglePin(_ item: CountdownItem) {
+        guard let index = countdowns.firstIndex(where: { $0.id == item.id }) else { return }
+        withAnimation(.spring()) {
+            countdowns[index].isPinned.toggle()
         }
         CountdownStore.save(countdowns)
         triggerHaptic()
@@ -405,11 +427,22 @@ private struct CountdownRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(item.title)
-                .font(.subheadline.weight(.medium))
-                .foregroundStyle(.secondary)
-                .lineLimit(1)
-                .blendMode(.plusLighter)
+            HStack {
+                Text(item.title)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .blendMode(.plusLighter)
+
+                if item.isPinned {
+                    Spacer()
+
+                    Image(systemName: "pin.fill")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                        .blendMode(.plusLighter)
+                }
+            }
 
             Text(countText)
                 .font(.headline)
