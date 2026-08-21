@@ -8,13 +8,70 @@
 import SwiftUI
 import UIKit
 
+/// Units shown on each countdown row. Days is the default; years and
+/// months can be toggled on additionally, breaking the interval down
+/// cumulatively (e.g. 400 days shown as "13 months 4 days").
+private struct CountdownUnitOptions {
+    var years: Bool
+    var months: Bool
+    var days: Bool
+}
+
 struct CountdownSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("countdownShowYears") private var showYears = false
+    @AppStorage("countdownShowMonths") private var showMonths = false
+    @AppStorage("countdownShowDays") private var showDays = true
 
     @State private var countdowns: [CountdownItem] = CountdownStore.load()
     @State private var showEditorSheet = false
     @State private var editingCountdown: CountdownItem? = nil
+    @State private var selectedDetent: PresentationDetent = .medium
+
+    private var unitOptions: CountdownUnitOptions {
+        CountdownUnitOptions(years: showYears, months: showMonths, days: showDays)
+    }
+
+    // Each toggle refuses to turn off when it is the last one enabled.
+    private var yearsBinding: Binding<Bool> {
+        Binding(
+            get: {
+                showYears
+            },
+            set: { newValue in
+                guard newValue || showMonths || showDays else { return }
+                showYears = newValue
+                triggerHaptic()
+            }
+        )
+    }
+
+    private var monthsBinding: Binding<Bool> {
+        Binding(
+            get: {
+                showMonths
+            },
+            set: { newValue in
+                guard newValue || showYears || showDays else { return }
+                showMonths = newValue
+                triggerHaptic()
+            }
+        )
+    }
+
+    private var daysBinding: Binding<Bool> {
+        Binding(
+            get: {
+                showDays
+            },
+            set: { newValue in
+                guard newValue || showYears || showMonths else { return }
+                showDays = newValue
+                triggerHaptic()
+            }
+        )
+    }
 
     var body: some View {
         NavigationStack {
@@ -28,6 +85,20 @@ struct CountdownSheet: View {
                             dismiss()
                         } label: {
                             Image(systemName: "xmark")
+                        }
+                    }
+
+                    if !countdowns.isEmpty {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Menu {
+                                Section(String(localized: "Time Display")) {
+                                    Toggle(String(localized: "Years"), isOn: yearsBinding)
+                                    Toggle(String(localized: "Months"), isOn: monthsBinding)
+                                    Toggle(String(localized: "Days"), isOn: daysBinding)
+                                }
+                            } label: {
+                                Image(systemName: "ellipsis")
+                            }
                         }
                     }
 
@@ -56,7 +127,12 @@ struct CountdownSheet: View {
                 updateCountdown(item, title: title, targetDate: targetDate)
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.medium, .large], selection: $selectedDetent)
+        .onChange(of: selectedDetent) { oldValue, newValue in
+            if oldValue == .medium && newValue == .large {
+                triggerHaptic()
+            }
+        }
     }
 
     @ViewBuilder
@@ -74,7 +150,7 @@ struct CountdownSheet: View {
                 List {
                     ForEach(sortedCountdowns(at: context.date)) { item in
                         Section {
-                            CountdownRow(item: item, now: context.date)
+                            CountdownRow(item: item, now: context.date, units: unitOptions)
                                 .padding(.vertical, 4)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .contentShape(Rectangle())
@@ -175,6 +251,7 @@ struct CountdownSheet: View {
 private struct CountdownRow: View {
     let item: CountdownItem
     let now: Date
+    let units: CountdownUnitOptions
 
     private var calendar: Calendar {
         Calendar.current
@@ -189,16 +266,49 @@ private struct CountdownRow: View {
         ).day ?? 0
     }
 
-    private var dayCountText: String {
+    /// Interval broken down into the enabled units, largest first,
+    /// skipping zero components (e.g. "1 year 4 days"). Falls back to
+    /// the day count when the target is closer than any enabled unit.
+    private var countText: String {
         if dayDifference == 0 {
             return String(localized: "Today")
         }
-        if dayDifference > 0 {
-            let unit = dayDifference == 1 ? String(localized: "day") : String(localized: "days")
-            return "\(dayDifference) \(unit)"
+
+        var unitSet: Set<Calendar.Component> = []
+        if units.years { unitSet.insert(.year) }
+        if units.months { unitSet.insert(.month) }
+        if units.days { unitSet.insert(.day) }
+
+        let difference = calendar.dateComponents(
+            unitSet,
+            from: calendar.startOfDay(for: now),
+            to: calendar.startOfDay(for: item.targetDate)
+        )
+
+        var parts: [String] = []
+        if let years = difference.year, years != 0 {
+            let unit = abs(years) == 1 ? String(localized: "year") : String(localized: "years")
+            parts.append("\(abs(years)) \(unit)")
         }
-        let unit = dayDifference == -1 ? String(localized: "day ago") : String(localized: "days ago")
-        return "\(-dayDifference) \(unit)"
+        if let months = difference.month, months != 0 {
+            let unit = abs(months) == 1 ? String(localized: "month") : String(localized: "months")
+            parts.append("\(abs(months)) \(unit)")
+        }
+        if let days = difference.day, days != 0 {
+            let unit = abs(days) == 1 ? String(localized: "day") : String(localized: "days")
+            parts.append("\(abs(days)) \(unit)")
+        }
+
+        if parts.isEmpty {
+            let unit = abs(dayDifference) == 1 ? String(localized: "day") : String(localized: "days")
+            parts.append("\(abs(dayDifference)) \(unit)")
+        }
+
+        let joined = parts.joined(separator: " ")
+        if dayDifference < 0 {
+            return String(format: String(localized: "%@ ago"), joined)
+        }
+        return joined
     }
 
     private var isTargetInCurrentYear: Bool {
@@ -213,7 +323,7 @@ private struct CountdownRow: View {
                 .lineLimit(1)
                 .blendMode(.plusLighter)
 
-            Text(dayCountText)
+            Text(countText)
                 .font(.headline)
                 .foregroundStyle(.primary)
 
