@@ -5025,22 +5025,6 @@
         }
       }
     },
-    "Edit Countdown" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "编辑倒计时"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "編輯倒數計時"
-          }
-        }
-      }
-    },
     "Edmonton" : {
       "extractionState" : "manual",
       "localizations" : {

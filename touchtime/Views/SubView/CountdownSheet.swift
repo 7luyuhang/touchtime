@@ -446,6 +446,7 @@ private struct CountdownRow: View {
                         .font(.footnote)
                         .foregroundStyle(.secondary)
                         .blendMode(.plusLighter)
+                        .transition(.blurReplace)
                 }
             }
 
@@ -533,7 +534,7 @@ private struct CountdownEditorSheet: View {
                     .datePickerStyle(.compact)
                 }
             }
-            .navigationTitle(isEditing ? String(localized: "Edit Countdown") : String(localized: "New Countdown"))
+            .navigationTitle(isEditing ? "" : String(localized: "New Countdown"))
             .navigationBarTitleDisplayMode(.inline)
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
