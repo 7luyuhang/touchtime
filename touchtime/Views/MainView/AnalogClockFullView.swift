@@ -41,6 +41,7 @@ struct AnalogClockFullView: View {
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
+    @State private var showCountdownSheet = false
     @State private var showWidgetIntroSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
@@ -753,13 +754,20 @@ struct AnalogClockFullView: View {
 
             Button(action: {
                 triggerMenuHaptic()
-                showWidgetIntroSheet = true
+                showCountdownSheet = true
             }) {
-                Label(String(localized: "Widgets"), systemImage: "widget.small")
+                Label(String(localized: "Countdown"), systemImage: "hourglass")
             }
         }
 
         Divider()
+
+        Button(action: {
+            triggerMenuHaptic()
+            showWidgetIntroSheet = true
+        }) {
+            Label(String(localized: "Widgets"), systemImage: "widget.small")
+        }
 
         // Settings Section
         Button(action: {
@@ -1305,6 +1313,9 @@ struct AnalogClockFullView: View {
                     },
                     onPlayPause: handleHomeTimerTap
                 )
+            }
+            .sheet(isPresented: $showCountdownSheet) {
+                CountdownSheet()
             }
             .sheet(isPresented: $showWidgetIntroSheet) {
                 WidgetIntroSheet()

@@ -1631,32 +1631,32 @@ struct HomeView: View {
                             }) {
                                 Label(String(localized: "Countdown"), systemImage: "hourglass")
                             }
-
-                            Button(action: {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
-                                showComplicationsSheet = true
-                            }) {
-                                Label(String(localized: "Complications"), systemImage: "watch.analog")
-                            }
-
-                            Button(action: {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
-                                showWidgetIntroSheet = true
-                            }) {
-                                Label(String(localized: "Widgets"), systemImage: "widget.small")
-                            }
                         }
 
                         Divider()
-                        
+
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showComplicationsSheet = true
+                        }) {
+                            Label(String(localized: "Complications"), systemImage: "watch.analog")
+                        }
+
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showWidgetIntroSheet = true
+                        }) {
+                            Label(String(localized: "Widgets"), systemImage: "widget.small")
+                        }
+
                         // Settings Section
                         Button(action: {
                             if hapticEnabled {
