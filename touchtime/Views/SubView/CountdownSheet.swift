@@ -36,7 +36,6 @@ struct CountdownSheet: View {
     @State private var editingCountdown: CountdownItem? = nil
     @State private var selectedDetent: PresentationDetent = .medium
     @State private var filter: CountdownFilter? = nil
-    @Namespace private var editorTransition
 
     private var unitOptions: CountdownUnitOptions {
         CountdownUnitOptions(years: showYears, months: showMonths, days: showDays)
@@ -155,7 +154,6 @@ struct CountdownSheet: View {
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(.blue)
-                        .matchedTransitionSource(id: "newCountdown", in: editorTransition)
                     }
                 }
         }
@@ -163,7 +161,6 @@ struct CountdownSheet: View {
             CountdownEditorSheet { title, targetDate in
                 addCountdown(title: title, targetDate: targetDate)
             }
-            .navigationTransition(.zoom(sourceID: "newCountdown", in: editorTransition))
         }
         .sheet(item: $editingCountdown) { item in
             CountdownEditorSheet(countdown: item, onDelete: {
