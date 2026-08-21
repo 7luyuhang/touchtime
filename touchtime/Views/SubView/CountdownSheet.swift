@@ -25,11 +25,17 @@ private enum CountdownFilter {
 }
 
 struct CountdownSheet: View {
+    private enum CountdownSortOrder: String, CaseIterable {
+        case newestFirst
+        case oldestFirst
+    }
+
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("countdownShowYears") private var showYears = false
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
+    @AppStorage("countdownSortOrder") private var countdownSortOrderRawValue = CountdownSortOrder.newestFirst.rawValue
 
     @State private var countdowns: [CountdownItem] = CountdownStore.load()
     @State private var showEditorSheet = false
@@ -39,6 +45,24 @@ struct CountdownSheet: View {
 
     private var unitOptions: CountdownUnitOptions {
         CountdownUnitOptions(years: showYears, months: showMonths, days: showDays)
+    }
+
+    private var countdownSortOrder: CountdownSortOrder {
+        CountdownSortOrder(rawValue: countdownSortOrderRawValue) ?? .newestFirst
+    }
+
+    private var countdownSortOrderBinding: Binding<CountdownSortOrder> {
+        Binding(
+            get: {
+                countdownSortOrder
+            },
+            set: { newValue in
+                withAnimation(.spring()) {
+                    countdownSortOrderRawValue = newValue.rawValue
+                }
+                triggerHaptic()
+            }
+        )
     }
 
     // Each toggle refuses to turn off when it is the last one enabled.
@@ -116,6 +140,29 @@ struct CountdownSheet: View {
                                         }
                                     } label: {
                                         Label(String(localized: "Happened"), systemImage: filter == .happened ? "checkmark.circle" : "")
+                                    }
+                                }
+
+                                if countdowns.count > 1 {
+                                    Section(String(localized: "Sort by")) {
+                                        Button {
+                                            countdownSortOrderBinding.wrappedValue = .newestFirst
+                                        } label: {
+                                            if countdownSortOrder == .newestFirst {
+                                                Label(String(localized: "Newest First"), systemImage: "checkmark.circle")
+                                            } else {
+                                                Text(String(localized: "Newest First"))
+                                            }
+                                        }
+                                        Button {
+                                            countdownSortOrderBinding.wrappedValue = .oldestFirst
+                                        } label: {
+                                            if countdownSortOrder == .oldestFirst {
+                                                Label(String(localized: "Oldest First"), systemImage: "checkmark.circle")
+                                            } else {
+                                                Text(String(localized: "Oldest First"))
+                                            }
+                                        }
                                     }
                                 }
 
@@ -278,7 +325,7 @@ struct CountdownSheet: View {
 
     /// Sorted countdowns narrowed down by the active filter, if any.
     private func displayedCountdowns(at now: Date) -> [CountdownItem] {
-        let sorted = sortedCountdowns(at: now)
+        let sorted = sortedCountdowns
         switch filter {
         case .happening:
             return sorted.filter { !isPast($0, at: now) }
@@ -289,22 +336,19 @@ struct CountdownSheet: View {
         }
     }
 
-    /// Pinned countdowns first, then upcoming ones (soonest at the top),
-    /// past dates after (most recent first).
-    private func sortedCountdowns(at now: Date) -> [CountdownItem] {
+    /// Pinned countdowns first, then by creation date according to the
+    /// selected sort order.
+    private var sortedCountdowns: [CountdownItem] {
         countdowns.sorted { lhs, rhs in
             if lhs.isPinned != rhs.isPinned {
                 return lhs.isPinned
             }
-            let lhsPast = isPast(lhs, at: now)
-            let rhsPast = isPast(rhs, at: now)
-            if lhsPast != rhsPast {
-                return !lhsPast
+            switch countdownSortOrder {
+            case .newestFirst:
+                return lhs.createdAt > rhs.createdAt
+            case .oldestFirst:
+                return lhs.createdAt < rhs.createdAt
             }
-            if lhsPast {
-                return lhs.targetDate > rhs.targetDate
-            }
-            return lhs.targetDate < rhs.targetDate
         }
     }
 
