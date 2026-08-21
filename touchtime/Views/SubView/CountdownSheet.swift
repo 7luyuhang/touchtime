@@ -163,9 +163,14 @@ struct CountdownSheet: View {
             }
         }
         .sheet(item: $editingCountdown) { item in
-            CountdownEditorSheet(countdown: item) { title, targetDate in
+            CountdownEditorSheet(countdown: item, onDelete: {
+                deleteCountdown(item)
+            }) { title, targetDate in
                 updateCountdown(item, title: title, targetDate: targetDate)
             }
+            // Force a fresh view identity per item, otherwise SwiftUI reuses
+            // the sheet content and @State keeps the previous item's values.
+            .id(item.id)
         }
         .presentationDetents([.medium, .large], selection: $selectedDetent)
         .onChange(of: selectedDetent) { oldValue, newValue in
@@ -469,14 +474,20 @@ private struct CountdownEditorSheet: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
     let onSave: (String, Date) -> Void
-    private let isEditing: Bool
+    let onDelete: (() -> Void)?
+    private let original: CountdownItem?
 
     @State private var title: String
     @State private var targetDate: Date
 
-    init(countdown: CountdownItem? = nil, onSave: @escaping (String, Date) -> Void) {
+    private var isEditing: Bool {
+        original != nil
+    }
+
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date) -> Void) {
         self.onSave = onSave
-        self.isEditing = countdown != nil
+        self.onDelete = onDelete
+        self.original = countdown
         _title = State(initialValue: countdown?.title ?? "")
         _targetDate = State(
             initialValue: countdown?.targetDate
@@ -487,6 +498,13 @@ private struct CountdownEditorSheet: View {
 
     private var trimmedTitle: String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var hasChanges: Bool {
+        guard let original else { return false }
+        let calendar = Calendar.current
+        return trimmedTitle != original.title
+            || calendar.startOfDay(for: targetDate) != calendar.startOfDay(for: original.targetDate)
     }
 
     var body: some View {
@@ -509,6 +527,11 @@ private struct CountdownEditorSheet: View {
             }
             .navigationTitle(isEditing ? String(localized: "Edit Countdown") : String(localized: "New Countdown"))
             .navigationBarTitleDisplayMode(.inline)
+            .onDisappear {
+                // No explicit save button when editing: commit changes on dismiss.
+                guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
+                onSave(trimmedTitle, targetDate)
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
@@ -520,13 +543,30 @@ private struct CountdownEditorSheet: View {
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(role: .confirm) {
-                        saveAndDismiss()
-                    } label: {
-                        Image(systemName: isEditing ? "checkmark" : "plus")
-                            .foregroundStyle(.white)
+                    if isEditing {
+                        Menu {
+                            Menu {
+                                Button(role: .destructive) {
+                                    onDelete?()
+                                    dismiss()
+                                } label: {
+                                    Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                                }
+                            } label: {
+                                Label(String(localized: "Remove"), systemImage: "minus.circle")
+                            }
+                        } label: {
+                            Image(systemName: "ellipsis")
+                        }
+                    } else {
+                        Button(role: .confirm) {
+                            saveAndDismiss()
+                        } label: {
+                            Image(systemName: "plus")
+                                .foregroundStyle(.white)
+                        }
+                        .disabled(trimmedTitle.isEmpty)
                     }
-                    .disabled(trimmedTitle.isEmpty)
                 }
             }
         }
