@@ -17,6 +17,13 @@ private struct CountdownUnitOptions {
     var days: Bool
 }
 
+/// List filter: upcoming countdowns (today or later) vs. past ones.
+/// `nil` means no filter, showing everything.
+private enum CountdownFilter {
+    case happening
+    case happened
+}
+
 struct CountdownSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -28,6 +35,7 @@ struct CountdownSheet: View {
     @State private var showEditorSheet = false
     @State private var editingCountdown: CountdownItem? = nil
     @State private var selectedDetent: PresentationDetent = .medium
+    @State private var filter: CountdownFilter? = nil
 
     private var unitOptions: CountdownUnitOptions {
         CountdownUnitOptions(years: showYears, months: showMonths, days: showDays)
@@ -91,10 +99,42 @@ struct CountdownSheet: View {
                     if !countdowns.isEmpty {
                         ToolbarItem(placement: .topBarTrailing) {
                             Menu {
+                                Section(String(localized: "Filter")) {
+                                    Button {
+                                        triggerHaptic()
+                                        withAnimation(.spring()) {
+                                            filter = filter == .happening ? nil : .happening
+                                        }
+                                    } label: {
+                                        Label(String(localized: "Happening"), systemImage: filter == .happening ? "checkmark.circle" : "")
+                                    }
+
+                                    Button {
+                                        triggerHaptic()
+                                        withAnimation(.spring()) {
+                                            filter = filter == .happened ? nil : .happened
+                                        }
+                                    } label: {
+                                        Label(String(localized: "Happened"), systemImage: filter == .happened ? "checkmark.circle" : "")
+                                    }
+                                }
+
                                 Section(String(localized: "Time Display")) {
                                     Toggle(String(localized: "Years"), isOn: yearsBinding)
                                     Toggle(String(localized: "Months"), isOn: monthsBinding)
                                     Toggle(String(localized: "Days"), isOn: daysBinding)
+                                }
+
+                                Divider()
+
+                                Menu {
+                                    Button(role: .destructive) {
+                                        removeAllCountdowns()
+                                    } label: {
+                                        Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                                    }
+                                } label: {
+                                    Label(String(localized: "Remove All"), systemImage: "minus.circle")
                                 }
                             } label: {
                                 Image(systemName: "ellipsis")
@@ -147,60 +187,99 @@ struct CountdownSheet: View {
             .frame(maxHeight: .infinity)
         } else {
             TimelineView(.everyMinute) { context in
-                List {
-                    ForEach(sortedCountdowns(at: context.date)) { item in
-                        Section {
-                            CountdownRow(item: item, now: context.date, units: unitOptions)
-                                .padding(.vertical, 4)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    triggerHaptic()
-                                    editingCountdown = item
-                                }
-                                .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                                    Button(role: .destructive) {
-                                        deleteCountdown(item)
-                                    } label: {
-                                        Label(String(localized: "Remove"), systemImage: "minus.circle.fill")
-                                    }
-                                }
-                                .contextMenu {
-                                    Button {
-                                        triggerHaptic()
-                                        editingCountdown = item
-                                    } label: {
-                                        Label(String(localized: "Edit"), systemImage: "pencil")
-                                    }
-
-                                    Divider()
-
-                                    Menu {
-                                        Button(role: .destructive) {
-                                            deleteCountdown(item)
-                                        } label: {
-                                            Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
-                                        }
-                                    } label: {
-                                        Label(String(localized: "Remove"), systemImage: "minus.circle")
-                                    }
-                                }
+                let displayedItems = displayedCountdowns(at: context.date)
+                ZStack {
+                    if displayedItems.isEmpty {
+                        // All countdowns are hidden by the current filter
+                        ContentUnavailableView {
+                            Label("No Countdowns", systemImage: "hourglass")
+                        } description: {
+                            Text(filter == .happened
+                                ? String(localized: "No past countdowns.")
+                                : String(localized: "No upcoming countdowns."))
                         }
+                        .frame(maxHeight: .infinity)
+                        .transition(.blurReplace)
+                    } else {
+                        countdownList(displayedItems, now: context.date)
+                            .id(filter)
+                            .transition(.blurReplace)
                     }
                 }
-                .listSectionSpacing(12) // List paddings
-                .scrollIndicators(.hidden)
             }
+        }
+    }
+
+    private func countdownList(_ items: [CountdownItem], now: Date) -> some View {
+        List {
+            ForEach(items) { item in
+                Section {
+                    CountdownRow(item: item, now: now, units: unitOptions)
+                        .padding(.vertical, 4)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            triggerHaptic()
+                            editingCountdown = item
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                deleteCountdown(item)
+                            } label: {
+                                Label(String(localized: "Remove"), systemImage: "minus.circle.fill")
+                            }
+                        }
+                        .contextMenu {
+                            Button {
+                                triggerHaptic()
+                                editingCountdown = item
+                            } label: {
+                                Label(String(localized: "Edit"), systemImage: "pencil.tip.crop.circle")
+                            }
+
+                            Divider()
+
+                            Menu {
+                                Button(role: .destructive) {
+                                    deleteCountdown(item)
+                                } label: {
+                                    Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                                }
+                            } label: {
+                                Label(String(localized: "Remove"), systemImage: "minus.circle")
+                            }
+                        }
+                }
+            }
+        }
+        .listSectionSpacing(12) // List paddings
+        .scrollIndicators(.hidden)
+    }
+
+    /// Whether the countdown's target date has already passed (before today).
+    private func isPast(_ item: CountdownItem, at now: Date) -> Bool {
+        let calendar = Calendar.current
+        return calendar.startOfDay(for: item.targetDate) < calendar.startOfDay(for: now)
+    }
+
+    /// Sorted countdowns narrowed down by the active filter, if any.
+    private func displayedCountdowns(at now: Date) -> [CountdownItem] {
+        let sorted = sortedCountdowns(at: now)
+        switch filter {
+        case .happening:
+            return sorted.filter { !isPast($0, at: now) }
+        case .happened:
+            return sorted.filter { isPast($0, at: now) }
+        case nil:
+            return sorted
         }
     }
 
     /// Upcoming countdowns first (soonest at the top), past dates after (most recent first).
     private func sortedCountdowns(at now: Date) -> [CountdownItem] {
-        let calendar = Calendar.current
-        let startOfToday = calendar.startOfDay(for: now)
-        return countdowns.sorted { lhs, rhs in
-            let lhsPast = calendar.startOfDay(for: lhs.targetDate) < startOfToday
-            let rhsPast = calendar.startOfDay(for: rhs.targetDate) < startOfToday
+        countdowns.sorted { lhs, rhs in
+            let lhsPast = isPast(lhs, at: now)
+            let rhsPast = isPast(rhs, at: now)
             if lhsPast != rhsPast {
                 return !lhsPast
             }
@@ -234,6 +313,15 @@ struct CountdownSheet: View {
     private func deleteCountdown(_ item: CountdownItem) {
         withAnimation(.spring()) {
             countdowns.removeAll { $0.id == item.id }
+        }
+        CountdownStore.save(countdowns)
+        triggerHaptic()
+    }
+
+    private func removeAllCountdowns() {
+        withAnimation(.spring()) {
+            countdowns.removeAll()
+            filter = nil
         }
         CountdownStore.save(countdowns)
         triggerHaptic()

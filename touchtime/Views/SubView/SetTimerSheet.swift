@@ -38,8 +38,6 @@ struct SetTimerSheet: View {
     @State private var showRenameRecentAlert = false
     @State private var renameRecentNameInput = ""
     @State private var renameTargetRecentID: UUID? = nil
-    @State private var showRemoveAllRecentsConfirmation = false
-
     init(
         initialDurationSeconds: Int,
         onConfirm: @escaping (Int) -> Void,
@@ -263,22 +261,17 @@ struct SetTimerSheet: View {
                 } else if !recentTimers.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
-                            Button(role: .destructive) {
-                                showRemoveAllRecentsConfirmation = true
+                            Menu {
+                                Button(role: .destructive) {
+                                    deleteAllRecentTimers()
+                                } label: {
+                                    Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                                }
                             } label: {
                                 Label(String(localized: "Remove All"), systemImage: "minus.circle")
                             }
                         } label: {
                             Image(systemName: "ellipsis")
-                        }
-                        .confirmationDialog(
-                            String(localized: "Are you sure want to remove all recent timers?"),
-                            isPresented: $showRemoveAllRecentsConfirmation,
-                            titleVisibility: .visible
-                        ) {
-                            Button(String(localized: "Remove"), role: .destructive) {
-                                deleteAllRecentTimers()
-                            }
                         }
                     }
                 }

@@ -21,7 +21,6 @@ struct SetAlarmSheet: View {
     @State private var errorMessage = ""
     @State private var showErrorAlert = false
     @State private var showPermissionAlert = false
-    @State private var showRemoveAllConfirmationDialog = false
     @State private var showRenameEventAlert = false
     @State private var renameEventTitleInput = ""
     @State private var renameTargetRecordID: UUID? = nil
@@ -134,22 +133,17 @@ struct SetAlarmSheet: View {
 
                             Divider()
 
-                            Button(role: .destructive) {
-                                showRemoveAllConfirmationDialog = true
+                            Menu {
+                                Button(role: .destructive) {
+                                    deleteAllRecords()
+                                } label: {
+                                    Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                                }
                             } label: {
                                 Label(String(localized: "Remove All"), systemImage: "minus.circle")
                             }
                         } label: {
                             Image(systemName: "ellipsis")
-                        }
-                        .confirmationDialog(
-                            String(localized: "Are you sure want to remove all alarms?"),
-                            isPresented: $showRemoveAllConfirmationDialog,
-                            titleVisibility: .visible
-                        ) {
-                            Button(String(localized: "Remove"), role: .destructive) {
-                                deleteAllRecords()
-                            }
                         }
                     }
                 }
