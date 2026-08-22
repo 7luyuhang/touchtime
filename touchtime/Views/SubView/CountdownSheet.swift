@@ -295,7 +295,7 @@ struct CountdownSheet: View {
                                 triggerHaptic()
                                 editingCountdown = item
                             } label: {
-                                Label(String(localized: "Edit"), systemImage: "pencil.tip.crop.circle")
+                                Label(String(localized: "Edit"), systemImage: "slider.horizontal.3")
                             }
 
                             Divider()
@@ -577,6 +577,10 @@ private struct CountdownEditorSheet: View {
                         displayedComponents: [.hourAndMinute]
                     )
                     .datePickerStyle(.compact)
+                } footer: {
+                    if let original {
+                        Text(String(format: String(localized: "Created on %@"), original.createdAt.formatted(.dateTime.year().month().day())))
+                    }
                 }
             }
             .navigationTitle(isEditing ? "" : String(localized: "New Countdown"))

@@ -3963,6 +3963,22 @@
         }
       }
     },
+    "Created on %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "创建于%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "建立於%@"
+          }
+        }
+      }
+    },
     "Creston" : {
       "extractionState" : "manual",
       "localizations" : {
