@@ -205,16 +205,19 @@ struct CountdownDetailsView: View {
     }
 }
 
-/// Live preview card at the top of the countdown details, styled after the
-/// Settings preview card: a happened/happening arrow top-left, event title
-/// bottom-left, the day count as a large bare number on the right, and a
-/// complication-sized button in the middle that picks an emoji whose
-/// dominant colour fills the card.
-private struct CountdownPreviewCard: View {
+/// Live preview card for a countdown, styled after the Settings preview
+/// card: a happened/happening arrow top-left, event title bottom-left, the
+/// day count as a large bare number on the right, and a complication-sized
+/// emoji in the middle whose dominant colour fills the card. Also reused on
+/// the Home screen; without `onEmojiTap` the emoji is display-only.
+struct CountdownPreviewCard: View {
     let title: String
     let targetDate: Date
     let emoji: String?
-    let onEmojiTap: () -> Void
+    /// Reference "now" for the day count; the Home screen passes the
+    /// scrubbed time so the number follows Slide to Adjust.
+    var now: Date = Date()
+    var onEmojiTap: (() -> Void)? = nil
 
     @Environment(\.colorScheme) private var systemColorScheme
     @State private var emojiColor: Color? = nil
@@ -223,12 +226,12 @@ private struct CountdownPreviewCard: View {
         Calendar.current
     }
 
-    /// Whole calendar days from today to the target date; negative once
-    /// the event has happened.
+    /// Whole calendar days from the reference date to the target date;
+    /// negative once the event has happened.
     private var dayDifference: Int {
         calendar.dateComponents(
             [.day],
-            from: calendar.startOfDay(for: Date()),
+            from: calendar.startOfDay(for: now),
             to: calendar.startOfDay(for: targetDate)
         ).day ?? 0
     }
@@ -301,22 +304,18 @@ private struct CountdownPreviewCard: View {
                 in: RoundedRectangle(cornerRadius: 26, style: .continuous)
             )
 
-            // Complication-sized emoji button in the middle
-            Button(action: onEmojiTap) {
-                Group {
-                    if let emoji {
-                        Text(emoji)
-                            .font(.system(size: 36))
-                    } else {
-                        Image(systemName: "face.smiling.inverse")
-                            .font(.system(size: 24, weight: .medium))
-                            .foregroundStyle(.secondary)
-                    }
+            // Complication-sized emoji in the middle; a button only when
+            // a tap action is provided (i.e. inside the editor).
+            if let onEmojiTap {
+                Button(action: onEmojiTap) {
+                    emojiBadge
+                        .glassEffect(.clear.interactive())
                 }
-                .frame(width: 64, height: 64)
-                .glassEffect(.clear.interactive())
+                .buttonStyle(.plain)
+            } else {
+                emojiBadge
+                    .glassEffect(.clear)
             }
-            .buttonStyle(.plain)
         }
         // The flat colour fill stays mid-dark, so force white text over it.
         .environment(\.colorScheme, emojiColor == nil ? systemColorScheme : .dark)
@@ -327,6 +326,20 @@ private struct CountdownPreviewCard: View {
                 emojiColor = newValue.flatMap { Self.dominantColor(of: $0) }
             }
         }
+    }
+
+    private var emojiBadge: some View {
+        Group {
+            if let emoji {
+                Text(emoji)
+                    .font(.system(size: 36))
+            } else {
+                Image(systemName: "face.smiling.inverse")
+                    .font(.system(size: 24, weight: .medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .frame(width: 64, height: 64)
     }
 
     /// Downsamples the emoji into a small bitmap and picks its dominant

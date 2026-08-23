@@ -99,6 +99,8 @@ struct HomeView: View {
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
     @State private var showCountdownSheet = false
+    // Pinned countdowns show their preview below the home timer
+    @State private var homeCountdowns: [CountdownItem] = CountdownStore.load()
     @State private var showComplicationsSheet = false
     @State private var showWidgetIntroSheet = false
     @State private var showEarthView = false
@@ -1206,6 +1208,21 @@ struct HomeView: View {
                             )
                         }
                         
+                        // Countdown Preview Section: pinned countdowns live below the timer
+                        ForEach(homeCountdowns.filter(\.isPinned).sorted(by: { $0.targetDate < $1.targetDate })) { item in
+                            Section {
+                                CountdownPreviewCard(
+                                    title: item.title,
+                                    targetDate: item.targetDate,
+                                    emoji: item.emoji,
+                                    now: currentDate.addingTimeInterval(timeOffset)
+                                )
+                                .listRowInsets(EdgeInsets())
+                                .listRowBackground(Color.clear)
+                                .listRowSeparator(.hidden)
+                            }
+                        }
+                        
                         // Local Time Section
                         if showLocalTime {
                             Section {
@@ -1877,6 +1894,12 @@ struct HomeView: View {
             // Countdown Sheet
             .sheet(isPresented: $showCountdownSheet) {
                 CountdownSheet()
+                    .onDisappear {
+                        // Pick up pin/edit changes made inside the sheet.
+                        withAnimation(.spring()) {
+                            homeCountdowns = CountdownStore.load()
+                        }
+                    }
             }
 
             // Complications Sheet
