@@ -780,12 +780,20 @@ private struct CountdownPreviewCard: View {
 
                     Spacer()
 
-                    Text(bigText)
-                        .font(.system(size: 36))
-                        .fontWeight(.light)
-                        .fontDesign(.rounded)
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
+                    HStack(alignment: .lastTextBaseline, spacing: 2) {
+                        Text(bigText)
+                            .font(.system(size: 36))
+                            .fontWeight(.light)
+                            .fontDesign(.rounded)
+                            .monospacedDigit()
+                            .contentTransition(.numericText())
+
+                        // Day unit, hidden when the card reads "Today"
+                        if dayDifference != 0 {
+                            Text(verbatim: "d")
+                                .font(.system(size: 20, weight: .regular, design: .rounded))
+                        }
+                    }
                 }
             }
             .padding()
