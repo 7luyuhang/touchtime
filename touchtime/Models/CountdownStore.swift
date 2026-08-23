@@ -14,16 +14,18 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     var targetDate: Date
     let createdAt: Date
     var isPinned: Bool
+    var emoji: String?
 
-    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false) {
+    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, emoji: String? = nil) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
         self.createdAt = createdAt
         self.isPinned = isPinned
+        self.emoji = emoji
     }
 
-    // Items saved before pinning existed have no `isPinned` key.
+    // Items saved before pinning/emoji existed are missing those keys.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
@@ -31,6 +33,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         targetDate = try container.decode(Date.self, forKey: .targetDate)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
+        emoji = try container.decodeIfPresent(String.self, forKey: .emoji)
     }
 }
 

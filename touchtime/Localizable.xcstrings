@@ -5142,6 +5142,22 @@
         }
       }
     },
+    "Emoji" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表情符号"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表情符號"
+          }
+        }
+      }
+    },
     "Enable continuous scroll for slide to adjust." : {
       "extractionState" : "manual",
       "localizations" : {
