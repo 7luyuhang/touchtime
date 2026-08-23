@@ -562,6 +562,16 @@ private struct CountdownEditorSheet: View {
             || emoji != original.emoji
     }
 
+    /// Selectable range: a century either side of today keeps the year
+    /// picker within sensible bounds.
+    private var targetDateRange: ClosedRange<Date> {
+        let calendar = Calendar.current
+        let now = Date()
+        let lowerBound = calendar.date(byAdding: .year, value: -100, to: now) ?? now
+        let upperBound = calendar.date(byAdding: .year, value: 100, to: now) ?? now
+        return lowerBound...upperBound
+    }
+
     var body: some View {
         NavigationStack {
             Form {
@@ -603,6 +613,7 @@ private struct CountdownEditorSheet: View {
                     DatePicker(
                         String(localized: "Date"),
                         selection: $targetDate,
+                        in: targetDateRange,
                         displayedComponents: [.date]
                     )
                     .datePickerStyle(.compact)
@@ -765,6 +776,7 @@ private struct CountdownPreviewCard: View {
                         .lineLimit(1)
                         .truncationMode(.tail)
                         .frame(maxWidth: 120, alignment: .leading)
+                        .blendMode(title.isEmpty ? .plusLighter : .normal)
 
                     Spacer()
 
@@ -794,7 +806,7 @@ private struct CountdownPreviewCard: View {
                         Text(emoji)
                             .font(.system(size: 36))
                     } else {
-                        Image(systemName: "plus")
+                        Image(systemName: "face.smiling.inverse")
                             .font(.system(size: 24, weight: .medium))
                             .foregroundStyle(.secondary)
                     }
