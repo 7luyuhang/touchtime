@@ -577,10 +577,6 @@ private struct CountdownEditorSheet: View {
                         displayedComponents: [.hourAndMinute]
                     )
                     .datePickerStyle(.compact)
-                } footer: {
-                    if let original {
-                        Text(String(format: String(localized: "Created on %@"), original.createdAt.formatted(.dateTime.year().month().day())))
-                    }
                 }
             }
             .navigationTitle(isEditing ? "" : String(localized: "New Countdown"))
@@ -617,6 +613,12 @@ private struct CountdownEditorSheet: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     if isEditing {
                         Menu {
+                            if let original {
+                                Section {
+                                    Text(String(format: String(localized: "Created on %@"), original.createdAt.formatted(.dateTime.year().month().day())))
+                                }
+                            }
+
                             Menu {
                                 Button(role: .destructive) {
                                     onDelete?()
