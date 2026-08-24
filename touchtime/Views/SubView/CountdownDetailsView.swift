@@ -304,6 +304,7 @@ struct CountdownPreviewCard: View {
                         if dayDifference != 0 {
                             Text(verbatim: "d")
                                 .font(.system(size: 20, weight: .regular, design: .rounded))
+                                .transition(.blurReplace)
                         }
                     }
                 }
