@@ -15,13 +15,14 @@ struct CountdownDetailsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
-    let onSave: (String, Date, String?) -> Void
+    let onSave: (String, Date, String?, Bool) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
     @State private var title: String
     @State private var targetDate: Date
     @State private var emoji: String?
+    @State private var isPinned: Bool
     @State private var showDiscardDialog = false
     @State private var showEmojiPicker = false
     @FocusState private var isTitleFocused: Bool
@@ -30,7 +31,7 @@ struct CountdownDetailsView: View {
         original != nil
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Bool) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -43,6 +44,7 @@ struct CountdownDetailsView: View {
         _targetDate = State(initialValue: countdown?.targetDate ?? defaultDate)
 
         _emoji = State(initialValue: countdown?.emoji)
+        _isPinned = State(initialValue: countdown?.isPinned ?? false)
     }
 
     private var trimmedTitle: String {
@@ -54,6 +56,7 @@ struct CountdownDetailsView: View {
         return trimmedTitle != original.title
             || targetDate != original.targetDate
             || emoji != original.emoji
+            || isPinned != original.isPinned
     }
 
     /// Selectable range: a century either side of today keeps the year
@@ -119,6 +122,14 @@ struct CountdownDetailsView: View {
                     )
                     .datePickerStyle(.compact)
                 }
+
+                Section {
+                    TouchTimeToggle(isOn: $isPinned) {
+                        Text(String(localized: "Pin Countdown"))
+                    }
+                } footer: {
+                    Text(String(localized: "Pinned countdowns will also appear on the Home screen."))
+                }
             }
             .sheet(isPresented: $showEmojiPicker) {
                 EmojiPickerSheet(selectedEmoji: $emoji)
@@ -128,7 +139,7 @@ struct CountdownDetailsView: View {
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji)
+                onSave(trimmedTitle, targetDate, emoji, isPinned)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -193,7 +204,7 @@ struct CountdownDetailsView: View {
 
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji)
+        onSave(trimmedTitle, targetDate, emoji, isPinned)
         dismiss()
     }
 
@@ -570,5 +581,5 @@ private struct EmojiPickerSheet: View {
 }
 
 #Preview {
-    CountdownDetailsView { _, _, _ in }
+    CountdownDetailsView { _, _, _, _ in }
 }

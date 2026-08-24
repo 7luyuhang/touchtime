@@ -10481,6 +10481,38 @@
         }
       }
     },
+    "Pin Countdown" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置顶倒计时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置頂倒數計時"
+          }
+        }
+      }
+    },
+    "Pinned countdowns will also appear on the Home screen." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置顶的倒计时也会显示在首页。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置頂的倒數計時也會顯示在首頁。"
+          }
+        }
+      }
+    },
     "Pitcairn" : {
       "extractionState" : "manual",
       "localizations" : {
