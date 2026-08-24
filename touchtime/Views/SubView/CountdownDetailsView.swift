@@ -250,6 +250,13 @@ struct CountdownPreviewCard: View {
         dayDifference == 0 ? String(localized: "Today") : "\(abs(dayDifference))"
     }
 
+    /// The centre badge is present in the editor (always a button) or on
+    /// Home when an emoji is set. Without it the title can use the full
+    /// width, matching the city rows.
+    private var hasCenterBadge: Bool {
+        onEmojiTap != nil || emoji != nil
+    }
+
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 4) {
@@ -278,7 +285,7 @@ struct CountdownPreviewCard: View {
                         .foregroundStyle(title.isEmpty ? .secondary : .primary)
                         .lineLimit(1)
                         .truncationMode(.tail)
-                        .frame(maxWidth: 120, alignment: .leading)
+                        .frame(maxWidth: hasCenterBadge ? 120 : .infinity, alignment: .leading)
                         .blendMode(title.isEmpty ? .plusLighter : .normal)
                         .contentTransition(.numericText())
                         .animation(.spring(), value: title)
