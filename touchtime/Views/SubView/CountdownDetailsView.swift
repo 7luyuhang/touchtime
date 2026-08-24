@@ -340,15 +340,22 @@ struct CountdownPreviewCard: View {
         .animation(.spring(), value: emoji)
     }
 
+    // A ZStack (not a Group) so the frame and the glass effect belong to a
+    // stable container and only the glyph inside transitions on change.
     private var emojiBadge: some View {
-        Group {
+        ZStack {
             if let emoji {
+                // Distinct identity per emoji so switching one for another
+                // plays the blur replace instead of swapping instantly.
                 Text(emoji)
                     .font(.system(size: 36))
+                    .id(emoji)
+                    .transition(.identity)
             } else {
                 Image(systemName: "face.smiling.inverse")
                     .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(.secondary)
+                    .transition(.identity)
             }
         }
         .frame(width: 64, height: 64)

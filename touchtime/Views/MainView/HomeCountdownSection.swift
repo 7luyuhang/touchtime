@@ -37,4 +37,4 @@ struct HomeCountdownSection: View {
             }
         }
     }
-} 
+}
