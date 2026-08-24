@@ -220,7 +220,13 @@ struct CountdownPreviewCard: View {
     var onEmojiTap: (() -> Void)? = nil
 
     @Environment(\.colorScheme) private var systemColorScheme
-    @State private var emojiColor: Color? = nil
+
+    /// Derived directly from the current emoji (with a cache) so the card
+    /// never renders a stale colour when it is reused with new data.
+    private var emojiColor: Color? {
+        guard let emoji else { return nil }
+        return Self.cachedDominantColor(of: emoji)
+    }
 
     private var calendar: Calendar {
         Calendar.current
@@ -274,6 +280,8 @@ struct CountdownPreviewCard: View {
                         .truncationMode(.tail)
                         .frame(maxWidth: 120, alignment: .leading)
                         .blendMode(title.isEmpty ? .plusLighter : .normal)
+                        .contentTransition(.numericText())
+                        .animation(.spring(), value: title)
 
                     Spacer()
 
@@ -305,14 +313,15 @@ struct CountdownPreviewCard: View {
             )
 
             // Complication-sized emoji in the middle; a button only when
-            // a tap action is provided (i.e. inside the editor).
+            // a tap action is provided (i.e. inside the editor). In
+            // display-only mode the badge disappears with the emoji.
             if let onEmojiTap {
                 Button(action: onEmojiTap) {
                     emojiBadge
                         .glassEffect(.clear.interactive())
                 }
                 .buttonStyle(.plain)
-            } else {
+            } else if emoji != nil {
                 emojiBadge
                     .glassEffect(.clear)
             }
@@ -321,11 +330,7 @@ struct CountdownPreviewCard: View {
         .environment(\.colorScheme, emojiColor == nil ? systemColorScheme : .dark)
         .animation(.spring(), value: bigText)
         .animation(.spring(), value: hasHappened)
-        .onChange(of: emoji, initial: true) { _, newValue in
-            withAnimation(.spring()) {
-                emojiColor = newValue.flatMap { Self.dominantColor(of: $0) }
-            }
-        }
+        .animation(.spring(), value: emoji)
     }
 
     private var emojiBadge: some View {
@@ -340,6 +345,20 @@ struct CountdownPreviewCard: View {
             }
         }
         .frame(width: 64, height: 64)
+    }
+
+    /// The bitmap analysis is not free and the card re-renders every second
+    /// on the Home screen, so computed colours are memoised per emoji.
+    /// Main-thread only, like all SwiftUI body evaluation.
+    private static var dominantColorCache: [String: Color?] = [:]
+
+    private static func cachedDominantColor(of emoji: String) -> Color? {
+        if let cached = dominantColorCache[emoji] {
+            return cached
+        }
+        let color = dominantColor(of: emoji)
+        dominantColorCache[emoji] = color
+        return color
     }
 
     /// Downsamples the emoji into a small bitmap and picks its dominant
