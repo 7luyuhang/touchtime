@@ -134,6 +134,13 @@ struct CountdownDetailsView: View {
             .sheet(isPresented: $showEmojiPicker) {
                 EmojiPickerSheet(selectedEmoji: $emoji)
             }
+            // Background interaction keeps the title field tappable while
+            // the picker is up: put the picker away when typing resumes.
+            .onChange(of: isTitleFocused) { _, focused in
+                if focused {
+                    showEmojiPicker = false
+                }
+            }
             .navigationTitle(isEditing ? "" : String(localized: "New Countdown"))
             .navigationBarTitleDisplayMode(.inline)
             .onDisappear {
