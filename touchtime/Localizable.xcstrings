@@ -4118,6 +4118,23 @@
         }
       }
     },
+    "d" : {
+      "comment" : "Compact day unit shown after the day count on countdown cards.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天"
+          }
+        }
+      }
+    },
     "Daily available time: %@" : {
       "localizations" : {
         "zh-Hans" : {

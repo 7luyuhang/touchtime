@@ -268,6 +268,18 @@ struct CountdownPreviewCard: View {
         dayDifference == 0 ? String(localized: "Today") : "\(abs(dayDifference))"
     }
 
+    /// Localized compact day unit: "d" in English, "天" in Chinese.
+    private var dayUnit: String {
+        String(localized: "d")
+    }
+
+    /// PingFang ideographs sink ~0.1em below the Latin baseline (measured
+    /// ~1.8pt at 20pt), so the CJK unit needs a lift to sit visually on
+    /// the digits' baseline the way the Latin "d" does.
+    private var dayUnitBaselineOffset: CGFloat {
+        dayUnit.unicodeScalars.contains { $0.properties.isIdeographic } ? 1.8 : 0
+    }
+
     /// The centre badge is present in the editor (always a button) or on
     /// Home when an emoji is set. Without it the title can use the full
     /// width, matching the city rows.
@@ -320,8 +332,9 @@ struct CountdownPreviewCard: View {
 
                         // Day unit, hidden when the card reads "Today"
                         if dayDifference != 0 {
-                            Text(verbatim: "d")
+                            Text(dayUnit)
                                 .font(.system(size: 20, weight: .regular, design: .rounded))
+                                .baselineOffset(dayUnitBaselineOffset)
                                 .transition(.blurReplace)
                         }
                     }
