@@ -31,17 +31,22 @@ struct CountdownSheet: View {
     }
 
     @Environment(\.dismiss) private var dismiss
+    @Environment(CountdownStore.self) private var countdownStore
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("countdownShowYears") private var showYears = false
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
     @AppStorage("countdownSortOrder") private var countdownSortOrderRawValue = CountdownSortOrder.newestFirst.rawValue
 
-    @State private var countdowns: [CountdownItem] = CountdownStore.load()
     @State private var showEditorSheet = false
     @State private var editingCountdown: CountdownItem? = nil
     @State private var selectedDetent: PresentationDetent = .medium
     @State private var filter: CountdownFilter? = nil
+
+    /// Read-only convenience over the shared store.
+    private var countdowns: [CountdownItem] {
+        countdownStore.countdowns
+    }
 
     private var unitOptions: CountdownUnitOptions {
         CountdownUnitOptions(years: showYears, months: showMonths, days: showDays)
@@ -355,47 +360,46 @@ struct CountdownSheet: View {
     private func addCountdown(title: String, targetDate: Date, emoji: String?, isPinned: Bool) {
         let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, emoji: emoji)
         withAnimation(.spring()) {
-            countdowns.append(item)
+            countdownStore.countdowns.append(item)
         }
-        CountdownStore.save(countdowns)
         triggerHaptic()
     }
 
     private func togglePin(_ item: CountdownItem) {
-        guard let index = countdowns.firstIndex(where: { $0.id == item.id }) else { return }
+        guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
         withAnimation(.spring()) {
-            countdowns[index].isPinned.toggle()
+            countdownStore.countdowns[index].isPinned.toggle()
         }
-        CountdownStore.save(countdowns)
         triggerHaptic()
     }
 
     private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, isPinned: Bool) {
-        guard let index = countdowns.firstIndex(where: { $0.id == item.id }) else { return }
+        guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
+        // Assemble the edited item first so the store (and UserDefaults)
+        // sees a single mutation instead of one per field.
+        var updated = countdownStore.countdowns[index]
+        updated.title = title
+        updated.targetDate = targetDate
+        updated.emoji = emoji
+        updated.isPinned = isPinned
         withAnimation(.spring()) {
-            countdowns[index].title = title
-            countdowns[index].targetDate = targetDate
-            countdowns[index].emoji = emoji
-            countdowns[index].isPinned = isPinned
+            countdownStore.countdowns[index] = updated
         }
-        CountdownStore.save(countdowns)
         triggerHaptic()
     }
 
     private func deleteCountdown(_ item: CountdownItem) {
         withAnimation(.spring()) {
-            countdowns.removeAll { $0.id == item.id }
+            countdownStore.countdowns.removeAll { $0.id == item.id }
         }
-        CountdownStore.save(countdowns)
         triggerHaptic()
     }
 
     private func removeAllCountdowns() {
         withAnimation(.spring()) {
-            countdowns.removeAll()
+            countdownStore.countdowns.removeAll()
             filter = nil
         }
-        CountdownStore.save(countdowns)
         triggerHaptic()
     }
 
@@ -518,4 +522,5 @@ private struct CountdownRow: View {
 
 #Preview {
     CountdownSheet()
+        .environment(CountdownStore())
 }

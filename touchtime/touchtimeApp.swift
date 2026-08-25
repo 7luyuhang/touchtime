@@ -15,6 +15,9 @@ struct touchtimeApp: App {
     // Captures Home Screen quick actions (Set Alarm / Set Timer)
     @UIApplicationDelegateAdaptor(QuickActionsAppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
+    // Shared countdown source of truth; injected app-wide so the Home
+    // cards and the countdown sheet always observe the same data.
+    @State private var countdownStore = CountdownStore()
 
     init() {
         // Initialize TipKit
@@ -27,6 +30,7 @@ struct touchtimeApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(countdownStore)
                 .environment(\.colorScheme, .dark) // Force dark theme
                 .onAppear {
                     // Force dark mode for all windows when app appears

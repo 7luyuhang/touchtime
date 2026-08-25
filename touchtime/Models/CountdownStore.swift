@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Observation
 
 /// A countdown towards a future date, shown in the countdown grid.
 struct CountdownItem: Identifiable, Codable, Equatable {
@@ -37,11 +38,23 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     }
 }
 
-/// Persists countdowns in UserDefaults.
-enum CountdownStore {
+/// Single source of truth for countdowns, created once at the app root and
+/// shared through the environment. Every mutation notifies all observing
+/// views (e.g. the Home cards update live while the countdown sheet is up)
+/// and is persisted to UserDefaults automatically.
+@Observable
+final class CountdownStore {
     private static let storageKey = "savedCountdowns"
 
-    static func load() -> [CountdownItem] {
+    var countdowns: [CountdownItem] {
+        didSet { Self.persist(countdowns) }
+    }
+
+    init() {
+        countdowns = Self.load()
+    }
+
+    private static func load() -> [CountdownItem] {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
               let items = try? JSONDecoder().decode([CountdownItem].self, from: data) else {
             return []
@@ -49,7 +62,7 @@ enum CountdownStore {
         return items
     }
 
-    static func save(_ items: [CountdownItem]) {
+    private static func persist(_ items: [CountdownItem]) {
         guard let data = try? JSONEncoder().encode(items) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
     }

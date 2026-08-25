@@ -99,8 +99,10 @@ struct HomeView: View {
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
     @State private var showCountdownSheet = false
-    // Pinned countdowns show their preview below the home timer
-    @State private var homeCountdowns: [CountdownItem] = CountdownStore.load()
+    // Pinned countdowns show their preview below the home timer; the shared
+    // store is observed, so pins toggled inside the countdown sheet update
+    // the cards immediately.
+    @Environment(CountdownStore.self) private var countdownStore
     @State private var showComplicationsSheet = false
     @State private var showWidgetIntroSheet = false
     @State private var showEarthView = false
@@ -1210,7 +1212,7 @@ struct HomeView: View {
                         
                         // Countdown Preview Section: pinned countdowns live below the timer
                         HomeCountdownSection(
-                            countdowns: homeCountdowns,
+                            countdowns: countdownStore.countdowns,
                             now: currentDate.addingTimeInterval(timeOffset)
                         )
                         
@@ -1885,12 +1887,6 @@ struct HomeView: View {
             // Countdown Sheet
             .sheet(isPresented: $showCountdownSheet) {
                 CountdownSheet()
-                    .onDisappear {
-                        // Pick up pin/edit changes made inside the sheet.
-                        withAnimation(.spring()) {
-                            homeCountdowns = CountdownStore.load()
-                        }
-                    }
             }
 
             // Complications Sheet
