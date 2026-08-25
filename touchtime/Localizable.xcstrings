@@ -14292,6 +14292,22 @@
         }
       }
     },
+    "Upgrade to add more countdowns" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "升级以添加更多倒计时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "升級以新增更多倒數計時"
+          }
+        }
+      }
+    },
     "Urumqi" : {
       "extractionState" : "manual",
       "localizations" : {

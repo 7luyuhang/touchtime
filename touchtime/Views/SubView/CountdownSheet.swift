@@ -30,15 +30,20 @@ struct CountdownSheet: View {
         case oldestFirst
     }
 
+    /// Free users can keep up to this many countdowns; more requires lifetime access.
+    private static let freeCountdownLimit = 3
+
     @Environment(\.dismiss) private var dismiss
     @Environment(CountdownStore.self) private var countdownStore
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("countdownShowYears") private var showYears = false
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
     @AppStorage("countdownSortOrder") private var countdownSortOrderRawValue = CountdownSortOrder.newestFirst.rawValue
 
     @State private var showEditorSheet = false
+    @State private var showLifetimeStore = false
     @State private var editingCountdown: CountdownItem? = nil
     @State private var selectedDetent: PresentationDetent = .medium
     @State private var filter: CountdownFilter? = nil
@@ -46,6 +51,10 @@ struct CountdownSheet: View {
     /// Read-only convenience over the shared store.
     private var countdowns: [CountdownItem] {
         countdownStore.countdowns
+    }
+
+    private var hasReachedFreeLimit: Bool {
+        !hasLifetimeAccess && countdowns.count >= Self.freeCountdownLimit
     }
 
     private var unitOptions: CountdownUnitOptions {
@@ -197,15 +206,22 @@ struct CountdownSheet: View {
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             triggerHaptic()
-                            showEditorSheet = true
+                            if hasReachedFreeLimit {
+                                showLifetimeStore = true
+                            } else {
+                                showEditorSheet = true
+                            }
                         } label: {
-                            Image(systemName: "plus")
+                            Image(systemName: hasReachedFreeLimit ? "lock.fill" : "plus")
                                 .font(.headline)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(hasReachedFreeLimit ? .black : .white)
                                 .frame(width: 60, height: 40)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.blue)
+                        .tint(hasReachedFreeLimit ? .yellow : .blue)
+                        // Toolbar caches the button's tint; force a rebuild when
+                        // the locked state flips so the background color updates.
+                        .id(hasReachedFreeLimit)
                     }
                 }
         }
@@ -223,6 +239,11 @@ struct CountdownSheet: View {
             // Force a fresh view identity per item, otherwise SwiftUI reuses
             // the sheet content and @State keeps the previous item's values.
             .id(item.id)
+        }
+        .sheet(isPresented: $showLifetimeStore) {
+            NavigationStack {
+                LifetimeStoreView()
+            }
         }
         .presentationDetents([.medium, .large], selection: $selectedDetent)
         .onChange(of: selectedDetent) { oldValue, newValue in
@@ -317,8 +338,22 @@ struct CountdownSheet: View {
                         }
                 }
             }
+
+            if hasReachedFreeLimit {
+                Text(String(localized: "Upgrade to add more countdowns"))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .frame(maxWidth: .infinity)
+                    .listRowInsets(EdgeInsets(top:4, leading: 16, bottom: 4, trailing: 16))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+            }
         }
         .listSectionSpacing(12) // List paddings
+        // Let the upgrade hint row shrink below the standard 44pt row height;
+        // countdown rows are taller than that, so they're unaffected.
+        .environment(\.defaultMinListRowHeight, 0)
         .scrollIndicators(.hidden)
     }
 
