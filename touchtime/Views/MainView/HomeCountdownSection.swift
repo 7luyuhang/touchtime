@@ -29,6 +29,7 @@ struct HomeCountdownSection: View {
                     title: item.title,
                     targetDate: item.targetDate,
                     emoji: item.emoji,
+                    photoData: item.photoData,
                     now: now
                 )
                 .listRowInsets(EdgeInsets())

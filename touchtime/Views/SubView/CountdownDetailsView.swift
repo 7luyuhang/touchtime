@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import PhotosUI
 
 /// Countdown details: a form used to create a new countdown or edit an
 /// existing one, with a live preview card, a title plus a calendar date
@@ -15,23 +16,24 @@ struct CountdownDetailsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
-    let onSave: (String, Date, String?, Bool) -> Void
+    let onSave: (String, Date, String?, Data?, Bool) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
     @State private var title: String
     @State private var targetDate: Date
     @State private var emoji: String?
+    @State private var photoData: Data?
     @State private var isPinned: Bool
     @State private var showDiscardDialog = false
-    @State private var showEmojiPicker = false
+    @State private var showCoverPicker = false
     @FocusState private var isTitleFocused: Bool
 
     private var isEditing: Bool {
         original != nil
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Bool) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -44,6 +46,7 @@ struct CountdownDetailsView: View {
         _targetDate = State(initialValue: countdown?.targetDate ?? defaultDate)
 
         _emoji = State(initialValue: countdown?.emoji)
+        _photoData = State(initialValue: countdown?.photoData)
         _isPinned = State(initialValue: countdown?.isPinned ?? false)
     }
 
@@ -56,6 +59,7 @@ struct CountdownDetailsView: View {
         return trimmedTitle != original.title
             || targetDate != original.targetDate
             || emoji != original.emoji
+            || photoData != original.photoData
             || isPinned != original.isPinned
     }
 
@@ -78,12 +82,13 @@ struct CountdownDetailsView: View {
                         CountdownPreviewCard(
                             title: trimmedTitle,
                             targetDate: targetDate,
-                            emoji: emoji
+                            emoji: emoji,
+                            photoData: photoData
                         ) {
                             triggerHaptic()
                             // Drop the keyboard before the picker comes up
                             isTitleFocused = false
-                            showEmojiPicker = true
+                            showCoverPicker = true
                         }
 
                         // Preview Text
@@ -131,14 +136,14 @@ struct CountdownDetailsView: View {
                     Text(String(localized: "Pinned countdowns will also appear on the Home screen."))
                 }
             }
-            .sheet(isPresented: $showEmojiPicker) {
-                EmojiPickerSheet(selectedEmoji: $emoji)
+            .sheet(isPresented: $showCoverPicker) {
+                CoverPickerSheet(selectedEmoji: $emoji, selectedPhotoData: $photoData)
             }
             // Background interaction keeps the title field tappable while
             // the picker is up: put the picker away when typing resumes.
             .onChange(of: isTitleFocused) { _, focused in
                 if focused {
-                    showEmojiPicker = false
+                    showCoverPicker = false
                 }
             }
             .navigationTitle(isEditing ? "" : String(localized: "New Countdown"))
@@ -146,7 +151,7 @@ struct CountdownDetailsView: View {
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, isPinned)
+                onSave(trimmedTitle, targetDate, emoji, photoData, isPinned)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -211,7 +216,7 @@ struct CountdownDetailsView: View {
 
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, isPinned)
+        onSave(trimmedTitle, targetDate, emoji, photoData, isPinned)
         dismiss()
     }
 
@@ -232,6 +237,9 @@ struct CountdownPreviewCard: View {
     let title: String
     let targetDate: Date
     let emoji: String?
+    /// Downsampled photo shown in the centre badge instead of the emoji,
+    /// with a blurred copy as the card background.
+    var photoData: Data? = nil
     /// Reference "now" for the day count; the Home screen passes the
     /// scrubbed time so the number follows Slide to Adjust.
     var now: Date = Date()
@@ -244,6 +252,11 @@ struct CountdownPreviewCard: View {
     private var emojiColor: Color? {
         guard let emoji else { return nil }
         return Self.cachedDominantColor(of: emoji)
+    }
+
+    private var photoImage: UIImage? {
+        guard let photoData else { return nil }
+        return Self.cachedImage(from: photoData)
     }
 
     private var calendar: Calendar {
@@ -281,10 +294,10 @@ struct CountdownPreviewCard: View {
     }
 
     /// The centre badge is present in the editor (always a button) or on
-    /// Home when an emoji is set. Without it the title can use the full
-    /// width, matching the city rows.
+    /// Home when an emoji or photo is set. Without it the title can use
+    /// the full width, matching the city rows.
     private var hasCenterBadge: Bool {
-        onEmojiTap != nil || emoji != nil
+        onEmojiTap != nil || emoji != nil || photoData != nil
     }
 
     var body: some View {
@@ -342,7 +355,19 @@ struct CountdownPreviewCard: View {
             }
             .padding()
             .padding(.bottom, -4)
-            .background(emojiColor)
+            .background {
+                if let photoImage {
+                    // Blurred copy of the badge photo instead of the flat
+                    // emoji colour; darkened a touch for text contrast.
+                    Image(uiImage: photoImage)
+                        .resizable()
+                        .scaledToFill()
+                        .blur(radius: 24, opaque: true)
+                        .overlay(Color.black.opacity(0.25))
+                } else if let emojiColor {
+                    emojiColor
+                }
+            }
             .clipShape(
                 RoundedRectangle(cornerRadius: 26, style: .continuous)
             )
@@ -351,32 +376,43 @@ struct CountdownPreviewCard: View {
                 in: RoundedRectangle(cornerRadius: 26, style: .continuous)
             )
 
-            // Complication-sized emoji in the middle; a button only when
-            // a tap action is provided (i.e. inside the editor). In
-            // display-only mode the badge disappears with the emoji.
+            // Complication-sized emoji or photo in the middle; a button
+            // only when a tap action is provided (i.e. inside the editor).
+            // In display-only mode the badge disappears with its content.
             if let onEmojiTap {
                 Button(action: onEmojiTap) {
-                    emojiBadge
+                    centerBadge
                         .glassEffect(.clear.interactive())
                 }
                 .buttonStyle(.plain)
-            } else if emoji != nil {
-                emojiBadge
+            } else if emoji != nil || photoData != nil {
+                centerBadge
                     .glassEffect(.clear)
             }
         }
-        // The flat colour fill stays mid-dark, so force white text over it.
-        .environment(\.colorScheme, emojiColor == nil ? systemColorScheme : .dark)
+        // The flat colour fill / photo stays mid-dark, so force white text.
+        .environment(\.colorScheme, emojiColor == nil && photoImage == nil ? systemColorScheme : .dark)
         .animation(.spring(), value: bigText)
         .animation(.spring(), value: hasHappened)
         .animation(.spring(), value: emoji)
+        .animation(.spring(), value: photoData)
     }
 
     // A ZStack (not a Group) so the frame and the glass effect belong to a
     // stable container and only the glyph inside transitions on change.
-    private var emojiBadge: some View {
+    private var centerBadge: some View {
         ZStack {
-            if let emoji {
+            if let photoImage, let photoData {
+                // Distinct identity per photo so swapping one for another
+                // replaces the badge content instead of keeping the old one.
+                Image(uiImage: photoImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 64, height: 64)
+                    .clipShape(Circle())
+                    .id(photoData)
+                    .transition(.identity)
+            } else if let emoji {
                 // Distinct identity per emoji so switching one for another
                 // plays the blur replace instead of swapping instantly.
                 Text(emoji)
@@ -391,6 +427,23 @@ struct CountdownPreviewCard: View {
             }
         }
         .frame(width: 64, height: 64)
+    }
+
+    /// Decoded badge photos, memoised because the card re-renders every
+    /// second on the Home screen. Wiped when it grows past a handful of
+    /// entries so abandoned photos don't pile up in memory.
+    private static var imageCache: [Data: UIImage] = [:]
+
+    private static func cachedImage(from data: Data) -> UIImage? {
+        if let cached = imageCache[data] {
+            return cached
+        }
+        guard let image = UIImage(data: data) else { return nil }
+        if imageCache.count > 12 {
+            imageCache.removeAll()
+        }
+        imageCache[data] = image
+        return image
     }
 
     /// The bitmap analysis is not free and the card re-renders every second
@@ -513,12 +566,18 @@ struct CountdownPreviewCard: View {
     }
 }
 
-/// Grid of common event emojis; the chosen one colours the preview card.
-private struct EmojiPickerSheet: View {
+/// Cover picker: a grid of common event emojis, the chosen one colouring
+/// the preview card, or alternatively a photo from the library that fills
+/// the centre badge with a blurred copy as the card background.
+private struct CoverPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
     @Binding var selectedEmoji: String?
+    @Binding var selectedPhotoData: Data?
+
+    @State private var showPhotoPicker = false
+    @State private var photoPickerItem: PhotosPickerItem?
 
     private static let emojis: [String] = [
         "🎂", "🎉", "🎈", "🎁", "🍰", "🥂", "🎊", "🪩",
@@ -549,6 +608,7 @@ private struct EmojiPickerSheet: View {
                         Button {
                             triggerHaptic()
                             selectedEmoji = option
+                            selectedPhotoData = nil
                         } label: {
                             Text(option)
                                 .font(.system(size: 34))
@@ -561,7 +621,7 @@ private struct EmojiPickerSheet: View {
                 .padding()
             }
             .scrollIndicators(.hidden)
-            .navigationTitle(String(localized: "Emoji"))
+            .navigationTitle(String(localized: "Cover"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -573,16 +633,49 @@ private struct EmojiPickerSheet: View {
                     }
                 }
 
-                if selectedEmoji != nil {
+                if selectedEmoji != nil || selectedPhotoData != nil {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(role: .destructive) {
                             triggerHaptic()
                             selectedEmoji = nil
+                            selectedPhotoData = nil
                         } label: {
                             Image(systemName: "minus.circle")
                         }
                     }
                 }
+
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        triggerHaptic()
+                        showPhotoPicker = true
+                    } label: {
+                        Text(selectedPhotoData == nil
+                            ? String(localized: "Add Photo")
+                            : String(localized: "Replace"))
+                            .font(.headline)
+                            .foregroundStyle(.black)
+                            .frame(height: 40)
+                            .contentTransition(.numericText())
+                            .animation(.spring(), value: selectedPhotoData == nil)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.white)
+                }
+            }
+        }
+        .photosPicker(isPresented: $showPhotoPicker, selection: $photoPickerItem, matching: .images)
+        .onChange(of: photoPickerItem) { _, newItem in
+            guard let newItem else { return }
+            Task {
+                guard let data = try? await newItem.loadTransferable(type: Data.self),
+                      let processed = Self.downsampledJPEGData(from: data) else { return }
+                selectedPhotoData = processed
+                selectedEmoji = nil
+                triggerHaptic()
+                photoPickerItem = nil
             }
         }
         .presentationDetents([.medium])
@@ -590,6 +683,25 @@ private struct EmojiPickerSheet: View {
         // Keep the countdown sheet visible and live behind the picker so
         // the preview card recolours as emojis are tried out.
         .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+    }
+
+    /// Shrinks the picked photo to a size that comfortably covers the badge
+    /// and the blurred card background, so the countdown store never holds
+    /// multi-megabyte originals. Redrawing also bakes in the orientation.
+    private static func downsampledJPEGData(from data: Data, maxDimension: CGFloat = 800) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+        let largestSide = max(image.size.width, image.size.height)
+        guard largestSide > 0 else { return nil }
+
+        let scale = min(1, maxDimension / largestSide)
+        let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
+
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let resized = UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: targetSize))
+        }
+        return resized.jpegData(compressionQuality: 0.75)
     }
 
     private func triggerHaptic() {
@@ -601,5 +713,5 @@ private struct EmojiPickerSheet: View {
 }
 
 #Preview {
-    CountdownDetailsView { _, _, _, _ in }
+    CountdownDetailsView { _, _, _, _, _ in }
 }

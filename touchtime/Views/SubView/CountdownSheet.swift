@@ -226,15 +226,15 @@ struct CountdownSheet: View {
                 }
         }
         .sheet(isPresented: $showEditorSheet) {
-            CountdownDetailsView { title, targetDate, emoji, isPinned in
-                addCountdown(title: title, targetDate: targetDate, emoji: emoji, isPinned: isPinned)
+            CountdownDetailsView { title, targetDate, emoji, photoData, isPinned in
+                addCountdown(title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned)
             }
         }
         .sheet(item: $editingCountdown) { item in
             CountdownDetailsView(countdown: item, onDelete: {
                 deleteCountdown(item)
-            }) { title, targetDate, emoji, isPinned in
-                updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, isPinned: isPinned)
+            }) { title, targetDate, emoji, photoData, isPinned in
+                updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned)
             }
             // Force a fresh view identity per item, otherwise SwiftUI reuses
             // the sheet content and @State keeps the previous item's values.
@@ -299,6 +299,17 @@ struct CountdownSheet: View {
                         .onTapGesture {
                             triggerHaptic()
                             editingCountdown = item
+                        }
+                        .swipeActions(edge: .leading, allowsFullSwipe: true) {
+                            Button {
+                                togglePin(item)
+                            } label: {
+                                Label(
+                                    item.isPinned ? String(localized: "Unpin") : String(localized: "Pin"),
+                                    systemImage: item.isPinned ? "pin.slash.fill" : "pin.fill"
+                                )
+                            }
+                            .tint(.blue)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
@@ -392,8 +403,8 @@ struct CountdownSheet: View {
         }
     }
 
-    private func addCountdown(title: String, targetDate: Date, emoji: String?, isPinned: Bool) {
-        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, emoji: emoji)
+    private func addCountdown(title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool) {
+        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, emoji: emoji, photoData: photoData)
         withAnimation(.spring()) {
             countdownStore.countdowns.append(item)
         }
@@ -408,7 +419,7 @@ struct CountdownSheet: View {
         triggerHaptic()
     }
 
-    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, isPinned: Bool) {
+    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool) {
         guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
         // Assemble the edited item first so the store (and UserDefaults)
         // sees a single mutation instead of one per field.
@@ -416,6 +427,7 @@ struct CountdownSheet: View {
         updated.title = title
         updated.targetDate = targetDate
         updated.emoji = emoji
+        updated.photoData = photoData
         updated.isPinned = isPinned
         withAnimation(.spring()) {
             countdownStore.countdowns[index] = updated

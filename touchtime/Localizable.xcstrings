@@ -991,6 +991,22 @@
         }
       }
     },
+    "Add Photo" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "添加照片"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新增照片"
+          }
+        }
+      }
+    },
     "Add selected cities and times to event notes." : {
       "localizations" : {
         "zh-Hans" : {
@@ -3882,6 +3898,22 @@
         }
       }
     },
+    "Cover" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "封面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "封面"
+          }
+        }
+      }
+    },
     "Coyhaique" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -5160,6 +5192,7 @@
       }
     },
     "Emoji" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
