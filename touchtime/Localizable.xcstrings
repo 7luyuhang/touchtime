@@ -1669,6 +1669,23 @@
         }
       }
     },
+    "Are you sure you want to remove this photo?" : {
+      "comment" : "A confirmation dialog asking the user if they're sure they want to remove a countdown cover photo.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要移除此照片吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要移除此照片嗎？"
+          }
+        }
+      }
+    },
     "Are you sure you want to replace current timer?" : {
       "localizations" : {
         "zh-Hans" : {

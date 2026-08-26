@@ -578,6 +578,7 @@ private struct CoverPickerSheet: View {
 
     @State private var showPhotoPicker = false
     @State private var photoPickerItem: PhotosPickerItem?
+    @State private var showRemovePhotoDialog = false
 
     private static let emojis: [String] = [
         "🎂", "🎉", "🎈", "🎁", "🍰", "🥂", "🎊", "🪩",
@@ -637,10 +638,24 @@ private struct CoverPickerSheet: View {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(role: .destructive) {
                             triggerHaptic()
-                            selectedEmoji = nil
-                            selectedPhotoData = nil
+                            if selectedPhotoData != nil {
+                                showRemovePhotoDialog = true
+                            } else {
+                                selectedEmoji = nil
+                            }
                         } label: {
                             Image(systemName: "minus.circle")
+                        }
+                        .confirmationDialog(
+                            String(localized: "Are you sure you want to remove this photo?"),
+                            isPresented: $showRemovePhotoDialog,
+                            titleVisibility: .visible
+                        ) {
+                            Button(String(localized: "Remove"), role: .destructive) {
+                                triggerHaptic()
+                                selectedEmoji = nil
+                                selectedPhotoData = nil
+                            }
                         }
                     }
                 }
