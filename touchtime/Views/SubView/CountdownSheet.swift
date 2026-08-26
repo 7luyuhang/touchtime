@@ -205,10 +205,11 @@ struct CountdownSheet: View {
 
                     ToolbarItem(placement: .bottomBar) {
                         Button {
-                            triggerHaptic()
                             if hasReachedFreeLimit {
+                                triggerWarningHaptic()
                                 showLifetimeStore = true
                             } else {
+                                triggerHaptic()
                                 showEditorSheet = true
                             }
                         } label: {
@@ -455,6 +456,13 @@ struct CountdownSheet: View {
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
+    }
+
+    private func triggerWarningHaptic() {
+        guard hapticEnabled else { return }
+        let notificationFeedback = UINotificationFeedbackGenerator()
+        notificationFeedback.prepare()
+        notificationFeedback.notificationOccurred(.error)
     }
 }
 
