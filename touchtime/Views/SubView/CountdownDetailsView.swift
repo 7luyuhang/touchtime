@@ -669,7 +669,7 @@ private struct CoverPickerSheet: View {
                     } label: {
                         Text(selectedPhotoData == nil
                             ? String(localized: "Add Photo")
-                            : String(localized: "Replace"))
+                            : String(localized: "Replace Photo"))
                             .font(.headline)
                             .foregroundStyle(.black)
                             .frame(height: 40)
