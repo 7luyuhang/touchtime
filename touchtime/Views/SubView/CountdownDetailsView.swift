@@ -15,6 +15,10 @@ import PhotosUI
 struct CountdownDetailsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    // Time Display settings from the countdown sheet, used by the Share menu.
+    @AppStorage("countdownShowYears") private var showYears = false
+    @AppStorage("countdownShowMonths") private var showMonths = false
+    @AppStorage("countdownShowDays") private var showDays = true
 
     let onSave: (String, Date, String?, Data?, Bool) -> Void
     let onDelete: (() -> Void)?
@@ -181,20 +185,22 @@ struct CountdownDetailsView: View {
                     if isEditing {
                         Menu {
                             if let original {
-                                Section {
-                                    Text(String(format: String(localized: "Created on %@"), original.createdAt.formatted(.dateTime.year().month().day())))
-                                }
-                            }
+                                // "Created on ..." as the section header so it
+                                // renders in the small secondary menu style.
+                                Section(String(format: String(localized: "Created on %@"), original.createdAt.formatted(.dateTime.year().month().day()))) {
+                                    shareMenu
 
-                            Menu {
-                                Button(role: .destructive) {
-                                    onDelete?()
-                                    dismiss()
-                                } label: {
-                                    Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                                    Menu {
+                                        Button(role: .destructive) {
+                                            onDelete?()
+                                            dismiss()
+                                        } label: {
+                                            Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                                        }
+                                    } label: {
+                                        Label(String(localized: "Remove"), systemImage: "minus.circle")
+                                    }
                                 }
-                            } label: {
-                                Label(String(localized: "Remove"), systemImage: "minus.circle")
                             }
                         } label: {
                             Image(systemName: "ellipsis")
@@ -212,6 +218,45 @@ struct CountdownDetailsView: View {
             }
         }
         .interactiveDismissDisabled(!isEditing && !trimmedTitle.isEmpty)
+    }
+
+    /// Share submenu at the top of the editor menu, sharing the countdown
+    /// as it is currently edited (unsaved values included).
+    @ViewBuilder
+    private var shareMenu: some View {
+        let shareTitle = trimmedTitle.isEmpty ? String(localized: "Event Name") : trimmedTitle
+        let lazyImage = LazyCardImage { [self] in
+            CountdownShare.renderCardImage(
+                title: shareTitle,
+                targetDate: targetDate,
+                emoji: emoji,
+                photoData: photoData,
+                now: Date(),
+                showYears: showYears,
+                showMonths: showMonths,
+                showDays: showDays
+            )
+        }
+        Menu {
+            Button {
+                triggerHaptic()
+                UIPasteboard.general.string = CountdownShare.copyText(
+                    title: shareTitle,
+                    targetDate: targetDate,
+                    now: Date(),
+                    showYears: showYears,
+                    showMonths: showMonths,
+                    showDays: showDays
+                )
+            } label: {
+                Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
+            }
+            ShareLink(item: lazyImage, preview: SharePreview(shareTitle)) {
+                Label(String(localized: "Share as Image"), systemImage: "camera.macro")
+            }
+        } label: {
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // Editor Share
+        }
     }
 
     private func saveAndDismiss() {
@@ -451,7 +496,7 @@ struct CountdownPreviewCard: View {
     /// Main-thread only, like all SwiftUI body evaluation.
     private static var dominantColorCache: [String: Color?] = [:]
 
-    private static func cachedDominantColor(of emoji: String) -> Color? {
+    static func cachedDominantColor(of emoji: String) -> Color? {
         if let cached = dominantColorCache[emoji] {
             return cached
         }

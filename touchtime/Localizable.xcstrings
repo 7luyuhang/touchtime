@@ -56,6 +56,57 @@
         }
       }
     },
+    "%@ is today" : {
+      "comment" : "Copied countdown text when the event is today; the placeholder is the event name.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@就是今天"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@就是今天"
+          }
+        }
+      }
+    },
+    "%1$@ %2$@ ago" : {
+      "comment" : "Copied countdown text for a past event: event name, then the elapsed interval.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@已过去%2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@已過去%2$@"
+          }
+        }
+      }
+    },
+    "%1$@ in %2$@" : {
+      "comment" : "Copied countdown text for an upcoming event: event name, then the remaining interval.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "距%1$@还有%2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "距%1$@還有%2$@"
+          }
+        }
+      }
+    },
     "%@, %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6918,6 +6969,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "亮面比例"
+          }
+        }
+      }
+    },
+    "in %@" : {
+      "comment" : "Context line under the shared countdown card, e.g. 'in 3 days'.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "还有%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "還有%@"
           }
         }
       }
