@@ -227,15 +227,15 @@ struct CountdownSheet: View {
                 }
         }
         .sheet(isPresented: $showEditorSheet) {
-            CountdownDetailsView { title, targetDate, emoji, photoData, isPinned in
-                addCountdown(title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned)
+            CountdownDetailsView { title, targetDate, emoji, photoData, isPinned, repeatFrequency in
+                addCountdown(title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned, repeatFrequency: repeatFrequency)
             }
         }
         .sheet(item: $editingCountdown) { item in
             CountdownDetailsView(countdown: item, onDelete: {
                 deleteCountdown(item)
-            }) { title, targetDate, emoji, photoData, isPinned in
-                updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned)
+            }) { title, targetDate, emoji, photoData, isPinned, repeatFrequency in
+                updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned, repeatFrequency: repeatFrequency)
             }
             // Force a fresh view identity per item, otherwise SwiftUI reuses
             // the sheet content and @State keeps the previous item's values.
@@ -369,10 +369,12 @@ struct CountdownSheet: View {
         .scrollIndicators(.hidden)
     }
 
-    /// Whether the countdown's target date has already passed (before today).
+    /// Whether the countdown's target date has already passed (before
+    /// today). Repeating countdowns roll forward, so they never count as
+    /// past.
     private func isPast(_ item: CountdownItem, at now: Date) -> Bool {
         let calendar = Calendar.current
-        return calendar.startOfDay(for: item.targetDate) < calendar.startOfDay(for: now)
+        return calendar.startOfDay(for: item.effectiveTargetDate(at: now)) < calendar.startOfDay(for: now)
     }
 
     /// Sorted countdowns narrowed down by the active filter, if any.
@@ -404,8 +406,8 @@ struct CountdownSheet: View {
         }
     }
 
-    private func addCountdown(title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool) {
-        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, emoji: emoji, photoData: photoData)
+    private func addCountdown(title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency) {
+        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, repeatFrequency: repeatFrequency, emoji: emoji, photoData: photoData)
         withAnimation(.spring()) {
             countdownStore.countdowns.append(item)
         }
@@ -420,7 +422,7 @@ struct CountdownSheet: View {
         triggerHaptic()
     }
 
-    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool) {
+    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency) {
         guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
         // Assemble the edited item first so the store (and UserDefaults)
         // sees a single mutation instead of one per field.
@@ -430,6 +432,7 @@ struct CountdownSheet: View {
         updated.emoji = emoji
         updated.photoData = photoData
         updated.isPinned = isPinned
+        updated.repeatFrequency = repeatFrequency
         withAnimation(.spring()) {
             countdownStore.countdowns[index] = updated
         }
@@ -476,12 +479,17 @@ private struct CountdownRow: View {
         Calendar.current
     }
 
+    /// Stored date for one-off countdowns, next occurrence for repeating ones.
+    private var effectiveTargetDate: Date {
+        item.effectiveTargetDate(at: now)
+    }
+
     /// Whole calendar days from today to the target date; negative for past dates.
     private var dayDifference: Int {
         calendar.dateComponents(
             [.day],
             from: calendar.startOfDay(for: now),
-            to: calendar.startOfDay(for: item.targetDate)
+            to: calendar.startOfDay(for: effectiveTargetDate)
         ).day ?? 0
     }
 
@@ -501,7 +509,7 @@ private struct CountdownRow: View {
         let difference = calendar.dateComponents(
             unitSet,
             from: calendar.startOfDay(for: now),
-            to: calendar.startOfDay(for: item.targetDate)
+            to: calendar.startOfDay(for: effectiveTargetDate)
         )
 
         var parts: [String] = []
@@ -531,7 +539,7 @@ private struct CountdownRow: View {
     }
 
     private var isTargetInCurrentYear: Bool {
-        calendar.isDate(item.targetDate, equalTo: now, toGranularity: .year)
+        calendar.isDate(effectiveTargetDate, equalTo: now, toGranularity: .year)
     }
 
     var body: some View {
@@ -562,9 +570,9 @@ private struct CountdownRow: View {
 
             Group {
                 if isTargetInCurrentYear {
-                    Text(item.targetDate, format: .dateTime.month().day())
+                    Text(effectiveTargetDate, format: .dateTime.month().day())
                 } else {
-                    Text(item.targetDate, format: .dateTime.year().month().day())
+                    Text(effectiveTargetDate, format: .dateTime.year().month().day())
                 }
             }
             .font(.subheadline)

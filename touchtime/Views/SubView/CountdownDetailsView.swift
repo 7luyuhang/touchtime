@@ -20,7 +20,7 @@ struct CountdownDetailsView: View {
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
 
-    let onSave: (String, Date, String?, Data?, Bool) -> Void
+    let onSave: (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
@@ -29,6 +29,7 @@ struct CountdownDetailsView: View {
     @State private var emoji: String?
     @State private var photoData: Data?
     @State private var isPinned: Bool
+    @State private var repeatFrequency: CountdownItem.RepeatFrequency
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
     @FocusState private var isTitleFocused: Bool
@@ -37,7 +38,7 @@ struct CountdownDetailsView: View {
         original != nil
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -52,6 +53,7 @@ struct CountdownDetailsView: View {
         _emoji = State(initialValue: countdown?.emoji)
         _photoData = State(initialValue: countdown?.photoData)
         _isPinned = State(initialValue: countdown?.isPinned ?? false)
+        _repeatFrequency = State(initialValue: countdown?.repeatFrequency ?? .never)
     }
 
     private var trimmedTitle: String {
@@ -65,6 +67,14 @@ struct CountdownDetailsView: View {
             || emoji != original.emoji
             || photoData != original.photoData
             || isPinned != original.isPinned
+            || repeatFrequency != original.repeatFrequency
+    }
+
+    /// What the countdown counts to right now: the picked date, rolled
+    /// forward to the next occurrence when it repeats. Drives the preview
+    /// card and the Share menu.
+    private var effectiveTargetDate: Date {
+        CountdownItem.nextOccurrence(of: targetDate, frequency: repeatFrequency, after: Date())
     }
 
     /// Selectable range: a century either side of today keeps the year
@@ -85,7 +95,7 @@ struct CountdownDetailsView: View {
                     VStack(alignment: .center, spacing: 10) {
                         CountdownPreviewCard(
                             title: trimmedTitle,
-                            targetDate: targetDate,
+                            targetDate: effectiveTargetDate,
                             emoji: emoji,
                             photoData: photoData
                         ) {
@@ -130,6 +140,17 @@ struct CountdownDetailsView: View {
                         displayedComponents: [.hourAndMinute]
                     )
                     .datePickerStyle(.compact)
+
+                    Picker(String(localized: "Repeat"), selection: $repeatFrequency) {
+                        ForEach(CountdownItem.RepeatFrequency.allCases, id: \.self) { frequency in
+                            Text(frequency.displayName).tag(frequency)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.primary)
+                    .onChange(of: repeatFrequency) { _, _ in
+                        triggerHaptic()
+                    }
                 }
 
                 Section {
@@ -155,7 +176,7 @@ struct CountdownDetailsView: View {
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, photoData, isPinned)
+                onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -228,7 +249,7 @@ struct CountdownDetailsView: View {
         let lazyImage = LazyCardImage { [self] in
             CountdownShare.renderCardImage(
                 title: shareTitle,
-                targetDate: targetDate,
+                targetDate: effectiveTargetDate,
                 emoji: emoji,
                 photoData: photoData,
                 now: Date(),
@@ -242,7 +263,7 @@ struct CountdownDetailsView: View {
                 triggerHaptic()
                 UIPasteboard.general.string = CountdownShare.copyText(
                     title: shareTitle,
-                    targetDate: targetDate,
+                    targetDate: effectiveTargetDate,
                     now: Date(),
                     showYears: showYears,
                     showMonths: showMonths,
@@ -261,7 +282,7 @@ struct CountdownDetailsView: View {
 
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, photoData, isPinned)
+        onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency)
         dismiss()
     }
 
@@ -773,5 +794,5 @@ private struct CoverPickerSheet: View {
 }
 
 #Preview {
-    CountdownDetailsView { _, _, _, _, _ in }
+    CountdownDetailsView { _, _, _, _, _, _ in }
 }

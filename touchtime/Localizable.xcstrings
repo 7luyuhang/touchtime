@@ -1451,6 +1451,23 @@
         }
       }
     },
+    "Annually" : {
+      "comment" : "Countdown repeat frequency.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每年"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每年"
+          }
+        }
+      }
+    },
     "and" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9117,6 +9134,23 @@
         }
       }
     },
+    "Monthly" : {
+      "comment" : "Countdown repeat frequency.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每月"
+          }
+        }
+      }
+    },
     "Months" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9524,6 +9558,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建集合"
+          }
+        }
+      }
+    },
+    "Never" : {
+      "comment" : "Countdown repeat frequency: does not repeat.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "永不"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "永不"
           }
         }
       }

@@ -10,27 +10,47 @@ import Observation
 
 /// A countdown towards a future date, shown in the countdown grid.
 struct CountdownItem: Identifiable, Codable, Equatable {
+    /// How the countdown rolls forward once its target date has passed.
+    enum RepeatFrequency: String, Codable, CaseIterable {
+        case never
+        case weekly
+        case monthly
+        case annually
+
+        var displayName: String {
+            switch self {
+            case .never: String(localized: "Never")
+            case .weekly: String(localized: "Weekly")
+            case .monthly: String(localized: "Monthly")
+            case .annually: String(localized: "Annually")
+            }
+        }
+    }
+
     let id: UUID
     var title: String
     var targetDate: Date
     let createdAt: Date
     var isPinned: Bool
+    var repeatFrequency: RepeatFrequency
     var emoji: String?
     /// Downsampled JPEG shown in the centre badge, with a blurred version
     /// as the card background. Mutually exclusive with `emoji`.
     var photoData: Data?
 
-    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, emoji: String? = nil, photoData: Data? = nil) {
+    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
         self.createdAt = createdAt
         self.isPinned = isPinned
+        self.repeatFrequency = repeatFrequency
         self.emoji = emoji
         self.photoData = photoData
     }
 
-    // Items saved before pinning/emoji/photo existed are missing those keys.
+    // Items saved before pinning/repeat/emoji/photo existed are missing
+    // those keys.
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(UUID.self, forKey: .id)
@@ -38,8 +58,55 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         targetDate = try container.decode(Date.self, forKey: .targetDate)
         createdAt = try container.decode(Date.self, forKey: .createdAt)
         isPinned = try container.decodeIfPresent(Bool.self, forKey: .isPinned) ?? false
+        // Decoded via the raw string so an unknown value from a newer app
+        // version degrades to .never instead of dropping the whole store.
+        if let rawFrequency = try container.decodeIfPresent(String.self, forKey: .repeatFrequency),
+           let frequency = RepeatFrequency(rawValue: rawFrequency) {
+            repeatFrequency = frequency
+        } else {
+            repeatFrequency = .never
+        }
         emoji = try container.decodeIfPresent(String.self, forKey: .emoji)
         photoData = try container.decodeIfPresent(Data.self, forKey: .photoData)
+    }
+
+    /// The stored date for one-off countdowns; for repeating ones, the
+    /// next occurrence on or after `now`'s calendar day.
+    func effectiveTargetDate(at now: Date) -> Date {
+        Self.nextOccurrence(of: targetDate, frequency: repeatFrequency, after: now)
+    }
+
+    /// Rolls `targetDate` forward by whole repeat intervals until it lands
+    /// on or after `now`'s calendar day (so a repeating event still reads
+    /// "Today" for the rest of its day). Every addition anchors on the
+    /// original date so month-end dates don't drift (Jan 31 → Feb 28 →
+    /// Mar 31, not Mar 28).
+    static func nextOccurrence(of targetDate: Date, frequency: RepeatFrequency, after now: Date) -> Date {
+        let component: Calendar.Component
+        switch frequency {
+        case .never:
+            return targetDate
+        case .weekly:
+            component = .weekOfYear
+        case .monthly:
+            component = .month
+        case .annually:
+            component = .year
+        }
+
+        let calendar = Calendar.current
+        let nowDay = calendar.startOfDay(for: now)
+        guard calendar.startOfDay(for: targetDate) < nowDay else { return targetDate }
+
+        // Jump close in one step, then settle on the first occurrence
+        // whose day is not in the past.
+        var count = max(calendar.dateComponents([component], from: targetDate, to: now).value(for: component) ?? 0, 0)
+        var next = calendar.date(byAdding: component, value: count, to: targetDate) ?? targetDate
+        while calendar.startOfDay(for: next) < nowDay {
+            count += 1
+            next = calendar.date(byAdding: component, value: count, to: targetDate) ?? targetDate
+        }
+        return next
     }
 }
 

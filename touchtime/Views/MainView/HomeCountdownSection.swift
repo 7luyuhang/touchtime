@@ -29,7 +29,7 @@ struct HomeCountdownSection: View {
     private var pinnedCountdowns: [CountdownItem] {
         countdowns
             .filter(\.isPinned)
-            .sorted { $0.targetDate < $1.targetDate }
+            .sorted { $0.effectiveTargetDate(at: now) < $1.effectiveTargetDate(at: now) }
     }
 
     var body: some View {
@@ -37,7 +37,7 @@ struct HomeCountdownSection: View {
             Section {
                 CountdownPreviewCard(
                     title: item.title,
-                    targetDate: item.targetDate,
+                    targetDate: item.effectiveTargetDate(at: now),
                     emoji: item.emoji,
                     photoData: item.photoData,
                     now: now
@@ -63,7 +63,7 @@ struct HomeCountdownSection: View {
         let lazyImage = LazyCardImage {
             CountdownShare.renderCardImage(
                 title: item.title,
-                targetDate: item.targetDate,
+                targetDate: item.effectiveTargetDate(at: now),
                 emoji: item.emoji,
                 photoData: item.photoData,
                 now: now,
@@ -76,7 +76,7 @@ struct HomeCountdownSection: View {
             Button {
                 UIPasteboard.general.string = CountdownShare.copyText(
                     title: item.title,
-                    targetDate: item.targetDate,
+                    targetDate: item.effectiveTargetDate(at: now),
                     now: now,
                     showYears: showYears,
                     showMonths: showMonths,
