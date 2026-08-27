@@ -103,6 +103,8 @@ struct HomeView: View {
     // store is observed, so pins toggled inside the countdown sheet update
     // the cards immediately.
     @Environment(CountdownStore.self) private var countdownStore
+    // Countdown being edited after tapping its pinned card on Home.
+    @State private var editingHomeCountdown: CountdownItem? = nil
     @State private var showComplicationsSheet = false
     @State private var showWidgetIntroSheet = false
     @State private var showEarthView = false
@@ -482,6 +484,37 @@ struct HomeView: View {
             }
         } else if homeTimerCompletionHandled {
             homeTimerCompletionHandled = false
+        }
+    }
+
+    /// Commits edits made in the countdown editor opened from a pinned
+    /// Home card, mirroring CountdownSheet's update logic.
+    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool) {
+        guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
+        // Assemble the edited item first so the store (and UserDefaults)
+        // sees a single mutation instead of one per field.
+        var updated = countdownStore.countdowns[index]
+        updated.title = title
+        updated.targetDate = targetDate
+        updated.emoji = emoji
+        updated.photoData = photoData
+        updated.isPinned = isPinned
+        withAnimation(.spring()) {
+            countdownStore.countdowns[index] = updated
+        }
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func deleteCountdown(_ item: CountdownItem) {
+        withAnimation(.spring()) {
+            countdownStore.countdowns.removeAll { $0.id == item.id }
+        }
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
         }
     }
 
@@ -1213,7 +1246,14 @@ struct HomeView: View {
                         // Countdown Preview Section: pinned countdowns live below the timer
                         HomeCountdownSection(
                             countdowns: countdownStore.countdowns,
-                            now: currentDate.addingTimeInterval(timeOffset)
+                            now: currentDate.addingTimeInterval(timeOffset),
+                            onTap: { item in
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.impactOccurred()
+                                }
+                                editingHomeCountdown = item
+                            }
                         )
                         
                         // Local Time Section
@@ -1887,6 +1927,18 @@ struct HomeView: View {
             // Countdown Sheet
             .sheet(isPresented: $showCountdownSheet) {
                 CountdownSheet()
+            }
+
+            // Countdown Editor Sheet: opened by tapping a pinned card on Home
+            .sheet(item: $editingHomeCountdown) { item in
+                CountdownDetailsView(countdown: item, onDelete: {
+                    deleteCountdown(item)
+                }) { title, targetDate, emoji, photoData, isPinned in
+                    updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned)
+                }
+                // Force a fresh view identity per item, otherwise SwiftUI reuses
+                // the sheet content and @State keeps the previous item's values.
+                .id(item.id)
             }
 
             // Complications Sheet

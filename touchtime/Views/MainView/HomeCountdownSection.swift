@@ -15,6 +15,8 @@ struct HomeCountdownSection: View {
     /// Reference "now" (current time plus the Slide to Adjust offset)
     /// used for the day counts.
     let now: Date
+    /// Called with the tapped countdown; Home presents the editor for it.
+    let onTap: (CountdownItem) -> Void
 
     private var pinnedCountdowns: [CountdownItem] {
         countdowns
@@ -32,6 +34,10 @@ struct HomeCountdownSection: View {
                     photoData: item.photoData,
                     now: now
                 )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    onTap(item)
+                }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)
                 .listRowSeparator(.hidden)
