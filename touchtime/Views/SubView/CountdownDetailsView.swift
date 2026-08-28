@@ -211,6 +211,8 @@ struct CountdownDetailsView: View {
                                 Section(String(format: String(localized: "Created on %@"), original.createdAt.formatted(.dateTime.year().month().day()))) {
                                     shareMenu
 
+                                    Divider()
+
                                     Menu {
                                         Button(role: .destructive) {
                                             onDelete?()
