@@ -31,7 +31,9 @@ struct SetTimerSheet: View {
     @State private var showReplaceTimerConfirmation = false
     @State private var activeDetent: PresentationDetent = Self.compactDetent
     @State private var recentTimers: [RecentTimer]
-    // Name to restore when starting a timer from Recents; nil when starting from the picker
+    // Name applied to the home timer when a pending start confirms:
+    // a Recents entry's name, or "" for a fresh picker timer (clears the
+    // previous timer's name). nil when no start is pending.
     @State private var pendingTimerName: String? = nil
     // Recent whose play button is awaiting the replace confirmation
     @State private var replaceConfirmationRecentID: UUID? = nil
@@ -94,7 +96,9 @@ struct SetTimerSheet: View {
     }
 
     private func startTimerFromPicker() {
-        pendingTimerName = nil
+        // A timer started from the picker is a fresh timer: clear any name
+        // left over from the previously running timer
+        pendingTimerName = ""
         if requiresReplacementConfirmation {
             showReplaceTimerConfirmation = true
         } else {
