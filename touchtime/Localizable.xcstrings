@@ -73,6 +73,22 @@
         }
       }
     },
+    "%@, %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@%2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@%2$@"
+          }
+        }
+      }
+    },
     "%1$@ %2$@ ago" : {
       "comment" : "Copied countdown text for a past event: event name, then the elapsed interval.",
       "localizations" : {
@@ -103,22 +119,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "距%1$@還有%2$@"
-          }
-        }
-      }
-    },
-    "%@, %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@%2$@"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%1$@%2$@"
           }
         }
       }
@@ -1323,6 +1323,9 @@
         }
       }
     },
+    "Allow notifications in Settings to get countdown reminders." : {
+
+    },
     "Allow notifications in Settings to get on-the-hour notifications." : {
       "localizations" : {
         "zh-Hans" : {
@@ -1451,23 +1454,6 @@
         }
       }
     },
-    "Annually" : {
-      "comment" : "Countdown repeat frequency.",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每年"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "每年"
-          }
-        }
-      }
-    },
     "and" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1547,6 +1533,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安圭拉"
+          }
+        }
+      }
+    },
+    "Annually" : {
+      "comment" : "Countdown repeat frequency.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每年"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每年"
           }
         }
       }
@@ -6135,6 +6138,9 @@
         }
       }
     },
+    "Get a notification at %@ on the day of the event." : {
+
+    },
     "Get a notification at the top of every hour at %@-%@." : {
       "localizations" : {
         "en" : {
@@ -9118,22 +9124,6 @@
         }
       }
     },
-    "months" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "个月"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "個月"
-          }
-        }
-      }
-    },
     "Monthly" : {
       "comment" : "Countdown repeat frequency.",
       "localizations" : {
@@ -9147,6 +9137,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每月"
+          }
+        }
+      }
+    },
+    "months" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "个月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "個月"
           }
         }
       }
@@ -9529,6 +9535,23 @@
         }
       }
     },
+    "Never" : {
+      "comment" : "Countdown repeat frequency: does not repeat.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "永不"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "永不"
+          }
+        }
+      }
+    },
     "New" : {
       "comment" : "Short label for the new moon in the upcoming phases cards.",
       "localizations" : {
@@ -9558,23 +9581,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新建集合"
-          }
-        }
-      }
-    },
-    "Never" : {
-      "comment" : "Countdown repeat frequency: does not repeat.",
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "永不"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "永不"
           }
         }
       }
@@ -11329,6 +11335,9 @@
           }
         }
       }
+    },
+    "Reminder" : {
+
     },
     "Remove" : {
       "localizations" : {
@@ -13670,6 +13679,10 @@
           }
         }
       }
+    },
+    "The event is today." : {
+      "comment" : "Text displayed in a notification when a countdown reminder is set for the event day.",
+      "isCommentAutoGenerated" : true
     },
     "The world time flows within the delicate sky" : {
       "localizations" : {

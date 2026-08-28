@@ -15,12 +15,13 @@ import PhotosUI
 struct CountdownDetailsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
     // Time Display settings from the countdown sheet, used by the Share menu.
     @AppStorage("countdownShowYears") private var showYears = false
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
 
-    let onSave: (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency) -> Void
+    let onSave: (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
@@ -30,15 +31,18 @@ struct CountdownDetailsView: View {
     @State private var photoData: Data?
     @State private var isPinned: Bool
     @State private var repeatFrequency: CountdownItem.RepeatFrequency
+    @State private var reminderEnabled: Bool
+    @State private var reminderTime: Date
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
+    @State private var showNotificationPermissionAlert = false
     @FocusState private var isTitleFocused: Bool
 
     private var isEditing: Bool {
         original != nil
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -54,10 +58,34 @@ struct CountdownDetailsView: View {
         _photoData = State(initialValue: countdown?.photoData)
         _isPinned = State(initialValue: countdown?.isPinned ?? false)
         _repeatFrequency = State(initialValue: countdown?.repeatFrequency ?? .never)
+
+        // Reminders default to 9:00 AM on the day of the event.
+        let defaultReminderTime = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: .now) ?? .now
+        _reminderEnabled = State(initialValue: countdown?.reminderTime != nil)
+        _reminderTime = State(initialValue: countdown?.reminderTime ?? defaultReminderTime)
     }
 
     private var trimmedTitle: String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// The reminder time as currently configured in the form; nil when off.
+    private var draftReminderTime: Date? {
+        reminderEnabled ? reminderTime : nil
+    }
+
+    /// Reminder time for the footer, honouring the 24-hour format setting.
+    private var reminderTimeString: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        if use24HourFormat {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "h:mm a"
+            formatter.amSymbol = "am"
+            formatter.pmSymbol = "pm"
+        }
+        return formatter.string(from: reminderTime)
     }
 
     private var hasChanges: Bool {
@@ -68,6 +96,7 @@ struct CountdownDetailsView: View {
             || photoData != original.photoData
             || isPinned != original.isPinned
             || repeatFrequency != original.repeatFrequency
+            || draftReminderTime != original.reminderTime
     }
 
     /// What the countdown counts to right now: the picked date, rolled
@@ -150,13 +179,6 @@ struct CountdownDetailsView: View {
                     )
                     .datePickerStyle(.compact)
 
-                    DatePicker(
-                        String(localized: "Time"),
-                        selection: $targetDate,
-                        displayedComponents: [.hourAndMinute]
-                    )
-                    .datePickerStyle(.compact)
-
                     Picker(String(localized: "Repeat"), selection: $repeatFrequency) {
                         ForEach(CountdownItem.RepeatFrequency.allCases, id: \.self) { frequency in
                             Text(frequency.displayName).tag(frequency)
@@ -168,6 +190,26 @@ struct CountdownDetailsView: View {
                         triggerHaptic()
                     }
                 }
+
+                Section {
+                    TouchTimeToggle(isOn: $reminderEnabled) {
+                        Text(String(localized: "Reminder"))
+                    }
+
+                    if reminderEnabled {
+                        DatePicker(
+                            String(localized: "Time"),
+                            selection: $reminderTime,
+                            displayedComponents: [.hourAndMinute]
+                        )
+                        .datePickerStyle(.compact)
+                    }
+                } footer: {
+                    if reminderEnabled {
+                        Text("Get a notification at \(reminderTimeString) on the day of the event.")
+                    }
+                }
+                .animation(.spring(), value: reminderEnabled)
 
                 Section {
                     TouchTimeToggle(isOn: $isPinned) {
@@ -187,12 +229,37 @@ struct CountdownDetailsView: View {
                     showCoverPicker = false
                 }
             }
+            // Turning the reminder on needs notification permission; flip
+            // the toggle back off when it is denied.
+            .onChange(of: reminderEnabled) { _, enabled in
+                triggerHaptic()
+                guard enabled else { return }
+                Task {
+                    let granted = await CountdownReminderManager.shared.requestAuthorization()
+                    if !granted {
+                        await MainActor.run {
+                            reminderEnabled = false
+                            showNotificationPermissionAlert = true
+                        }
+                    }
+                }
+            }
+            .alert("Notifications Disabled", isPresented: $showNotificationPermissionAlert) {
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Allow notifications in Settings to get countdown reminders.")
+            }
             .navigationTitle(isEditing ? "" : String(localized: "New Countdown"))
             .navigationBarTitleDisplayMode(.inline)
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency)
+                onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency, draftReminderTime)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -300,7 +367,7 @@ struct CountdownDetailsView: View {
 
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency)
+        onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency, draftReminderTime)
         dismiss()
     }
 
@@ -812,5 +879,5 @@ private struct CoverPickerSheet: View {
 }
 
 #Preview {
-    CountdownDetailsView { _, _, _, _, _, _ in }
+    CountdownDetailsView { _, _, _, _, _, _, _ in }
 }

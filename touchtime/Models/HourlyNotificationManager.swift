@@ -221,7 +221,8 @@ extension HourlyNotificationManager: UNUserNotificationCenterDelegate {
         _ center: UNUserNotificationCenter,
         willPresent notification: UNNotification
     ) async -> UNNotificationPresentationOptions {
-        // Show our hourly/test notifications even while the app is open
-        isHourlyNotification(notification) ? [.banner, .sound] : []
+        // Show our hourly/countdown notifications even while the app is open
+        let isCountdownReminder = notification.request.identifier.hasPrefix(CountdownReminderManager.identifierPrefix)
+        return isHourlyNotification(notification) || isCountdownReminder ? [.banner, .sound] : []
     }
 }

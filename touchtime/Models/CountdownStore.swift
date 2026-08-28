@@ -37,8 +37,11 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     /// Downsampled JPEG shown in the centre badge, with a blurred version
     /// as the card background. Mutually exclusive with `emoji`.
     var photoData: Data?
+    /// Notification on the day of the event at this time of day; only the
+    /// hour and minute are meaningful. Nil when the reminder is off.
+    var reminderTime: Date?
 
-    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil) {
+    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, reminderTime: Date? = nil) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
@@ -47,6 +50,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         self.repeatFrequency = repeatFrequency
         self.emoji = emoji
         self.photoData = photoData
+        self.reminderTime = reminderTime
     }
 
     // Items saved before pinning/repeat/emoji/photo existed are missing
@@ -68,6 +72,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         }
         emoji = try container.decodeIfPresent(String.self, forKey: .emoji)
         photoData = try container.decodeIfPresent(Data.self, forKey: .photoData)
+        reminderTime = try container.decodeIfPresent(Date.self, forKey: .reminderTime)
     }
 
     /// The stored date for one-off countdowns; for repeating ones, the
@@ -108,6 +113,33 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         }
         return next
     }
+
+    /// When the reminder notification should next fire: the (next)
+    /// occurrence day at the reminder's time of day. Nil without a
+    /// reminder, or when the time has already passed on a countdown
+    /// that never repeats.
+    func nextReminderFireDate(after now: Date) -> Date? {
+        guard let reminderTime else { return nil }
+        let calendar = Calendar.current
+        let time = calendar.dateComponents([.hour, .minute], from: reminderTime)
+
+        // A repeating countdown whose reminder already rang today still
+        // reads "Today" all day, so step past that occurrence to the next.
+        var searchFrom = now
+        for _ in 0..<4 {
+            let occurrence = Self.nextOccurrence(of: targetDate, frequency: repeatFrequency, after: searchFrom)
+            if let fireDate = calendar.date(bySettingHour: time.hour ?? 9, minute: time.minute ?? 0, second: 0, of: occurrence),
+               fireDate > now {
+                return fireDate
+            }
+            guard repeatFrequency != .never,
+                  let nextSearchFrom = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: occurrence)) else {
+                return nil
+            }
+            searchFrom = nextSearchFrom
+        }
+        return nil
+    }
 }
 
 /// Single source of truth for countdowns, created once at the app root and
@@ -119,7 +151,11 @@ final class CountdownStore {
     private static let storageKey = "savedCountdowns"
 
     var countdowns: [CountdownItem] {
-        didSet { Self.persist(countdowns) }
+        didSet {
+            Self.persist(countdowns)
+            // Keep pending reminder notifications in step with every mutation.
+            CountdownReminderManager.shared.reschedule(for: countdowns)
+        }
     }
 
     init() {

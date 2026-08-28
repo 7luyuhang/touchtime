@@ -489,7 +489,7 @@ struct HomeView: View {
 
     /// Commits edits made in the countdown editor opened from a pinned
     /// Home card, mirroring CountdownSheet's update logic.
-    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency) {
+    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?) {
         guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
         // Assemble the edited item first so the store (and UserDefaults)
         // sees a single mutation instead of one per field.
@@ -500,6 +500,7 @@ struct HomeView: View {
         updated.photoData = photoData
         updated.isPinned = isPinned
         updated.repeatFrequency = repeatFrequency
+        updated.reminderTime = reminderTime
         withAnimation(.spring()) {
             countdownStore.countdowns[index] = updated
         }
@@ -1934,8 +1935,8 @@ struct HomeView: View {
             .sheet(item: $editingHomeCountdown) { item in
                 CountdownDetailsView(countdown: item, onDelete: {
                     deleteCountdown(item)
-                }) { title, targetDate, emoji, photoData, isPinned, repeatFrequency in
-                    updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned, repeatFrequency: repeatFrequency)
+                }) { title, targetDate, emoji, photoData, isPinned, repeatFrequency, reminderTime in
+                    updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime)
                 }
                 // Force a fresh view identity per item, otherwise SwiftUI reuses
                 // the sheet content and @State keeps the previous item's values.

@@ -49,6 +49,9 @@ struct touchtimeApp: App {
             if newPhase == .active {
                 HourlyNotificationManager.shared.syncEnabledWithAuthorization()
                 HourlyNotificationManager.shared.reschedule()
+                // Repeating countdown reminders roll forward to their next
+                // occurrence after one has fired.
+                CountdownReminderManager.shared.reschedule(for: countdownStore.countdowns)
                 SharedWidgetStore.syncFromApp()
             } else if newPhase == .background {
                 // Keep the widget's city list and time format up to date
