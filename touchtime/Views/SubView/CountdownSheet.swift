@@ -45,7 +45,6 @@ struct CountdownSheet: View {
     @State private var showEditorSheet = false
     @State private var showLifetimeStore = false
     @State private var editingCountdown: CountdownItem? = nil
-    @State private var selectedDetent: PresentationDetent = .medium
     @State private var filter: CountdownFilter? = nil
 
     /// Read-only convenience over the shared store.
@@ -246,12 +245,7 @@ struct CountdownSheet: View {
                 LifetimeStoreView()
             }
         }
-        .presentationDetents([.medium, .large], selection: $selectedDetent)
-        .onChange(of: selectedDetent) { oldValue, newValue in
-            if oldValue == .medium && newValue == .large {
-                triggerHaptic()
-            }
-        }
+        .presentationDetents([.large])
     }
 
     @ViewBuilder
@@ -310,7 +304,7 @@ struct CountdownSheet: View {
                                     systemImage: item.isPinned ? "pin.slash.fill" : "pin.fill"
                                 )
                             }
-                            .tint(.blue)
+                            .tint(item.isPinned ? .orange : .blue)
                         }
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
