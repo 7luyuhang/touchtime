@@ -370,7 +370,15 @@ struct SetTimerSheet: View {
 
                             recentTimerControl(for: recent)
                         }
-                        .padding(.vertical, 4)
+                        .padding(.vertical, 15)
+                        .padding(.horizontal, 20)
+                        .background(
+                            Color(UIColor.secondarySystemGroupedBackground),
+                            in: Capsule(style: .continuous)
+                        )
+                        .contentShape(.contextMenuPreview, Capsule(style: .continuous))
+                        .listRowInsets(EdgeInsets())
+                        .listRowBackground(Color.clear)
                         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
                             Button(role: .destructive) {
                                 deleteRecentTimer(recent)
