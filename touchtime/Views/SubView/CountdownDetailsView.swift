@@ -163,7 +163,7 @@ struct CountdownDetailsView: View {
                         }
                     }
                     .pickerStyle(.menu)
-                    .tint(.primary)
+                    .tint(.secondary)
                     .onChange(of: repeatFrequency) { _, _ in
                         triggerHaptic()
                     }
