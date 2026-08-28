@@ -119,8 +119,24 @@ struct CountdownDetailsView: View {
                 }
 
                 Section {
-                    TextField(String(localized: "Title"), text: $title)
-                        .focused($isTitleFocused)
+                    HStack {
+                        TextField(String(localized: "Title"), text: $title)
+                            .focused($isTitleFocused)
+
+                        if !title.isEmpty && isTitleFocused {
+                            Button {
+                                triggerHaptic()
+                                title = ""
+                            } label: {
+                                Image(systemName: "xmark.circle.fill")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .buttonStyle(.plain)
+                            .transition(.blurReplace)
+                        }
+                    }
+                    .animation(.spring(), value: !title.isEmpty && isTitleFocused)
                 } header: {
                     Text(String(localized: "Event Name"))
                 }
