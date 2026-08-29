@@ -1605,22 +1605,6 @@
         }
       }
     },
-    "App Website" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App 网站"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "App 網站"
-          }
-        }
-      }
-    },
     "Aqtau" : {
       "extractionState" : "manual",
       "localizations" : {

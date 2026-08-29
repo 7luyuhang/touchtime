@@ -253,15 +253,6 @@ struct AboutView: View {
             // Terms / Privacy / Copyright Section
             Section {
                 Button {
-                    safariURL = URL(string: "https://touch-time.com")
-                } label: {
-                    HStack {
-                        Text("App Website")
-                    }
-                }
-                .foregroundStyle(.primary)
-
-                Button {
                     safariURL = URL(string: "https://www.apple.com/legal/internet-services/itunes/dev/stdeula/")
                 } label: {
                     HStack {
