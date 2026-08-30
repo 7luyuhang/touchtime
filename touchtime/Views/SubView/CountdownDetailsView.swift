@@ -36,6 +36,9 @@ struct CountdownDetailsView: View {
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
     @State private var showNotificationPermissionAlert = false
+    /// Bumped on every emoji pick in the cover sheet; the preview card
+    /// plays one particle burst per change.
+    @State private var emojiParticleBurst = 0
     @FocusState private var isTitleFocused: Bool
 
     private var isEditing: Bool {
@@ -127,7 +130,8 @@ struct CountdownDetailsView: View {
                             targetDate: effectiveTargetDate,
                             emoji: emoji,
                             photoData: photoData,
-                            isRepeating: repeatFrequency != .never
+                            isRepeating: repeatFrequency != .never,
+                            emojiParticleBurst: emojiParticleBurst
                         ) {
                             triggerHaptic()
                             // Drop the keyboard before the picker comes up
@@ -221,7 +225,9 @@ struct CountdownDetailsView: View {
                 }
             }
             .sheet(isPresented: $showCoverPicker) {
-                CoverPickerSheet(selectedEmoji: $emoji, selectedPhotoData: $photoData)
+                CoverPickerSheet(selectedEmoji: $emoji, selectedPhotoData: $photoData) {
+                    emojiParticleBurst += 1
+                }
             }
             // Background interaction keeps the title field tappable while
             // the picker is up: put the picker away when typing resumes.
@@ -400,6 +406,9 @@ struct CountdownPreviewCard: View {
     /// True for repeating countdowns; swaps the top-left arrow for a
     /// repeat symbol.
     var isRepeating: Bool = false
+    /// Bumped by the editor whenever an emoji is picked in the cover
+    /// sheet; each change spawns one particle burst in the card background.
+    var emojiParticleBurst: Int = 0
     var onEmojiTap: (() -> Void)? = nil
 
     @Environment(\.colorScheme) private var systemColorScheme
@@ -513,16 +522,26 @@ struct CountdownPreviewCard: View {
             .padding()
             .padding(.bottom, -4)
             .background {
-                if let photoImage {
-                    // Blurred copy of the badge photo instead of the flat
-                    // emoji colour; darkened a touch for text contrast.
-                    Image(uiImage: photoImage)
-                        .resizable()
-                        .scaledToFill()
-                        .blur(radius: 24, opaque: true)
-                        .overlay(Color.black.opacity(0.25))
-                } else if let emojiColor {
-                    emojiColor
+                ZStack {
+                    if let photoImage {
+                        // Blurred copy of the badge photo instead of the flat
+                        // emoji colour; darkened a touch for text contrast.
+                        Image(uiImage: photoImage)
+                            .resizable()
+                            .scaledToFill()
+                            .blur(radius: 24, opaque: true)
+                            .overlay(Color.black.opacity(0.25))
+                    } else if let emojiColor {
+                        emojiColor
+                    }
+
+                    // Editor-only: cover-emoji particles float up the card
+                    // background whenever an emoji is picked in the cover
+                    // sheet. Mounted regardless of the current cover so the
+                    // burst that sets the first emoji still plays.
+                    if onEmojiTap != nil {
+                        EmojiParticlesView(emoji: emoji, burst: emojiParticleBurst)
+                    }
                 }
             }
             .clipShape(
@@ -733,6 +752,9 @@ private struct CoverPickerSheet: View {
 
     @Binding var selectedEmoji: String?
     @Binding var selectedPhotoData: Data?
+    /// Called on every emoji tap in the grid, after the selection is
+    /// applied; the editor uses it to fire the preview particle burst.
+    var onEmojiPick: (() -> Void)? = nil
 
     @State private var showPhotoPicker = false
     @State private var photoPickerItem: PhotosPickerItem?
@@ -768,6 +790,7 @@ private struct CoverPickerSheet: View {
                             triggerHaptic()
                             selectedEmoji = option
                             selectedPhotoData = nil
+                            onEmojiPick?()
                         } label: {
                             Text(option)
                                 .font(.system(size: 34))
