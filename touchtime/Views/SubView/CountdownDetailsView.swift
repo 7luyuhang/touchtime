@@ -126,7 +126,8 @@ struct CountdownDetailsView: View {
                             title: trimmedTitle,
                             targetDate: effectiveTargetDate,
                             emoji: emoji,
-                            photoData: photoData
+                            photoData: photoData,
+                            isRepeating: repeatFrequency != .never
                         ) {
                             triggerHaptic()
                             // Drop the keyboard before the picker comes up
@@ -337,6 +338,7 @@ struct CountdownDetailsView: View {
                 targetDate: effectiveTargetDate,
                 emoji: emoji,
                 photoData: photoData,
+                isRepeating: repeatFrequency != .never,
                 now: Date(),
                 showYears: showYears,
                 showMonths: showMonths,
@@ -380,7 +382,8 @@ struct CountdownDetailsView: View {
 }
 
 /// Live preview card for a countdown, styled after the Settings preview
-/// card: a happened/happening arrow top-left, event title bottom-left, the
+/// card: a happened/happening arrow (or a repeat symbol for repeating
+/// countdowns) top-left, event title bottom-left, the
 /// day count as a large bare number on the right, and a complication-sized
 /// emoji in the middle whose dominant colour fills the card. Also reused on
 /// the Home screen; without `onEmojiTap` the emoji is display-only.
@@ -394,6 +397,9 @@ struct CountdownPreviewCard: View {
     /// Reference "now" for the day count; the Home screen passes the
     /// scrubbed time so the number follows Slide to Adjust.
     var now: Date = Date()
+    /// True for repeating countdowns; swaps the top-left arrow for a
+    /// repeat symbol.
+    var isRepeating: Bool = false
     var onEmojiTap: (() -> Void)? = nil
 
     @Environment(\.colorScheme) private var systemColorScheme
@@ -454,10 +460,10 @@ struct CountdownPreviewCard: View {
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 4) {
-                // Happened (left arrow) / happening (right arrow) top-left,
-                // countdown date top-right
+                // Repeat symbol (repeating) / happened (left arrow) /
+                // happening (right arrow) top-left, countdown date top-right
                 HStack {
-                    Image(systemName: hasHappened ? "arrow.left" : "arrow.right")
+                    Image(systemName: isRepeating ? "repeat" : (hasHappened ? "arrow.left" : "arrow.right"))
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .blendMode(.plusLighter)
@@ -545,6 +551,7 @@ struct CountdownPreviewCard: View {
         .environment(\.colorScheme, emojiColor == nil && photoImage == nil ? systemColorScheme : .dark)
         .animation(.spring(), value: bigText)
         .animation(.spring(), value: hasHappened)
+        .animation(.spring(), value: isRepeating)
         .animation(.spring(), value: emoji)
         .animation(.spring(), value: photoData)
     }

@@ -40,7 +40,8 @@ struct HomeCountdownSection: View {
                     targetDate: item.effectiveTargetDate(at: now),
                     emoji: item.emoji,
                     photoData: item.photoData,
-                    now: now
+                    now: now,
+                    isRepeating: item.repeatFrequency != .never
                 )
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -66,6 +67,7 @@ struct HomeCountdownSection: View {
                 targetDate: item.effectiveTargetDate(at: now),
                 emoji: item.emoji,
                 photoData: item.photoData,
+                isRepeating: item.repeatFrequency != .never,
                 now: now,
                 showYears: showYears,
                 showMonths: showMonths,
@@ -133,7 +135,7 @@ enum CountdownShare {
 
     /// Renders the countdown card into a 9:16 share image, like the city
     /// card share.
-    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool) -> UIImage {
+    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, isRepeating: Bool, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool) -> UIImage {
         let difference = dayDifference(from: now, to: targetDate)
         let footerText: String
         if difference == 0 {
@@ -150,6 +152,7 @@ enum CountdownShare {
             targetDate: targetDate,
             emoji: emoji,
             photoData: photoData,
+            isRepeating: isRepeating,
             now: now,
             footerText: footerText
         )
@@ -219,6 +222,9 @@ struct CountdownCardSnapshotView: View {
     let targetDate: Date
     let emoji: String?
     let photoData: Data?
+    /// True for repeating countdowns; swaps the top-left arrow for a
+    /// repeat symbol.
+    let isRepeating: Bool
     /// Reference "now" for the day count (scrubbed time on Home).
     let now: Date
     /// Context line under the card, e.g. "in 1 year 4 days".
@@ -288,10 +294,11 @@ struct CountdownCardSnapshotView: View {
                 // Card replica from HomeView, centered vertically
                 ZStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        // Happened (left arrow) / happening (right arrow)
-                        // top-left, countdown date top-right
+                        // Repeat symbol (repeating) / happened (left arrow) /
+                        // happening (right arrow) top-left, countdown date
+                        // top-right
                         HStack {
-                            Image(systemName: hasHappened ? "arrow.left" : "arrow.right")
+                            Image(systemName: isRepeating ? "repeat" : (hasHappened ? "arrow.left" : "arrow.right"))
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
                                 .blendMode(.plusLighter)

@@ -563,7 +563,14 @@ private struct CountdownRow: View {
                 .foregroundStyle(.primary)
                 .contentTransition(.numericText())
 
-            Group {
+            // Repeat symbol ahead of the date for repeating countdowns
+            HStack(spacing: 4) {
+                if item.repeatFrequency != .never {
+                    Image(systemName: "repeat")
+                        .font(.footnote.weight(.semibold))
+                        .transition(.blurReplace)
+                }
+
                 if isTargetInCurrentYear {
                     Text(effectiveTargetDate, format: .dateTime.month().day())
                 } else {
