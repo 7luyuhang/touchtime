@@ -14,6 +14,7 @@ import WeatherKit
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("secondsPulse") private var secondsPulse = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -323,6 +324,23 @@ struct SettingsView: View {
                     }
                 } else {
                     showMinuteHand = false
+                }
+            }
+        )
+    }
+
+    private var secondsPulseBinding: Binding<Bool> {
+        Binding(
+            get: { hasLifetimeAccess && secondsPulse },
+            set: { newValue in
+                if newValue {
+                    if hasLifetimeAccess {
+                        secondsPulse = true
+                    } else {
+                        showLifetimeStore = true
+                    }
+                } else {
+                    secondsPulse = false
                 }
             }
         )
@@ -675,6 +693,21 @@ struct SettingsView: View {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("24-Hour Format")
+                        }
+                    }
+                    
+                    
+                    // Seconds Pulse
+                    TouchTimeToggle(isOn: secondsPulseBinding) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "rays", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Seconds Pulse")
+                            Spacer()
+                            if !hasLifetimeAccess {
+                                Image(systemName: "lock.fill")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
                     
@@ -1147,6 +1180,7 @@ struct SettingsView: View {
             showGoldenHour = false
             showMinuteHand = false
             availableTimeEnabled = false
+            secondsPulse = false
         }
     }
 

@@ -2361,7 +2361,7 @@ fileprivate struct LocalTimeRowBody: View, Equatable {
 
                     Spacer()
 
-                    Text(RowTimeFormat.time(date: displayDate, offset: 0, timeZone: .current, use24Hour: use24HourFormat))
+                    PulsingTimeText(timeText: RowTimeFormat.time(date: displayDate, offset: 0, timeZone: .current, use24Hour: use24HourFormat))
                         .font(.system(size: 36))
                         .fontWeight(.light)
                         .fontDesign(.rounded)
@@ -2514,7 +2514,7 @@ fileprivate struct CityRowBody: View, Equatable {
 
                     Spacer()
 
-                    Text(RowTimeFormat.time(
+                    PulsingTimeText(timeText: RowTimeFormat.time(
                         date: displayDate,
                         offset: 0,
                         timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? .current,
