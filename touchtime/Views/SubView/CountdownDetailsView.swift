@@ -793,7 +793,7 @@ private struct CoverPickerSheet: View {
                             onEmojiPick?()
                         } label: {
                             Text(option)
-                                .font(.system(size: 34))
+                                .font(.system(size: 36))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 52)
                         }
