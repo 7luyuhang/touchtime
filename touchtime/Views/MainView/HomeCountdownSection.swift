@@ -18,6 +18,9 @@ struct HomeCountdownSection: View {
     let now: Date
     /// Called with the tapped countdown; Home presents the editor for it.
     let onTap: (CountdownItem) -> Void
+    /// Called from the card's context menu; Home unpins the countdown,
+    /// which removes its card since only pinned ones show here.
+    let onUnpin: (CountdownItem) -> Void
 
     // Same Time Display settings as the countdown sheet rows, so shared
     // text breaks the interval into the units chosen there.
@@ -48,6 +51,12 @@ struct HomeCountdownSection: View {
                     onTap(item)
                 }
                 .contextMenu {
+                    Button {
+                        onUnpin(item)
+                    } label: {
+                        Label(String(localized: "Unpin"), systemImage: "pin.slash")
+                    }
+
                     shareMenu(for: item)
                 }
                 .listRowInsets(EdgeInsets())

@@ -323,13 +323,6 @@ struct CountdownSheet: View {
                                 )
                             }
 
-                            Button {
-                                triggerHaptic()
-                                editingCountdown = item
-                            } label: {
-                                Label(String(localized: "Edit"), systemImage: "slider.horizontal.3")
-                            }
-
                             Divider()
 
                             Menu {

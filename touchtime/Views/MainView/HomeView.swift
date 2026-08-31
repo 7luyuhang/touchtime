@@ -517,6 +517,19 @@ struct HomeView: View {
         }
     }
 
+    /// Unpins a countdown from its Home card's context menu; the card
+    /// disappears since Home only shows pinned countdowns.
+    private func unpinCountdown(_ item: CountdownItem) {
+        guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
+        withAnimation(.spring()) {
+            countdownStore.countdowns[index].isPinned = false
+        }
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+
     private func deleteCountdown(_ item: CountdownItem) {
         withAnimation(.spring()) {
             countdownStore.countdowns.removeAll { $0.id == item.id }
@@ -1262,6 +1275,9 @@ struct HomeView: View {
                                     impactFeedback.impactOccurred()
                                 }
                                 editingHomeCountdown = item
+                            },
+                            onUnpin: { item in
+                                unpinCountdown(item)
                             }
                         )
                         
