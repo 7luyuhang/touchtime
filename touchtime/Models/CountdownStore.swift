@@ -40,8 +40,11 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     /// Notification on the day of the event at this time of day; only the
     /// hour and minute are meaningful. Nil when the reminder is off.
     var reminderTime: Date?
+    /// How many days before the event day the reminder fires; 0 means on
+    /// the day of the event.
+    var reminderLeadDays: Int
 
-    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, reminderTime: Date? = nil) {
+    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
@@ -51,6 +54,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         self.emoji = emoji
         self.photoData = photoData
         self.reminderTime = reminderTime
+        self.reminderLeadDays = reminderLeadDays
     }
 
     // Items saved before pinning/repeat/emoji/photo existed are missing
@@ -73,6 +77,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         emoji = try container.decodeIfPresent(String.self, forKey: .emoji)
         photoData = try container.decodeIfPresent(Data.self, forKey: .photoData)
         reminderTime = try container.decodeIfPresent(Date.self, forKey: .reminderTime)
+        reminderLeadDays = try container.decodeIfPresent(Int.self, forKey: .reminderLeadDays) ?? 0
     }
 
     /// The stored date for one-off countdowns; for repeating ones, the
@@ -114,10 +119,10 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         return next
     }
 
-    /// When the reminder notification should next fire: the (next)
-    /// occurrence day at the reminder's time of day. Nil without a
-    /// reminder, or when the time has already passed on a countdown
-    /// that never repeats.
+    /// When the reminder notification should next fire: `reminderLeadDays`
+    /// before the (next) occurrence day, at the reminder's time of day.
+    /// Nil without a reminder, or when the time has already passed on a
+    /// countdown that never repeats.
     func nextReminderFireDate(after now: Date) -> Date? {
         guard let reminderTime else { return nil }
         let calendar = Calendar.current
@@ -128,7 +133,8 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         var searchFrom = now
         for _ in 0..<4 {
             let occurrence = Self.nextOccurrence(of: targetDate, frequency: repeatFrequency, after: searchFrom)
-            if let fireDate = calendar.date(bySettingHour: time.hour ?? 9, minute: time.minute ?? 0, second: 0, of: occurrence),
+            let reminderDay = calendar.date(byAdding: .day, value: -reminderLeadDays, to: occurrence) ?? occurrence
+            if let fireDate = calendar.date(bySettingHour: time.hour ?? 9, minute: time.minute ?? 0, second: 0, of: reminderDay),
                fireDate > now {
                 return fireDate
             }

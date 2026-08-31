@@ -55,7 +55,14 @@ final class CountdownReminderManager {
 
                 let content = UNMutableNotificationContent()
                 content.title = item.title
-                content.body = String(localized: "The event is today.")
+                switch item.reminderLeadDays {
+                case 0:
+                    content.body = String(localized: "The event is today.")
+                case 1:
+                    content.body = String(localized: "The event is tomorrow.")
+                default:
+                    content.body = String(format: String(localized: "The event is in %d days."), item.reminderLeadDays)
+                }
                 content.sound = .default
 
                 let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)

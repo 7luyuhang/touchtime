@@ -21,7 +21,7 @@ struct CountdownDetailsView: View {
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
 
-    let onSave: (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?) -> Void
+    let onSave: (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
@@ -33,6 +33,7 @@ struct CountdownDetailsView: View {
     @State private var repeatFrequency: CountdownItem.RepeatFrequency
     @State private var reminderEnabled: Bool
     @State private var reminderTime: Date
+    @State private var reminderLeadDays: Int
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
     @State private var showNotificationPermissionAlert = false
@@ -45,7 +46,7 @@ struct CountdownDetailsView: View {
         original != nil
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -66,6 +67,7 @@ struct CountdownDetailsView: View {
         let defaultReminderTime = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: .now) ?? .now
         _reminderEnabled = State(initialValue: countdown?.reminderTime != nil)
         _reminderTime = State(initialValue: countdown?.reminderTime ?? defaultReminderTime)
+        _reminderLeadDays = State(initialValue: countdown?.reminderLeadDays ?? 0)
     }
 
     private var trimmedTitle: String {
@@ -75,6 +77,22 @@ struct CountdownDetailsView: View {
     /// The reminder time as currently configured in the form; nil when off.
     private var draftReminderTime: Date? {
         reminderEnabled ? reminderTime : nil
+    }
+
+    /// Lead days as currently configured; 0 (event day) when the reminder
+    /// is off.
+    private var draftReminderLeadDays: Int {
+        reminderEnabled ? reminderLeadDays : 0
+    }
+
+    /// The selectable "remind me X days before" choices.
+    private static let reminderLeadDayOptions = [1, 2, 3, 7]
+
+    /// Menu label for a lead-day option, e.g. "1 Day" / "3 Days".
+    private func leadDaysLabel(_ days: Int) -> String {
+        days == 1
+            ? String(localized: "1 Day")
+            : String(format: String(localized: "%d Days"), days)
     }
 
     /// Reminder time for the footer, honouring the 24-hour format setting.
@@ -100,6 +118,7 @@ struct CountdownDetailsView: View {
             || isPinned != original.isPinned
             || repeatFrequency != original.repeatFrequency
             || draftReminderTime != original.reminderTime
+            || draftReminderLeadDays != original.reminderLeadDays
     }
 
     /// What the countdown counts to right now: the picked date, rolled
@@ -202,16 +221,56 @@ struct CountdownDetailsView: View {
                     }
 
                     if reminderEnabled {
-                        DatePicker(
-                            String(localized: "Time"),
-                            selection: $reminderTime,
-                            displayedComponents: [.hourAndMinute]
-                        )
-                        .datePickerStyle(.compact)
+                        HStack(spacing: 8) {
+                            Text(String(localized: "Time"))
+
+                            Spacer()
+
+                            // Lead-day menu: remind 1/2/3/7 days before the
+                            // event; picking the current option again goes
+                            // back to the event day.
+                            Menu {
+                                Section(String(localized: "Before")) {
+                                    ForEach(Self.reminderLeadDayOptions, id: \.self) { days in
+                                        Button {
+                                            triggerHaptic()
+                                            reminderLeadDays = reminderLeadDays == days ? 0 : days
+                                        } label: {
+                                            if reminderLeadDays == days {
+                                                Label(leadDaysLabel(days), systemImage: "checkmark.circle")
+                                            } else {
+                                                Text(leadDaysLabel(days))
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                Image(systemName: "arrow.left")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(.white)
+                                    .frame(width: 34, height: 34)
+                                    .background(Circle().fill(Color(UIColor.tertiarySystemFill)))
+                                    .contentShape(Circle())
+                            }
+
+                            DatePicker(
+                                "",
+                                selection: $reminderTime,
+                                displayedComponents: [.hourAndMinute]
+                            )
+                            .datePickerStyle(.compact)
+                            .labelsHidden()
+                        }
                     }
                 } footer: {
                     if reminderEnabled {
-                        Text("Get a notification at \(reminderTimeString) on the day of the event.")
+                        if reminderLeadDays == 0 {
+                            Text("Get a notification at \(reminderTimeString) on the day of the event.")
+                        } else if reminderLeadDays == 1 {
+                            Text("Get a notification at \(reminderTimeString), 1 day before the event.")
+                        } else {
+                            Text("Get a notification at \(reminderTimeString), \(reminderLeadDays) days before the event.")
+                        }
                     }
                 }
                 .animation(.spring(), value: reminderEnabled)
@@ -266,7 +325,7 @@ struct CountdownDetailsView: View {
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency, draftReminderTime)
+                onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -375,7 +434,7 @@ struct CountdownDetailsView: View {
 
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency, draftReminderTime)
+        onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays)
         dismiss()
     }
 
@@ -909,5 +968,5 @@ private struct CoverPickerSheet: View {
 }
 
 #Preview {
-    CountdownDetailsView { _, _, _, _, _, _, _ in }
+    CountdownDetailsView { _, _, _, _, _, _, _, _ in }
 }
