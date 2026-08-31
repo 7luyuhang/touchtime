@@ -67,17 +67,22 @@ struct ContentView: View {
             .onAppear {
                 loadWorldClocks()
             }
-            // Home Screen quick actions land on the List tab, where HomeView
-            // presents the alarm/timer sheets. The publisher also delivers the
-            // pending value on subscription, which covers cold launches.
+            // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)
+            // land on the List tab, where HomeView presents the matching sheet.
+            // The publisher also delivers the pending value on subscription,
+            // which covers cold launches.
             .onReceive(QuickActionsManager.shared.$pendingAction) { action in
                 guard let action else { return }
                 selectedTab = .list
                 DispatchQueue.main.async {
                     QuickActionsManager.shared.pendingAction = nil
                     switch action {
+                    case .setAlarm:
+                        NotificationCenter.default.post(name: .quickActionSetAlarm, object: nil)
                     case .setTimer:
                         NotificationCenter.default.post(name: .quickActionSetTimer, object: nil)
+                    case .countdown:
+                        NotificationCenter.default.post(name: .quickActionCountdown, object: nil)
                     }
                 }
             }

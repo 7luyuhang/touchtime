@@ -1795,9 +1795,15 @@ struct HomeView: View {
                 showSetTimerSheet = true
             }
 
-            // Home Screen quick action (long-press the app icon)
+            // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)
+            .onReceive(NotificationCenter.default.publisher(for: .quickActionSetAlarm)) { _ in
+                showSetAlarmSheet = true
+            }
             .onReceive(NotificationCenter.default.publisher(for: .quickActionSetTimer)) { _ in
                 showSetTimerSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .quickActionCountdown)) { _ in
+                showCountdownSheet = true
             }
             
             // Rename

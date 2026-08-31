@@ -9,9 +9,12 @@ import SwiftUI
 import Combine
 import UIKit
 
-/// Home Screen quick actions (long-press the app icon).
+/// Quick-action destinations, reached from the Home Screen icon menu
+/// or the Spotlight App Shortcuts (see AppShortcuts.swift).
 enum QuickAction: String {
+    case setAlarm = "com.time.touchtime.setAlarm"
     case setTimer = "com.time.touchtime.setTimer"
+    case countdown = "com.time.touchtime.countdown"
 
     init?(shortcutItem: UIApplicationShortcutItem) {
         self.init(rawValue: shortcutItem.type)
@@ -20,7 +23,9 @@ enum QuickAction: String {
 
 extension Notification.Name {
     /// Posted by ContentView after routing a quick action; HomeView opens the matching sheet.
+    static let quickActionSetAlarm = Notification.Name("QuickActionSetAlarm")
     static let quickActionSetTimer = Notification.Name("QuickActionSetTimer")
+    static let quickActionCountdown = Notification.Name("QuickActionCountdown")
 }
 
 /// Bridges Home Screen quick actions from UIKit into the SwiftUI hierarchy.
