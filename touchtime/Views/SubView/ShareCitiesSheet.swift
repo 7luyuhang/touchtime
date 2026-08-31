@@ -25,6 +25,37 @@ private struct ShareLazyCardImage: Transferable {
     }
 }
 
+/// Shown in place of the share sheet when there is no local time and no
+/// cities to share.
+struct ShareCitiesEmptyView: View {
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
+
+    var body: some View {
+        NavigationStack {
+            ContentUnavailableView {
+                Label("Nothing to Share", systemImage: "square.and.arrow.up")
+            } description: {
+                Text("Add cities to share their time.")
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                        }
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}
+
 struct ShareCitiesSheet: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var showSheet: Bool

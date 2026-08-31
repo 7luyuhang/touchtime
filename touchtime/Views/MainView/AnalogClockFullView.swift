@@ -717,14 +717,12 @@ struct AnalogClockFullView: View {
             Divider()
         }
 
-        // Share Section - only show if there are world clocks
-        if !worldClocks.isEmpty {
-            Button(action: {
-                triggerMenuHaptic()
-                showShareSheet = true
-            }) {
-                Label("Share", systemImage: "square.and.arrow.up")
-            }
+        // Share Section - entry stays even with nothing to share
+        Button(action: {
+            triggerMenuHaptic()
+            showShareSheet = true
+        }) {
+            Label("Share", systemImage: "square.and.arrow.up")
         }
 
         // Arrange Section - show if there are world clocks or collections
@@ -1280,13 +1278,18 @@ struct AnalogClockFullView: View {
                 )
             }
             .sheet(isPresented: $showShareSheet) {
-                ShareCitiesSheet(
-                    worldClocks: $worldClocks,
-                    showSheet: $showShareSheet,
-                    currentDate: currentDate,
-                    timeOffset: timeOffset
-                )
-                .environmentObject(weatherManager)
+                // Empty when there is no local time and no cities to share
+                if worldClocks.isEmpty && !showLocalTime {
+                    ShareCitiesEmptyView()
+                } else {
+                    ShareCitiesSheet(
+                        worldClocks: $worldClocks,
+                        showSheet: $showShareSheet,
+                        currentDate: currentDate,
+                        timeOffset: timeOffset
+                    )
+                    .environmentObject(weatherManager)
+                }
             }
             .sheet(isPresented: $showArrangeListSheet) {
                 ArrangeListView(

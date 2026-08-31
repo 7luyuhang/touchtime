@@ -193,6 +193,12 @@ struct HomeView: View {
         homeTimerConfiguredSeconds > 0
     }
 
+    /// True when at least one countdown is pinned to Home, so the list
+    /// still has countdown cards to show without clocks or a timer.
+    private var hasPinnedCountdowns: Bool {
+        countdownStore.countdowns.contains(where: \.isPinned)
+    }
+
     private var homeTimerDisplayName: String {
         let trimmedName = homeTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmedName.isEmpty ? String(localized: "Timer") : trimmedName
@@ -1116,7 +1122,7 @@ struct HomeView: View {
                 .allowsHitTesting(false)
                 
                 // Blank View
-                if displayedClocks.isEmpty && !showLocalTime && !hasConfiguredHomeTimer {
+                if displayedClocks.isEmpty && !showLocalTime && !hasConfiguredHomeTimer && !hasPinnedCountdowns {
                     // Empty state view
                     ContentUnavailableView {
                         Label("Nothing here", systemImage: selectedCollectionId != nil ? "questionmark.folder" : "location.magnifyingglass")
@@ -1621,19 +1627,17 @@ struct HomeView: View {
                             Divider()
                         }
                         
-                        // Share Section - only show if there are world clocks
-                        if !worldClocks.isEmpty {
-                            Button(action: {
-                                // Provide haptic feedback if enabled
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
-                                showShareSheet = true
-                            }) {
-                                Label("Share", systemImage: "square.and.arrow.up")
+                        // Share Section - entry stays even with nothing to share
+                        Button(action: {
+                            // Provide haptic feedback if enabled
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
                             }
+                            showShareSheet = true
+                        }) {
+                            Label("Share", systemImage: "square.and.arrow.up")
                         }
                         
                         // Arrange Section - only show if there are world clocks or collections
@@ -1836,15 +1840,19 @@ struct HomeView: View {
                 Text("Please allow calendar access in Settings to add events.")
             }
 
-            // Share Cities Sheet
+            // Share Cities Sheet: empty when there is no local time and no cities
             .sheet(isPresented: $showShareSheet) {
-                ShareCitiesSheet(
-                    worldClocks: $worldClocks,
-                    showSheet: $showShareSheet,
-                    currentDate: currentDate,
-                    timeOffset: timeOffset
-                )
-                .environmentObject(weatherManager)
+                if worldClocks.isEmpty && !showLocalTime {
+                    ShareCitiesEmptyView()
+                } else {
+                    ShareCitiesSheet(
+                        worldClocks: $worldClocks,
+                        showSheet: $showShareSheet,
+                        currentDate: currentDate,
+                        timeOffset: timeOffset
+                    )
+                    .environmentObject(weatherManager)
+                }
             }
             
             // Settings Sheet
