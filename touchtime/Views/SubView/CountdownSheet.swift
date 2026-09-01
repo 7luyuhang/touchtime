@@ -46,6 +46,7 @@ struct CountdownSheet: View {
     @State private var showLifetimeStore = false
     @State private var editingCountdown: CountdownItem? = nil
     @State private var filter: CountdownFilter? = nil
+    @State private var showUpgradeTip = true
 
     /// Read-only convenience over the shared store.
     private var countdowns: [CountdownItem] {
@@ -245,7 +246,7 @@ struct CountdownSheet: View {
                 LifetimeStoreView()
             }
         }
-        .presentationDetents([.large])
+        .presentationDetents([.medium, .large])
     }
 
     @ViewBuilder
@@ -338,21 +339,48 @@ struct CountdownSheet: View {
                 }
             }
 
-            if hasReachedFreeLimit {
-                Text(String(localized: "Upgrade to add more countdowns"))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .blendMode(.plusLighter)
-                    .frame(maxWidth: .infinity)
-                    .listRowInsets(EdgeInsets(top:4, leading: 16, bottom: 4, trailing: 16))
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
+            if hasReachedFreeLimit && showUpgradeTip {
+                Section {
+                    HStack(spacing: 16) {
+                        Image(systemName: "arrowshape.up.fill")
+                            .font(.headline)
+                            .foregroundStyle(.secondary)
+                            .blendMode(.plusLighter)
+                            .frame(width: 24, height: 24)
+
+                        Text(String(localized: "Upgrade to add more countdowns"))
+                            .font(.subheadline)
+                            .foregroundStyle(.primary)
+
+                        Spacer()
+
+                        Image(systemName: "xmark")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.primary)
+                            .frame(width: 24, height: 24)
+                            .contentShape(Rectangle())
+                            .onTapGesture {
+                                withAnimation(.spring()) {
+                                    showUpgradeTip = false
+                                }
+                                triggerHaptic()
+                            }
+                    }
+                    .listRowBackground(
+                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                            .fill(Color.black.opacity(0.10))
+                            .glassEffect(.clear.interactive(),
+                                         in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        triggerHaptic()
+                        showLifetimeStore = true
+                    }
+                }
             }
         }
         .listSectionSpacing(12) // List paddings
-        // Let the upgrade hint row shrink below the standard 44pt row height;
-        // countdown rows are taller than that, so they're unaffected.
-        .environment(\.defaultMinListRowHeight, 0)
         .scrollIndicators(.hidden)
     }
 
