@@ -46,7 +46,6 @@ struct CountdownSheet: View {
     @State private var showLifetimeStore = false
     @State private var editingCountdown: CountdownItem? = nil
     @State private var filter: CountdownFilter? = nil
-    @State private var showUpgradeTip = true
 
     /// Read-only convenience over the shared store.
     private var countdowns: [CountdownItem] {
@@ -339,7 +338,7 @@ struct CountdownSheet: View {
                 }
             }
 
-            if hasReachedFreeLimit && showUpgradeTip {
+            if hasReachedFreeLimit {
                 Section {
                     HStack(spacing: 16) {
                         Image(systemName: "arrowshape.up.fill")
@@ -354,17 +353,10 @@ struct CountdownSheet: View {
 
                         Spacer()
 
-                        Image(systemName: "xmark")
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(.primary)
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.secondary)
                             .frame(width: 24, height: 24)
-                            .contentShape(Rectangle())
-                            .onTapGesture {
-                                withAnimation(.spring()) {
-                                    showUpgradeTip = false
-                                }
-                                triggerHaptic()
-                            }
                     }
                     .listRowBackground(
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
