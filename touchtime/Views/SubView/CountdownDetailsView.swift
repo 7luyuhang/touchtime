@@ -42,8 +42,48 @@ struct CountdownDetailsView: View {
     @State private var emojiParticleBurst = 0
     @FocusState private var isTitleFocused: Bool
 
+    // Space page state: the selected editor page plus the entry sheets
+    // behind the Space add button.
+    @State private var selectedTab: EditorTab = .detail
+    @State private var showAddNoteSheet = false
+    @State private var showSpacePhotoPicker = false
+    @State private var spacePhotoItems: [PhotosPickerItem] = []
+
+    /// Pages of the editor for an existing countdown.
+    private enum EditorTab: String, CaseIterable {
+        case detail
+        case space
+
+        var displayName: String {
+            switch self {
+            case .detail: String(localized: "Detail")
+            case .space: String(localized: "Space")
+            }
+        }
+    }
+
     private var isEditing: Bool {
         original != nil
+    }
+
+    private var isShowingSpace: Bool {
+        isEditing && selectedTab == .space
+    }
+
+    /// Tab binding that switches the page instantly (no transition
+    /// animation) and drops the keyboard.
+    private var selectedTabBinding: Binding<EditorTab> {
+        Binding(
+            get: {
+                selectedTab
+            },
+            set: { newValue in
+                guard newValue != selectedTab else { return }
+                triggerHaptic()
+                isTitleFocused = false
+                selectedTab = newValue
+            }
+        )
     }
 
     init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void) {
@@ -283,10 +323,34 @@ struct CountdownDetailsView: View {
                     Text(String(localized: "Pinned countdowns will also appear on the Home screen."))
                 }
             }
+            // The Space page covers the form when its segment is selected;
+            // the form stays mounted underneath so pending edits are kept.
+            .opacity(isShowingSpace ? 0 : 1)
+            .allowsHitTesting(!isShowingSpace)
+            .accessibilityHidden(isShowingSpace)
+            .overlay {
+                if isShowingSpace, let original {
+                    CountdownSpaceView(countdownID: original.id)
+                }
+            }
             .sheet(isPresented: $showCoverPicker) {
                 CoverPickerSheet(selectedEmoji: $emoji, selectedPhotoData: $photoData) {
                     emojiParticleBurst += 1
                 }
+            }
+            .sheet(isPresented: $showAddNoteSheet) {
+                SpaceNoteEntrySheet { text in
+                    addSpaceAttachment(SpaceAttachment(kind: .text, text: text))
+                }
+            }
+            .photosPicker(
+                isPresented: $showSpacePhotoPicker,
+                selection: $spacePhotoItems,
+                maxSelectionCount: 10,
+                matching: .images
+            )
+            .onChange(of: spacePhotoItems) { _, items in
+                addSpacePhotos(items)
             }
             // Background interaction keeps the title field tappable while
             // the picker is up: put the picker away when typing resumes.
@@ -351,8 +415,24 @@ struct CountdownDetailsView: View {
                     }
                 }
 
+                // Existing countdowns get a second page: the details form
+                // and the attachments space.
+                if isEditing {
+                    ToolbarItem(placement: .principal) {
+                        Picker(String(localized: "Page"), selection: selectedTabBinding) {
+                            ForEach(EditorTab.allCases, id: \.self) { tab in
+                                Text(tab.displayName).tag(tab)
+                            }
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(width: 175)
+                    }
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
-                    if isEditing {
+                    if isShowingSpace {
+                        spaceAddMenu
+                    } else if isEditing {
                         Menu {
                             if let original {
                                 // "Created on ..." as the section header so it
@@ -390,6 +470,51 @@ struct CountdownDetailsView: View {
             }
         }
         .interactiveDismissDisabled(!isEditing && !trimmedTitle.isEmpty)
+    }
+
+    /// Add button shown in place of the more menu on the Space page:
+    /// saves a note or photos into the space.
+    private var spaceAddMenu: some View {
+        Menu {
+            Button {
+                triggerHaptic()
+                showAddNoteSheet = true
+            } label: {
+                Label(String(localized: "Note"), systemImage: "quote.opening")
+            }
+
+            Button {
+                triggerHaptic()
+                showSpacePhotoPicker = true
+            } label: {
+                Label(String(localized: "Photo"), systemImage: "photo")
+            }
+        } label: {
+            Image(systemName: "plus")
+        }
+    }
+
+    /// Saves one attachment into this countdown's space.
+    private func addSpaceAttachment(_ attachment: SpaceAttachment) {
+        guard let original else { return }
+        withAnimation(.spring()) {
+            CountdownSpaceStore.shared.add(attachment, to: original.id)
+        }
+        triggerHaptic()
+    }
+
+    /// Downsamples and saves every picked photo, then clears the selection
+    /// so the picker starts empty next time.
+    private func addSpacePhotos(_ items: [PhotosPickerItem]) {
+        guard !items.isEmpty else { return }
+        Task {
+            for item in items {
+                guard let data = try? await item.loadTransferable(type: Data.self),
+                      let processed = CountdownSpaceStore.downsampledJPEGData(from: data) else { continue }
+                addSpaceAttachment(SpaceAttachment(kind: .image, imageData: processed))
+            }
+            spacePhotoItems = []
+        }
     }
 
     /// Share submenu at the top of the editor menu, sharing the countdown
@@ -969,4 +1094,15 @@ private struct CoverPickerSheet: View {
 
 #Preview {
     CountdownDetailsView { _, _, _, _, _, _, _, _ in }
+}
+
+#Preview("Editing") {
+    CountdownDetailsView(
+        countdown: CountdownItem(
+            id: UUID(),
+            title: "Japan Trip",
+            targetDate: Date().addingTimeInterval(86_400 * 30),
+            createdAt: Date()
+        )
+    ) { _, _, _, _, _, _, _, _ in }
 }

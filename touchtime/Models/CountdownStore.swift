@@ -161,6 +161,8 @@ final class CountdownStore {
             Self.persist(countdowns)
             // Keep pending reminder notifications in step with every mutation.
             CountdownReminderManager.shared.reschedule(for: countdowns)
+            // Deleted countdowns take their space attachments with them.
+            CountdownSpaceStore.shared.prune(keeping: countdowns.map(\.id))
         }
     }
 
