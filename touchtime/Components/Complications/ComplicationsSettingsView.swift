@@ -135,7 +135,6 @@ struct ComplicationsSettingsView: View {
                 } label: {
                     Image(systemName: "xmark")
                 }
-                .accessibilityLabel(Text("Close"))
             }
 
             ToolbarItem(placement: .topBarTrailing) {

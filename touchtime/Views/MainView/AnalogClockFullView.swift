@@ -2203,7 +2203,6 @@ struct AnalogClockFaceView: View {
             .buttonStyle(.plain)
             .scaleEffect(hideOtherHands ? focusedIconScale : 1.0)
             .position(x: size / 2, y: size / 2 - (size / 2 - 62) + (hideOtherHands ? focusedIconShift : 0))
-            .accessibilityLabel(Text("Moon Phase"))
             .contentTransition(.symbolEffect(.replace))
             .animation(.spring(), value: moonPhaseIcon)
             .animation(.spring(), value: hideOtherHands)

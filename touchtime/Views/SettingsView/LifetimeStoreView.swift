@@ -243,7 +243,6 @@ struct LifetimeStoreView: View {
                                     .blendMode(.plusLighter)
                             )
                             .frame(width: itemWidth, height: geometry.size.height)
-                            .accessibilityLabel(complication.localizedName)
                     }
                 }
             }

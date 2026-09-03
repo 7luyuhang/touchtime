@@ -520,7 +520,6 @@ struct CountdownDetailsView: View {
             .animation(.spring(duration: 0.25), value: selectedTab)
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(Text("Page \(selectedTab == .detail ? 1 : 2) of 2"))
     }
 
     /// Add button shown in place of the more menu on the Space page:

@@ -932,7 +932,6 @@ struct OnboardingView: View {
                         .frame(width: 36, height: 36)
                         .glassEffect(.clear.interactive())
                 }
-                .accessibilityLabel(Text("Close"))
                 .padding(.leading)
             }
         }
