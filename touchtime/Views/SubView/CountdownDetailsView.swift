@@ -476,18 +476,20 @@ struct CountdownDetailsView: View {
     /// saves a note or photos into the space.
     private var spaceAddMenu: some View {
         Menu {
-            Button {
-                triggerHaptic()
-                showAddNoteSheet = true
-            } label: {
-                Label(String(localized: "Note"), systemImage: "quote.opening")
-            }
+            Section(String(localized: "Add New")) {
+                Button {
+                    triggerHaptic()
+                    showAddNoteSheet = true
+                } label: {
+                    Label(String(localized: "Notes"), systemImage: "quote.opening")
+                }
 
-            Button {
-                triggerHaptic()
-                showSpacePhotoPicker = true
-            } label: {
-                Label(String(localized: "Photo"), systemImage: "photo")
+                Button {
+                    triggerHaptic()
+                    showSpacePhotoPicker = true
+                } label: {
+                    Label(String(localized: "Images"), systemImage: "photo")
+                }
             }
         } label: {
             Image(systemName: "plus")

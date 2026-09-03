@@ -16,8 +16,10 @@ struct CountdownSpaceView: View {
 
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
-    /// Attachment opened full-size in a viewer sheet.
-    @State private var viewedAttachment: SpaceAttachment?
+    /// Photo opened full-size in a viewer sheet.
+    @State private var viewedImage: SpaceAttachment?
+    /// Note opened in the editor sheet.
+    @State private var editedNote: SpaceAttachment?
 
     /// Attachments mid-removal: their card shrinks, blurs and fades while
     /// still holding its slot, so the rest of the grid stays put until
@@ -67,8 +69,13 @@ struct CountdownSpaceView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
-        .sheet(item: $viewedAttachment) { attachment in
-            SpaceAttachmentViewer(attachment: attachment)
+        .sheet(item: $viewedImage) { attachment in
+            SpaceImageViewer(attachment: attachment)
+        }
+        .sheet(item: $editedNote) { note in
+            SpaceNoteEntrySheet(text: note.text ?? "") { newText in
+                updateNote(note, text: newText)
+            }
         }
     }
 
@@ -85,7 +92,13 @@ struct CountdownSpaceView: View {
             .blur(radius: isRemoving ? 12 : 0)
             .opacity(isRemoving ? 0 : 1)
             .allowsHitTesting(!isRemoving)
-            .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            // One shape for both hit testing and the context menu preview,
+            // so the lifted card keeps the tile's corner radius instead of
+            // snapping to the system default.
+            .contentShape(
+                [.interaction, .contextMenuPreview],
+                RoundedRectangle(cornerRadius: 26, style: .continuous)
+            )
             .onTapGesture {
                 open(attachment)
             }
@@ -97,10 +110,22 @@ struct CountdownSpaceView: View {
             .transition(AsymmetricTransition(insertion: .blurReplace, removal: .identity))
     }
 
-    /// Tap: opens the attachment full-size in the viewer.
+    /// Tap: notes reopen in the editor, photos open full-size in the viewer.
     private func open(_ attachment: SpaceAttachment) {
         triggerHaptic()
-        viewedAttachment = attachment
+        switch attachment.kind {
+        case .text:
+            editedNote = attachment
+        case .image:
+            viewedImage = attachment
+        }
+    }
+
+    private func updateNote(_ note: SpaceAttachment, text: String) {
+        withAnimation(.spring()) {
+            spaceStore.updateText(text, of: note.id, for: countdownID)
+        }
+        triggerHaptic()
     }
 
     /// Long-press menu: removal behind a confirmation submenu, matching
@@ -144,8 +169,8 @@ struct CountdownSpaceView: View {
     }
 }
 
-/// One square widget-style tile in the space grid, styled after the app's
-/// glass cards.
+/// One square widget-style tile in the space grid, coloured like a
+/// grouped list row so it matches the Detail page's form sections.
 private struct SpaceAttachmentTile: View {
     let attachment: SpaceAttachment
 
@@ -159,25 +184,17 @@ private struct SpaceAttachmentTile: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.black.opacity(0.10))
+        .background(Color(.secondarySystemGroupedBackground))
         .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
     }
 
     private var textTile: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: "quote.opening")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .blendMode(.plusLighter)
-
-            Text(attachment.text ?? "")
-                .font(.subheadline)
-                .multilineTextAlignment(.leading)
-                .lineLimit(6)
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        }
-        .padding(14)
+        Text(attachment.text ?? "")
+            .font(.subheadline)
+            .multilineTextAlignment(.leading)
+            .lineLimit(7)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .padding()
     }
 
     private var imageTile: some View {
@@ -214,9 +231,9 @@ private struct SpaceAttachmentTile: View {
     }
 }
 
-/// Full-size viewer for text and photo attachments, titled with the day
-/// the attachment was saved.
-private struct SpaceAttachmentViewer: View {
+/// Full-size viewer for photo attachments, titled with the day the photo
+/// was saved.
+private struct SpaceImageViewer: View {
     let attachment: SpaceAttachment
 
     @Environment(\.dismiss) private var dismiss
@@ -225,24 +242,12 @@ private struct SpaceAttachmentViewer: View {
     var body: some View {
         NavigationStack {
             Group {
-                switch attachment.kind {
-                case .text:
-                    ScrollView {
-                        Text(attachment.text ?? "")
-                            .font(.body)
-                            .multilineTextAlignment(.leading)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(20)
-                    }
-                    .scrollIndicators(.hidden)
-                case .image:
-                    if let data = attachment.imageData, let image = UIImage(data: data) {
-                        Image(uiImage: image)
-                            .resizable()
-                            .scaledToFit()
-                            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                            .padding(20)
-                    }
+                if let data = attachment.imageData, let image = UIImage(data: data) {
+                    Image(uiImage: image)
+                        .resizable()
+                        .scaledToFit()
+                        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        .padding(20)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -271,18 +276,36 @@ private struct SpaceAttachmentViewer: View {
     }
 }
 
-/// Sheet for saving a note into the space.
+/// Sheet for writing a new note into the space, or editing an existing
+/// one. New notes are committed with the add button; edits are committed
+/// on dismiss, like the countdown editor.
 struct SpaceNoteEntrySheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
-    let onAdd: (String) -> Void
+    /// The note's current text when editing; nil when writing a new one.
+    private let original: String?
+    let onSave: (String) -> Void
 
-    @State private var text = ""
+    @State private var text: String
     @FocusState private var isFocused: Bool
+
+    init(text: String? = nil, onSave: @escaping (String) -> Void) {
+        self.original = text
+        self.onSave = onSave
+        _text = State(initialValue: text ?? "")
+    }
+
+    private var isEditing: Bool {
+        original != nil
+    }
 
     private var trimmedText: String {
         text.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private var hasChanges: Bool {
+        trimmedText != original
     }
 
     var body: some View {
@@ -290,8 +313,12 @@ struct SpaceNoteEntrySheet: View {
             TextEditor(text: $text)
                 .focused($isFocused)
                 .font(.body)
-                .padding(.horizontal, 14)
-                .padding(.top, 8)
+                // Insets go on the scroll content, not the editor: padding
+                // the editor itself would pull its frame out from under the
+                // navigation bar and hard-clip text there instead of letting
+                // it scroll beneath the bar.
+                .contentMargins(.horizontal, 14, for: .scrollContent)
+                .contentMargins(.top, 8, for: .scrollContent)
                 .navigationTitle(String(localized: "Note"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
@@ -304,26 +331,37 @@ struct SpaceNoteEntrySheet: View {
                         }
                     }
 
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(role: .confirm) {
-                            triggerHaptic()
-                            onAdd(trimmedText)
-                            dismiss()
-                        } label: {
-                            Image(systemName: "plus")
-                                .foregroundStyle(.white)
+                    if !isEditing {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button(role: .confirm) {
+                                triggerHaptic()
+                                onSave(trimmedText)
+                                dismiss()
+                            } label: {
+                                Image(systemName: "plus")
+                                    .foregroundStyle(.white)
+                            }
+                            .disabled(trimmedText.isEmpty)
                         }
-                        .disabled(trimmedText.isEmpty)
                     }
                 }
-                // Focusing while the sheet is still animating in brings the
-                // keyboard up mid-transition (a bare keyboard frame flashes
-                // and the sheet re-lays out around it), so wait for the
-                // presentation to settle before raising the keyboard.
+                // Only a new note raises the keyboard on arrival; an existing
+                // one opens readable, and a tap puts the cursor where editing
+                // should start. Focusing while the sheet is still animating in
+                // brings the keyboard up mid-transition (a bare keyboard frame
+                // flashes and the sheet re-lays out around it), so wait for
+                // the presentation to settle first.
                 .task {
-                    try? await Task.sleep(for: .milliseconds(500))
+                    guard !isEditing else { return }
+                    try? await Task.sleep(for: .milliseconds(250))
                     guard !Task.isCancelled else { return }
                     isFocused = true
+                }
+                .onDisappear {
+                    // No explicit save button when editing: commit changes on
+                    // dismiss. An emptied note keeps its previous text.
+                    guard isEditing, hasChanges, !trimmedText.isEmpty else { return }
+                    onSave(trimmedText)
                 }
         }
         // A single detent: with the keyboard up the editor needs the full

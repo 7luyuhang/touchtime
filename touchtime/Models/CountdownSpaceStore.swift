@@ -79,6 +79,14 @@ final class CountdownSpaceStore {
         attachmentsByCountdown[countdownID.uuidString] = items
     }
 
+    /// Replaces the text of an existing note.
+    func updateText(_ text: String, of attachmentID: UUID, for countdownID: UUID) {
+        var items = attachments(for: countdownID)
+        guard let index = items.firstIndex(where: { $0.id == attachmentID }) else { return }
+        items[index].text = text
+        attachmentsByCountdown[countdownID.uuidString] = items
+    }
+
     func remove(_ attachmentID: UUID, from countdownID: UUID) {
         var items = attachments(for: countdownID)
         items.removeAll { $0.id == attachmentID }
