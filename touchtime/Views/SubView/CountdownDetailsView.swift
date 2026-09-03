@@ -42,24 +42,17 @@ struct CountdownDetailsView: View {
     @State private var emojiParticleBurst = 0
     @FocusState private var isTitleFocused: Bool
 
-    // Space page state: the selected editor page plus the entry sheets
-    // behind the Space add button.
+    // Space page state: the page currently swiped to, plus the entry
+    // sheets behind the Space add button.
     @State private var selectedTab: EditorTab = .detail
     @State private var showAddNoteSheet = false
     @State private var showSpacePhotoPicker = false
     @State private var spacePhotoItems: [PhotosPickerItem] = []
 
     /// Pages of the editor for an existing countdown.
-    private enum EditorTab: String, CaseIterable {
+    private enum EditorTab: CaseIterable {
         case detail
         case space
-
-        var displayName: String {
-            switch self {
-            case .detail: String(localized: "Detail")
-            case .space: String(localized: "Space")
-            }
-        }
     }
 
     private var isEditing: Bool {
@@ -70,18 +63,15 @@ struct CountdownDetailsView: View {
         isEditing && selectedTab == .space
     }
 
-    /// Tab binding that switches the page instantly (no transition
-    /// animation) and drops the keyboard.
-    private var selectedTabBinding: Binding<EditorTab> {
+    /// `scrollPosition` wants an optional id; bridge it to `selectedTab`
+    /// so the pager, the indicator and the toolbar share one source.
+    private var scrolledTab: Binding<EditorTab?> {
         Binding(
-            get: {
-                selectedTab
-            },
-            set: { newValue in
-                guard newValue != selectedTab else { return }
-                triggerHaptic()
-                isTitleFocused = false
-                selectedTab = newValue
+            get: { selectedTab },
+            set: { tab in
+                if let tab {
+                    selectedTab = tab
+                }
             }
         )
     }
@@ -178,160 +168,186 @@ struct CountdownDetailsView: View {
         return lowerBound...upperBound
     }
 
-    var body: some View {
-        NavigationStack {
-            Form {
-                // Live preview of this countdown, styled like the Settings preview card
-                Section {
-                    VStack(alignment: .center, spacing: 10) {
-                        CountdownPreviewCard(
-                            title: trimmedTitle,
-                            targetDate: effectiveTargetDate,
-                            emoji: emoji,
-                            photoData: photoData,
-                            isRepeating: repeatFrequency != .never,
-                            emojiParticleBurst: emojiParticleBurst
-                        ) {
-                            triggerHaptic()
-                            // Drop the keyboard before the picker comes up
-                            isTitleFocused = false
-                            showCoverPicker = true
-                        }
-
-                        // Preview Text
-                        Text("Preview")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(.secondary)
-                            .textCase(.uppercase)
-                            .multilineTextAlignment(.center)
-                    }
-                    .listRowInsets(EdgeInsets())
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
-                }
-
-                Section {
-                    HStack {
-                        TextField(String(localized: "Title"), text: $title)
-                            .focused($isTitleFocused)
-
-                        if !title.isEmpty && isTitleFocused {
-                            Button {
-                                triggerHaptic()
-                                title = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .fontWeight(.semibold)
-                                    .foregroundStyle(.secondary)
-                            }
-                            .buttonStyle(.plain)
-                            .transition(.blurReplace)
-                        }
-                    }
-                    .animation(.spring(), value: !title.isEmpty && isTitleFocused)
-                } header: {
-                    Text(String(localized: "Event Name"))
-                }
-
-                Section {
-                    DatePicker(
-                        String(localized: "Date"),
-                        selection: $targetDate,
-                        in: targetDateRange,
-                        displayedComponents: [.date]
-                    )
-                    .datePickerStyle(.compact)
-
-                    Picker(String(localized: "Repeat"), selection: $repeatFrequency) {
-                        ForEach(CountdownItem.RepeatFrequency.allCases, id: \.self) { frequency in
-                            Text(frequency.displayName).tag(frequency)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .tint(.secondary)
-                    .onChange(of: repeatFrequency) { _, _ in
+    /// The Detail page: the countdown form with the live preview card.
+    private var detailsForm: some View {
+        Form {
+            // Live preview of this countdown, styled like the Settings preview card
+            Section {
+                VStack(alignment: .center, spacing: 10) {
+                    CountdownPreviewCard(
+                        title: trimmedTitle,
+                        targetDate: effectiveTargetDate,
+                        emoji: emoji,
+                        photoData: photoData,
+                        isRepeating: repeatFrequency != .never,
+                        emojiParticleBurst: emojiParticleBurst
+                    ) {
                         triggerHaptic()
+                        // Drop the keyboard before the picker comes up
+                        isTitleFocused = false
+                        showCoverPicker = true
+                    }
+
+                    // Preview Text
+                    Text("Preview")
+                        .font(.caption)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .multilineTextAlignment(.center)
+                }
+                .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+            }
+
+            Section {
+                HStack {
+                    TextField(String(localized: "Title"), text: $title)
+                        .focused($isTitleFocused)
+
+                    if !title.isEmpty && isTitleFocused {
+                        Button {
+                            triggerHaptic()
+                            title = ""
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(.secondary)
+                        }
+                        .buttonStyle(.plain)
+                        .transition(.blurReplace)
                     }
                 }
+                .animation(.spring(), value: !title.isEmpty && isTitleFocused)
+            } header: {
+                Text(String(localized: "Event Name"))
+            }
 
-                Section {
-                    TouchTimeToggle(isOn: $reminderEnabled) {
-                        Text(String(localized: "Reminder"))
+            Section {
+                DatePicker(
+                    String(localized: "Date"),
+                    selection: $targetDate,
+                    in: targetDateRange,
+                    displayedComponents: [.date]
+                )
+                .datePickerStyle(.compact)
+
+                Picker(String(localized: "Repeat"), selection: $repeatFrequency) {
+                    ForEach(CountdownItem.RepeatFrequency.allCases, id: \.self) { frequency in
+                        Text(frequency.displayName).tag(frequency)
                     }
+                }
+                .pickerStyle(.menu)
+                .tint(.secondary)
+                .onChange(of: repeatFrequency) { _, _ in
+                    triggerHaptic()
+                }
+            }
 
-                    if reminderEnabled {
-                        HStack(spacing: 8) {
-                            Text(String(localized: "Time"))
+            Section {
+                TouchTimeToggle(isOn: $reminderEnabled) {
+                    Text(String(localized: "Reminder"))
+                }
 
-                            Spacer()
+                if reminderEnabled {
+                    HStack(spacing: 8) {
+                        Text(String(localized: "Time"))
 
-                            // Lead-day menu: remind 1/2/3/7 days before the
-                            // event; picking the current option again goes
-                            // back to the event day.
-                            Menu {
-                                Section(String(localized: "Before")) {
-                                    ForEach(Self.reminderLeadDayOptions, id: \.self) { days in
-                                        Button {
-                                            triggerHaptic()
-                                            reminderLeadDays = reminderLeadDays == days ? 0 : days
-                                        } label: {
-                                            if reminderLeadDays == days {
-                                                Label(leadDaysLabel(days), systemImage: "checkmark.circle")
-                                            } else {
-                                                Text(leadDaysLabel(days))
-                                            }
+                        Spacer()
+
+                        // Lead-day menu: remind 1/2/3/7 days before the
+                        // event; picking the current option again goes
+                        // back to the event day.
+                        Menu {
+                            Section(String(localized: "Before")) {
+                                ForEach(Self.reminderLeadDayOptions, id: \.self) { days in
+                                    Button {
+                                        triggerHaptic()
+                                        reminderLeadDays = reminderLeadDays == days ? 0 : days
+                                    } label: {
+                                        if reminderLeadDays == days {
+                                            Label(leadDaysLabel(days), systemImage: "checkmark.circle")
+                                        } else {
+                                            Text(leadDaysLabel(days))
                                         }
                                     }
                                 }
-                            } label: {
-                                Image(systemName: "arrow.left")
-                                    .font(.subheadline.weight(.semibold))
-                                    .foregroundStyle(.white)
-                                    .frame(width: 34, height: 34)
-                                    .background(Circle().fill(Color(UIColor.tertiarySystemFill)))
-                                    .contentShape(Circle())
                             }
+                        } label: {
+                            Image(systemName: "arrow.left")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.white)
+                                .frame(width: 34, height: 34)
+                                .background(Circle().fill(Color(UIColor.tertiarySystemFill)))
+                                .contentShape(Circle())
+                        }
 
-                            DatePicker(
-                                "",
-                                selection: $reminderTime,
-                                displayedComponents: [.hourAndMinute]
-                            )
-                            .datePickerStyle(.compact)
-                            .labelsHidden()
-                        }
-                    }
-                } footer: {
-                    if reminderEnabled {
-                        if reminderLeadDays == 0 {
-                            Text("Get a notification at \(reminderTimeString) on the day of the event.")
-                        } else if reminderLeadDays == 1 {
-                            Text("Get a notification at \(reminderTimeString), 1 day before the event.")
-                        } else {
-                            Text("Get a notification at \(reminderTimeString), \(reminderLeadDays) days before the event.")
-                        }
+                        DatePicker(
+                            "",
+                            selection: $reminderTime,
+                            displayedComponents: [.hourAndMinute]
+                        )
+                        .datePickerStyle(.compact)
+                        .labelsHidden()
                     }
                 }
-                .animation(.spring(), value: reminderEnabled)
-
-                Section {
-                    TouchTimeToggle(isOn: $isPinned) {
-                        Text(String(localized: "Pin Countdown"))
+            } footer: {
+                if reminderEnabled {
+                    if reminderLeadDays == 0 {
+                        Text("Get a notification at \(reminderTimeString) on the day of the event.")
+                    } else if reminderLeadDays == 1 {
+                        Text("Get a notification at \(reminderTimeString), 1 day before the event.")
+                    } else {
+                        Text("Get a notification at \(reminderTimeString), \(reminderLeadDays) days before the event.")
                     }
-                } footer: {
-                    Text(String(localized: "Pinned countdowns will also appear on the Home screen."))
                 }
             }
-            // The Space page covers the form when its segment is selected;
-            // the form stays mounted underneath so pending edits are kept.
-            .opacity(isShowingSpace ? 0 : 1)
-            .allowsHitTesting(!isShowingSpace)
-            .accessibilityHidden(isShowingSpace)
-            .overlay {
-                if isShowingSpace, let original {
-                    CountdownSpaceView(countdownID: original.id)
+            .animation(.spring(), value: reminderEnabled)
+
+            Section {
+                TouchTimeToggle(isOn: $isPinned) {
+                    Text(String(localized: "Pin Countdown"))
                 }
+            } footer: {
+                Text(String(localized: "Pinned countdowns will also appear on the Home screen."))
+            }
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Group {
+                if let original {
+                    // Existing countdowns get a second page, the attachments
+                    // space, reached by swiping. This is a SwiftUI paging
+                    // scroll view rather than TabView(.page): the UIKit-backed
+                    // pager pins its pages inside the safe area, so the form
+                    // got clipped at the bars instead of scrolling under them.
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 0) {
+                            detailsForm
+                                .containerRelativeFrame(.horizontal)
+                                .id(EditorTab.detail)
+
+                            CountdownSpaceView(countdownID: original.id)
+                                .containerRelativeFrame(.horizontal)
+                                .id(EditorTab.space)
+                        }
+                        .scrollTargetLayout()
+                    }
+                    .scrollTargetBehavior(.paging)
+                    .scrollIndicators(.hidden)
+                    .scrollPosition(id: scrolledTab)
+                } else {
+                    detailsForm
+                }
+            }
+            // Landing on a page: haptic tick, and drop the keyboard so it
+            // doesn't linger over the space.
+            .onChange(of: selectedTab) { _, _ in
+                triggerHaptic()
+                isTitleFocused = false
             }
             .sheet(isPresented: $showCoverPicker) {
                 CoverPickerSheet(selectedEmoji: $emoji, selectedPhotoData: $photoData) {
@@ -415,18 +431,14 @@ struct CountdownDetailsView: View {
                     }
                 }
 
-                // Existing countdowns get a second page: the details form
-                // and the attachments space.
+                // Page dots where a segmented control would go. The principal
+                // slot gets no shared glass on iPhone; it is hidden anyway so
+                // the indicator's own capsule can never double up.
                 if isEditing {
                     ToolbarItem(placement: .principal) {
-                        Picker(String(localized: "Page"), selection: selectedTabBinding) {
-                            ForEach(EditorTab.allCases, id: \.self) { tab in
-                                Text(tab.displayName).tag(tab)
-                            }
-                        }
-                        .pickerStyle(.segmented)
-                        .frame(width: 175)
+                        pageIndicator
                     }
+                    .sharedBackgroundVisibility(.hidden)
                 }
 
                 ToolbarItem(placement: .topBarTrailing) {
@@ -470,6 +482,45 @@ struct CountdownDetailsView: View {
             }
         }
         .interactiveDismissDisabled(!isEditing && !trimmedTitle.isEmpty)
+    }
+
+    /// Two dots standing in for the system page indicator, sized like a
+    /// UIPageControl (7pt dots, 9pt gap) on a glass capsule. Tapping flips
+    /// to the other page.
+    ///
+    /// The glass carries a heavy dark tint. Liquid Glass flips to a light
+    /// appearance the moment bright content (a photo, the preview card)
+    /// scrolls under the bar; the system buttons do the same, but their
+    /// glyphs are big enough to survive it while 7pt white dots washed out.
+    /// At 0.6 the capsule stays dark enough over pure white for the dots
+    /// to keep their contrast, and still reads as glass over dark content.
+    ///
+    /// The dots are explicitly white, not `.primary`: inside a glass effect
+    /// `Color.primary` is re-resolved through the glass's own content
+    /// environment whenever the toolbar is re-hosted (which happens every
+    /// time the presenting view re-renders, e.g. Home's minute tick), and
+    /// came back as a mid grey. The app is dark-only and the capsule is
+    /// dark-tinted, so white is the right colour in every case anyway.
+    private var pageIndicator: some View {
+        Button {
+            withAnimation {
+                selectedTab = selectedTab == .detail ? .space : .detail
+            }
+        } label: {
+            HStack(spacing: 9) {
+                ForEach(EditorTab.allCases, id: \.self) { tab in
+                    Circle()
+                        .fill(tab == selectedTab ? Color.white : Color.white.opacity(0.25))
+                        .frame(width: 7, height: 7)
+                }
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .glassEffect(.regular.tint(.black.opacity(0.1)).interactive())
+            .animation(.spring(duration: 0.25), value: selectedTab)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(Text("Page \(selectedTab == .detail ? 1 : 2) of 2"))
     }
 
     /// Add button shown in place of the more menu on the Space page:
