@@ -16,10 +16,13 @@ struct CountdownSpaceView: View {
 
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
-    /// Photo opened full-size in a viewer sheet.
+    /// Photo zoomed open from its card into the full-screen viewer.
     @State private var viewedImage: SpaceAttachment?
-    /// Note opened in the editor sheet.
+    /// Note zoomed open from its card into the editor.
     @State private var editedNote: SpaceAttachment?
+
+    /// Pairs each card with the view that zooms out of it.
+    @Namespace private var zoomNamespace
 
     /// Attachments mid-removal: their card shrinks, blurs and fades while
     /// still holding its slot, so the rest of the grid stays put until
@@ -69,13 +72,15 @@ struct CountdownSpaceView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
-        .sheet(item: $viewedImage) { attachment in
+        .fullScreenCover(item: $viewedImage) { attachment in
             SpaceImageViewer(attachment: attachment)
+                .navigationTransition(.zoom(sourceID: attachment.id, in: zoomNamespace))
         }
-        .sheet(item: $editedNote) { note in
-            SpaceNoteEntrySheet(text: note.text ?? "") { newText in
+        .fullScreenCover(item: $editedNote) { note in
+            SpaceNoteEditor(text: note.text ?? "") { newText in
                 updateNote(note, text: newText)
             }
+            .navigationTransition(.zoom(sourceID: note.id, in: zoomNamespace))
         }
     }
 
@@ -86,6 +91,12 @@ struct CountdownSpaceView: View {
         let isRemoving = removingAttachmentIDs.contains(attachment.id)
         SpaceAttachmentTile(attachment: attachment)
             .aspectRatio(1, contentMode: .fit)
+            // The zoom transition grows out of this card and lands back on
+            // it; clip the source to the card's corners so the morph starts
+            // and ends rounded.
+            .matchedTransitionSource(id: attachment.id, in: zoomNamespace) { source in
+                source.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+            }
             // Vanish in place: shrink towards the centre, blur and fade,
             // keeping the grid slot so nothing else moves yet.
             .scaleEffect(isRemoving ? 0.6 : 1)
@@ -264,8 +275,6 @@ private struct SpaceImageViewer: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
-        .presentationDragIndicator(.visible)
     }
 
     private func triggerHaptic() {
@@ -276,10 +285,11 @@ private struct SpaceImageViewer: View {
     }
 }
 
-/// Sheet for writing a new note into the space, or editing an existing
-/// one. New notes are committed with the add button; edits are committed
-/// on dismiss, like the countdown editor.
-struct SpaceNoteEntrySheet: View {
+/// Editor for writing a new note into the space (presented as a sheet
+/// from the add menu) or editing an existing one (zoomed open from its
+/// card). New notes are committed with the add button; edits are
+/// committed on dismiss, like the countdown editor.
+struct SpaceNoteEditor: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
@@ -364,8 +374,10 @@ struct SpaceNoteEntrySheet: View {
                     onSave(trimmedText)
                 }
         }
-        // A single detent: with the keyboard up the editor needs the full
-        // height anyway, and it leaves the sheet nothing to jump to.
+        // For the new-note sheet: a single detent, since with the keyboard
+        // up the editor needs the full height anyway, and it leaves the
+        // sheet nothing to jump to. No effect on the zoomed full-screen
+        // presentation used for editing.
         .presentationDetents([.large])
         .presentationDragIndicator(.visible)
     }

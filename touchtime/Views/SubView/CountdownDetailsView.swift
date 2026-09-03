@@ -339,7 +339,7 @@ struct CountdownDetailsView: View {
                 }
             }
             .sheet(isPresented: $showAddNoteSheet) {
-                SpaceNoteEntrySheet { text in
+                SpaceNoteEditor { text in
                     addSpaceAttachment(SpaceAttachment(kind: .text, text: text))
                 }
             }
