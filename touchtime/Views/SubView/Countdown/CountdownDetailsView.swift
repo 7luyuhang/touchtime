@@ -37,6 +37,11 @@ struct CountdownDetailsView: View {
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
     @State private var showNotificationPermissionAlert = false
+    // Custom repeat sheet: the wheels edit these and confirm applies them
+    // to `repeatFrequency`, so cancelling leaves the frequency untouched.
+    @State private var showCustomRepeatSheet = false
+    @State private var customRepeatInterval = 2
+    @State private var customRepeatUnit: CountdownItem.RepeatFrequency.Unit = .week
     /// Bumped on every emoji pick in the cover sheet; the preview card
     /// plays one particle burst per change.
     @State private var emojiParticleBurst = 0
@@ -233,15 +238,54 @@ struct CountdownDetailsView: View {
                 )
                 .datePickerStyle(.compact)
 
-                Picker(String(localized: "Repeat"), selection: $repeatFrequency) {
-                    ForEach(CountdownItem.RepeatFrequency.allCases, id: \.self) { frequency in
-                        Text(frequency.displayName).tag(frequency)
+                // Repeat: the presets, then Custom below a divider, which
+                // opens the interval sheet. A Menu rather than a menu-style
+                // Picker so the list can end in an action; the label copies
+                // the picker's value-plus-chevron look.
+                HStack {
+                    Text(String(localized: "Repeat"))
+
+                    Spacer()
+
+                    Menu {
+                        ForEach(CountdownItem.RepeatFrequency.presets, id: \.self) { frequency in
+                            Button {
+                                triggerHaptic()
+                                repeatFrequency = frequency
+                            } label: {
+                                if repeatFrequency == frequency {
+                                    Label(frequency.displayName, systemImage: "checkmark.circle")
+                                } else {
+                                    Text(frequency.displayName)
+                                }
+                            }
+                        }
+
+                        Divider()
+
+                        Button {
+                            triggerHaptic()
+                            presentCustomRepeatSheet()
+                        } label: {
+                            if repeatFrequency.isCustom {
+                                // Checked, with the chosen cadence as the subtitle.
+                                Label(String(localized: "Custom"), systemImage: "checkmark.circle")
+                                Text(repeatFrequency.displayName)
+                            } else {
+                                Text(String(localized: "Custom"))
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 4) {
+                            Text(repeatFrequency.displayName)
+                                .contentTransition(.numericText())
+                            Image(systemName: "chevron.up.chevron.down")
+                                .font(.footnote.weight(.semibold))
+                        }
+                        .animation(.spring(), value: repeatFrequency)
                     }
-                }
-                .pickerStyle(.menu)
-                .tint(.secondary)
-                .onChange(of: repeatFrequency) { _, _ in
-                    triggerHaptic()
+                    // The label takes the tint, as the menu picker did.
+                    .tint(.secondary)
                 }
             }
 
@@ -358,6 +402,21 @@ struct CountdownDetailsView: View {
                 SpaceNoteEditor { text in
                     addSpaceAttachment(SpaceAttachment(kind: .text, text: text))
                 }
+            }
+            .sheet(isPresented: $showCustomRepeatSheet) {
+                CustomRepeatSheet(
+                    interval: $customRepeatInterval,
+                    unit: $customRepeatUnit,
+                    onClose: {
+                        triggerHaptic()
+                        showCustomRepeatSheet = false
+                    },
+                    onConfirm: {
+                        triggerHaptic()
+                        repeatFrequency = .every(customRepeatInterval, customRepeatUnit)
+                        showCustomRepeatSheet = false
+                    }
+                )
             }
             .photosPicker(
                 isPresented: $showSpacePhotoPicker,
@@ -607,6 +666,18 @@ struct CountdownDetailsView: View {
         } label: {
             Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // Editor Share
         }
+    }
+
+    /// Opens the custom repeat sheet with the wheels on the current cadence:
+    /// a custom value as is, a preset as "every 1" of its unit, and Never
+    /// as every 2 weeks (every 1 week would just be the Weekly preset).
+    private func presentCustomRepeatSheet() {
+        let period = repeatFrequency.period ?? (count: 2, unit: .week)
+        customRepeatInterval = period.count
+        customRepeatUnit = period.unit
+        // Drop the keyboard before the sheet comes up
+        isTitleFocused = false
+        showCustomRepeatSheet = true
     }
 
     private func saveAndDismiss() {

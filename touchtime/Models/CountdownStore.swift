@@ -11,11 +11,66 @@ import Observation
 /// A countdown towards a future date, shown in the countdown grid.
 struct CountdownItem: Identifiable, Codable, Equatable {
     /// How the countdown rolls forward once its target date has passed.
-    enum RepeatFrequency: String, Codable, CaseIterable {
+    ///
+    /// The presets are the Repeat menu's standard choices; `custom` covers
+    /// every other cadence ("every 2 weeks", "every 18 months"). Build
+    /// custom values through `every(_:_:)`, which folds an interval of 1
+    /// back into the matching preset so each cadence has one representation.
+    enum RepeatFrequency: RawRepresentable, Hashable, Codable {
+        /// The calendar unit a custom interval is counted in.
+        enum Unit: String, CaseIterable {
+            case week
+            case month
+            case year
+
+            var component: Calendar.Component {
+                switch self {
+                case .week: .weekOfYear
+                case .month: .month
+                case .year: .year
+                }
+            }
+
+            /// The preset that repeats every single one of this unit.
+            var preset: RepeatFrequency {
+                switch self {
+                case .week: .weekly
+                case .month: .monthly
+                case .year: .annually
+                }
+            }
+        }
+
         case never
         case weekly
         case monthly
         case annually
+        case custom(interval: Int, unit: Unit)
+
+        /// The choices listed directly in the Repeat menu, ahead of Custom.
+        static let presets: [RepeatFrequency] = [.never, .weekly, .monthly, .annually]
+
+        /// Repeats every `interval` units, normalised so that "every 1 week"
+        /// is `.weekly` rather than a custom value.
+        static func every(_ interval: Int, _ unit: Unit) -> RepeatFrequency {
+            interval > 1 ? .custom(interval: interval, unit: unit) : unit.preset
+        }
+
+        /// How far apart occurrences are; nil when the countdown never repeats.
+        var period: (count: Int, unit: Unit)? {
+            switch self {
+            case .never: nil
+            case .weekly: (1, .week)
+            case .monthly: (1, .month)
+            case .annually: (1, .year)
+            case .custom(let interval, let unit): (interval, unit)
+            }
+        }
+
+        var isCustom: Bool {
+            if case .custom = self { return true }
+            return false
+        }
 
         var displayName: String {
             switch self {
@@ -23,7 +78,59 @@ struct CountdownItem: Identifiable, Codable, Equatable {
             case .weekly: String(localized: "Weekly")
             case .monthly: String(localized: "Monthly")
             case .annually: String(localized: "Annually")
+            case .custom(let interval, let unit):
+                switch unit {
+                case .week: String(format: String(localized: "Every %d Weeks"), interval)
+                case .month: String(format: String(localized: "Every %d Months"), interval)
+                case .year: String(format: String(localized: "Every %d Years"), interval)
+                }
             }
+        }
+
+        // MARK: Persistence
+
+        // Stored as a string: the presets keep their original raw values so
+        // existing saves still decode, and custom values ("custom:2:week")
+        // read as .never in app versions that predate them (see the
+        // CountdownItem decoder) instead of breaking the whole store.
+
+        init?(rawValue: String) {
+            switch rawValue {
+            case "never": self = .never
+            case "weekly": self = .weekly
+            case "monthly": self = .monthly
+            case "annually": self = .annually
+            default:
+                let parts = rawValue.split(separator: ":")
+                guard parts.count == 3, parts[0] == "custom",
+                      let interval = Int(parts[1]), interval >= 1,
+                      let unit = Unit(rawValue: String(parts[2])) else { return nil }
+                self = .every(interval, unit)
+            }
+        }
+
+        var rawValue: String {
+            switch self {
+            case .never: "never"
+            case .weekly: "weekly"
+            case .monthly: "monthly"
+            case .annually: "annually"
+            case .custom(let interval, let unit): "custom:\(interval):\(unit.rawValue)"
+            }
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let rawValue = try container.decode(String.self)
+            guard let frequency = RepeatFrequency(rawValue: rawValue) else {
+                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown repeat frequency \(rawValue)")
+            }
+            self = frequency
+        }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.singleValueContainer()
+            try container.encode(rawValue)
         }
     }
 
@@ -86,34 +193,28 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         Self.nextOccurrence(of: targetDate, frequency: repeatFrequency, after: now)
     }
 
-    /// Rolls `targetDate` forward by whole repeat intervals until it lands
+    /// Rolls `targetDate` forward by whole repeat periods until it lands
     /// on or after `now`'s calendar day (so a repeating event still reads
     /// "Today" for the rest of its day). Every addition anchors on the
     /// original date so month-end dates don't drift (Jan 31 → Feb 28 →
     /// Mar 31, not Mar 28).
     static func nextOccurrence(of targetDate: Date, frequency: RepeatFrequency, after now: Date) -> Date {
-        let component: Calendar.Component
-        switch frequency {
-        case .never:
-            return targetDate
-        case .weekly:
-            component = .weekOfYear
-        case .monthly:
-            component = .month
-        case .annually:
-            component = .year
-        }
+        guard let period = frequency.period else { return targetDate }
+        let component = period.unit.component
+        let stride = max(period.count, 1)
 
         let calendar = Calendar.current
         let nowDay = calendar.startOfDay(for: now)
         guard calendar.startOfDay(for: targetDate) < nowDay else { return targetDate }
 
-        // Jump close in one step, then settle on the first occurrence
-        // whose day is not in the past.
-        var count = max(calendar.dateComponents([component], from: targetDate, to: now).value(for: component) ?? 0, 0)
+        // Jump close in one step, rounded down to whole periods so the
+        // result stays on the repeat grid, then settle on the first
+        // occurrence whose day is not in the past.
+        let elapsed = max(calendar.dateComponents([component], from: targetDate, to: now).value(for: component) ?? 0, 0)
+        var count = elapsed - elapsed % stride
         var next = calendar.date(byAdding: component, value: count, to: targetDate) ?? targetDate
         while calendar.startOfDay(for: next) < nowDay {
-            count += 1
+            count += stride
             next = calendar.date(byAdding: component, value: count, to: targetDate) ?? targetDate
         }
         return next

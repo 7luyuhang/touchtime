@@ -4255,6 +4255,40 @@
         }
       }
     },
+    "Custom" : {
+      "comment" : "Countdown repeat menu item that opens the custom interval sheet.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂"
+          }
+        }
+      }
+    },
+    "Custom Repeat" : {
+      "comment" : "Title of the custom countdown repeat sheet.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义重复"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂重複"
+          }
+        }
+      }
+    },
     "Customisation" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5654,6 +5688,74 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "事件標題"
+          }
+        }
+      }
+    },
+    "Every" : {
+      "comment" : "Accessibility label of the interval wheel in the custom repeat sheet, as in: Every 2 weeks.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每"
+          }
+        }
+      }
+    },
+    "Every %d Months" : {
+      "comment" : "Custom countdown repeat frequency; the count is 2 or more.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d个月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d個月"
+          }
+        }
+      }
+    },
+    "Every %d Weeks" : {
+      "comment" : "Custom countdown repeat frequency; the count is 2 or more.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d周"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d週"
+          }
+        }
+      }
+    },
+    "Every %d Years" : {
+      "comment" : "Custom countdown repeat frequency; the count is 2 or more.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d年"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d年"
           }
         }
       }
@@ -14772,6 +14874,23 @@
         }
       }
     },
+    "Unit" : {
+      "comment" : "Accessibility label of the week/month/year wheel in the custom repeat sheet.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单位"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "單位"
+          }
+        }
+      }
+    },
     "Unknown" : {
       "localizations" : {
         "zh-Hans" : {
@@ -15425,6 +15544,23 @@
         }
       }
     },
+    "week" : {
+      "comment" : "Unit wheel entry in the custom repeat sheet, for an interval of 1.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "周"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週"
+          }
+        }
+      }
+    },
     "Weekday" : {
       "localizations" : {
         "zh-Hans" : {
@@ -15485,6 +15621,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每週"
+          }
+        }
+      }
+    },
+    "weeks" : {
+      "comment" : "Unit wheel entry in the custom repeat sheet, for an interval above 1.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "周"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "週"
           }
         }
       }
