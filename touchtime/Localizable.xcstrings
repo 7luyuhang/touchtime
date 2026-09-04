@@ -5693,7 +5693,7 @@
       }
     },
     "Every" : {
-      "comment" : "Accessibility label of the interval wheel in the custom repeat sheet, as in: Every 2 weeks.",
+      "comment" : "Subtitle under the custom repeat sheet's title, and accessibility label of its interval wheel; reads into the wheels as in: Every 2 weeks.",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

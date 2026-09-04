@@ -51,9 +51,20 @@ struct CustomRepeatSheet: View {
                 .frame(height: 200)
             }
             .padding(.horizontal)
-            .navigationTitle(String(localized: "Custom Repeat"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 2) {
+                        Text(String(localized: "Custom Repeat"))
+                            .font(.headline)
+                            .foregroundStyle(.primary)
+
+                        Text(String(localized: "Every"))
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
                 ToolbarItem(placement: .topBarLeading) {
                     Button(action: onClose) {
                         Image(systemName: "xmark")
