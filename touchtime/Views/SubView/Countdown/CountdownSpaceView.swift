@@ -206,6 +206,11 @@ private struct SpaceAttachmentTile: View {
             .lineLimit(7)
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
             .padding()
+            // A saved edit swaps the note's content: keyed on the text so
+            // the old copy blurs out while the new one blurs in, while the
+            // card itself (keyed on the attachment id) stays put.
+            .transition(.blurReplace)
+            .id(attachment.text)
     }
 
     private var imageTile: some View {
