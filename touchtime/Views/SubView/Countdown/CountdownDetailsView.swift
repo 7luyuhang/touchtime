@@ -363,7 +363,12 @@ struct CountdownDetailsView: View {
                     // got clipped at the bars instead of scrolling under them.
                     GeometryReader { viewport in
                         ScrollView(.horizontal) {
-                            LazyHStack(alignment: .top, spacing: 0) {
+                            // Keep both pages alive in a regular HStack. A lazy
+                            // stack can cache the sheet's narrower source size
+                            // from the presentation transition, leaving every
+                            // Form row clipped to that stale width after the
+                            // sheet has expanded to fill the screen.
+                            HStack(alignment: .top, spacing: 0) {
                                 detailsForm
                                     .frame(width: viewport.size.width, height: viewport.size.height)
                                     .id(EditorTab.detail)
@@ -372,11 +377,12 @@ struct CountdownDetailsView: View {
                                     .frame(width: viewport.size.width, height: viewport.size.height)
                                     .id(EditorTab.space)
                             }
+                            .frame(
+                                width: viewport.size.width * CGFloat(EditorTab.allCases.count),
+                                height: viewport.size.height,
+                                alignment: .leading
+                            )
                             .scrollTargetLayout()
-                            // Page bounds must track the viewport immediately,
-                            // including during the sheet's presentation animation.
-                            // User-driven paging still animates when size is stable.
-                            .animation(nil, value: viewport.size)
                         }
                         .scrollTargetBehavior(.paging)
                         .scrollIndicators(.hidden)
