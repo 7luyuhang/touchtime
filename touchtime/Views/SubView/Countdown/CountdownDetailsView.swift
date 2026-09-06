@@ -49,7 +49,9 @@ struct CountdownDetailsView: View {
 
     // Space page state: the page currently swiped to, plus the entry
     // sheets behind the Space add button.
-    @State private var selectedTab: EditorTab = .detail
+    // A nil scroll target lets the pager start at its leading edge without
+    // issuing a scroll-to-id while the sheet is still establishing its size.
+    @State private var scrolledTab: EditorTab? = nil
     @State private var showAddNoteSheet = false
     @State private var showSpacePhotoPicker = false
     @State private var spacePhotoItems: [PhotosPickerItem] = []
@@ -68,17 +70,8 @@ struct CountdownDetailsView: View {
         isEditing && selectedTab == .space
     }
 
-    /// `scrollPosition` wants an optional id; bridge it to `selectedTab`
-    /// so the pager, the indicator and the toolbar share one source.
-    private var scrolledTab: Binding<EditorTab?> {
-        Binding(
-            get: { selectedTab },
-            set: { tab in
-                if let tab {
-                    selectedTab = tab
-                }
-            }
-        )
+    private var selectedTab: EditorTab {
+        scrolledTab ?? .detail
     }
 
     init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void) {
@@ -368,21 +361,28 @@ struct CountdownDetailsView: View {
                     // scroll view rather than TabView(.page): the UIKit-backed
                     // pager pins its pages inside the safe area, so the form
                     // got clipped at the bars instead of scrolling under them.
-                    ScrollView(.horizontal) {
-                        HStack(spacing: 0) {
-                            detailsForm
-                                .containerRelativeFrame(.horizontal)
-                                .id(EditorTab.detail)
+                    GeometryReader { viewport in
+                        ScrollView(.horizontal) {
+                            LazyHStack(alignment: .top, spacing: 0) {
+                                detailsForm
+                                    .frame(width: viewport.size.width, height: viewport.size.height)
+                                    .id(EditorTab.detail)
 
-                            CountdownSpaceView(countdownID: original.id)
-                                .containerRelativeFrame(.horizontal)
-                                .id(EditorTab.space)
+                                CountdownSpaceView(countdownID: original.id)
+                                    .frame(width: viewport.size.width, height: viewport.size.height)
+                                    .id(EditorTab.space)
+                            }
+                            .scrollTargetLayout()
+                            // Page bounds must track the viewport immediately,
+                            // including during the sheet's presentation animation.
+                            // User-driven paging still animates when size is stable.
+                            .animation(nil, value: viewport.size)
                         }
-                        .scrollTargetLayout()
+                        .scrollTargetBehavior(.paging)
+                        .scrollIndicators(.hidden)
+                        .defaultScrollAnchor(.topLeading)
+                        .scrollPosition(id: $scrolledTab, anchor: .topLeading)
                     }
-                    .scrollTargetBehavior(.paging)
-                    .scrollIndicators(.hidden)
-                    .scrollPosition(id: scrolledTab)
                 } else {
                     detailsForm
                 }
@@ -563,7 +563,7 @@ struct CountdownDetailsView: View {
     private var pageIndicator: some View {
         Button {
             withAnimation {
-                selectedTab = selectedTab == .detail ? .space : .detail
+                scrolledTab = selectedTab == .detail ? .space : .detail
             }
         } label: {
             HStack(spacing: 9) {
