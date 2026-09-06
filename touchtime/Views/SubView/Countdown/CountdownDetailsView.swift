@@ -36,6 +36,7 @@ struct CountdownDetailsView: View {
     @State private var reminderLeadDays: Int
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
+    @State private var showShareImageSheet = false
     @State private var showNotificationPermissionAlert = false
     // Custom repeat sheet: the wheels edit these and confirm applies them
     // to `repeatFrequency`, so cancelling leaves the frequency untouched.
@@ -409,6 +410,15 @@ struct CountdownDetailsView: View {
                     addSpaceAttachment(SpaceAttachment(kind: .text, text: text))
                 }
             }
+            .fullScreenCover(isPresented: $showShareImageSheet) {
+                ShareAsImageView(
+                    title: shareTitle,
+                    targetDate: effectiveTargetDate,
+                    emoji: emoji,
+                    photoData: photoData,
+                    isRepeating: repeatFrequency != .never
+                )
+            }
             .sheet(isPresented: $showCustomRepeatSheet) {
                 CustomRepeatSheet(
                     interval: $customRepeatInterval,
@@ -634,24 +644,14 @@ struct CountdownDetailsView: View {
         }
     }
 
+    /// Title used when sharing; the placeholder stands in for an empty one.
+    private var shareTitle: String {
+        trimmedTitle.isEmpty ? String(localized: "Event Name") : trimmedTitle
+    }
+
     /// Share submenu at the top of the editor menu, sharing the countdown
     /// as it is currently edited (unsaved values included).
-    @ViewBuilder
     private var shareMenu: some View {
-        let shareTitle = trimmedTitle.isEmpty ? String(localized: "Event Name") : trimmedTitle
-        let lazyImage = LazyCardImage { [self] in
-            CountdownShare.renderCardImage(
-                title: shareTitle,
-                targetDate: effectiveTargetDate,
-                emoji: emoji,
-                photoData: photoData,
-                isRepeating: repeatFrequency != .never,
-                now: Date(),
-                showYears: showYears,
-                showMonths: showMonths,
-                showDays: showDays
-            )
-        }
         Menu {
             Button {
                 triggerHaptic()
@@ -666,7 +666,12 @@ struct CountdownDetailsView: View {
             } label: {
                 Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
             }
-            ShareLink(item: lazyImage, preview: SharePreview(shareTitle)) {
+            Button {
+                triggerHaptic()
+                // Drop the keyboard before the sheet comes up
+                isTitleFocused = false
+                showShareImageSheet = true
+            } label: {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
         } label: {

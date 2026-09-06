@@ -114,9 +114,33 @@ struct HomeCountdownSection: View {
 
 /// Share helpers used by both the Home cards and the countdown editor:
 /// pasteboard text, the relative phrase under the shared card, and the
-/// 9:16 card image. The unit flags are the countdown sheet's Time Display
-/// settings.
+/// card image (9:16 unless another frame is picked). The unit flags are
+/// the countdown sheet's Time Display settings.
 enum CountdownShare {
+    /// Frame of the share image. The width is fixed so the card keeps the
+    /// same size in every ratio; only the backdrop around it grows or
+    /// shrinks. The raw value doubles as the menu label.
+    /// Listed tallest first, so the menu reads like a frame getting
+    /// squarer from top to bottom.
+    enum AspectRatio: String, CaseIterable {
+        case nineBySixteen = "9:16"
+        case twoByThree = "2:3"
+        case threeByFour = "3:4"
+        case fourByFive = "4:5"
+        case oneByOne = "1:1"
+
+        /// Point size of the rendered view; the image is 3x this.
+        var size: CGSize {
+            switch self {
+            case .nineBySixteen: CGSize(width: 360, height: 640)
+            case .twoByThree: CGSize(width: 360, height: 540)
+            case .threeByFour: CGSize(width: 360, height: 480)
+            case .fourByFive: CGSize(width: 360, height: 450)
+            case .oneByOne: CGSize(width: 360, height: 360)
+            }
+        }
+    }
+
     /// Whole calendar days from the reference date to the target date;
     /// negative once the event has happened.
     static func dayDifference(from now: Date, to targetDate: Date) -> Int {
@@ -142,20 +166,22 @@ enum CountdownShare {
         return String(format: String(localized: "%1$@ in %2$@"), title, interval)
     }
 
-    /// Renders the countdown card into a 9:16 share image, like the city
-    /// card share.
-    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, isRepeating: Bool, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool) -> UIImage {
+    /// Context line under the shared card, e.g. "in 1 year 4 days" /
+    /// "3 days ago" / "Today".
+    static func footerText(from now: Date, to targetDate: Date, showYears: Bool, showMonths: Bool, showDays: Bool) -> String {
         let difference = dayDifference(from: now, to: targetDate)
-        let footerText: String
         if difference == 0 {
-            footerText = String(localized: "Today")
-        } else {
-            let interval = intervalText(from: now, to: targetDate, showYears: showYears, showMonths: showMonths, showDays: showDays)
-            footerText = difference < 0
-                ? String(format: String(localized: "%@ ago"), interval)
-                : String(format: String(localized: "in %@"), interval)
+            return String(localized: "Today")
         }
+        let interval = intervalText(from: now, to: targetDate, showYears: showYears, showMonths: showMonths, showDays: showDays)
+        return difference < 0
+            ? String(format: String(localized: "%@ ago"), interval)
+            : String(format: String(localized: "in %@"), interval)
+    }
 
+    /// Renders the countdown card into a share image, like the city card
+    /// share: 9:16 by default, or the frame the share sheet picked.
+    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, isRepeating: Bool, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool, aspectRatio: AspectRatio = .nineBySixteen) -> UIImage {
         let snapshotView = CountdownCardSnapshotView(
             title: title,
             targetDate: targetDate,
@@ -163,7 +189,8 @@ enum CountdownShare {
             photoData: photoData,
             isRepeating: isRepeating,
             now: now,
-            footerText: footerText
+            footerText: footerText(from: now, to: targetDate, showYears: showYears, showMonths: showMonths, showDays: showDays),
+            aspectRatio: aspectRatio
         )
         .environment(\.colorScheme, .dark)
 
@@ -221,7 +248,7 @@ enum CountdownShare {
 
 // MARK: - Countdown Card Snapshot View for Sharing
 
-/// 9:16 share image for a countdown, mirroring the city card share: the
+/// Share image for a countdown, mirroring the city card share: the
 /// pinned card replica centered on a backdrop that echoes its cover — the
 /// emoji's dominant colour as a flat fill, or the photo blurred; plain
 /// black without a cover. Glass effects don't render in ImageRenderer, so
@@ -238,6 +265,18 @@ struct CountdownCardSnapshotView: View {
     let now: Date
     /// Context line under the card, e.g. "in 1 year 4 days".
     let footerText: String
+    /// Frame of the image; the card keeps its size and the backdrop
+    /// fills whatever is around it.
+    var aspectRatio: CountdownShare.AspectRatio = .nineBySixteen
+
+    private var size: CGSize {
+        aspectRatio.size
+    }
+
+    /// The backdrop is always laid out at the tallest frame and cropped
+    /// by the image bounds, so switching ratio changes how much of the
+    /// same backdrop shows instead of re-cropping the photo.
+    private static let backdropSize = CountdownShare.AspectRatio.nineBySixteen.size
 
     private var photoImage: UIImage? {
         guard let photoData else { return nil }
@@ -290,7 +329,7 @@ struct CountdownCardSnapshotView: View {
                 Image(uiImage: photoImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 360, height: 640)
+                    .frame(width: Self.backdropSize.width, height: Self.backdropSize.height)
                     .clipped()
                     .blur(radius: 60, opaque: true)
                     .overlay(Color.black.opacity(0.35))
@@ -390,6 +429,7 @@ struct CountdownCardSnapshotView: View {
                     .padding(.horizontal, 24)
             }
         }
-        .frame(width: 360, height: 640) // 9:16 share frame ratio
+        .frame(width: size.width, height: size.height) // 9:16 unless another frame is picked
+        .clipped()
     }
 }

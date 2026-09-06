@@ -1411,6 +1411,22 @@
         }
       }
     },
+    "Allow photo library access in Settings to save images." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在设置中允许照片访问，以保存图片。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請在設定中允許照片存取，以儲存圖片。"
+          }
+        }
+      }
+    },
     "Almaty" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1906,6 +1922,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "阿斯馬拉"
+          }
+        }
+      }
+    },
+    "Aspect Ratio" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比例"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比例"
           }
         }
       }
