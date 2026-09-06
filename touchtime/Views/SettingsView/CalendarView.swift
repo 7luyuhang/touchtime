@@ -7,16 +7,23 @@
 
 import SwiftUI
 import EventKit
+import UIKit
 
 struct CalendarView: View {
     let worldClocks: [WorldClock]
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
-    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
+    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = false
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
+    @AppStorage("addMeetLinkToEvents") private var addMeetLinkToEvents = false
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @State private var eventStore = EKEventStore()
     @State private var availableCalendars: [EKCalendar] = []
     @State private var hasCalendarPermission = false
+    @State private var showDisconnectConfirmation = false
+    @State private var showLifetimeStore = false
+    @ObservedObject private var googleMeet = GoogleMeetManager.shared
     
     // Get city count text for Notes setting
     func getCityCountText() -> String {
@@ -33,9 +40,9 @@ struct CalendarView: View {
         if count == 0 {
             return ""
         } else if count == 1 {
-            return "1 City"
+            return String(localized: "1 City")
         } else {
-            return "\(count) Cities"
+            return String(format: String(localized: "%d Cities"), count)
         }
     }
     
@@ -155,11 +162,142 @@ struct CalendarView: View {
                 }
                 .foregroundStyle(.primary)
             }
+
+            if hasCalendarPermission {
+                googleMeetSection
+            }
         }
         .navigationTitle("Calendar")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadCalendars()
+        }
+        .alert("Google Meet", isPresented: Binding(
+            get: { googleMeet.errorMessage != nil },
+            set: { if !$0 { googleMeet.errorMessage = nil } }
+        )) {
+            Button(String(localized: "OK"), role: .cancel) {
+                googleMeet.errorMessage = nil
+            }
+        } message: {
+            Text(googleMeet.errorMessage ?? "")
+        }
+        .alert(String(localized: "Disconnect Google Account?"), isPresented: $showDisconnectConfirmation) {
+            Button(String(localized: "Cancel"), role: .cancel) { }
+            Button(String(localized: "Disconnect"), role: .destructive) {
+                if hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+                googleMeet.signOut()
+            }
+        } message: {
+            Text("Meet links will no longer be added to new events.")
+        }
+        .sheet(isPresented: $showLifetimeStore) {
+            NavigationStack {
+                LifetimeStoreView()
+            }
+        }
+    }
+
+    // MARK: - Google Meet
+
+    /// Custom URL scheme used only to make the inline "Disconnect" link tappable.
+    private static let disconnectURLScheme = "touchtime-meet-disconnect"
+
+    /// Footer text whose trailing "Disconnect" word is an inline, tappable link
+    /// that flows right after the sentence.
+    private func connectedFooterText(email: String) -> AttributedString {
+        var text = AttributedString(String(format: String(localized: "Connected with %@."), email))
+        text.append(AttributedString(" "))
+
+        var disconnect = AttributedString(String(localized: "Disconnect"))
+        disconnect.link = URL(string: "\(Self.disconnectURLScheme)://disconnect")
+        disconnect.inlinePresentationIntent = .stronglyEmphasized
+        text.append(disconnect)
+
+        return text
+    }
+
+    @ViewBuilder
+    private var googleMeetSection: some View {
+        Section {
+            if hasLifetimeAccess {
+                if googleMeet.isSignedIn {
+                    // Toggle: include a Meet link in new events
+                    Toggle(isOn: $addMeetLinkToEvents) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "plus.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Add to Event Notes")
+                        }
+                    }
+                    .tint(.blue)
+                } else {
+                    // Connect account button
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                        }
+                        Task { await googleMeet.signIn() }
+                    }) {
+                        HStack {
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "video.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                                Text("Add Google Meet Link")
+                            }
+                            .layoutPriority(1)
+
+                            Spacer(minLength: 8)
+
+                            if googleMeet.isAuthenticating {
+                                ProgressView()
+                            }
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                    .disabled(googleMeet.isAuthenticating)
+                }
+            } else {
+                // Locked behind Lifetime
+                Button(action: {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                    showLifetimeStore = true
+                }) {
+                    HStack {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "video.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Add Google Meet Link")
+                        }
+                        .layoutPriority(1)
+
+                        Spacer(minLength: 8)
+
+                        Image(systemName: "lock.fill")
+                            .font(.footnote.weight(.semibold))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .foregroundStyle(.primary)
+            }
+        } header: {
+            Text("Video Call")
+        } footer: {
+            if hasLifetimeAccess && googleMeet.isSignedIn {
+                Text(connectedFooterText(email: googleMeet.email ?? String(localized: "Google Account")))
+                    .tint(.white)
+                    .environment(\.openURL, OpenURLAction { url in
+                        guard url.scheme == Self.disconnectURLScheme else { return .systemAction }
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        showDisconnectConfirmation = true
+                        return .handled
+                    })
+            } else {
+                Text("Connect your Google account to add a Meet link to new events.")
+            }
         }
     }
 }

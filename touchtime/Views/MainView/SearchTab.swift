@@ -77,27 +77,18 @@ struct TimeZonePickerViewWrapper: View {
         let isChinese = isChineseLanguage
         
         let timeZones = TimeZone.knownTimeZoneIdentifiers.compactMap { identifier -> TimeZoneData? in
-            // Extract city name and region info from timezone identifier
+            // Extract city name from timezone identifier
             let components = identifier.split(separator: "/")
-            let cityName: String
-            let region: String
+            guard let lastComponent = components.last else { return nil }
             
-            if components.count >= 2 {
-                // Replace underscore with space for readability
-                cityName = components.last!
-                    .replacingOccurrences(of: "_", with: " ")
-                region = getRegionForTimeZone(identifier: identifier)
-            } else if components.count == 1 {
-                // Handle timezones without slashes (like UTC, GMT)
-                cityName = String(components[0])
-                region = "Standard Time"
-            } else {
-                return nil
-            }
+            // Replace underscore with space for readability
+            let cityName = lastComponent.replacingOccurrences(of: "_", with: " ")
             
-            // Get localized names
+            // English region for search matching, localized region for display
+            let (region, localizedRegion) = regionNames(for: identifier)
+            
+            // Get localized city name
             let localizedCityName = String(localized: String.LocalizationValue(cityName))
-            let localizedRegion = String(localized: String.LocalizationValue(region))
             
             // Calculate group key
             let groupKey: String
@@ -128,174 +119,28 @@ struct TimeZonePickerViewWrapper: View {
         let grouped = Dictionary(grouping: timeZones) { $0.groupKey }
         
         // Sort keys
-        let sorted = grouped.keys.sorted { key1, key2 in
-            // "#" symbol comes last
-            if key1 == "#" { return false }
-            if key2 == "#" { return true }
-            return key1 < key2
-        }
+        let sorted = Self.sortedGroupKeys(grouped.keys)
         
         precomputedTimeZones = timeZones
         groupedTimeZones = grouped
         sortedKeys = sorted
     }
     
-    // Get country/region name for timezone
-    private func getRegionForTimeZone(identifier: String) -> String {
-        let components = identifier.split(separator: "/")
-        
-        // Handle timezones with country info (e.g. America/Argentina/Buenos_Aires)
-        if components.count >= 3 {
-            let country = String(components[1]).replacingOccurrences(of: "_", with: " ")
-            
-            // Special handling for some country names
-            switch country {
-            case "Indiana", "Kentucky", "North Dakota": return "United States"
-            default: return country
-            }
+    // English locale for search matching regardless of device language
+    private static let englishLocale = Locale(identifier: "en_US")
+    
+    // Get country name for timezone: English (for search) + localized (for display).
+    // Country codes come from the IANA table; display names from CLDR via Locale,
+    // so every zone gets a real country name in every language for free.
+    private func regionNames(for identifier: String) -> (english: String, localized: String) {
+        guard let code = TimeZoneCountryCodes.countryCode(for: identifier) else {
+            // Zones without a country (UTC, GMT)
+            return ("Standard Time", String(localized: "Standard Time"))
         }
         
-        // Map country directly based on timezone identifier
-        switch identifier {
-        // United States
-        case let id where id.starts(with: "America/") && 
-            ["New_York", "Chicago", "Denver", "Los_Angeles", "Phoenix", "Anchorage", "Honolulu", "Detroit", "Indianapolis"].contains(where: { id.contains($0) }):
-            return "United States"
-            
-        // Canada
-        case let id where id.starts(with: "America/") &&
-            ["Toronto", "Vancouver", "Montreal", "Edmonton", "Winnipeg", "Halifax", "St_Johns", "Regina"].contains(where: { id.contains($0) }):
-            return "Canada"
-            
-        // China
-        case "Asia/Shanghai", "Asia/Urumqi", "Asia/Harbin", "Asia/Chongqing":
-            return "China"
-            
-        // Japan
-        case "Asia/Tokyo":
-            return "Japan"
-            
-        // South Korea
-        case "Asia/Seoul":
-            return "South Korea"
-            
-        // India
-        case "Asia/Kolkata", "Asia/Calcutta":
-            return "India"
-            
-        // Australia
-        case let id where id.starts(with: "Australia/"):
-            return "Australia"
-            
-        // United Kingdom
-        case "Europe/London", "Europe/Belfast":
-            return "United Kingdom"
-            
-        // France
-        case "Europe/Paris":
-            return "France"
-            
-        // Germany
-        case "Europe/Berlin":
-            return "Germany"
-            
-        // Russia
-        case let id where id.starts(with: "Europe/") &&
-            ["Moscow", "Kaliningrad", "Samara", "Volgograd"].contains(where: { id.contains($0) }):
-            return "Russia"
-            
-        // Brazil
-        case let id where id.starts(with: "America/") && id.contains("Brazil"):
-            return "Brazil"
-            
-        // Mexico
-        case let id where id.starts(with: "America/") && 
-            ["Mexico_City", "Cancun", "Tijuana", "Monterrey"].contains(where: { id.contains($0) }):
-            return "Mexico"
-            
-        // Singapore
-        case "Asia/Singapore":
-            return "Singapore"
-            
-        // Hong Kong
-        case "Asia/Hong_Kong":
-            return "Hong Kong"
-            
-        // Taiwan
-        case "Asia/Taipei":
-            return "Taiwan"
-            
-        // Dubai
-        case "Asia/Dubai":
-            return "United Arab Emirates"
-            
-        // Other major cities
-        case "Europe/Rome": return "Italy"
-        case "Europe/Madrid": return "Spain"
-        case "Europe/Amsterdam": return "Netherlands"
-        case "Europe/Brussels": return "Belgium"
-        case "Europe/Zurich": return "Switzerland"
-        case "Europe/Stockholm": return "Sweden"
-        case "Europe/Oslo": return "Norway"
-        case "Europe/Copenhagen": return "Denmark"
-        case "Europe/Helsinki": return "Finland"
-        case "Europe/Vienna": return "Austria"
-        case "Europe/Prague": return "Czech Republic"
-        case "Europe/Warsaw": return "Poland"
-        case "Europe/Athens": return "Greece"
-        case "Europe/Lisbon": return "Portugal"
-        case "Europe/Dublin": return "Ireland"
-        case "Asia/Bangkok": return "Thailand"
-        case "Asia/Jakarta": return "Indonesia"
-        case "Asia/Manila": return "Philippines"
-        case "Asia/Kuala_Lumpur": return "Malaysia"
-        case "Asia/Ho_Chi_Minh": return "Vietnam"
-        case "Asia/Yangon": return "Myanmar"
-        case "Asia/Dhaka": return "Bangladesh"
-        case "Asia/Karachi": return "Pakistan"
-        case "Asia/Tehran": return "Iran"
-        case "Asia/Baghdad": return "Iraq"
-        case "Asia/Jerusalem": return "Israel"
-        case "Asia/Beirut": return "Lebanon"
-        case "Asia/Amman": return "Jordan"
-        case "Asia/Riyadh": return "Saudi Arabia"
-        case "Africa/Cairo": return "Egypt"
-        case "Africa/Lagos": return "Nigeria"
-        case "Africa/Johannesburg": return "South Africa"
-        case "Africa/Nairobi": return "Kenya"
-        case "Africa/Casablanca": return "Morocco"
-        case "Pacific/Auckland": return "New Zealand"
-        case "Pacific/Fiji": return "Fiji"
-        case "America/Buenos_Aires": return "Argentina"
-        case "America/Santiago": return "Chile"
-        case "America/Lima": return "Peru"
-        case "America/Bogota": return "Colombia"
-        case "America/Caracas": return "Venezuela"
-        case "America/Panama": return "Panama"
-        case "America/Guatemala": return "Guatemala"
-        case "America/Havana": return "Cuba"
-        case "America/Jamaica": return "Jamaica"
-            
-        // Other cases, return continent name
-        default:
-            if components.count >= 1 {
-                let continent = String(components[0])
-                switch continent {
-                case "Africa": return "Africa"
-                case "America": return "Americas"
-                case "Antarctica": return "Antarctica"
-                case "Arctic": return "Arctic"
-                case "Asia": return "Asia"
-                case "Atlantic": return "Atlantic Ocean"
-                case "Australia": return "Australia"
-                case "Europe": return "Europe"
-                case "Indian": return "Indian Ocean"
-                case "Pacific": return "Pacific Ocean"
-                default: return continent
-                }
-            }
-            return "Unknown"
-        }
+        let english = Self.englishLocale.localizedString(forRegionCode: code) ?? code
+        let localized = Locale.current.localizedString(forRegionCode: code) ?? english
+        return (english, localized)
     }
     
     // Filter search results using precomputed data
@@ -314,10 +159,9 @@ struct TimeZonePickerViewWrapper: View {
         }
     }
     
-    // Get sorted keys for filtered results
-    private var filteredSortedKeys: [String] {
-        filteredGroupedTimeZones.keys.sorted { key1, key2 in
-            // "#" symbol comes last
+    // Sort group keys alphabetically, with "#" last
+    private static func sortedGroupKeys(_ keys: some Sequence<String>) -> [String] {
+        keys.sorted { key1, key2 in
             if key1 == "#" { return false }
             if key2 == "#" { return true }
             return key1 < key2
@@ -325,13 +169,32 @@ struct TimeZonePickerViewWrapper: View {
     }
     
     var body: some View {
+        // Compute filtered data once per body evaluation:
+        // the filter walks all timezones, so it must not run per section
+        let displayedGroups = filteredGroupedTimeZones
+        let displayedKeys = searchText.isEmpty ? sortedKeys : Self.sortedGroupKeys(displayedGroups.keys)
+        let selectedIdentifiers = Set(worldClocks.map(\.timeZoneIdentifier))
+        
         NavigationStack {
             Group {
-                if filteredGroupedTimeZones.isEmpty {
+                if displayedGroups.isEmpty {
                     // Empty state when no search results
                     ContentUnavailableView.search(text: searchText)
                 } else {
                     List {
+                        // Dots world map with every added city highlighted and
+                        // the solar terminator curve (hidden while searching)
+                        if searchText.isEmpty {
+                            Section {
+                                DotsWorldMapView(
+                                    timeZoneIdentifiers: worldClocks.map(\.timeZoneIdentifier),
+                                    date: currentDate
+                                )
+                                .listRowBackground(Color.clear)
+                                .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                            }
+                        }
+                        
                         // What's New Section
                         if showWhatsNewLongpressCity {
                             Section {
@@ -372,12 +235,12 @@ struct TimeZonePickerViewWrapper: View {
                             }
                         }
                         
-                        ForEach(filteredSortedKeys, id: \.self) { key in
+                        ForEach(displayedKeys, id: \.self) { key in
                             Section(header: Text(key)) {
-                                ForEach(filteredGroupedTimeZones[key] ?? [], id: \.id) { timeZoneData in
+                                ForEach(displayedGroups[key] ?? [], id: \.id) { timeZoneData in
                                     TimeZoneCellView(
                                         timeZoneData: timeZoneData,
-                                        isSelected: worldClocks.contains(where: { $0.timeZoneIdentifier == timeZoneData.identifier }),
+                                        isSelected: selectedIdentifiers.contains(timeZoneData.identifier),
                                         currentDate: currentDate,
                                         use24HourFormat: use24HourFormat,
                                         collectionMenuItems: collectionMenuItems(for: timeZoneData.identifier),
@@ -565,13 +428,13 @@ struct TimeZoneCellView: View {
                     // Show checkmark if already added
                     if isSelected {
                         Image(systemName: "checkmark.circle.fill")
-                            .font(.body.weight(.bold))
+                            .font(.title3.weight(.bold))
                             .frame(width: 24)
                             .transition(.identity)
                             .id("checkmark-\(timeZoneData.identifier)")
                     } else {
                         Image(systemName: "circle")
-                            .font(.body.weight(.medium))
+                            .font(.title3.weight(.medium))
                             .foregroundStyle(.secondary)
                             .frame(width: 24)
                             .transition(.identity)

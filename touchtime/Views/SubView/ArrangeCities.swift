@@ -10,7 +10,6 @@ import SwiftUI
 struct ArrangeListView: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var showSheet: Bool
-    @State private var editMode: EditMode = .active
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showLocalTime") private var showLocalTimeInHome = true
     @AppStorage("customLocalName") private var customLocalName = ""
@@ -213,6 +212,28 @@ struct ArrangeListView: View {
         }
     }
     
+    // Sort cities by how close their wall-clock time is to the local time,
+    // wrapping around midnight so e.g. UTC+14 counts as 2h from UTC-10
+    func sortCitiesByClosestTimeZone() {
+        let now = currentDate.addingTimeInterval(timeOffset)
+        let localOffset = TimeZone.current.secondsFromGMT(for: now)
+        let secondsPerDay = 24 * 3600
+        
+        func distanceFromLocal(_ clock: WorldClock) -> Int {
+            guard let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) else { return .max }
+            let diff = abs(timeZone.secondsFromGMT(for: now) - localOffset) % secondsPerDay
+            return min(diff, secondsPerDay - diff)
+        }
+        
+        worldClocks.sort { distanceFromLocal($0) < distanceFromLocal($1) }
+        saveWorldClocks()
+        
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+    
     var body: some View {
         NavigationStack {
             List {
@@ -324,12 +345,20 @@ struct ArrangeListView: View {
                                                 .monospacedDigit()
                                                 .foregroundStyle(.secondary)
                                         }
+                                        
+                                        // Drag hint
+                                        Image(systemName: "line.3.horizontal")
+                                            .font(.title3)
+                                            .foregroundStyle(.tertiary)
                                     }
-                                }
-                                .onDelete { offsets in
-                                    for index in offsets {
-                                        let city = collection.cities[index]
-                                        removeCityFromCollection(city: city, collectionId: collection.id)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button(role: .destructive) {
+                                            withAnimation {
+                                                removeCityFromCollection(city: city, collectionId: collection.id)
+                                            }
+                                        } label: {
+                                            Label("", systemImage: "xmark.circle")
+                                        }
                                     }
                                 }
                                 .onMove { source, destination in
@@ -459,6 +488,25 @@ struct ArrangeListView: View {
                                     .monospacedDigit()
                                     .foregroundStyle(.secondary)
                             }
+                            
+                            // Drag hint
+                            Image(systemName: "line.3.horizontal")
+                                .font(.title3)
+                                .foregroundStyle(.tertiary)
+                        }
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                withAnimation {
+                                    worldClocks.removeAll { $0.id == clock.id }
+                                }
+                                saveWorldClocks()
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.impactOccurred()
+                                }
+                            } label: {
+                                Label("", systemImage: "xmark.circle")
+                            }
                         }
                     }
                     .onMove { source, destination in
@@ -488,6 +536,16 @@ struct ArrangeListView: View {
                                     } label: {
                                         Label(String(localized: "West to East"), systemImage: "arrow.right")
                                     }
+
+                                    // Sorting against the local time only makes
+                                    // sense while the home list shows it
+                                    if showLocalTimeInHome {
+                                        Button {
+                                            sortCitiesByClosestTimeZone()
+                                        } label: {
+                                            Label(String(localized: "Close to Local"), systemImage: "location.fill.viewfinder")
+                                        }
+                                    }
                                 }
                             } label: {
                                 Image(systemName: "arrow.up.arrow.down")
@@ -507,7 +565,6 @@ struct ArrangeListView: View {
             }
             .scrollIndicators(.hidden)
             .listStyle(.insetGrouped)
-            .environment(\.editMode, $editMode)
             .navigationTitle("Arrange")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
@@ -566,5 +623,6 @@ struct ArrangeListView: View {
                 Text(String(localized: "Enter a new name for your collection"))
             }
         }
+        .presentationDragIndicator(.visible)
     }
 }

@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import Combine
 
 struct ComplicationsSettingsView: View {
     @Binding var showAnalogClock: Bool
@@ -17,6 +16,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showSunriseSunset: Bool
     @Binding var showWeatherCondition: Bool
     @Binding var showTemperatureIndicator: Bool
+    @Binding var showTemperatureRange: Bool
     @Binding var showUVIndex: Bool
     @Binding var showWindDirection: Bool
     @Binding var showDaylight: Bool
@@ -24,8 +24,8 @@ struct ComplicationsSettingsView: View {
     @Binding var showSolarCurve: Bool
     var showWeather: Bool
     @ObservedObject var weatherManager: WeatherManager
+    @Environment(\.dismiss) private var dismiss
     
-    @State private var currentDate = Date()
     @State private var showLifetimeStore = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
@@ -33,8 +33,7 @@ struct ComplicationsSettingsView: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("analogClockShowUTCHand") private var analogClockShowUTCHand = false
     @AppStorage("weatherConditionUseColoredIcon") private var weatherConditionUseColoredIcon = false
-    
-    let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
     
     // Currently selected complication type
     private enum ComplicationType: CaseIterable {
@@ -46,6 +45,7 @@ struct ComplicationsSettingsView: View {
         case sunriseSunset
         case weatherCondition
         case temperatureIndicator
+        case temperatureRange
         case uvIndex
         case windDirection
         case daylight
@@ -62,6 +62,7 @@ struct ComplicationsSettingsView: View {
             case .sunriseSunset: return String(localized: "Sunrise & Sunset")
             case .weatherCondition: return String(localized: "Weather Condition")
             case .temperatureIndicator: return String(localized: "Temperature Indicator")
+            case .temperatureRange: return String(localized: "Temperature Range")
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
             case .daylight: return String(localized: "Daylight Curve")
@@ -82,6 +83,7 @@ struct ComplicationsSettingsView: View {
             showSunriseSunset = type == .sunriseSunset
             showWeatherCondition = type == .weatherCondition
             showTemperatureIndicator = type == .temperatureIndicator
+            showTemperatureRange = type == .temperatureRange
             showUVIndex = type == .uvIndex
             showWindDirection = type == .windDirection
             showDaylight = type == .daylight
@@ -92,7 +94,7 @@ struct ComplicationsSettingsView: View {
 
     private func isLocked(_ type: ComplicationType) -> Bool {
         switch type {
-        case .moonAzimuth, .moonSunAzimuth, .weatherCondition, .temperatureIndicator, .uvIndex, .windDirection, .daylight, .timeOverlay:
+        case .moonAzimuth, .moonSunAzimuth, .temperatureIndicator, .temperatureRange, .uvIndex, .windDirection, .daylight, .timeOverlay:
             return !hasLifetimeAccess
         default:
             return false
@@ -101,7 +103,7 @@ struct ComplicationsSettingsView: View {
 
     private func enforceComplicationAvailability() {
         if !hasLifetimeAccess {
-            if showMoonAzimuth || showMoonSunAzimuth || showWeatherCondition || showTemperatureIndicator || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
+            if showMoonAzimuth || showMoonSunAzimuth || showTemperatureIndicator || showTemperatureRange || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
                 selectComplication(nil)
             }
             return
@@ -114,7 +116,9 @@ struct ComplicationsSettingsView: View {
     
     var body: some View {
         VStack(spacing: 0) {
-            complicationSelector
+            TimelineView(.everyMinute) { context in
+                complicationSelector(date: context.date)
+            }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .padding(.horizontal)
@@ -123,7 +127,18 @@ struct ComplicationsSettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
-                if showAnalogClock || (showWeather && showWeatherCondition) {
+                Button {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    }
+                    dismiss()
+                } label: {
+                    Image(systemName: "xmark")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                if showAnalogClock || (showWeather && showWeatherCondition) || showSolarCurve {
                     Menu {
                         Section(String(localized: "Customisation")) {
                             if showAnalogClock {
@@ -168,15 +183,27 @@ struct ComplicationsSettingsView: View {
                                     }
                                 }
                             }
+
+                            if showSolarCurve {
+                                Button {
+                                    solarCurveShowSun.toggle()
+                                    if hapticEnabled {
+                                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                    }
+                                } label: {
+                                    if solarCurveShowSun {
+                                        Label(String(localized: "Sun Indicator"), systemImage: "checkmark.circle")
+                                    } else {
+                                        Text(String(localized: "Sun Indicator"))
+                                    }
+                                }
+                            }
                         }
                     } label: {
                         Image(systemName: "ellipsis")
                     }
                 }
             }
-        }
-        .onReceive(timer) { _ in
-            currentDate = Date()
         }
         .onAppear {
             enforceComplicationAvailability()
@@ -195,16 +222,12 @@ struct ComplicationsSettingsView: View {
     }
     
     // MARK: - Complication Selector
-    private var complicationSelector: some View {
+    private func complicationSelector(date currentDate: Date) -> some View {
         ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 16) {
-                LazyVGrid(
-                    columns: [
-                        GridItem(.flexible(), spacing: 8),
-                        GridItem(.flexible(), spacing: 8)
-                    ],
-                    spacing: 8
-                ) {
+            VStack(alignment: .leading, spacing: 0) {
+                // General
+                sectionHeader("General", topPadding: 8)
+                complicationGrid {
                     // Analog Clock
                     complicationOption(
                         type: .analogClock,
@@ -218,7 +241,26 @@ struct ComplicationsSettingsView: View {
                             showScale: analogClockShowScale
                         )
                     }
-                    
+
+                    if hasLifetimeAccess && availableTimeEnabled {
+                        // Time Overlay
+                        complicationOption(
+                            type: .timeOverlay,
+                            isSelected: showTimeOverlay
+                        ) {
+                            TimeOverlayIndicator(
+                                date: currentDate,
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                        }
+                    }
+                }
+
+                // Astronomy
+                sectionHeader("Astronomy")
+                complicationGrid {
                     // Sun Elevation
                     complicationOption(
                         type: .sunElevation,
@@ -267,7 +309,8 @@ struct ComplicationsSettingsView: View {
                             date: currentDate,
                             timeZone: TimeZone.current,
                             size: 64,
-                            useMaterialBackground: false
+                            useMaterialBackground: false,
+                            showSun: solarCurveShowSun
                         )
                     }
 
@@ -282,21 +325,6 @@ struct ComplicationsSettingsView: View {
                             size: 64,
                             useMaterialBackground: false
                         )
-                    }
-
-                    if hasLifetimeAccess && availableTimeEnabled {
-                        // Time Overlay
-                        complicationOption(
-                            type: .timeOverlay,
-                            isSelected: showTimeOverlay
-                        ) {
-                            TimeOverlayIndicator(
-                                date: currentDate,
-                                timeZone: TimeZone.current,
-                                size: 64,
-                                useMaterialBackground: false
-                            )
-                        }
                     }
 
                     // Moon Azimuth
@@ -324,9 +352,12 @@ struct ComplicationsSettingsView: View {
                             useMaterialBackground: false
                         )
                     }
-                    
-                    // Weather Condition (only show if weather is enabled)
-                    if showWeather {
+                }
+
+                // Weather
+                sectionHeader("Weather")
+                if showWeather {
+                    complicationGrid {
                         complicationOption(
                             type: .weatherCondition,
                             isSelected: showWeatherCondition
@@ -349,6 +380,18 @@ struct ComplicationsSettingsView: View {
                                 useMaterialBackground: false
                             )
                             .environmentObject(weatherManager)
+                        }
+
+                        complicationOption(
+                            type: .temperatureRange,
+                            isSelected: showTemperatureRange
+                        ) {
+                            TemperatureRangeIndicator(
+                                date: currentDate,
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
                         }
 
                         complicationOption(
@@ -375,16 +418,38 @@ struct ComplicationsSettingsView: View {
                             .environmentObject(weatherManager)
                         }
                     }
-
-                    if !showWeather {
-                        weatherReminderCard
-                            .gridCellColumns(2)
-                    }
+                } else {
+                    weatherReminderCard
                 }
 
                 locationHint
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 16)
             }
             .padding(.vertical, 4)
+        }
+    }
+
+    // Section header style matching DetailsSheet subtitles
+    private func sectionHeader(_ title: LocalizedStringKey, topPadding: CGFloat = 24) -> some View {
+        Text(title)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .blendMode(.plusLighter)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 12)
+            .padding(.top, topPadding)
+    }
+
+    private func complicationGrid<Content: View>(@ViewBuilder content: () -> Content) -> some View {
+        LazyVGrid(
+            columns: [
+                GridItem(.flexible(), spacing: 8),
+                GridItem(.flexible(), spacing: 8)
+            ],
+            spacing: 8
+        ) {
+            content()
         }
     }
 
@@ -402,7 +467,7 @@ struct ComplicationsSettingsView: View {
 
     private var weatherReminderCard: some View {
         Text(String(localized: "Enable Weather to discover more"))
-            .font(.caption.weight(.medium))
+            .font(.footnote.weight(.medium))
             .multilineTextAlignment(.center)
             .foregroundStyle(.secondary)
             .lineLimit(2)

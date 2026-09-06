@@ -9,6 +9,7 @@ import SwiftUI
 
 struct AvailableTimePicker: View {
     let worldClocks: [WorldClock]
+    @ObservedObject var weatherManager: WeatherManager
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
     @AppStorage("availableStartTime") private var availableStartTime = AvailableTimeDefaults.startTime
     @AppStorage("availableEndTime") private var availableEndTime = AvailableTimeDefaults.endTime
@@ -16,9 +17,27 @@ struct AvailableTimePicker: View {
     @AppStorage("availableWeekdays") private var availableWeekdays = AvailableTimeDefaults.weekdays // Default Mon-Fri
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     
+    // Complication selection, shared with Home via AppStorage (same keys as MainSettings)
+    @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("showAnalogClock") private var showAnalogClock = false
+    @AppStorage("showSunPosition") private var showSunPosition = false
+    @AppStorage("showSunAzimuth") private var showSunAzimuth = false
+    @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
+    @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
+    @AppStorage("showSunriseSunset") private var showSunriseSunset = false
+    @AppStorage("showWeatherCondition") private var showWeatherCondition = false
+    @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
+    @AppStorage("showTemperatureRange") private var showTemperatureRange = false
+    @AppStorage("showUVIndex") private var showUVIndex = false
+    @AppStorage("showWindDirection") private var showWindDirection = false
+    @AppStorage("showDaylight") private var showDaylight = false
+    @AppStorage("showTimeOverlay") private var showTimeOverlay = false
+    @AppStorage("showSolarCurve") private var showSolarCurve = false
+    
     @State private var startDate = Date()
     @State private var endDate = Date()
     @State private var selectedWeekdays: Set<Int> = []
+    @State private var showComplicationsSheet = false
     @Environment(\.dismiss) private var dismiss
     
     // Weekday names and indices (1 = Sunday, 2 = Monday, etc. in Calendar)
@@ -317,23 +336,39 @@ struct AvailableTimePicker: View {
                 }
 
                 if availableTimeEnabled {
-                    // Complications
+                    // Complications: tap to open the complications settings sheet
                     Section(header: Text("Complications Preview")) {
-                        HStack(spacing: 16) {
-                            TimeOverlayIndicator(
-                                date: Date(),
-                                timeZone: .current,
-                                size: 64,
-                                useMaterialBackground: false
-                            )
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Time Overlay")
-                                    .font(.headline)
-                                Text("Compare available time across cities")
-                                    .font(.subheadline)
-                                    .foregroundStyle(.secondary)
+                        Button {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
                             }
+                            showComplicationsSheet = true
+                        } label: {
+                            HStack(spacing: 16) {
+                                TimeOverlayIndicator(
+                                    date: Date(),
+                                    timeZone: .current,
+                                    size: 64,
+                                    useMaterialBackground: false
+                                )
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Time Overlay")
+                                        .font(.headline)
+                                    Text("Compare available time across cities")
+                                        .font(.subheadline)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                Spacer()
+                                
+                                Image(systemName: "chevron.right")
+                                    .font(.footnote.weight(.bold))
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .contentShape(Rectangle())
                         }
+                        .buttonStyle(.plain)
                     }
                 }
             }
@@ -350,6 +385,31 @@ struct AvailableTimePicker: View {
                 if worldClocks.isEmpty && availableTimeEnabled {
                     availableTimeEnabled = false
                 }
+            }
+            // Complications Sheet
+            .sheet(isPresented: $showComplicationsSheet) {
+                NavigationStack {
+                    ComplicationsSettingsView(
+                        showAnalogClock: $showAnalogClock,
+                        showSunPosition: $showSunPosition,
+                        showSunAzimuth: $showSunAzimuth,
+                        showMoonAzimuth: $showMoonAzimuth,
+                        showMoonSunAzimuth: $showMoonSunAzimuth,
+                        showSunriseSunset: $showSunriseSunset,
+                        showWeatherCondition: $showWeatherCondition,
+                        showTemperatureIndicator: $showTemperatureIndicator,
+                        showTemperatureRange: $showTemperatureRange,
+                        showUVIndex: $showUVIndex,
+                        showWindDirection: $showWindDirection,
+                        showDaylight: $showDaylight,
+                        showTimeOverlay: $showTimeOverlay,
+                        showSolarCurve: $showSolarCurve,
+                        showWeather: showWeather,
+                        weatherManager: weatherManager
+                    )
+                }
+                .presentationDetents([.medium]) // Complication Sheet Height
+                .presentationDragIndicator(.visible)
             }
         }
     }

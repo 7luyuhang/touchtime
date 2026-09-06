@@ -98,7 +98,7 @@ struct AnalogClockCameraCaptureButton: View {
                 .contentShape(Circle())
                 .padding(.trailing, 20)
                 .padding(.bottom, 12)
-                .offset(y: -75)
+                .offset(y: -73) // bottom padding
                 .transition(.blurReplace().combined(with: .opacity).combined(with: .scale(0.95)))
             }
         }
@@ -123,7 +123,7 @@ struct AnalogClockCameraCloseButton: View {
                 .contentShape(Circle())
                 .padding(.leading, 20)
                 .padding(.bottom, 12)
-                .offset(y: -75)
+                .offset(y: -73)
                 .transition(.blurReplace().combined(with: .opacity).combined(with: .scale(0.95)))
             }
         }
@@ -138,6 +138,7 @@ struct AnalogClockCameraToolbarControls: View {
     let onSelectStandard: () -> Void
     let onSelectBlur: () -> Void
     let onSelectBlackAndWhite: () -> Void
+    let onFlipCamera: () -> Void
     let onEnableCamera: () -> Void
 
     var body: some View {
@@ -164,6 +165,11 @@ struct AnalogClockCameraToolbarControls: View {
                         } else {
                             Text("Black and White")
                         }
+                    }
+                }
+                Section("Camera Tool") {
+                    Button(action: onFlipCamera) {
+                        Label("Flip", systemImage: "arrow.trianglehead.2.clockwise.rotate.90")
                     }
                 }
             } label: {

@@ -1,0 +1,583 @@
+//
+//  MoonPhaseDetailsView.swift
+//  touchtime
+//
+//  Created on 12/08/2026.
+//
+
+import SwiftUI
+import MoonKit
+
+// MoonSnapshot and MoonAstronomy (the lightweight Duffett-Smith moon math
+// this sheet scrubs with) live in Shared/MoonAstronomy.swift, so the
+// widget extension's Moon Calendar widget can use the same computation.
+
+// MARK: - Moon Phase Details View
+
+struct MoonPhaseDetailsView: View {
+    let timeZoneIdentifier: String
+    /// The moment shown when the view opens (the tapped day).
+    let initialDate: Date
+    /// Scrubbing can't leave this window: the previous, current and next
+    /// month, matching the pages of the moon phase calendar.
+    let dateRange: ClosedRange<Date>
+
+    @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
+
+    // Committed scrub offset (seconds relative to initialDate) plus the live
+    // drag translation, mirroring ScrollTimeView's accumulate-then-commit model.
+    @State private var accumulatedOffset: TimeInterval = 0
+    @State private var dragOffset: CGFloat = 0
+    @State private var lastHapticOffset: CGFloat = 0
+
+    // Inertia scrolling, same physics as ScrollTimeView: the fling velocity
+    // decays per display frame via the shared CADisplayLink driver.
+    @State private var inertiaVelocity: CGFloat = 0
+    @State private var inertiaActive = false
+    @State private var lastInertiaHapticOffset: TimeInterval = 0
+    @State private var frameDriver = ScrollTimeFrameDriver()
+
+    // Center of the day range already prefetched into MoonPhaseCache
+    @State private var prefetchAnchor: Date? = nil
+
+    /// One day of scrubbing per 60 points of drag.
+    private static let pointsPerDay: CGFloat = 60
+    /// Haptic tick every quarter day of dragging.
+    private static let hapticTickPoints: CGFloat = 15
+    private static let moonSize: CGFloat = 240
+
+    // The moon disc only spans ~86% of the source photo, the rest is black
+    // margin. Scaling inside the circular clip crops the margin away,
+    // matching DayCellView and MoonPhaseWidget.
+    private static let discCropScale: CGFloat = 1.18
+
+    private var timeZone: TimeZone {
+        TimeZone(identifier: timeZoneIdentifier) ?? .current
+    }
+
+    private var calendar: Calendar {
+        var cal = Calendar.current
+        cal.timeZone = timeZone
+        return cal
+    }
+
+    private var displayedDate: Date {
+        let dragSeconds = TimeInterval(dragOffset / Self.pointsPerDay) * 86400
+        return initialDate.addingTimeInterval(accumulatedOffset + dragSeconds)
+    }
+
+    /// Clamps a total scrub offset (seconds relative to initialDate) so the
+    /// displayed date stays inside the allowed month window.
+    private func clampedTotalOffset(_ offset: TimeInterval) -> TimeInterval {
+        let minOffset = dateRange.lowerBound.timeIntervalSince(initialDate)
+        let maxOffset = dateRange.upperBound.timeIntervalSince(initialDate)
+        return min(max(offset, minOffset), maxOffset)
+    }
+
+    private var snapshot: MoonSnapshot {
+        MoonAstronomy.snapshot(for: displayedDate)
+    }
+
+    // Phase for the displayed day: prefer the shared cache so the title
+    // always matches the calendar grid, fall back to the lightweight
+    // computation while the cache warms up.
+    private var displayedDayPhase: MoonPhase {
+        if let cached = MoonPhaseCache.shared.dayInfo(for: displayedDate, calendar: calendar) {
+            return cached.phase
+        }
+        return MoonPhase.ageOfTheMoonDegrees2MoonPhase(snapshot.ageDegrees)
+    }
+
+    private var phaseTitle: String {
+        MoonPhaseView.phaseName(for: displayedDayPhase) ?? ""
+    }
+
+    /// Number of bundled moon_scrub frames: one per ~6 hours of moon age,
+    /// sampled age-uniformly from NASA SVS's hourly renders by
+    /// scripts/fetch_moon_scrub_frames.py.
+    private static let scrubFrameCount = 118
+    /// Mean synodic month length in days, the age span the frames cover.
+    private static let synodicMonthDays = 29.530589
+
+    // Frame for the instantaneous moon age. Unlike the calendar grid's 30
+    // daily moon_age images, the scrub set advances every quarter day —
+    // the same spacing as the haptic ticks — so the moon changes
+    // continuously while scrubbing.
+    private var moonImageName: String {
+        let steps = snapshot.ageDays / Self.synodicMonthDays * Double(Self.scrubFrameCount)
+        let index = Int(steps.rounded()) % Self.scrubFrameCount
+        return String(format: "moon_scrub_%03d", index)
+    }
+
+    private var illuminationText: String {
+        "\(Int((snapshot.illuminatedFraction * 100).rounded()))%"
+    }
+
+    // Road-usage formatting converts to km or miles following the system
+    // Measurement System setting (Language & Region), which the older
+    // MeasurementFormatter ignores in favour of the region default.
+    private static let distanceStyle = Measurement<UnitLength>.FormatStyle(
+        width: .abbreviated,
+        usage: .road,
+        numberFormatStyle: .number.precision(.fractionLength(0))
+    )
+
+    private var distanceText: String {
+        Measurement(value: snapshot.distanceKilometers, unit: UnitLength.kilometers)
+            .formatted(Self.distanceStyle)
+    }
+
+    // Month and day without the year, following the current locale
+    // (e.g. "Aug 10" or "8月10日").
+    private static let dateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("MMMd")
+        return formatter
+    }()
+
+    // Same 12/24-hour treatment as DetailsSheet's time labels
+    private static let timeFormatter24: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "HH:mm"
+        return formatter
+    }()
+
+    private static let timeFormatter12: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "h:mm a"
+        formatter.amSymbol = "am"
+        formatter.pmSymbol = "pm"
+        return formatter
+    }()
+
+    /// "Aug 10 · 10:24": scrubbed date (no year) and time of day.
+    private var dateText: String {
+        let dateFormatter = Self.dateFormatter
+        dateFormatter.timeZone = timeZone
+
+        let timeFormatter = use24HourFormat ? Self.timeFormatter24 : Self.timeFormatter12
+        timeFormatter.timeZone = timeZone
+
+        let date = displayedDate
+        return "\(dateFormatter.string(from: date)) · \(timeFormatter.string(from: date))"
+    }
+
+    /// Prime locale-heavy formatters while the calendar is on screen, so the
+    /// details sheet's first frame doesn't hitch on ICU setup.
+    static func warmupFormatters() {
+        _ = dateFormatter
+        _ = timeFormatter24
+        _ = timeFormatter12
+        // Formatting once primes the format style's ICU data
+        _ = Measurement(value: 384400, unit: UnitLength.kilometers).formatted(distanceStyle)
+    }
+
+    // True once the user scrubbed away from the initially opened moment
+    private var isScrubbed: Bool {
+        accumulatedOffset != 0 || dragOffset != 0
+    }
+
+    // MARK: Sub Views
+
+    private var moonImage: some View {
+        Image(moonImageName)
+            .resizable()
+            .scaledToFill()
+            .scaleEffect(Self.discCropScale)
+            .frame(width: Self.moonSize, height: Self.moonSize)
+            .clipShape(Circle())
+            .grayscale(1)
+            .id(moonImageName)
+            .transition(.opacity)
+    }
+
+    private func infoRow(_ title: LocalizedStringKey, value: String) -> some View {
+        HStack {
+            Text(title)
+                .font(.headline)
+
+            Spacer()
+
+            Text(value)
+                .font(.body)
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .blendMode(.plusLighter)
+        }
+    }
+
+    private var scrubber: some View {
+        // The chevrons are plain images with tap gestures, not Buttons: a drag
+        // that starts on a Button gets captured by it and never reaches the
+        // pill's drag gesture, while a tap gesture fails as soon as the finger
+        // moves and lets the drag through.
+        let canStepBackward = stepTarget(byDays: -1) != nil
+        let canStepForward = stepTarget(byDays: 1) != nil
+
+        return HStack {
+            Image(systemName: "chevron.left")
+                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
+                .opacity(canStepBackward ? 1 : 0.3)
+                .animation(.spring(), value: canStepBackward)
+                .frame(width: 32, height: 44)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    step(byDays: -1)
+                }
+
+            Spacer(minLength: 0)
+
+            // The tick tape scrolls with the scrub: committed offset plus the
+            // live drag translation (their sum stays continuous across drag
+            // end), converted at this view's 60-points-per-day mapping so it
+            // moves 1:1 with the finger.
+            ScrollTimeDotsIndicator(
+                scrollOffset: dragOffset + CGFloat(accumulatedOffset / 86400) * Self.pointsPerDay
+            )
+
+            Spacer(minLength: 0)
+
+            Image(systemName: "chevron.right")
+                .fontWeight(.semibold)
+                .foregroundStyle(.primary)
+                .opacity(canStepForward ? 1 : 0.3)
+                .animation(.spring(), value: canStepForward)
+                .frame(width: 32, height: 44)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    step(byDays: 1)
+                }
+        }
+        .padding(.horizontal, 12)
+        .font(.subheadline)
+        .frame(maxWidth: .infinity)
+        .frame(height: 52)
+        // Same border treatment as the info card above: hairline white
+        // stroke lifted with plusLighter. Applied before glassEffect so the
+        // border lives inside the glass container and follows the interactive
+        // glass as it deforms, instead of separating from it.
+        .overlay {
+            Capsule(style: .continuous)
+                .strokeBorder(Color.white.opacity(0.1), lineWidth: 1)
+                .blendMode(.plusLighter)
+                .allowsHitTesting(false)
+        }
+        .contentShape(Capsule(style: .continuous))
+        .glassEffect(.regular.interactive())
+        .gesture(scrubGesture)
+    }
+
+    private var scrubGesture: some Gesture {
+        DragGesture()
+            .onChanged { value in
+                // Grabbing the scrubber stops any ongoing inertia, like ScrollTimeView
+                stopInertia()
+                // Clamp the live translation so the displayed date can't
+                // leave the allowed month window: dragging past the edge
+                // goes dead and the haptic ticks stop with it.
+                let proposedSeconds = accumulatedOffset
+                    + TimeInterval(value.translation.width / Self.pointsPerDay) * 86400
+                let clampedSeconds = clampedTotalOffset(proposedSeconds)
+                dragOffset = CGFloat((clampedSeconds - accumulatedOffset) / 86400) * Self.pointsPerDay
+                checkAndPlayHapticTick()
+            }
+            .onEnded { value in
+                // Fold the drag into the committed offset without animation:
+                // the sum stays constant so nothing on screen jumps.
+                accumulatedOffset = clampedTotalOffset(
+                    accumulatedOffset + TimeInterval(dragOffset / Self.pointsPerDay) * 86400
+                )
+                dragOffset = 0
+                lastHapticOffset = 0
+
+                if hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                }
+
+                startInertiaScroll(velocity: value.velocity.width)
+            }
+    }
+
+    // MARK: Inertia Scroll
+
+    private func stopInertia() {
+        inertiaActive = false
+        inertiaVelocity = 0
+        frameDriver.stop()
+    }
+
+    // Start inertia scroll animation (same thresholds as ScrollTimeView)
+    private func startInertiaScroll(velocity: CGFloat) {
+        guard abs(velocity) > 200 else { return }
+
+        // Cap the initial velocity to prevent extreme scrolling
+        let maxVelocity: CGFloat = 1000
+        inertiaVelocity = min(max(velocity, -maxVelocity), maxVelocity)
+
+        lastInertiaHapticOffset = accumulatedOffset
+        inertiaActive = true
+        frameDriver.start()
+    }
+
+    // Per-frame integration of the inertia velocity, expressed in real time so
+    // the 0.96-per-frame-at-60fps feel is identical on 60 Hz and 120 Hz displays.
+    private func advanceInertia(dt: CFTimeInterval) {
+        guard inertiaActive else {
+            frameDriver.stop()
+            return
+        }
+
+        let decelerationPerSecond = pow(0.96, 60.0)
+        inertiaVelocity *= CGFloat(pow(decelerationPerSecond, Double(dt)))
+
+        // Stop when velocity is negligible
+        if abs(inertiaVelocity) < 5 {
+            stopInertia()
+            return
+        }
+
+        let deltaPoints = inertiaVelocity * CGFloat(dt)
+        let proposedOffset = accumulatedOffset + TimeInterval(deltaPoints / Self.pointsPerDay) * 86400
+        let clampedOffset = clampedTotalOffset(proposedOffset)
+        accumulatedOffset = clampedOffset
+
+        // Coasting into the edge of the month window stops the fling there
+        if clampedOffset != proposedOffset {
+            if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
+            }
+            stopInertia()
+            return
+        }
+
+        checkAndPlayInertiaHapticTick()
+    }
+
+    // Lighter haptic while coasting, one tick per quarter day of time change
+    // (the same spacing as the drag ticks at this view's scrub scale).
+    private func checkAndPlayInertiaHapticTick() {
+        guard hapticEnabled else { return }
+        let tickInterval: TimeInterval = 21600
+
+        let currentTicks = Int(accumulatedOffset / tickInterval)
+        let lastTicks = Int(lastInertiaHapticOffset / tickInterval)
+
+        if currentTicks != lastTicks {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.4)
+            lastInertiaHapticOffset = accumulatedOffset
+        }
+    }
+
+    /// Reset button floating above the scrubber, styled like
+    /// ScrollTimeView's reset control.
+    private var resetButton: some View {
+        Button {
+            resetScrub()
+        } label: {
+            Image(systemName: "arrow.counterclockwise")
+                .font(.subheadline.weight(.semibold))
+                .frame(width: 20, height: 20)
+                .foregroundStyle(.black)
+                .padding(.vertical, 5)
+                .padding(.horizontal, 15)
+                .contentShape(Capsule(style: .continuous))
+                .glassEffect(.regular.tint(.white).interactive())
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Actions
+
+    // Where a one-day step would land; nil when it would leave the month window
+    private func stepTarget(byDays days: Int) -> Date? {
+        let target = calendar.date(byAdding: .day, value: days, to: displayedDate)
+            ?? displayedDate.addingTimeInterval(TimeInterval(days) * 86400)
+        return dateRange.contains(target) ? target : nil
+    }
+
+    private func step(byDays days: Int) {
+        stopInertia()
+        // Step through the calendar so DST shifts never skip a day
+        guard let target = stepTarget(byDays: days) else { return }
+        if hapticEnabled {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+        withAnimation(.spring()) {
+            accumulatedOffset = target.timeIntervalSince(initialDate)
+        }
+    }
+
+    // Return to the initially opened moment, like ScrollTimeView's reset
+    private func resetScrub() {
+        stopInertia()
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+
+        withAnimation(.spring()) {
+            accumulatedOffset = 0
+            dragOffset = 0
+            lastHapticOffset = 0
+            lastInertiaHapticOffset = 0
+        }
+    }
+
+    private func checkAndPlayHapticTick() {
+        guard hapticEnabled else { return }
+        let currentTicks = Int(dragOffset / Self.hapticTickPoints)
+        let lastTicks = Int(lastHapticOffset / Self.hapticTickPoints)
+        if currentTicks != lastTicks {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred(intensity: 0.6)
+            lastHapticOffset = dragOffset
+        }
+    }
+
+    // Keep MoonPhaseCache warm around the displayed day so the phase name
+    // stays consistent with the calendar grid while scrubbing.
+    // The age math is cheap enough to run inline, which also means the cache
+    // is warm before this sheet's first frame instead of a version bump
+    // re-rendering it mid-presentation.
+    private func prefetchIfNeeded(force: Bool = false) {
+        let displayed = displayedDate
+        if !force,
+           let anchor = prefetchAnchor,
+           abs(displayed.timeIntervalSince(anchor)) < 5 * 86400 {
+            return
+        }
+        prefetchAnchor = displayed
+
+        let cal = calendar
+        let dayStart = cal.startOfDay(for: displayed)
+        let dates = (-12...12).compactMap { cal.date(byAdding: .day, value: $0, to: dayStart) }
+        MoonPhaseCache.shared.prefetch(dates: dates, calendar: cal)
+    }
+
+    // MARK: Body
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 24) {
+                Spacer(minLength: 0)
+
+                // Quick cross-fade: frames are a quarter day apart, so fades
+                // chain densely during a fast scrub and a longer duration
+                // would stack many partially-faded moons on top of each other.
+                moonImage
+                    .animation(.easeInOut(duration: 0.15), value: moonImageName)
+                    .shadow(color: .white.opacity(0.10), radius: 50)
+                    // Last so opacity/shadow don't flatten it into an isolated layer.
+                    .blendMode(.plusLighter)
+
+                Spacer(minLength: 0)
+
+                // Bordered card around the moon data, same corner treatment
+                // as the cards in DetailsSheet (20pt continuous)
+                VStack(spacing: 0) {
+                    infoRow("Illumination", value: illuminationText)
+
+                    Divider()
+                        .overlay(.white.opacity(0.10))
+                        .blendMode(.plusLighter)
+                        .padding(.vertical, 16)
+
+                    infoRow("Distance", value: distanceText)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 16)
+                .background {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
+                        .blendMode(.plusLighter)
+                }
+
+                VStack(spacing: 16) {
+                    scrubber
+                        .overlay(alignment: .top) {
+                            // Kept permanently in the hierarchy with property-driven
+                            // visibility: inserting it with `if` mid-drag (the first
+                            // scrub flips isScrubbed) restructures the pill that owns
+                            // the drag gesture and resets it, freezing that drag.
+                            resetButton
+                                .opacity(isScrubbed ? 1 : 0)
+                                .blur(radius: isScrubbed ? 0 : 8)
+                                .scaleEffect(isScrubbed ? 1 : 0.8)
+                                .offset(y: isScrubbed ? -42 : -34)
+                                .allowsHitTesting(isScrubbed)
+                                .animation(.spring(), value: isScrubbed)
+                        }
+
+                    Text(dateText)
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .blendMode(.plusLighter)
+                }
+            }
+            .padding(.horizontal, 24)
+            .padding(.top, 16)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+
+                ToolbarItem(placement: .principal) {
+                    Text(phaseTitle)
+                        .font(.headline)
+                        .contentTransition(.numericText())
+                        .animation(.spring(), value: phaseTitle)
+                }
+            }
+            .presentationDetents([.height(600)])
+            // Custom background replaces the default Liquid Glass, avoiding
+            // its compositing artifacts during interactive dismissal: solid
+            // black on top fading to fully transparent at the bottom.
+            .presentationBackground {
+                LinearGradient(
+                    colors: [.black, .black.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            }
+        }
+        .onReceive(frameDriver.publisher) { dt in
+            advanceInertia(dt: dt)
+        }
+        .onAppear {
+            prefetchIfNeeded(force: true)
+        }
+        .onDisappear {
+            stopInertia()
+        }
+        .onChange(of: displayedDate) { _, _ in
+            prefetchIfNeeded()
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else {
+                stopInertia()
+                return
+            }
+            // iOS may purge the NSCache-backed moon data while backgrounded;
+            // re-prefetch so the phase title doesn't fall back mid-scrub.
+            prefetchIfNeeded(force: true)
+        }
+    }
+}

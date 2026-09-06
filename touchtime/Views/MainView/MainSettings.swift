@@ -14,6 +14,7 @@ import WeatherKit
 struct SettingsView: View {
     @Binding var worldClocks: [WorldClock]
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("secondsPulse") private var secondsPulse = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
     @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -29,6 +30,7 @@ struct SettingsView: View {
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
+    @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
@@ -38,21 +40,36 @@ struct SettingsView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
     @AppStorage("showArcIndicator") private var showArcIndicator = true // Default turn on
     @AppStorage("showSunriseSunsetLines") private var showSunriseSunsetLines = false
     @AppStorage("showGoldenHour") private var showGoldenHour = false
     @AppStorage("showMinuteHand") private var showMinuteHand = true
     @AppStorage("showUTCHand") private var showUTCHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("hasSeenWidgetIntro") private var hasSeenWidgetIntro = false
+    @AppStorage("hourlyNotificationEnabled") private var hourlyNotificationEnabled = false
+    @AppStorage(HourlyNotificationManager.timeWindowEnabledKey) private var chimeTimeWindowEnabled = false
+    @AppStorage(HourlyNotificationManager.startTimeKey) private var chimeStartTime = HourlyNotificationManager.defaultStartTime
+    @AppStorage(HourlyNotificationManager.endTimeKey) private var chimeEndTime = HourlyNotificationManager.defaultEndTime
+    @State private var hourlyNotificationCityIds: [UUID] = HourlyNotificationManager.loadSelectedCityIds()
+    @State private var showNotificationPermissionAlert = false
     @State private var currentDate = Date()
     @State private var showLifetimeStore = false
     @State private var showSupportLove = false
     @State private var showComplicationsSheet = false
+    @State private var showWidgetSheet = false
+    @State private var touchTimeIconShakes = 0
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var weatherManager: WeatherManager
     
     // Timer for updating the preview
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    private static let relativeDateStyle = "Relative"
+    private static let withWeekdayDateStyle = "With Weekday"
+    private static let dateOnlyDateStyle = "Date Only"
+    private static let legacyAbsoluteDateStyle = "Absolute"
 
     private static let preview24HourFormatter: DateFormatter = makeFormatter("HH:mm")
     private static let preview12HourFormatter: DateFormatter = makeFormatter("h:mm")
@@ -81,6 +98,7 @@ struct SettingsView: View {
         case sunriseSunset
         case weatherCondition
         case temperatureIndicator
+        case temperatureRange
         case uvIndex
         case windDirection
         case daylight
@@ -105,6 +123,8 @@ struct SettingsView: View {
                 return String(localized: "Weather Condition")
             case .temperatureIndicator:
                 return String(localized: "Temperature Indicator")
+            case .temperatureRange:
+                return String(localized: "Temperature Range")
             case .uvIndex:
                 return String(localized: "UV Index")
             case .windDirection:
@@ -169,6 +189,8 @@ struct SettingsView: View {
             return .weatherCondition
         } else if effectiveShowTemperatureIndicator {
             return .temperatureIndicator
+        } else if effectiveShowTemperatureRange {
+            return .temperatureRange
         } else if effectiveShowUVIndex {
             return .uvIndex
         } else if effectiveShowWindDirection {
@@ -189,11 +211,15 @@ struct SettingsView: View {
     }
 
     private var effectiveShowWeatherCondition: Bool {
-        hasLifetimeAccess && showWeather && showWeatherCondition
+        showWeather && showWeatherCondition
     }
 
     private var effectiveShowTemperatureIndicator: Bool {
         hasLifetimeAccess && showWeather && showTemperatureIndicator
+    }
+
+    private var effectiveShowTemperatureRange: Bool {
+        hasLifetimeAccess && showWeather && showTemperatureRange
     }
 
     private var effectiveShowUVIndex: Bool {
@@ -220,8 +246,16 @@ struct SettingsView: View {
         hasLifetimeAccess && showTimeOverlay && availableTimeEnabled
     }
 
-    private var hasComplicationEnabled: Bool {
-        selectedPreviewComplication != nil
+    private func normalizeLegacyDateStyle() {
+        if dateStyle == Self.legacyAbsoluteDateStyle {
+            dateStyle = Self.withWeekdayDateStyle
+        }
+    }
+
+    private func normalizeDateStyleForWeather() {
+        if showWeather && dateStyle == Self.withWeekdayDateStyle {
+            dateStyle = Self.relativeDateStyle
+        }
     }
 
     private var goldenHourBinding: Binding<Bool> {
@@ -241,21 +275,41 @@ struct SettingsView: View {
         )
     }
 
-    private var sunriseSunsetLinesBinding: Binding<Bool> {
+    private var hourlyNotificationBinding: Binding<Bool> {
         Binding(
-            get: { hasLifetimeAccess && showSunriseSunsetLines },
+            get: { hourlyNotificationEnabled },
             set: { newValue in
                 if newValue {
-                    if hasLifetimeAccess {
-                        showSunriseSunsetLines = true
-                    } else {
-                        showLifetimeStore = true
+                    Task {
+                        let granted = await HourlyNotificationManager.shared.requestAuthorization()
+                        await MainActor.run {
+                            if granted {
+                                hourlyNotificationEnabled = true
+                                HourlyNotificationManager.shared.reschedule()
+                            } else {
+                                hourlyNotificationEnabled = false
+                                showNotificationPermissionAlert = true
+                            }
+                        }
                     }
                 } else {
-                    showSunriseSunsetLines = false
+                    hourlyNotificationEnabled = false
+                    HourlyNotificationManager.shared.cancelAll()
                 }
             }
         )
+    }
+
+    private var hourlyNotificationCitySummary: String {
+        let selected = worldClocks.filter { hourlyNotificationCityIds.contains($0.id) }
+        switch selected.count {
+        case 0:
+            return String(localized: "None")
+        case 1:
+            return selected[0].localizedCityName
+        default:
+            return String(format: String(localized: "%d Cities"), selected.count)
+        }
     }
 
     private var minuteHandBinding: Binding<Bool> {
@@ -270,6 +324,23 @@ struct SettingsView: View {
                     }
                 } else {
                     showMinuteHand = false
+                }
+            }
+        )
+    }
+
+    private var secondsPulseBinding: Binding<Bool> {
+        Binding(
+            get: { hasLifetimeAccess && secondsPulse },
+            set: { newValue in
+                if newValue {
+                    if hasLifetimeAccess {
+                        secondsPulse = true
+                    } else {
+                        showLifetimeStore = true
+                    }
+                } else {
+                    secondsPulse = false
                 }
             }
         )
@@ -346,6 +417,13 @@ struct SettingsView: View {
                 useMaterialBackground: true
             )
             .environmentObject(weatherManager)
+        case .temperatureRange:
+            TemperatureRangeIndicator(
+                date: currentDate,
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: true
+            )
         case .uvIndex:
             UVIndexIndicator(
                 timeZone: TimeZone.current,
@@ -379,7 +457,8 @@ struct SettingsView: View {
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: true,
+                showSun: solarCurveShowSun
             )
         }
     }
@@ -421,10 +500,6 @@ struct SettingsView: View {
                     .listRowSeparator(.hidden)
                     .listRowBackground(
                         ZStack {
-                            // Particle effect
-                            ParticleView(color: .white)
-                                .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-                            
                             RoundedRectangle(cornerRadius: 26, style: .continuous)
                             //                          .fill(Color.black.opacity(0.25))
                                 .fill(LinearGradient(
@@ -448,48 +523,61 @@ struct SettingsView: View {
                 }
                 
                 // General Section
-                Section(header: Text("General"), footer: Text("Powered by Hands Time.")) {
+                Section(header: Text("General"), footer:
+                    HStack(spacing: 4) {
+                        Text("Explore more widgets on")
+                            .foregroundColor(.secondary)
+
+                        Button(action: {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                            }
+                            // Open Hands Time if installed, otherwise its App Store page
+                            if let handsTimeURL = URL(string: "handstime://"),
+                               UIApplication.shared.canOpenURL(handsTimeURL) {
+                                UIApplication.shared.open(handsTimeURL)
+                            } else if let appStoreURL = URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720") {
+                                UIApplication.shared.open(appStoreURL)
+                            }
+                        }) {
+                            Text(verbatim: "Hands Time")
+                                .fontWeight(.semibold)
+                        }
+                        .buttonStyle(.plain)
+
+                        Text(".")
+                            .foregroundColor(.secondary)
+                            .padding(.leading, -4)
+                    }
+                    .font(.footnote)
+                    .foregroundStyle(.primary)
+                ) {
                     
                     Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
                         }
-                        // Check if handstime app is installed
-                        if let handsTimeURL = URL(string: "handstime://"),
-                           UIApplication.shared.canOpenURL(handsTimeURL) {
-                            // Open handstime app
-                            UIApplication.shared.open(handsTimeURL)
-                        } else {
-                            // Open App Store page for handstime
-                            if let appStoreURL = URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720") {
-                                UIApplication.shared.open(appStoreURL)
-                            }
-                        }
+                        hasSeenWidgetIntro = true
+                        showWidgetSheet = true
                     }) {
                         HStack {
                             HStack(spacing: 12) {
                                 SystemIconImage(systemName: "widget.small",  topColor: .gray, bottomColor: .gray, style: .plain)
-                                Text("Widget")
+                                Text("Widgets")
                             }
                             .layoutPriority(1)
                             Spacer(minLength: 8)
-                            Image(systemName: "arrow.up.forward.app.fill")
-                                .font(.title3.weight(.semibold))
-                                .foregroundStyle(.tertiary)
+                            if !hasSeenWidgetIntro {
+                                Circle()
+                                    .fill(.red)
+                                    .glassEffect(.regular.interactive())
+                                    .frame(width: 8, height: 8)
+                                    .padding(.trailing, 4)
+                            }
                         }
                     }
                     .foregroundStyle(.primary)
                     
-                }
-                
-                // Local Time
-                Section(footer: Text("System time shows at the top of the list with ambient background.")) {
-                    TouchTimeToggle(isOn: $showLocalTime) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "location.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
-                            Text("System Time")
-                        }
-                    }
                 }
                 
                 // Temperature/Weather Section
@@ -498,9 +586,14 @@ struct SettingsView: View {
                         get: { showWeather },
                         set: { newValue in
                             showWeather = newValue
-                            if !newValue {
+                            if newValue {
+                                if dateStyle == Self.withWeekdayDateStyle {
+                                    dateStyle = Self.relativeDateStyle
+                                }
+                            } else {
                                 showWeatherCondition = false
                                 showTemperatureIndicator = false
+                                showTemperatureRange = false
                                 showUVIndex = false
                                 showWindDirection = false
                             }
@@ -577,7 +670,8 @@ struct SettingsView: View {
                     // Options in Settings
                     TouchTimeToggle(isOn: $showSkyDot) {
                         HStack(spacing: 12) {
-                            // Use SkyColorGradient colors for the background
+                            // When enabled, tint the icon with the live SkyColorGradient;
+                            // when off, fall back to gray so it matches the other Settings icons.
                             let gradient = SkyColorGradient(
                                 date: currentDate,
                                 timeZoneIdentifier: TimeZone.current.identifier,
@@ -586,8 +680,8 @@ struct SettingsView: View {
                             let colors = gradient.colors
                             SystemIconImage(
                                 systemName: "cloud.fill",
-                                topColor: colors.first ?? .blue,
-                                bottomColor: colors.last ?? .white,
+                                topColor: showSkyDot ? (colors.first ?? .blue) : .gray,
+                                bottomColor: showSkyDot ? (colors.last ?? .white) : .gray,
                                 style: .plain
                             )
                             Text("Sky Colour")
@@ -599,6 +693,21 @@ struct SettingsView: View {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "24.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("24-Hour Format")
+                        }
+                    }
+                    
+                    
+                    // Seconds Pulse
+                    TouchTimeToggle(isOn: secondsPulseBinding) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "rays", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Seconds Pulse")
+                            Spacer()
+                            if !hasLifetimeAccess {
+                                Image(systemName: "lock.fill")
+                                    .font(.footnote.weight(.semibold))
+                                    .foregroundStyle(.tertiary)
+                            }
                         }
                     }
                     
@@ -624,15 +733,19 @@ struct SettingsView: View {
                     .tint(.secondary)
                     
                     
-                    // Date Picker
+                    // Date PickeDr
                     Picker(selection: $dateStyle) {
                         Text("Relative")
-                            .tag("Relative")
+                            .tag(Self.relativeDateStyle)
                         
-                        if !hasComplicationEnabled {
-                            Text("Absolute")
-                                .tag("Absolute")
+                        // The weekday-laden date competes with Weather for trailing space, so hide it when Weather is on
+                        if !showWeather {
+                            Text("With Weekday")
+                                .tag(Self.withWeekdayDateStyle)
                         }
+
+                        Text("Date Only")
+                            .tag(Self.dateOnlyDateStyle)
                     } label: {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "hourglass.bottomhalf.filled", topColor: .gray, bottomColor: .gray, style: .plain)
@@ -641,12 +754,6 @@ struct SettingsView: View {
                     }
                     .pickerStyle(.menu)
                     .tint(.secondary)
-                    .disabled(hasComplicationEnabled)
-                    .onChange(of: selectedPreviewComplication?.rawValue) { _, newValue in
-                        if newValue != nil {
-                            dateStyle = "Relative"
-                        }
-                    }
                     
                     
                     // Complications
@@ -673,7 +780,21 @@ struct SettingsView: View {
                 }
                 
                 // Analog Time Section
-                Section {
+                Section(header: Text("Clock")) {
+                    TouchTimeToggle(isOn: $showArcIndicator) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "circle", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Arc Indicator")
+                        }
+                    }
+
+                    TouchTimeToggle(isOn: $showSunriseSunsetLines) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text(String(localized: "Sunrise & Sunset Lines"))
+                        }
+                    }
+
                     TouchTimeToggle(isOn: goldenHourBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "angle", topColor: .gray, bottomColor: .gray, style: .plain)
@@ -687,19 +808,6 @@ struct SettingsView: View {
                         }
                     }
                     
-                    TouchTimeToggle(isOn: sunriseSunsetLinesBinding) {
-                        HStack(spacing: 12) {
-                            SystemIconImage(systemName: "circle.and.line.horizontal", topColor: .gray, bottomColor: .gray, style: .plain)
-                            Text(String(localized: "Sunrise & Sunset Lines"))
-                            Spacer()
-                            if !hasLifetimeAccess {
-                                Image(systemName: "lock.fill")
-                                    .font(.footnote.weight(.semibold))
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                    }
-
                     TouchTimeToggle(isOn: minuteHandBinding) {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "hand.raised.fill", topColor: .gray, bottomColor: .gray, style: .plain)
@@ -722,15 +830,42 @@ struct SettingsView: View {
                         }
                     }
                     
-                    TouchTimeToggle(isOn: $showArcIndicator) {
+                }
+                
+                // Hourly Notification
+                Section {
+                    TouchTimeToggle(isOn: hourlyNotificationBinding) {
                         HStack(spacing: 12) {
-                            SystemIconImage(systemName: "circle", topColor: .gray, bottomColor: .gray, style: .plain)
-                            Text("Arc Indicator")
+                            SystemIconImage(systemName: "bell.badge", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Hourly Chime")
                         }
                     }
+                    
+                    if hourlyNotificationEnabled {
+                        NavigationLink(destination: HourlyNotificationCityPicker(
+                            worldClocks: worldClocks,
+                            selectedCityIds: $hourlyNotificationCityIds,
+                            weatherCondition: weatherConditionForSky
+                        )) {
+                            HStack {
+                                Text("City Selection")
+                                Spacer(minLength: 8)
+                                Text(hourlyNotificationCitySummary)
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        }
+                    }
+                } header: {
+                    Text("Notification")
                 } footer: {
-                    Text("Enable showing arc indicator for time offset.")
+                    if hourlyNotificationEnabled && chimeTimeWindowEnabled {
+                        Text("Get a notification at the top of every hour at \(formatTimeForSetting(chimeStartTime))-\(formatTimeForSetting(chimeEndTime)).")
+                    } else {
+                        Text("Get a notification at the top of every hour.")
+                    }
                 }
+                .animation(.spring(), value: hourlyNotificationEnabled)
                 
                 // Others
                 Section {
@@ -738,7 +873,7 @@ struct SettingsView: View {
                     // Available Time Section - only show when System Time is enabled
                     if showLocalTime {
                         if hasLifetimeAccess {
-                            NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks)) {
+                            NavigationLink(destination: AvailableTimePicker(worldClocks: worldClocks, weatherManager: weatherManager)) {
                                 HStack(spacing: 12) {
                                     SystemIconImage(systemName: "checkmark.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                                     Text("Available Time")
@@ -780,7 +915,11 @@ struct SettingsView: View {
                 Section{
                     
                     Button(action: {
-                        if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=Touch%20Time%20Feedback") {
+                        // Prefer Gmail if installed, otherwise fall back to the default mail app
+                        if let gmailURL = URL(string: "googlegmail://co?to=7luyuhang@gmail.com&subject=Touch%20Time%20Feedback"),
+                           UIApplication.shared.canOpenURL(gmailURL) {
+                            UIApplication.shared.open(gmailURL)
+                        } else if let url = URL(string: "mailto:7luyuhang@gmail.com?subject=Touch%20Time%20Feedback") {
                             UIApplication.shared.open(url)
                         }
                     }) {
@@ -835,12 +974,6 @@ struct SettingsView: View {
                                 Text("Email")
                             }}
                         
-                        Section("More apps from team") {
-                            Link(destination: URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720")!) {
-                                Text("Hands Time - Minimalist Widget")
-                            }
-                        }
-                        
                     } label: {
                         Text("yuhang")
                             .font(.footnote)
@@ -858,6 +991,62 @@ struct SettingsView: View {
                         HStack(spacing: 12) {
                             SystemIconImage(systemName: "info.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
                             Text("About")
+                        }
+                    }
+
+                    HStack {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "plus.app", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("More Apps")
+                        }
+                        Spacer()
+                        HStack(spacing: 10) {
+                            Image("TouchTimeAppIcon")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: 32, height: 32)
+                                .modifier(ShakeEffect(shakes: CGFloat(touchTimeIconShakes)))
+                                .onTapGesture {
+                                    if hapticEnabled {
+                                        let feedback = UINotificationFeedbackGenerator()
+                                        feedback.prepare()
+                                        feedback.notificationOccurred(.error)
+                                    }
+                                    withAnimation(.linear(duration: 0.4)) {
+                                        touchTimeIconShakes += 1
+                                    }
+                                }
+
+                            Menu {
+                                Button(action: {
+                                    // Open Hands Time app if installed, otherwise App Store
+                                    if let handsTimeURL = URL(string: "handstime://"),
+                                       UIApplication.shared.canOpenURL(handsTimeURL) {
+                                        UIApplication.shared.open(handsTimeURL)
+                                    } else if let appStoreURL = URL(string: "https://apps.apple.com/us/app/hands-time-minimalist-widget/id6462440720") {
+                                        UIApplication.shared.open(appStoreURL)
+                                    }
+                                }) {
+                                    Text(verbatim: "Hands Time")
+                                    Text("Minimalist Widget")
+                                }
+
+                                Section("Teams") {
+                                    Link(destination: URL(string: "https://x.com/hwwaanng")!) {
+                                        Text(verbatim: "@Hwang")
+                                    }
+                                    
+                                    Link(destination: URL(string: "https://x.com/NSShuhari")!) {
+                                        Text(verbatim: "@Shuhari")
+                                    }
+                                }
+                            } label: {
+                                Image("HandsTimeAppIcon")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 32, height: 32)
+                            }
+                            .buttonStyle(HapticPressButtonStyle(hapticEnabled: hapticEnabled))
                         }
                     }
                 }
@@ -893,6 +1082,9 @@ struct SettingsView: View {
                 }
             }
             .onAppear {
+                normalizeLegacyDateStyle()
+                normalizeDateStyleForWeather()
+
                 // Fetch weather for local timezone
                 Task {
                     guard showWeather else { return }
@@ -907,6 +1099,19 @@ struct SettingsView: View {
                     await refreshLifetimeStatus()
                 }
             }
+            .onChange(of: use24HourFormat) {
+                HourlyNotificationManager.shared.reschedule()
+            }
+            .alert("Notifications Disabled", isPresented: $showNotificationPermissionAlert) {
+                Button("Open Settings") {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("Allow notifications in Settings to get on-the-hour notifications.")
+            }
             .sheet(isPresented: $showLifetimeStore) {
                 NavigationStack {
                     LifetimeStoreView()
@@ -917,20 +1122,6 @@ struct SettingsView: View {
             .fullScreenCover(isPresented: $showSupportLove) {
                 NavigationStack {
                     TipJarView()
-                        .toolbar {
-                            ToolbarItem(placement: .topBarTrailing) {
-                                Button(action: {
-                                    if hapticEnabled {
-                                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                        impactFeedback.impactOccurred()
-                                    }
-                                    showSupportLove = false
-                                }) {
-                                    Image(systemName: "xmark")
-                                        .fontWeight(.semibold)
-                                }
-                            }
-                        }
                 }
             }
             // Complications Sheet
@@ -945,6 +1136,7 @@ struct SettingsView: View {
                         showSunriseSunset: $showSunriseSunset,
                         showWeatherCondition: $showWeatherCondition,
                         showTemperatureIndicator: $showTemperatureIndicator,
+                        showTemperatureRange: $showTemperatureRange,
                         showUVIndex: $showUVIndex,
                         showWindDirection: $showWindDirection,
                         showDaylight: $showDaylight,
@@ -956,6 +1148,10 @@ struct SettingsView: View {
                 }
                 .presentationDetents([.medium]) // Complication Sheet Height
                 .presentationDragIndicator(.visible)
+            }
+            // Widget Sheet
+            .sheet(isPresented: $showWidgetSheet) {
+                WidgetIntroSheet()
             }
         }
     }
@@ -982,9 +1178,9 @@ struct SettingsView: View {
 
         if !isUnlocked {
             showGoldenHour = false
-            showSunriseSunsetLines = false
             showMinuteHand = false
             availableTimeEnabled = false
+            secondsPulse = false
         }
     }
 
@@ -1013,6 +1209,37 @@ struct SettingsView: View {
         }
     }
     
+}
+
+// Fires a light haptic on press-down; used on the Hands Time menu label
+// where tap gestures never fire because Menu intercepts the touch.
+private struct HapticPressButtonStyle: ButtonStyle {
+    let hapticEnabled: Bool
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .onChange(of: configuration.isPressed) { _, isPressed in
+                if isPressed && hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+            }
+    }
+}
+
+// Horizontal shake, like the passcode "wrong code" animation
+private struct ShakeEffect: GeometryEffect {
+    var shakes: CGFloat
+
+    var animatableData: CGFloat {
+        get { shakes }
+        set { shakes = newValue }
+    }
+
+    func effectValue(size: CGSize) -> ProjectionTransform {
+        ProjectionTransform(
+            CGAffineTransform(translationX: 2.0 * sin(shakes * 3 * .pi * 2), y: 0)
+        )
+    }
 }
 
 private struct SupportLoveIcon: View {

@@ -12,10 +12,10 @@ import AVFoundation
 import CoreHaptics
 import WeatherKit
 import MoonKit
-import SunKit
 import CoreLocation
 import TipKit
 import AlarmKit
+import Photos
 
 struct AnalogClockFullView: View {
     private enum CameraPreviewFilter {
@@ -36,10 +36,13 @@ struct AnalogClockFullView: View {
     @State private var currentDate = Date()
     @State private var selectedCityId: UUID? = nil // nil means Local is selected
     @State private var showDetailsSheet = false
+    @State private var showMoonPhaseView = false
     @State private var showShareSheet = false
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
+    @State private var showCountdownSheet = false
+    @State private var showWidgetIntroSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
     @State private var collections: [CityCollection] = []
@@ -85,9 +88,9 @@ struct AnalogClockFullView: View {
     @State private var homeTimerAlarmSyncVersion = 0
     @State private var homeTimerResetAnimationTrigger = 0
     @State private var homeTimerResetAnimationFromSeconds = 0
-    @State private var showBottomTimerDeleteIcon = false
-    @State private var bottomTimerDeleteIconTask: Task<Void, Never>? = nil
     @State private var isTimerCircleAdjusting = false
+    @State private var showingTimerRenameAlert = false
+    @State private var newTimerName = ""
 
     // Get displayed clocks based on selected collection
     private var displayedClocks: [WorldClock] {
@@ -343,40 +346,37 @@ struct AnalogClockFullView: View {
         )
     }
 
-    private func hideBottomTimerDeleteIcon(animate: Bool = true) {
-        bottomTimerDeleteIconTask?.cancel()
-        bottomTimerDeleteIconTask = nil
+    private var isHomeTimerRunning: Bool {
+        !homeTimerPaused && homeTimerRemainingSeconds(at: Date()) > 0
+    }
 
-        guard showBottomTimerDeleteIcon else { return }
+    private func renameHomeTimer() {
+        newTimerName = homeTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        showingTimerRenameAlert = true
 
-        if animate {
-            withAnimation(.smooth(duration: 0.25)) {
-                showBottomTimerDeleteIcon = false
-            }
-        } else {
-            showBottomTimerDeleteIcon = false
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
         }
     }
 
-    private func showBottomTimerDeleteIconTemporarily() {
-        guard hasConfiguredHomeTimer else { return }
-
-        bottomTimerDeleteIconTask?.cancel()
+    private func saveHomeTimerName() {
+        let trimmedName = newTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let previousName = homeTimerName
         withAnimation(.smooth(duration: 0.25)) {
-            showBottomTimerDeleteIcon = true
+            homeTimerName = trimmedName
         }
+        newTimerName = ""
 
-        bottomTimerDeleteIconTask = Task {
-            try? await Task.sleep(nanoseconds: 3_000_000_000)
-            guard !Task.isCancelled else { return }
+        // Keep the Timer Recents entry for this timer in sync with the latest name
+        RecentTimerStore.renameMatching(
+            durationSeconds: homeTimerConfiguredSeconds,
+            oldName: RecentTimerStore.normalizedName(previousName),
+            newName: RecentTimerStore.normalizedName(trimmedName)
+        )
 
-            await MainActor.run {
-                withAnimation(.smooth(duration: 0.25)) {
-                    showBottomTimerDeleteIcon = false
-                }
-                bottomTimerDeleteIconTask = nil
-            }
-        }
+        refreshHomeTimerAlarm(requestAuthorization: false)
     }
 
     private func clearHomeTimer() {
@@ -386,25 +386,7 @@ struct AnalogClockFullView: View {
         homeTimerPaused = false
         homeTimerPausedRemainingSeconds = 0
         homeTimerName = ""
-        hideBottomTimerDeleteIcon(animate: false)
         refreshHomeTimerAlarm(requestAuthorization: false)
-
-        if hapticEnabled {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-            impactFeedback.prepare()
-            impactFeedback.impactOccurred()
-        }
-    }
-
-    private func handleBottomTimerLabelTap() {
-        guard selectedDisplayPage == .timer, hasConfiguredHomeTimer else { return }
-
-        if showBottomTimerDeleteIcon {
-            clearHomeTimer()
-            return
-        }
-
-        showBottomTimerDeleteIconTemporarily()
 
         if hapticEnabled {
             let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -632,6 +614,50 @@ struct AnalogClockFullView: View {
     }
 
     @ViewBuilder
+    private var principalToolbarTitle: some View {
+        if selectedDisplayPage == .timer {
+            timerToolbarTitle
+        } else if shouldShowToolbarTitle {
+            collectionTitleView
+        }
+    }
+
+    // Timer Tool Bar Title
+    @ViewBuilder
+    private var timerToolbarTitle: some View {
+        let titleLabel = Text(homeTimerDisplayName)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+            .truncationMode(.tail)
+            .contentTransition(.numericText())
+            .frame(maxWidth: 200)
+            .padding(.horizontal, 16)
+            .frame(height: 44)
+            .glassEffect(.regular, in: Capsule(style: .continuous))
+            .contentShape(Capsule())
+            .animation(.snappy, value: homeTimerDisplayName)
+
+        if hasConfiguredHomeTimer {
+            Menu {
+                if !isHomeTimerRunning {
+                    Button(action: renameHomeTimer) {
+                        Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
+                    }
+                    Divider()
+                }
+                Button(role: .destructive, action: clearHomeTimer) {
+                    Label(String(localized: "Delete"), systemImage: "xmark.circle")
+                }
+            } label: {
+                titleLabel
+            }
+        } else {
+            titleLabel
+        }
+    }
+
+    @ViewBuilder
     private var collectionTitleView: some View {
         if selectedCollectionId == nil {
             Picker("", selection: cityTimeSegmentSelection) {
@@ -654,10 +680,6 @@ struct AnalogClockFullView: View {
                 .onTapGesture {
                     if collections.count > 1 {
                         cycleToNextCollection()
-                    } else {
-                        triggerMenuHaptic()
-                        showTimeInsteadOfCityName.toggle()
-                        selectedDisplayPage = .time
                     }
                 }
         }
@@ -695,14 +717,12 @@ struct AnalogClockFullView: View {
             Divider()
         }
 
-        // Share Section - only show if there are world clocks
-        if !worldClocks.isEmpty {
-            Button(action: {
-                triggerMenuHaptic()
-                showShareSheet = true
-            }) {
-                Label("Share", systemImage: "square.and.arrow.up")
-            }
+        // Share Section - entry stays even with nothing to share
+        Button(action: {
+            triggerMenuHaptic()
+            showShareSheet = true
+        }) {
+            Label("Share", systemImage: "square.and.arrow.up")
         }
 
         // Arrange Section - show if there are world clocks or collections
@@ -715,7 +735,7 @@ struct AnalogClockFullView: View {
             }
         }
 
-        Section(String(localized: "Features")) {
+        Section(String(localized: "Tools")) {
             Button(action: {
                 triggerMenuHaptic()
                 showSetAlarmSheet = true
@@ -729,9 +749,23 @@ struct AnalogClockFullView: View {
             }) {
                 Label(String(localized: "Timer"), systemImage: "timer")
             }
+
+            Button(action: {
+                triggerMenuHaptic()
+                showCountdownSheet = true
+            }) {
+                Label(String(localized: "Countdown"), systemImage: "hourglass")
+            }
         }
 
         Divider()
+
+        Button(action: {
+            triggerMenuHaptic()
+            showWidgetIntroSheet = true
+        }) {
+            Label(String(localized: "Widgets"), systemImage: "widget.small")
+        }
 
         // Settings Section
         Button(action: {
@@ -865,6 +899,11 @@ struct AnalogClockFullView: View {
         disableCameraBackground()
     }
 
+    private func handleCameraFlip() {
+        triggerLightHaptic()
+        cameraSessionController.flipCamera()
+    }
+
     private func setCameraFilter(_ filter: CameraPreviewFilter) {
         guard cameraPreviewFilter != filter else { return }
         triggerLightHaptic()
@@ -882,27 +921,64 @@ struct AnalogClockFullView: View {
         }
     }
 
+    private func hasPhotoLibraryAddAccess(_ status: PHAuthorizationStatus) -> Bool {
+        switch status {
+        case .authorized, .limited:
+            return true
+        case .notDetermined, .denied, .restricted:
+            return false
+        @unknown default:
+            return false
+        }
+    }
+
+    private func requestPhotoLibraryAddAccess() async -> Bool {
+        let currentStatus = PHPhotoLibrary.authorizationStatus(for: .addOnly)
+        if currentStatus != .notDetermined {
+            return hasPhotoLibraryAddAccess(currentStatus)
+        }
+
+        let updatedStatus = await withCheckedContinuation { continuation in
+            PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+                continuation.resume(returning: status)
+            }
+        }
+
+        return hasPhotoLibraryAddAccess(updatedStatus)
+    }
+
     private func handleCapturePhoto() {
         triggerLightHaptic()
 
-        guard let frame = cameraSessionController.getLatestFrameAsImage() else { return }
-
-        staticCameraFrame = frame
-        withAnimation(.spring()) {
-            isCaptureButtonHidden = true
-        }
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            let screenshot = captureScreenshot()
-
-            if let screenshot {
-                UIImageWriteToSavedPhotosAlbum(screenshot, nil, nil, nil)
+        Task { @MainActor in
+            let hasPhotoAccess = await requestPhotoLibraryAddAccess()
+            guard hasPhotoAccess else {
+                showCameraAlert(
+                    title: String(localized: "Photo Access Needed"),
+                    message: String(localized: "Please allow photo library access in Settings to save captures.")
+                )
+                return
             }
 
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
-                staticCameraFrame = nil
-                withAnimation(.spring()) {
-                    isCaptureButtonHidden = false
+            guard let frame = cameraSessionController.getLatestFrameAsImage() else { return }
+
+            staticCameraFrame = frame
+            withAnimation(.spring()) {
+                isCaptureButtonHidden = true
+            }
+
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                let screenshot = captureScreenshot()
+
+                if let screenshot {
+                    UIImageWriteToSavedPhotosAlbum(screenshot, nil, nil, nil)
+                }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                    staticCameraFrame = nil
+                    withAnimation(.spring()) {
+                        isCaptureButtonHidden = false
+                    }
                 }
             }
         }
@@ -981,6 +1057,7 @@ struct AnalogClockFullView: View {
                                     selectedCityId: $selectedCityId,
                                     hapticEnabled: hapticEnabled,
                                     showDetailsSheet: $showDetailsSheet,
+                                    showMoonPhaseView: $showMoonPhaseView,
                                     weather: weatherManager.weatherData[selectedTimeZone.identifier],
                                     showWeather: showWeather,
                                     showTimeInsteadOfCityName: showTimeInsteadOfCityName
@@ -1036,76 +1113,49 @@ struct AnalogClockFullView: View {
                             VStack {
                                 Spacer()
                                 // Local time display (hidden when continuous scroll reset button is showing)
-                                if !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons) {
-                                    if selectedDisplayPage == .timer {
-                                        // Timer Close Button
-                                        Button(action: handleBottomTimerLabelTap) {
-                                            let timerLabelText = showBottomTimerDeleteIcon && hasConfiguredHomeTimer
-                                                ? String(localized: "Delete Timer")
-                                                : homeTimerDisplayName
-                                            HStack(spacing: 5) {
-                                                Text(timerLabelText)
-                                                    .lineLimit(1)
-                                                    .truncationMode(.tail)
-                                                    .contentTransition(.numericText())
-                                                    .animation(.smooth(duration: 0.25), value: timerLabelText)
-
-                                                if showBottomTimerDeleteIcon && hasConfiguredHomeTimer {
-                                                    Image(systemName: "xmark.circle.fill")
-                                                        .font(.subheadline.weight(.semibold))
-                                                        .transition(.blurReplace.combined(with: .scale))
-                                                }
-                                            }
-                                            .font(.subheadline.weight(.medium))
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                            .padding(.horizontal, 24)
-                                            .frame(maxWidth: .infinity)
-                                        }
-                                        .buttonStyle(.plain)
-                                        .padding(.bottom, 16)
-                                    } else if selectedCityId != nil {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "location.fill")
-                                                .font(.footnote.weight(.medium))
-                                            Text({
-                                                if showTimeInsteadOfCityName {
-                                                    // Show "Local" when hands show time
-                                                    return String(localized: "Local")
+                                if selectedDisplayPage != .timer,
+                                   !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons),
+                                   selectedCityId != nil {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "location.fill")
+                                            .font(.footnote.weight(.medium))
+                                        Text({
+                                            if showTimeInsteadOfCityName {
+                                                // Show "Local" when hands show time
+                                                return String(localized: "Local")
+                                            } else {
+                                                // Show local time when hands show city names
+                                                let formatter = DateFormatter()
+                                                formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                formatter.timeZone = TimeZone.current
+                                                if use24HourFormat {
+                                                    formatter.dateFormat = "HH:mm"
                                                 } else {
-                                                    // Show local time when hands show city names
-                                                    let formatter = DateFormatter()
-                                                    formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                    formatter.timeZone = TimeZone.current
-                                                    if use24HourFormat {
-                                                        formatter.dateFormat = "HH:mm"
-                                                    } else {
-                                                        formatter.dateFormat = "h:mm"
-                                                    }
-                                                    return formatter.string(from: displayDate)
+                                                    formatter.dateFormat = "h:mm"
                                                 }
-                                            }())
-                                            .font(.subheadline.weight(.medium))
-
-                                            let additionalText = selectedAdditionalTimeText
-                                            let shouldShowAdditionalText = showTimeInsteadOfCityName
-                                                ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
-                                                : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
-                                            if shouldShowAdditionalText {
-                                                Text("·")
-                                                    .font(.subheadline.weight(.medium))
-                                                Text(additionalText)
-                                                    .font(.subheadline.weight(.medium))
-                                                    .contentTransition(.numericText())
-                                                    .animation(.smooth(duration: 0.25), value: additionalText)
+                                                return formatter.string(from: displayDate)
                                             }
+                                        }())
+                                        .font(.subheadline.weight(.medium))
+
+                                        let additionalText = selectedAdditionalTimeText
+                                        let shouldShowAdditionalText = showTimeInsteadOfCityName
+                                            ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
+                                            : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
+                                        if shouldShowAdditionalText {
+                                            Text("·")
+                                                .font(.subheadline.weight(.medium))
+                                            Text(additionalText)
+                                                .font(.subheadline.weight(.medium))
+                                                .contentTransition(.numericText())
+                                                .animation(.smooth(duration: 0.25), value: additionalText)
                                         }
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                        .padding(.bottom, 16)
                                     }
+                                    .foregroundStyle(.secondary)
+                                    .blendMode(.plusLighter)
+                                    .monospacedDigit()
+                                    .contentTransition(.numericText())
+                                    .padding(.bottom, 16)
                                 }
                                 Spacer()
                                 ScrollTimeView(
@@ -1152,10 +1202,8 @@ struct AnalogClockFullView: View {
             .ignoresSafeArea(.keyboard, edges: .bottom)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                if shouldShowToolbarTitle {
-                    ToolbarItem(placement: .principal) {
-                        collectionTitleView
-                    }
+                ToolbarItem(placement: .principal) {
+                    principalToolbarTitle
                 }
                 
                 ToolbarItem(placement: .topBarLeading) {
@@ -1176,6 +1224,7 @@ struct AnalogClockFullView: View {
                             onSelectStandard: { setCameraFilter(.standard) },
                             onSelectBlur: { setCameraFilter(.blur) },
                             onSelectBlackAndWhite: { setCameraFilter(.blackAndWhite) },
+                            onFlipCamera: handleCameraFlip,
                             onEnableCamera: handleCameraToggle
                         )
                     }
@@ -1221,14 +1270,26 @@ struct AnalogClockFullView: View {
                     .environmentObject(weatherManager)
                 }
             }
-            .sheet(isPresented: $showShareSheet) {
-                ShareCitiesSheet(
-                    worldClocks: $worldClocks,
-                    showSheet: $showShareSheet,
-                    currentDate: currentDate,
+            .sheet(isPresented: $showMoonPhaseView) {
+                MoonPhaseView(
+                    cityName: selectedCityName,
+                    timeZoneIdentifier: selectedTimeZone.identifier,
                     timeOffset: timeOffset
                 )
-                .environmentObject(weatherManager)
+            }
+            .sheet(isPresented: $showShareSheet) {
+                // Empty when there is no local time and no cities to share
+                if worldClocks.isEmpty && !showLocalTime {
+                    ShareCitiesEmptyView()
+                } else {
+                    ShareCitiesSheet(
+                        worldClocks: $worldClocks,
+                        showSheet: $showShareSheet,
+                        currentDate: currentDate,
+                        timeOffset: timeOffset
+                    )
+                    .environmentObject(weatherManager)
+                }
             }
             .sheet(isPresented: $showArrangeListSheet) {
                 ArrangeListView(
@@ -1248,9 +1309,19 @@ struct AnalogClockFullView: View {
                 SetAlarmSheet()
             }
             .sheet(isPresented: $showSetTimerSheet) {
-                SetTimerSheet(initialDurationSeconds: homeTimerConfiguredSeconds) { durationSeconds in
-                    startHomeTimer(durationSeconds: durationSeconds)
-                }
+                SetTimerSheet(
+                    initialDurationSeconds: homeTimerConfiguredSeconds,
+                    onConfirm: { durationSeconds in
+                        startHomeTimer(durationSeconds: durationSeconds)
+                    },
+                    onPlayPause: handleHomeTimerTap
+                )
+            }
+            .sheet(isPresented: $showCountdownSheet) {
+                CountdownSheet()
+            }
+            .sheet(isPresented: $showWidgetIntroSheet) {
+                WidgetIntroSheet()
             }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(
@@ -1288,6 +1359,17 @@ struct AnalogClockFullView: View {
             } message: {
                 Text(cameraAlertMessage)
             }
+            .alert(String(localized: "Rename Timer"), isPresented: $showingTimerRenameAlert) {
+                TextField(homeTimerDisplayName, text: $newTimerName)
+                Button(String(localized: "Cancel"), role: .cancel) {
+                    newTimerName = ""
+                }
+                Button(String(localized: "Save")) {
+                    saveHomeTimerName()
+                }
+            } message: {
+                Text(String(localized: "Customize the name of this timer"))
+            }
             // Unified weather fetch trigger for this screen.
             .task(id: "\(showWeather)-\(selectedTimeZone.identifier)") {
                 if showWeather {
@@ -1303,15 +1385,33 @@ struct AnalogClockFullView: View {
                 cameraWarmupTask = Task {
                     let status = AVCaptureDevice.authorizationStatus(for: .video)
                     if Task.isCancelled { return }
-                    if status == .authorized {
-                        _ = await cameraSessionController.configureIfNeeded()
+                    guard status == .authorized else { return }
+                    _ = await cameraSessionController.configureIfNeeded()
+                    if Task.isCancelled { return }
+                    // Resume the live background that was suspended in
+                    // `onDisappear` once the user returns to the Clock tab.
+                    let shouldResume = await MainActor.run {
+                        isCameraBackgroundEnabled && scenePhase == .active
+                    }
+                    if shouldResume {
+                        _ = await cameraSessionController.startRunning()
                     }
                 }
             }
             .onDisappear {
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = nil
-                hideBottomTimerDeleteIcon(animate: false)
+                // Stop the capture session when leaving the Clock tab. Otherwise
+                // the camera (high preset + per-frame video output) keeps running
+                // on other tabs, draining battery and heating the device.
+                // Invalidate any in-flight toggle so it can't start the session on
+                // a hidden tab, while preserving `isCameraBackgroundEnabled` so the
+                // background resumes automatically in `onAppear`.
+                cameraToggleTask?.cancel()
+                cameraToggleTask = nil
+                activeCameraRequestId = UUID()
+                isCameraPreparing = false
+                cameraSessionController.stopRunning()
             }
             .onChange(of: scenePhase) { oldValue, newValue in
                 if newValue == .active {
@@ -1331,16 +1431,6 @@ struct AnalogClockFullView: View {
             }
             .onChange(of: worldClocks) { oldValue, newValue in
                 ensureValidSelectedCity(in: displayedClocks)
-            }
-            .onChange(of: selectedDisplayPage) { oldValue, newValue in
-                if oldValue != newValue && newValue != .timer {
-                    hideBottomTimerDeleteIcon()
-                }
-            }
-            .onChange(of: hasConfiguredHomeTimer) { oldValue, newValue in
-                if oldValue != newValue && !newValue {
-                    hideBottomTimerDeleteIcon(animate: false)
-                }
             }
         }
         .preferredColorScheme(.dark)
@@ -1421,6 +1511,7 @@ struct AnalogClockFaceView: View {
     @Binding var selectedCityId: UUID?
     let hapticEnabled: Bool
     @Binding var showDetailsSheet: Bool
+    @Binding var showMoonPhaseView: Bool
     let weather: CurrentWeather?
     let showWeather: Bool
     let showTimeInsteadOfCityName: Bool
@@ -1438,11 +1529,14 @@ struct AnalogClockFaceView: View {
     @AppStorage("showUTCHand") private var showUTCHand = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
+    @AppStorage("showSkyDot") private var showSkyDot = true
     
     @State private var hideOtherHands = false
     @State private var lastRotationAngle: Double? = nil
     @State private var arcCitySwitchRotationDegrees: Double = 0
     private let rotationSecondsPerDegree: Double = 180
+    private let focusedIconScale: CGFloat = 1.25 // icon scale
+    private let focusedIconShift: CGFloat = 6 // icon shift
     @State private var hapticEngine: CHHapticEngine?
     @State private var hapticPlayer: CHHapticPatternPlayer?
     @State private var lastRotationHapticOffset: TimeInterval = 0
@@ -1630,7 +1724,7 @@ struct AnalogClockFaceView: View {
         return cache
     }()
     
-    // Calculate sunrise and sunset times using SunKit (with caching)
+    // Calculate sunrise and sunset times (with caching)
     private var sunTimes: SunTimesData? {
         guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
             return nil
@@ -1647,17 +1741,18 @@ struct AnalogClockFaceView: View {
             return cached.data
         }
         
-        var sun = Sun(
-            location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude),
+        let events = SolarCalculator.events(
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
+            date: date,
             timeZone: selectedTimeZone
         )
-        sun.setDate(date)
         
         let data = SunTimesData(
-            sunrise: sun.sunrise,
-            sunset: sun.sunset,
-            goldenHourStart: sun.eveningGoldenHourStart,
-            goldenHourEnd: sun.eveningGoldenHourEnd
+            sunrise: events.sunrise,
+            sunset: events.sunset,
+            goldenHourStart: events.eveningGoldenHourStart,
+            goldenHourEnd: events.eveningGoldenHourEnd
         )
         Self.sunTimesCache.setObject(SunTimesDataWrapper(data), forKey: cacheKey)
         return data
@@ -1696,12 +1791,20 @@ struct AnalogClockFaceView: View {
         return CGPoint(x: x, y: y)
     }
     
+    private func getTime(in timeZone: TimeZone) -> (hour: Int, minute: Int) {
+        getTime(in: timeZone, at: date)
+    }
+
+    private func getTime(in timeZone: TimeZone, at sourceDate: Date) -> (hour: Int, minute: Int) {
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let components = calendar.dateComponents([.hour, .minute], from: sourceDate)
+        return (components.hour ?? 0, components.minute ?? 0)
+    }
+
     // Get local time components
     private var localTime: (hour: Int, minute: Int) {
-        var calendar = Calendar.current
-        calendar.timeZone = TimeZone.current
-        let components = calendar.dateComponents([.hour, .minute], from: date)
-        return (components.hour ?? 0, components.minute ?? 0)
+        getTime(in: TimeZone.current)
     }
     
     // Get UTC time components
@@ -1723,16 +1826,39 @@ struct AnalogClockFaceView: View {
             components.second ?? 0
         )
     }
-    
+
     // Get time for a specific timezone
     private func getTime(for timeZoneIdentifier: String) -> (hour: Int, minute: Int) {
+        getTime(for: timeZoneIdentifier, at: date)
+    }
+
+    private func getTime(for timeZoneIdentifier: String, at sourceDate: Date) -> (hour: Int, minute: Int) {
         guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
             return (0, 0)
         }
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-        let components = calendar.dateComponents([.hour, .minute], from: date)
-        return (components.hour ?? 0, components.minute ?? 0)
+        return getTime(in: timeZone, at: sourceDate)
+    }
+
+    private var clockHandTimeOffsetDegrees: Double {
+        (timeOffset / 240.0).truncatingRemainder(dividingBy: 360)
+    }
+
+    private var localClockHandAngle: Double {
+        clockHandAngle(in: TimeZone.current)
+    }
+
+    private func clockHandAngle(for timeZoneIdentifier: String) -> Double {
+        guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
+            return clockHandTimeOffsetDegrees
+        }
+        return clockHandAngle(in: timeZone)
+    }
+
+    private func clockHandAngle(in timeZone: TimeZone) -> Double {
+        let baseTime = getTime(in: timeZone, at: originalDate)
+        let hourAngle = Double(baseTime.hour) * 15.0
+        let minuteAngle = Double(baseTime.minute) * 0.25
+        return hourAngle + minuteAngle + clockHandTimeOffsetDegrees
     }
     
     // Calculate angle for a given hour and minute
@@ -1874,7 +2000,16 @@ struct AnalogClockFaceView: View {
             showScrollTimeButtons = false
         }
     }
-    
+
+    /// Rain intensity in [0, 1] for the clock-face rain shader. Driven by the
+    /// displayed weather (matching `SkyStarBackground`): returns 0 when Sky
+    /// Colour is off, weather is hidden, or the current condition isn't rainy,
+    /// which disables the effect.
+    private var rainIntensity: Float {
+        guard showSkyDot, showWeather, let condition = weather?.condition else { return 0 }
+        return condition.rainIntensity
+    }
+
     var body: some View {
         ZStack {
             // Clock face background
@@ -1918,7 +2053,25 @@ struct AnalogClockFaceView: View {
                             lastRotationAngle = nil
                         }
                 )
-            
+
+            // Rain-on-glass effect sitting on the clock face, below all clock
+            // markings. Fills a full square so the shader never samples
+            // transparent pixels (which would show as black refractive halos),
+            // then masks to the clock-face circle. `.plusLighter` keeps the dark
+            // base from dimming the face so only the luminous drops read.
+            if rainIntensity > 0 {
+                Rectangle()
+                    .fill(Color.black)
+                    .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+                    .rainFallEffect(intensity: rainIntensity, dropScale: 0.6)
+                    .mask {
+                        Circle()
+                            .frame(width: max(size - 24, 0), height: max(size - 24, 0))
+                    }
+                    .blendMode(.plusLighter)
+                    .allowsHitTesting(false)
+            }
+
             // Time offset arc (显示滚动时间的起点到终点)
             if showArcIndicator && timeOffset != 0 {
                 TimeOffsetArcView(
@@ -1960,7 +2113,7 @@ struct AnalogClockFaceView: View {
             }
             
             // Sunrise and Sunset indicator lines with daylight arc
-            if hasLifetimeAccess, showSunriseSunsetLines, let times = sunTimes {
+            if showSunriseSunsetLines, let times = sunTimes {
                 // Daylight arc fill between sunrise and sunset
                 if let sunriseAngle = angleForDate(times.sunrise),
                    let sunsetAngle = angleForDate(times.sunset) {
@@ -2019,9 +2172,11 @@ struct AnalogClockFaceView: View {
                 .foregroundStyle(.tertiary)
                 .blendMode(.plusLighter)
                 .frame(height: 24)
-                .position(x: size / 2,  y: size / 2 + (size / 2 - 64))
+                .scaleEffect(hideOtherHands ? focusedIconScale : 1.0)
+                .position(x: size / 2,  y: size / 2 + (size / 2 - 64) - (hideOtherHands ? focusedIconShift : 0))
                 .contentTransition(.symbolEffect(.replace))
                 .animation(.spring(), value: weather?.condition)
+                .animation(.spring(), value: hideOtherHands)
 
             if hideOtherHands, showWeather, let weather {
                 Text(weather.condition.displayName)
@@ -2032,14 +2187,25 @@ struct AnalogClockFaceView: View {
             }
             
             // Moon phase icon
-            Image(systemName: moonPhaseIcon)
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .blendMode(.plusLighter)
-                .frame(height: 24)
-                .position(x: size / 2, y: size / 2 - (size / 2 - 62))
-                .contentTransition(.symbolEffect(.replace))
-                .animation(.spring(), value: moonPhaseIcon)
+            Button {
+                if hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+                showMoonPhaseView = true
+            } label: {
+                Image(systemName: moonPhaseIcon)
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .blendMode(.plusLighter)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .scaleEffect(hideOtherHands ? focusedIconScale : 1.0)
+            .position(x: size / 2, y: size / 2 - (size / 2 - 62) + (hideOtherHands ? focusedIconShift : 0))
+            .contentTransition(.symbolEffect(.replace))
+            .animation(.spring(), value: moonPhaseIcon)
+            .animation(.spring(), value: hideOtherHands)
 
             if hideOtherHands {
                 Text(moonPhaseName)
@@ -2082,6 +2248,7 @@ struct AnalogClockFaceView: View {
                         cityName: clock.localizedCityName,
                         hour: time.hour,
                         minute: time.minute,
+                        angle: clockHandAngle(for: clock.timeZoneIdentifier),
                         size: size,
                         color: .white.opacity(0.25), // Hand colour
                         isSelected: false,
@@ -2102,6 +2269,7 @@ struct AnalogClockFaceView: View {
                     cityName: String(localized: "Local"),
                     hour: localTime.hour,
                     minute: localTime.minute,
+                    angle: localClockHandAngle,
                     size: size,
                     color: .blue,
                     isSelected: false,
@@ -2124,6 +2292,7 @@ struct AnalogClockFaceView: View {
                         cityName: clock.localizedCityName,
                         hour: time.hour,
                         minute: time.minute,
+                        angle: clockHandAngle(for: clock.timeZoneIdentifier),
                         size: size,
                         color: .white.opacity(0.25),
                         isSelected: true,
@@ -2142,6 +2311,7 @@ struct AnalogClockFaceView: View {
                     cityName: String(localized: "Local"),
                     hour: localTime.hour,
                     minute: localTime.minute,
+                    angle: localClockHandAngle,
                     size: size,
                     color: .blue,
                     isSelected: true,
@@ -2198,6 +2368,7 @@ struct ClockHandWithLabel: View {
     let cityName: String
     let hour: Int
     let minute: Int
+    let angle: Double
     let size: CGFloat
     let color: Color
     let isSelected: Bool
@@ -2223,17 +2394,15 @@ struct ClockHandWithLabel: View {
         showTimeInsteadOfCityName ? timeString : cityName
     }
     
-    private var angle: Double {
-        // 24-hour clock: full rotation = 24 hours
-        let hourAngle = Double(hour) * 15.0 // 15 degrees per hour
-        let minuteAngle = Double(minute) * 0.25 // 15/60 degrees per minute
-        return hourAngle + minuteAngle
+    private var normalizedAngle: Double {
+        let normalized = angle.truncatingRemainder(dividingBy: 360)
+        return normalized >= 0 ? normalized : normalized + 360
     }
     
     // Counter-rotation: flip text 180° when pointing down/left to keep it readable
     private var textCounterRotation: Double {
         // When angle is greater than 180° (bottom half), flip the text
-        angle > 180 ? 180 : 0
+        normalizedAngle > 180 ? 180 : 0
     }
     
     // Hand color: white when selected, blue for Local when not selected
@@ -2806,9 +2975,8 @@ struct DigitalTimeDisplayView: View {
                         useCelsius: useCelsius
                     )
                 }
-
                 Text(formattedDateText())
-                    .font(.subheadline.weight(.medium))
+                    .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)
                     .contentTransition(.numericText())
@@ -2833,7 +3001,12 @@ struct DigitalTimeDisplayView: View {
                         .animation(timerIsAdjusting ? nil : .spring(duration: 0.25), value: remaining)
                 }
 
-                Text(formattedConfiguredDuration(seconds: timerConfiguredSeconds))
+                Text(
+                    String.localizedStringWithFormat(
+                        String(localized: "Set to %@"),
+                        formattedConfiguredDuration(seconds: timerConfiguredSeconds)
+                    )
+                )
                     .font(.subheadline.weight(.medium))
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)

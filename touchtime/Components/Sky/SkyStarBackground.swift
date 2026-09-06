@@ -8,23 +8,8 @@
 import SwiftUI
 import WeatherKit
 
-// Star particle view for night sky
-struct StarParticle: View {
-    let size: CGFloat
-    
-    var body: some View {
-        Circle()
-            .fill(
-                // Add slight color variation for more realistic stars
-                size > 1.5 ? 
-                Color(white: 1.0) :  // Bright stars are pure white
-                Color(white: 0.95, opacity: 1.0)  // Smaller stars slightly dimmer
-            )
-            .frame(width: size, height: size)
-            .blur(radius: size > 1.5 ? 0.3 : 0)
-            .shadow(color: Color(white: 0.9).opacity(0.9), radius: size > 1.2 ? 3 : 1)
-    }
-}
+// The star particle view (StarParticle) lives in Shared/ so the widget's
+// Daylight ring can render the same stars.
 
 // Container for multiple stars
 struct StarsView: View {
@@ -92,6 +77,9 @@ struct SkyBackgroundView: View {
     /// the given elapsed time. Used by `ImageRenderer` snapshots since
     /// `TimelineView` animations don't run during rendering.
     var staticRainElapsed: Float? = nil
+    /// Set to false when the containing card already applies clipping and
+    /// border chrome around the complete card.
+    var appliesCardChrome: Bool = true
 
     // Create sky color gradient instance
     private var skyColorGradient: SkyColorGradient {
@@ -103,31 +91,50 @@ struct SkyBackgroundView: View {
         return condition.rainIntensity
     }
 
-    var body: some View {
-        ZStack {
+    private var skyContent: some View {
+        // Build the gradient once per body evaluation. `skyColorGradient` is a
+        // computed property that constructs a new `SkyColorGradient` on every access
+        // (each init does Calendar copies + dateComponents), and it was previously
+        // read 5x per body. Reuse a single instance and its derived values.
+        let gradient = skyColorGradient
+        let starOpacity = gradient.starOpacity
+        return ZStack {
             // Fill the full bounding rectangle so the rain shader never samples
             // transparent pixels (which would show as black refractive halos
             // around drops near the rounded corners).
             Rectangle()
-                .fill(skyColorGradient.linearGradient(opacity: 0.65))
-                .animation(.easeInOut(duration: 0.5), value: skyColorGradient.animationValue)
+                .fill(gradient.linearGradient(opacity: 0.65))
+                .animation(.easeInOut(duration: 0.5), value: gradient.animationValue)
 
             // Stars overlay for nighttime
-            if skyColorGradient.starOpacity > 0 {
+            if starOpacity > 0 {
                 StarsView()
-                    .opacity(skyColorGradient.starOpacity)
+                    .opacity(starOpacity)
                     .blendMode(.plusLighter)
-                    .animation(.easeInOut(duration: 0.5), value: skyColorGradient.starOpacity)
+                    .animation(.easeInOut(duration: 0.5), value: starOpacity)
                     .allowsHitTesting(false)
             }
         }
-        // Run the shader on the full rectangle, then round the corners so the
-        // drops on the edges still get refraction without any black halo.
         .rainFallEffect(intensity: rainIntensity, staticElapsed: staticRainElapsed)
-        .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
-        // border
+    }
+
+    @ViewBuilder
+    var body: some View {
+        if appliesCardChrome {
+            // Run effects on the full rectangle, then round the complete sky so
+            // shaders keep enough sampling room near the corners.
+            skyContent.skyBackgroundCardChrome()
+        } else {
+            skyContent
+        }
+    }
+}
+
+extension View {
+    func skyBackgroundCardChrome(cornerRadius: CGFloat = 26) -> some View {
+        clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(
-            RoundedRectangle(cornerRadius: 26, style: .continuous)
+            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .stroke(Color.white.opacity(0.1), lineWidth: 1.0)
                 .blendMode(.plusLighter)
         )

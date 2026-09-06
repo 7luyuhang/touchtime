@@ -6,3 +6,6 @@
 
 /* AlarmKit - shown when user sets alarms in app */
 "NSAlarmKitUsageDescription" = "允许访问闹钟，以便在应用中设置本地闹钟。";
+
+/* Home Screen quick actions - shown when user long-presses the app icon */
+"Set Timer" = "设置计时器";

@@ -91,3 +91,6 @@ iOSInjectionProject/
 
 # macOS
 .DS_Store
+
+# Raw NASA SVS frame cache used by scripts/fetch_moon_scrub_frames.py
+scripts/.moon_scrub_cache/

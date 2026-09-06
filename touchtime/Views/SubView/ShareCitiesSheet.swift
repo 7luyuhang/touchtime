@@ -25,6 +25,37 @@ private struct ShareLazyCardImage: Transferable {
     }
 }
 
+/// Shown in place of the share sheet when there is no local time and no
+/// cities to share.
+struct ShareCitiesEmptyView: View {
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
+
+    var body: some View {
+        NavigationStack {
+            ContentUnavailableView {
+                Label("Nothing to Share", systemImage: "square.and.arrow.up")
+            } description: {
+                Text("Add cities to share their time.")
+            }
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                        }
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium])
+    }
+}
+
 struct ShareCitiesSheet: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var showSheet: Bool
@@ -43,6 +74,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
+    @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
@@ -52,6 +84,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
@@ -94,11 +127,15 @@ struct ShareCitiesSheet: View {
     }
 
     private var effectiveShowWeatherCondition: Bool {
-        hasLifetimeAccess && showWeatherCondition
+        showWeatherCondition
     }
 
     private var effectiveShowTemperatureIndicator: Bool {
         hasLifetimeAccess && showTemperatureIndicator
+    }
+
+    private var effectiveShowTemperatureRange: Bool {
+        hasLifetimeAccess && showTemperatureRange
     }
 
     private var effectiveShowUVIndex: Bool {
@@ -132,6 +169,7 @@ struct ShareCitiesSheet: View {
             showSunPosition: showSunPosition,
             showWeatherCondition: effectiveShowWeatherCondition,
             showTemperatureIndicator: effectiveShowTemperatureIndicator,
+            showTemperatureRange: effectiveShowTemperatureRange,
             showUVIndex: effectiveShowUVIndex,
             showWindDirection: effectiveShowWindDirection,
             showSunAzimuth: showSunAzimuth,
@@ -140,7 +178,8 @@ struct ShareCitiesSheet: View {
             showSunriseSunset: showSunriseSunset,
             showDaylight: effectiveShowDaylight,
             showTimeOverlay: effectiveShowTimeOverlay,
-            showSolarCurve: showSolarCurve
+            showSolarCurve: showSolarCurve,
+            solarCurveShowSun: solarCurveShowSun
         )
     }
     
@@ -227,6 +266,8 @@ struct ShareCitiesSheet: View {
             formatter.dateFormat = "h:mm"
         }
         let timeString = formatter.string(from: adjustedDate)
+        formatter.timeZone = TimeZone.current
+        let localTimeString = formatter.string(from: adjustedDate)
         let dateString = getCityDate(timeZoneIdentifier: timeZoneIdentifier)
         let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
         
@@ -244,6 +285,8 @@ struct ShareCitiesSheet: View {
         let snapshotView = CityCardSnapshotView(
             cityName: cityName,
             timeString: timeString,
+            localCityName: localCityName,
+            localTimeString: localTimeString,
             dateString: dateString,
             date: adjustedDate,
             timeZone: targetTimeZone,

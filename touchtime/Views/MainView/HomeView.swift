@@ -22,6 +22,23 @@ struct CityTimeAdjustmentData: Identifiable {
     let timeZoneIdentifier: String
 }
 
+private struct HomeSkyListRowBackground: View {
+    let date: Date
+    let timeZoneIdentifier: String
+    let weatherCondition: WeatherCondition?
+
+    var body: some View {
+        SkyBackgroundView(
+            date: date,
+            timeZoneIdentifier: timeZoneIdentifier,
+            weatherCondition: weatherCondition,
+            showRainEffect: true,
+            appliesCardChrome: false
+        )
+        .skyBackgroundCardChrome()
+    }
+}
+
 // MARK: - Lazy Card Image (deferred rendering for ShareLink)
 struct LazyCardImage: Transferable {
     let render: () -> UIImage
@@ -59,6 +76,7 @@ struct HomeView: View {
     @Binding var timeOffset: TimeInterval
     @Binding var showScrollTimeButtons: Bool
     @ObservedObject var weatherManager: WeatherManager
+    @ObservedObject private var googleMeet = GoogleMeetManager.shared
     @State private var currentDate = Date()
     @State private var showingRenameAlert = false
     @State private var renamingClockId: UUID? = nil
@@ -80,6 +98,15 @@ struct HomeView: View {
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
+    @State private var showCountdownSheet = false
+    // Pinned countdowns show their preview below the home timer; the shared
+    // store is observed, so pins toggled inside the countdown sheet update
+    // the cards immediately.
+    @Environment(CountdownStore.self) private var countdownStore
+    // Countdown being edited after tapping its pinned card on Home.
+    @State private var editingHomeCountdown: CountdownItem? = nil
+    @State private var showComplicationsSheet = false
+    @State private var showWidgetIntroSheet = false
     @State private var showEarthView = false
     @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
     @State private var showCalendarPermissionAlert = false
@@ -113,6 +140,7 @@ struct HomeView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
+    @AppStorage("addMeetLinkToEvents") private var addMeetLinkToEvents = false
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
     @AppStorage("availableStartTime") private var availableStartTime = "09:00"
     @AppStorage("availableEndTime") private var availableEndTime = "17:00"
@@ -126,6 +154,7 @@ struct HomeView: View {
     @AppStorage("showSunPosition") private var showSunPosition = false
     @AppStorage("showWeatherCondition") private var showWeatherCondition = false
     @AppStorage("showTemperatureIndicator") private var showTemperatureIndicator = false
+    @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
@@ -135,6 +164,7 @@ struct HomeView: View {
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
+    @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     @AppStorage("showDoubleTapMoreActionTip") private var showDoubleTapMoreActionTip = true
     @AppStorage("showShakeToResetTip") private var showShakeToResetTip = false
@@ -159,33 +189,14 @@ struct HomeView: View {
 
     @State private var homeTimerAlarmSyncVersion = 0
     
-    // MARK: - Cached Time Formatting
-    private static let timeFormatterCache: NSCache<NSString, DateFormatter> = {
-        let cache = NSCache<NSString, DateFormatter>()
-        cache.countLimit = 50
-        return cache
-    }()
-    
-    private static func timeFormatter(for timeZone: TimeZone, use24Hour: Bool) -> DateFormatter {
-        let key = "\(timeZone.identifier)_\(use24Hour)" as NSString
-        if let cached = timeFormatterCache.object(forKey: key) {
-            return cached
-        }
-        let formatter = DateFormatter()
-        formatter.timeZone = timeZone
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = use24Hour ? "HH:mm" : "h:mm"
-        timeFormatterCache.setObject(formatter, forKey: key)
-        return formatter
-    }
-    
-    private func formattedTime(for timeZone: TimeZone) -> String {
-        let formatter = Self.timeFormatter(for: timeZone, use24Hour: use24HourFormat)
-        return formatter.string(from: currentDate.addingTimeInterval(timeOffset))
-    }
-
     private var hasConfiguredHomeTimer: Bool {
         homeTimerConfiguredSeconds > 0
+    }
+
+    /// True when at least one countdown is pinned to Home, so the list
+    /// still has countdown cards to show without clocks or a timer.
+    private var hasPinnedCountdowns: Bool {
+        countdownStore.countdowns.contains(where: \.isPinned)
     }
 
     private var homeTimerDisplayName: String {
@@ -306,10 +317,19 @@ struct HomeView: View {
 
     private func saveHomeTimerName() {
         let trimmedName = newTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let previousName = homeTimerName
         withAnimation(.smooth(duration: 0.25)) {
             homeTimerName = trimmedName
         }
         newTimerName = ""
+
+        // Keep the Timer Recents entry for this timer in sync with the latest name
+        RecentTimerStore.renameMatching(
+            durationSeconds: homeTimerConfiguredSeconds,
+            oldName: RecentTimerStore.normalizedName(previousName),
+            newName: RecentTimerStore.normalizedName(trimmedName)
+        )
+
         refreshHomeTimerAlarm(requestAuthorization: false)
     }
 
@@ -473,17 +493,68 @@ struct HomeView: View {
         }
     }
 
+    /// Commits edits made in the countdown editor opened from a pinned
+    /// Home card, mirroring CountdownSheet's update logic.
+    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int) {
+        guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
+        // Assemble the edited item first so the store (and UserDefaults)
+        // sees a single mutation instead of one per field.
+        var updated = countdownStore.countdowns[index]
+        updated.title = title
+        updated.targetDate = targetDate
+        updated.emoji = emoji
+        updated.photoData = photoData
+        updated.isPinned = isPinned
+        updated.repeatFrequency = repeatFrequency
+        updated.reminderTime = reminderTime
+        updated.reminderLeadDays = reminderLeadDays
+        withAnimation(.spring()) {
+            countdownStore.countdowns[index] = updated
+        }
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    /// Unpins a countdown from its Home card's context menu; the card
+    /// disappears since Home only shows pinned countdowns.
+    private func unpinCountdown(_ item: CountdownItem) {
+        guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
+        withAnimation(.spring()) {
+            countdownStore.countdowns[index].isPinned = false
+        }
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func deleteCountdown(_ item: CountdownItem) {
+        withAnimation(.spring()) {
+            countdownStore.countdowns.removeAll { $0.id == item.id }
+        }
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+            impactFeedback.impactOccurred()
+        }
+    }
+
     private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
         guard showWeather else { return nil }
         return weatherManager.weatherData[timeZoneIdentifier]?.condition
     }
 
     private var effectiveShowWeatherCondition: Bool {
-        hasLifetimeAccess && showWeatherCondition
+        showWeatherCondition
     }
 
     private var effectiveShowTemperatureIndicator: Bool {
         hasLifetimeAccess && showTemperatureIndicator
+    }
+
+    private var effectiveShowTemperatureRange: Bool {
+        hasLifetimeAccess && showTemperatureRange
     }
 
     private var effectiveShowUVIndex: Bool {
@@ -517,6 +588,7 @@ struct HomeView: View {
             showSunPosition: showSunPosition,
             showWeatherCondition: effectiveShowWeatherCondition,
             showTemperatureIndicator: effectiveShowTemperatureIndicator,
+            showTemperatureRange: effectiveShowTemperatureRange,
             showUVIndex: effectiveShowUVIndex,
             showWindDirection: effectiveShowWindDirection,
             showSunAzimuth: showSunAzimuth,
@@ -525,7 +597,8 @@ struct HomeView: View {
             showSunriseSunset: showSunriseSunset,
             showDaylight: effectiveShowDaylight,
             showTimeOverlay: effectiveShowTimeOverlay,
-            showSolarCurve: showSolarCurve
+            showSolarCurve: showSolarCurve,
+            solarCurveShowSun: solarCurveShowSun
         )
     }
 
@@ -639,66 +712,7 @@ struct HomeView: View {
     func addToCalendar(timeZoneIdentifier: String, cityName: String) {
         // Request calendar permission
         eventStore.requestFullAccessToEvents { granted, error in
-            if granted && error == nil {
-                DispatchQueue.main.async {
-                    // Create event with adjusted time
-                    let event = EKEvent(eventStore: self.eventStore)
-                    
-                    // Calculate the adjusted start time for the selected timezone
-                    let currentDate = Date()
-                    let formatter = DateFormatter()
-                    formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
-                    formatter.locale = Locale(identifier: "en_US_POSIX")
-                    
-                    // Get the current time in the target timezone
-                    let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-                    
-                    // Calculate time in target timezone adjusted by the offset
-                    let adjustedDate = currentDate.addingTimeInterval(self.timeOffset)
-                    
-                    // Set the start date
-                    event.startDate = adjustedDate
-                    
-                    // Set end date with user-configured default duration
-                    event.endDate = adjustedDate.addingTimeInterval(self.defaultEventDuration)
-                    
-                    // Set calendar - use selected calendar if available, otherwise default
-                    if !self.selectedCalendarIdentifier.isEmpty,
-                       let selectedCalendar = self.eventStore.calendars(for: .event).first(where: { $0.calendarIdentifier == self.selectedCalendarIdentifier }) {
-                        event.calendar = selectedCalendar
-                    } else {
-                        event.calendar = self.eventStore.defaultCalendarForNewEvents
-                    }
-                    
-                    // Add notes with the city and time information
-                    formatter.timeZone = targetTimeZone
-                    if self.use24HourFormat {
-                        formatter.dateFormat = "HH:mm"
-                    } else {
-                        formatter.dateFormat = "h:mm a"
-                    }
-                    let timeString = formatter.string(from: adjustedDate)
-                    
-                    // Format date - use different format for Chinese locale
-                    formatter.locale = Locale.current
-                    if Locale.current.language.languageCode?.identifier == "zh" {
-                        formatter.dateFormat = "MMMd日 E"
-                    } else {
-                        formatter.dateFormat = "E, d MMM"
-                    }
-                    let dateString = formatter.string(from: adjustedDate)
-                    
-                    // Reset locale for next iteration
-                    formatter.locale = Locale(identifier: "en_US_POSIX")
-                    
-                    event.notes = String(format: String(localized: "Time in %@: %@ · %@"), cityName, timeString, dateString)
-                    
-                    // Store the event and show the editor
-                    self.eventToEdit = event
-                    self.scheduleForTimeZone = timeZoneIdentifier
-                    self.showEventEditor = true
-                }
-            } else {
+            guard granted, error == nil else {
                 print("Calendar access denied or error: \(String(describing: error))")
                 DispatchQueue.main.async {
                     self.showCalendarPermissionAlert = true
@@ -709,11 +723,94 @@ struct HomeView: View {
                         impactFeedback.notificationOccurred(.warning)
                     }
                 }
+                return
+            }
+
+            Task { @MainActor in
+                await self.prepareAndPresentEvent(timeZoneIdentifier: timeZoneIdentifier, cityName: cityName)
             }
         }
     }
+
+    // Build the event (notes + optional Google Meet link) and present the editor
+    @MainActor
+    private func prepareAndPresentEvent(timeZoneIdentifier: String, cityName: String) async {
+        // Create event with adjusted time
+        let event = EKEvent(eventStore: eventStore)
+
+        // Calculate the adjusted start time for the selected timezone
+        let currentDate = Date()
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+
+        // Get the current time in the target timezone
+        let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+
+        // Calculate time in target timezone adjusted by the offset
+        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+
+        // Set the start date
+        event.startDate = adjustedDate
+
+        // Set end date with user-configured default duration
+        event.endDate = adjustedDate.addingTimeInterval(defaultEventDuration)
+
+        // Set calendar - use selected calendar if available, otherwise default
+        if !selectedCalendarIdentifier.isEmpty,
+           let selectedCalendar = eventStore.calendars(for: .event).first(where: { $0.calendarIdentifier == selectedCalendarIdentifier }) {
+            event.calendar = selectedCalendar
+        } else {
+            event.calendar = eventStore.defaultCalendarForNewEvents
+        }
+
+        // Add notes with the city and time information
+        formatter.timeZone = targetTimeZone
+        if use24HourFormat {
+            formatter.dateFormat = "HH:mm"
+        } else {
+            formatter.dateFormat = "h:mm a"
+        }
+        let timeString = formatter.string(from: adjustedDate)
+
+        // Format date - use different format for Chinese locale
+        formatter.locale = Locale.current
+        if Locale.current.language.languageCode?.identifier == "zh" {
+            formatter.dateFormat = "MMMd日 E"
+        } else {
+            formatter.dateFormat = "E, d MMM"
+        }
+        let dateString = formatter.string(from: adjustedDate)
+
+        // Reset locale
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+
+        // Build notes: city time first, then optionally a Google Meet link below it.
+        var noteSections: [String] = [
+            String(format: String(localized: "Time in %@: %@ · %@"), cityName, timeString, dateString)
+        ]
+        if addMeetLinkToEvents,
+           googleMeet.isSignedIn,
+           let meetLink = try? await googleMeet.createMeetLink() {
+            noteSections.append(String(localized: "Google Meet:") + "\n" + meetLink)
+        }
+        event.notes = noteSections.joined(separator: "\n\n")
+
+        // Store the event and show the editor
+        eventToEdit = event
+        scheduleForTimeZone = timeZoneIdentifier
+        showEventEditor = true
+    }
     
     // Get formatted date for city with Natural Dates setting
+    /// `currentDate + timeOffset`, floored to the whole minute.
+    ///
+    /// Sky colors and the astronomical complications (sunrise/sunset, sun/moon
+    /// position, daylight, analog clock, …) only change at minute granularity.
+    /// Feeding them a value that still carries the seconds component forces SwiftUI
+    /// to re-evaluate those (expensive) subtrees on every body pass, even when the
+    /// minute hasn't changed. Quantizing to the minute keeps identical inputs equal
+    /// so SwiftUI can skip re-rendering those subtrees.
     func getCityDate(timeZoneIdentifier: String, baseDate: Date, offset: TimeInterval) -> String {
         guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
             return ""
@@ -797,59 +894,6 @@ struct HomeView: View {
         "\(weekday.previous) [\(weekday.current)] \(weekday.next)"
     }
 
-    @ViewBuilder
-    private func additionalTimeView(for clock: WorldClock) -> some View {
-        if additionalTimeDisplay == "Weekday" {
-            if let weekday = weekdayDisplay(
-                for: clock.timeZoneIdentifier,
-                baseDate: currentDate,
-                offset: timeOffset
-            ) {
-                HStack(spacing: 5) {
-                    Text(weekday.previous)
-                        .font(.caption.weight(.semibold))
-                        .fontDesign(.rounded)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 20, height: 16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                        )
-                        .blendMode(.plusLighter)
-                        .contentTransition(.numericText())
-
-                    Text(weekday.current)
-                        .font(.caption.weight(.bold))
-                        .fontDesign(.rounded)
-                        .foregroundStyle(Color.white)
-                        .frame(width: 20, height: 16)
-                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
-                        .contentTransition(.numericText())
-
-                    Text(weekday.next)
-                        .font(.caption.weight(.semibold))
-                        .fontDesign(.rounded)
-                        .foregroundStyle(.secondary)
-                        .frame(width: 20, height: 16)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .stroke(Color.white.opacity(0.10), lineWidth: 1)
-                        )
-                        .blendMode(.plusLighter)
-                        .contentTransition(.numericText())
-                }
-            }
-        } else {
-            let additionalText = additionalText(for: clock)
-            if !additionalText.isEmpty || additionalTimeDisplay == "UTC" {
-                Text(additionalText)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .blendMode(.plusLighter)
-            }
-        }
-    }
-    
     // Copy time as text
     func copyTimeAsText(cityName: String, timeZoneIdentifier: String) {
         let formatter = DateFormatter()
@@ -1034,6 +1078,8 @@ struct HomeView: View {
             formatter.dateFormat = "h:mm"
         }
         let timeString = formatter.string(from: adjustedDate)
+        formatter.timeZone = TimeZone.current
+        let localTimeString = formatter.string(from: adjustedDate)
         
         let dateString = getCityDate(
             timeZoneIdentifier: timeZoneIdentifier,
@@ -1049,6 +1095,8 @@ struct HomeView: View {
         let snapshotView = CityCardSnapshotView(
             cityName: cityName,
             timeString: timeString,
+            localCityName: localCityName,
+            localTimeString: localTimeString,
             dateString: dateString,
             date: adjustedDate,
             timeZone: targetTimeZone,
@@ -1088,7 +1136,7 @@ struct HomeView: View {
                 .allowsHitTesting(false)
                 
                 // Blank View
-                if displayedClocks.isEmpty && !showLocalTime && !hasConfiguredHomeTimer {
+                if displayedClocks.isEmpty && !showLocalTime && !hasConfiguredHomeTimer && !hasPinnedCountdowns {
                     // Empty state view
                     ContentUnavailableView {
                         Label("Nothing here", systemImage: selectedCollectionId != nil ? "questionmark.folder" : "location.magnifyingglass")
@@ -1217,98 +1265,37 @@ struct HomeView: View {
                             )
                         }
                         
+                        // Countdown Preview Section: pinned countdowns live below the timer
+                        HomeCountdownSection(
+                            countdowns: countdownStore.countdowns,
+                            now: currentDate.addingTimeInterval(timeOffset),
+                            onTap: { item in
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.impactOccurred()
+                                }
+                                editingHomeCountdown = item
+                            },
+                            onUnpin: { item in
+                                unpinCountdown(item)
+                            }
+                        )
+                        
                         // Local Time Section
                         if showLocalTime {
                             Section {
-                                ZStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        // Top row: "Local" label and Date
-                                        HStack {
-                                            Image(systemName: "location.fill")
-                                                .font(.subheadline)
-                                                .foregroundStyle(.secondary)
-                                                .blendMode(.plusLighter)
-                                            
-                                            Spacer()
-                                            
-                                            // Weather display for local time
-                                            if showWeather {
-                                                WeatherView(
-                                                    weather: weatherManager.weatherData[TimeZone.current.identifier],
-                                                    useCelsius: useCelsius
-                                                )
-                                                .contentTransition(.numericText())
-                                            }
-                                            
-                                            Text(currentDate.formattedDate(
-                                                style: dateStyle,
-                                                timeZoneIdentifier: TimeZone.current.identifier,
-                                                timeOffset: timeOffset
-                                            ))
-                                            .font(.subheadline)
-                                            .foregroundStyle(.secondary)
-                                            .blendMode(.plusLighter)
-                                            .contentTransition(.numericText())
-                                            .clipped()
-                                        }
-                                        
-                                        // Bottom row: Location and Time (baseline aligned)
-                                        HStack(alignment: .lastTextBaseline) {
-                                            
-                                            Text(String(localized: "Local"))
-                                                .font(.headline)
-                                                .lineLimit(1)
-                                                .truncationMode(.tail)
-                                                .frame(maxWidth: hasVisibleComplication ? 120 : .infinity, alignment: .leading)
-                                                .contentTransition(.numericText())
-                                            
-                                            
-                                            Spacer()
-                                            
-                                            Text(formattedTime(for: .current))
-                                            .font(.system(size: 36))
-                                            .fontWeight(.light)
-                                            .fontDesign(.rounded)
-                                            .monospacedDigit()
-                                            .contentTransition(.numericText())
-                                            .clipped()
-                                        }
-                                        .padding(.bottom, -4)
-                                        
-                                        // Available Time Display with Progress Indicator
-                                        // Only show if enabled AND at least one weekday is selected
-                                        if hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty {
-                                            
-                                            AvailableTimeIndicator(
-                                                currentDate: currentDate,
-                                                timeOffset: timeOffset,
-                                                availableStartTime: availableStartTime,
-                                                availableEndTime: availableEndTime,
-                                                use24HourFormat: use24HourFormat,
-                                                availableWeekdays: availableWeekdays
-                                            )
-                                        }
-                                    }
-                                    .frame(minHeight: 64) // For Complication Overlays
-                                    
-                                    // Complication Overlays
-                                    ComplicationOverlayView(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZone: TimeZone.current,
-                                        options: complicationOptions,
-                                        bottomPadding: (hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty) ? 18 : 0
-                                    )
-                                    .environmentObject(weatherManager)
-                                }
-                                // Make entire row tappable
-                                .contentShape(Rectangle())
-                                // Sky Background
+                                LocalTimeRowContent(
+                                    currentDate: $currentDate,
+                                    timeOffset: $timeOffset,
+                                    complicationOptions: complicationOptions,
+                                    weatherManager: weatherManager
+                                )
                                 .listRowBackground(
-                                    showSkyDot ? SkyBackgroundView(
-                                        date: currentDate.addingTimeInterval(timeOffset),
+                                    showSkyDot ? RowSkyBackground(
                                         timeZoneIdentifier: TimeZone.current.identifier,
-                                        weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier),
-                                        showRainEffect: true
+                                        currentDate: $currentDate,
+                                        timeOffset: $timeOffset,
+                                        weatherManager: weatherManager
                                     ) : nil
                                 )
                                 .id("local-\(showSkyDot)")
@@ -1383,93 +1370,19 @@ struct HomeView: View {
                         // City list
                         ForEach(displayedClocks) { clock in
                             Section {
-                                ZStack {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        // Top row: Additional time display and Date
-                                        if additionalTimeDisplay != "None" {
-                                            HStack {
-                                                additionalTimeView(for: clock)
-                                                
-                                                Spacer()
-                                                
-                                                // Weather display for world clock
-                                                if showWeather {
-                                                    WeatherView(
-                                                        weather: weatherManager.weatherData[clock.timeZoneIdentifier],
-                                                        useCelsius: useCelsius
-                                                    )
-                                                    .contentTransition(.numericText())
-                                                }
-                                                
-                                                Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
-                                                    .font(.subheadline)
-                                                    .foregroundStyle(.secondary)
-                                                    .blendMode(.plusLighter)
-                                                    .contentTransition(.numericText())
-                                                    .clipped()
-                                            }
-                                        } else {
-                                            HStack {
-                                                Spacer()
-                                                
-                                                // Weather display for world clock (when time difference is hidden)
-                                                if showWeather {
-                                                    WeatherView(
-                                                        weather: weatherManager.weatherData[clock.timeZoneIdentifier],
-                                                        useCelsius: useCelsius
-                                                    )
-                                                    .contentTransition(.numericText())
-                                                }
-                                                
-                                                Text(getCityDate(timeZoneIdentifier: clock.timeZoneIdentifier, baseDate: currentDate, offset: timeOffset))
-                                                    .font(.subheadline)
-                                                    .foregroundStyle(.secondary)
-                                                    .contentTransition(.numericText())
-                                                    .clipped()
-                                            }
-                                        }
-                                        
-                                        // Bottom row: City name and Time (baseline aligned)
-                                        HStack(alignment: .lastTextBaseline) {
-                                            Text(getLocalizedCityName(for: clock))
-                                                .font(.headline)
-                                                .lineLimit(1)
-                                                .truncationMode(.tail)
-                                                .frame(maxWidth: hasVisibleComplication ? 120 : .infinity, alignment: .leading)
-                                                .contentTransition(.numericText())
-                                            
-                                            Spacer()
-                                            
-                                            Text(formattedTime(for: TimeZone(identifier: clock.timeZoneIdentifier) ?? .current))
-                                            .font(.system(size: 36))
-                                            .fontWeight(.light)
-                                            .fontDesign(.rounded)
-                                            .monospacedDigit()
-                                            .contentTransition(.numericText())
-                                            .clipped()
-                                        }
-                                        .padding(.bottom, -4)
-                                    }
-                                    .frame(minHeight: 64) // For Complication Overlays
-                                    
-                                    // Complication Overlays
-                                    ComplicationOverlayView(
-                                        date: currentDate.addingTimeInterval(timeOffset),
-                                        timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
-                                        options: complicationOptions,
-                                        bottomPadding: 0
-                                    )
-                                    .environmentObject(weatherManager)
-                                }
-                                // Make entire row tappable
-                                .contentShape(Rectangle())
-                                // Sky Background
+                                CityRowContent(
+                                    clock: clock,
+                                    currentDate: $currentDate,
+                                    timeOffset: $timeOffset,
+                                    complicationOptions: complicationOptions,
+                                    weatherManager: weatherManager
+                                )
                                 .listRowBackground(
-                                    showSkyDot ? SkyBackgroundView(
-                                        date: currentDate.addingTimeInterval(timeOffset),
+                                    showSkyDot ? RowSkyBackground(
                                         timeZoneIdentifier: clock.timeZoneIdentifier,
-                                        weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier),
-                                        showRainEffect: true
+                                        currentDate: $currentDate,
+                                        timeOffset: $timeOffset,
+                                        weatherManager: weatherManager
                                     ) : nil
                                 )
                                 .id("\(clock.id)-\(showSkyDot)")
@@ -1625,15 +1538,11 @@ struct HomeView: View {
                     // Sky Background Effect for System Time
                     if showLocalTime && showSkyDot {
                         VStack {
-                            SkyBackgroundView(
-                                date: currentDate.addingTimeInterval(timeOffset),
-                                timeZoneIdentifier: TimeZone.current.identifier,
-                                weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
+                            LocalSkyGlowBackground(
+                                currentDate: $currentDate,
+                                timeOffset: $timeOffset,
+                                weatherManager: weatherManager
                             )
-                            .frame(width: 500, height: 500)
-                            .blur(radius: 50)
-                            .offset(y: -250)
-                            .opacity(0.35)
                             
                             Spacer()
                         }
@@ -1649,19 +1558,6 @@ struct HomeView: View {
             .animation(.spring(), value: showSkyDot)
             .animation(.spring(), value: showLocalTime)
             .animation(.spring(), value: hasLifetimeAccess && availableTimeEnabled)
-            .animation(.spring(), value: showAnalogClock)
-            .animation(.spring(), value: showSunPosition)
-            .animation(.spring(), value: effectiveShowWeatherCondition)
-            .animation(.spring(), value: effectiveShowTemperatureIndicator)
-            .animation(.spring(), value: effectiveShowUVIndex)
-            .animation(.spring(), value: effectiveShowWindDirection)
-            .animation(.spring(), value: showSunAzimuth)
-            .animation(.spring(), value: effectiveShowMoonAzimuth)
-            .animation(.spring(), value: effectiveShowMoonSunAzimuth)
-            .animation(.spring(), value: showSunriseSunset)
-            .animation(.spring(), value: effectiveShowDaylight)
-            .animation(.spring(), value: effectiveShowTimeOverlay)
-            .animation(.spring(), value: showSolarCurve)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.spring(), value: showShakeToResetTip)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
@@ -1748,19 +1644,17 @@ struct HomeView: View {
                             Divider()
                         }
                         
-                        // Share Section - only show if there are world clocks
-                        if !worldClocks.isEmpty {
-                            Button(action: {
-                                // Provide haptic feedback if enabled
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
-                                showShareSheet = true
-                            }) {
-                                Label("Share", systemImage: "square.and.arrow.up")
+                        // Share Section - entry stays even with nothing to share
+                        Button(action: {
+                            // Provide haptic feedback if enabled
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
                             }
+                            showShareSheet = true
+                        }) {
+                            Label("Share", systemImage: "square.and.arrow.up")
                         }
                         
                         // Arrange Section - only show if there are world clocks or collections
@@ -1777,7 +1671,7 @@ struct HomeView: View {
                             }
                         }
 
-                        Section(String(localized: "Features")) {
+                        Section(String(localized: "Tools")) {
                             Button(action: {
                                 if hapticEnabled {
                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -1799,10 +1693,43 @@ struct HomeView: View {
                             }) {
                                 Label(String(localized: "Timer"), systemImage: "timer")
                             }
+
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showCountdownSheet = true
+                            }) {
+                                Label(String(localized: "Countdown"), systemImage: "hourglass")
+                            }
                         }
 
                         Divider()
-                        
+
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showComplicationsSheet = true
+                        }) {
+                            Label(String(localized: "Complications"), systemImage: "watch.analog")
+                        }
+
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showWidgetIntroSheet = true
+                        }) {
+                            Label(String(localized: "Widgets"), systemImage: "widget.small")
+                        }
+
                         // Settings Section
                         Button(action: {
                             if hapticEnabled {
@@ -1867,6 +1794,17 @@ struct HomeView: View {
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSetTimerSheet"))) { _ in
                 showSetTimerSheet = true
             }
+
+            // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)
+            .onReceive(NotificationCenter.default.publisher(for: .quickActionSetAlarm)) { _ in
+                showSetAlarmSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .quickActionSetTimer)) { _ in
+                showSetTimerSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .quickActionCountdown)) { _ in
+                showCountdownSheet = true
+            }
             
             // Rename
             .alert("Rename", isPresented: $showingRenameAlert) {
@@ -1925,15 +1863,19 @@ struct HomeView: View {
                 Text("Please allow calendar access in Settings to add events.")
             }
 
-            // Share Cities Sheet
+            // Share Cities Sheet: empty when there is no local time and no cities
             .sheet(isPresented: $showShareSheet) {
-                ShareCitiesSheet(
-                    worldClocks: $worldClocks,
-                    showSheet: $showShareSheet,
-                    currentDate: currentDate,
-                    timeOffset: timeOffset
-                )
-                .environmentObject(weatherManager)
+                if worldClocks.isEmpty && !showLocalTime {
+                    ShareCitiesEmptyView()
+                } else {
+                    ShareCitiesSheet(
+                        worldClocks: $worldClocks,
+                        showSheet: $showShareSheet,
+                        currentDate: currentDate,
+                        timeOffset: timeOffset
+                    )
+                    .environmentObject(weatherManager)
+                }
             }
             
             // Settings Sheet
@@ -2006,9 +1948,61 @@ struct HomeView: View {
 
             // Set Timer Sheet
             .sheet(isPresented: $showSetTimerSheet) {
-                SetTimerSheet(initialDurationSeconds: homeTimerConfiguredSeconds) { durationSeconds in
-                    startHomeTimer(durationSeconds: durationSeconds)
+                SetTimerSheet(
+                    initialDurationSeconds: homeTimerConfiguredSeconds,
+                    onConfirm: { durationSeconds in
+                        startHomeTimer(durationSeconds: durationSeconds)
+                    },
+                    onPlayPause: handleHomeTimerTap
+                )
+            }
+
+            // Countdown Sheet
+            .sheet(isPresented: $showCountdownSheet) {
+                CountdownSheet()
+            }
+
+            // Countdown Editor Sheet: opened by tapping a pinned card on Home
+            .sheet(item: $editingHomeCountdown) { item in
+                CountdownDetailsView(countdown: item, onDelete: {
+                    deleteCountdown(item)
+                }) { title, targetDate, emoji, photoData, isPinned, repeatFrequency, reminderTime, reminderLeadDays in
+                    updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays)
                 }
+                // Force a fresh view identity per item, otherwise SwiftUI reuses
+                // the sheet content and @State keeps the previous item's values.
+                .id(item.id)
+            }
+
+            // Complications Sheet
+            .sheet(isPresented: $showComplicationsSheet) {
+                NavigationStack {
+                    ComplicationsSettingsView(
+                        showAnalogClock: $showAnalogClock,
+                        showSunPosition: $showSunPosition,
+                        showSunAzimuth: $showSunAzimuth,
+                        showMoonAzimuth: $showMoonAzimuth,
+                        showMoonSunAzimuth: $showMoonSunAzimuth,
+                        showSunriseSunset: $showSunriseSunset,
+                        showWeatherCondition: $showWeatherCondition,
+                        showTemperatureIndicator: $showTemperatureIndicator,
+                        showTemperatureRange: $showTemperatureRange,
+                        showUVIndex: $showUVIndex,
+                        showWindDirection: $showWindDirection,
+                        showDaylight: $showDaylight,
+                        showTimeOverlay: $showTimeOverlay,
+                        showSolarCurve: $showSolarCurve,
+                        showWeather: showWeather,
+                        weatherManager: weatherManager
+                    )
+                }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.hidden)
+            }
+
+            // Widgets Sheet
+            .sheet(isPresented: $showWidgetIntroSheet) {
+                WidgetIntroSheet()
             }
             
             // Earth View
@@ -2154,5 +2148,488 @@ private final class ShakeDetectorViewController: UIViewController {
             return
         }
         onShake?()
+    }
+}
+
+// MARK: - Shared row time formatting
+// Pure helpers used by the extracted row views so that each row can compute its
+// own time/date strings from the bindings it observes (enabling localized
+// invalidation without depending on HomeView instance methods).
+fileprivate enum RowTimeFormat {
+    private static let timeFormatterCache: NSCache<NSString, DateFormatter> = {
+        let cache = NSCache<NSString, DateFormatter>()
+        cache.countLimit = 50
+        return cache
+    }()
+
+    static func timeFormatter(for timeZone: TimeZone, use24Hour: Bool) -> DateFormatter {
+        let key = "\(timeZone.identifier)_\(use24Hour)" as NSString
+        if let cached = timeFormatterCache.object(forKey: key) {
+            return cached
+        }
+        let formatter = DateFormatter()
+        formatter.timeZone = timeZone
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = use24Hour ? "HH:mm" : "h:mm"
+        timeFormatterCache.setObject(formatter, forKey: key)
+        return formatter
+    }
+
+    static func time(date: Date, offset: TimeInterval, timeZone: TimeZone, use24Hour: Bool) -> String {
+        timeFormatter(for: timeZone, use24Hour: use24Hour).string(from: date.addingTimeInterval(offset))
+    }
+
+    static func minuteQuantized(date: Date, offset: TimeInterval) -> Date {
+        let interval = date.addingTimeInterval(offset).timeIntervalSinceReferenceDate
+        return Date(timeIntervalSinceReferenceDate: (interval / 60).rounded(.down) * 60)
+    }
+
+    static func cityDate(timeZoneIdentifier: String, displayDate: Date, referenceDate: Date, dateStyle: String) -> String {
+        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
+            return ""
+        }
+        return displayDate.formattedDate(
+            style: dateStyle,
+            timeZone: targetTimeZone,
+            relativeTo: referenceDate
+        )
+    }
+
+    struct WeekdayDisplay {
+        let previous: String
+        let current: String
+        let next: String
+    }
+
+    static func weekdayDisplay(for timeZoneIdentifier: String, baseDate: Date, offset: TimeInterval) -> WeekdayDisplay? {
+        guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
+            return nil
+        }
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        let displayDate = baseDate.addingTimeInterval(offset)
+        let previousDate = calendar.date(byAdding: .day, value: -1, to: displayDate) ?? displayDate.addingTimeInterval(-86_400)
+        let nextDate = calendar.date(byAdding: .day, value: 1, to: displayDate) ?? displayDate.addingTimeInterval(86_400)
+        let previous = weekdaySymbol(for: calendar.component(.weekday, from: previousDate))
+        let current = weekdaySymbol(for: calendar.component(.weekday, from: displayDate))
+        let next = weekdaySymbol(for: calendar.component(.weekday, from: nextDate))
+        return WeekdayDisplay(previous: previous, current: current, next: next)
+    }
+
+    static func weekdaySymbol(for weekday: Int) -> String {
+        switch weekday {
+        case 1: return String(localized: "Sun")
+        case 2: return String(localized: "Mon")
+        case 3: return String(localized: "Tue")
+        case 4: return String(localized: "Wed")
+        case 5: return String(localized: "Thu")
+        case 6: return String(localized: "Fri")
+        case 7: return String(localized: "Sat")
+        default: return ""
+        }
+    }
+
+    static func weekdayInlineText(for weekday: WeekdayDisplay) -> String {
+        "\(weekday.previous) [\(weekday.current)] \(weekday.next)"
+    }
+
+    static func additionalText(for clock: WorldClock, display: String, baseDate: Date, offset: TimeInterval) -> String {
+        switch display {
+        case "Time Difference":
+            return clock.timeDifference
+        case "UTC":
+            return clock.utcOffset
+        case "Weekday":
+            guard let weekday = weekdayDisplay(for: clock.timeZoneIdentifier, baseDate: baseDate, offset: offset) else {
+                return ""
+            }
+            return weekdayInlineText(for: weekday)
+        default:
+            return ""
+        }
+    }
+}
+
+// MARK: - Extracted row views (localized invalidation)
+// Each of these reads `currentDate`/`timeOffset` through bindings so that, while
+// scrubbing time, only the visible rows recompute instead of the whole HomeView
+// body. HomeView no longer reads the per-frame time values directly.
+
+/// Sky background for a single list row, computed from the time bindings.
+/// `HomeSkyListRowBackground` only receives plain values, so its subtree is
+/// pruned on frames where the quantized date and weather did not change.
+fileprivate struct RowSkyBackground: View {
+    let timeZoneIdentifier: String
+    @Binding var currentDate: Date
+    @Binding var timeOffset: TimeInterval
+    @ObservedObject var weatherManager: WeatherManager
+    @AppStorage("showWeather") private var showWeather = false
+
+    var body: some View {
+        HomeSkyListRowBackground(
+            date: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
+            timeZoneIdentifier: timeZoneIdentifier,
+            weatherCondition: showWeather ? weatherManager.weatherData[timeZoneIdentifier]?.condition : nil
+        )
+    }
+}
+
+/// Blurred sky glow used as the screen background for the local time zone.
+fileprivate struct LocalSkyGlowBackground: View {
+    @Binding var currentDate: Date
+    @Binding var timeOffset: TimeInterval
+    @ObservedObject var weatherManager: WeatherManager
+    @AppStorage("showWeather") private var showWeather = false
+
+    var body: some View {
+        SkyBackgroundView(
+            date: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
+            timeZoneIdentifier: TimeZone.current.identifier,
+            weatherCondition: showWeather ? weatherManager.weatherData[TimeZone.current.identifier]?.condition : nil,
+            appliesCardChrome: false
+        )
+        .frame(width: 500, height: 500)
+        .blur(radius: 50)
+        .offset(y: -250)
+        .opacity(0.35)
+    }
+}
+
+/// Local time zone row content.
+///
+/// Thin wrapper: it is the only layer that reads the per-frame time bindings.
+/// It quantizes them to the minute and hands plain values to
+/// `LocalTimeRowBody`, so SwiftUI can prune the whole row subtree (via
+/// `.equatable()`) on frames where the displayed minute did not change.
+fileprivate struct LocalTimeRowContent: View {
+    @Binding var currentDate: Date
+    @Binding var timeOffset: TimeInterval
+    let complicationOptions: ComplicationDisplayOptions
+    @ObservedObject var weatherManager: WeatherManager
+
+    var body: some View {
+        LocalTimeRowBody(
+            displayDate: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
+            referenceDate: RowTimeFormat.minuteQuantized(date: currentDate, offset: 0),
+            complicationOptions: complicationOptions,
+            weatherManager: weatherManager
+        )
+        .equatable()
+    }
+}
+
+fileprivate struct LocalTimeRowBody: View, Equatable {
+    let displayDate: Date
+    let referenceDate: Date
+    let complicationOptions: ComplicationDisplayOptions
+    @ObservedObject var weatherManager: WeatherManager
+
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("useCelsius") private var useCelsius = true
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("availableTimeEnabled") private var availableTimeEnabled = false
+    @AppStorage("availableStartTime") private var availableStartTime = "09:00"
+    @AppStorage("availableEndTime") private var availableEndTime = "17:00"
+    @AppStorage("availableWeekdays") private var availableWeekdays = "2,3,4,5,6"
+
+    // Dynamic properties (@AppStorage / @ObservedObject) invalidate the view
+    // through their own dependency channel, so == only needs to cover the
+    // plain inputs coming from the wrapper.
+    static func == (lhs: LocalTimeRowBody, rhs: LocalTimeRowBody) -> Bool {
+        lhs.displayDate == rhs.displayDate
+            && lhs.referenceDate == rhs.referenceDate
+            && lhs.complicationOptions == rhs.complicationOptions
+    }
+
+    private var hasVisibleComplication: Bool { complicationOptions.hasVisibleComplication }
+    private var showsAvailableTime: Bool {
+        hasLifetimeAccess && availableTimeEnabled && !availableWeekdays.isEmpty
+    }
+
+    var body: some View {
+        ZStack {
+            VStack(alignment: .leading, spacing: 4) {
+                // Top row: "Local" label and Date
+                HStack {
+                    Image(systemName: "location.fill")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                        .blendMode(.plusLighter)
+
+                    Spacer()
+
+                    // Weather display for local time
+                    if showWeather {
+                        WeatherView(
+                            weather: weatherManager.weatherData[TimeZone.current.identifier],
+                            useCelsius: useCelsius
+                        )
+                        .contentTransition(.numericText())
+                    }
+
+                    Text(displayDate.formattedDate(
+                        style: dateStyle,
+                        timeZone: TimeZone.current,
+                        relativeTo: referenceDate
+                    ))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .contentTransition(.numericText())
+                    .clipped()
+                }
+
+                // Bottom row: Location and Time (baseline aligned)
+                HStack(alignment: .lastTextBaseline) {
+                    Text(String(localized: "Local"))
+                        .font(.headline)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: hasVisibleComplication ? 120 : .infinity, alignment: .leading)
+                        .contentTransition(.numericText())
+
+                    Spacer()
+
+                    PulsingTimeText(timeText: RowTimeFormat.time(date: displayDate, offset: 0, timeZone: .current, use24Hour: use24HourFormat))
+                        .font(.system(size: 36))
+                        .fontWeight(.light)
+                        .fontDesign(.rounded)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                        .clipped()
+                }
+                .padding(.bottom, -4)
+
+                // Available Time Display with Progress Indicator
+                if showsAvailableTime {
+                    AvailableTimeIndicator(
+                        currentDate: displayDate,
+                        timeOffset: 0,
+                        availableStartTime: availableStartTime,
+                        availableEndTime: availableEndTime,
+                        use24HourFormat: use24HourFormat,
+                        availableWeekdays: availableWeekdays
+                    )
+                }
+            }
+            .frame(minHeight: 64) // For Complication Overlays
+
+            // Complication Overlays
+            ComplicationOverlayView(
+                date: displayDate,
+                timeZone: TimeZone.current,
+                options: complicationOptions,
+                bottomPadding: showsAvailableTime ? 18 : 0
+            )
+            .environmentObject(weatherManager)
+        }
+        .animation(nil, value: complicationOptions)
+        .contentShape(Rectangle())
+    }
+}
+
+/// World clock (city) row content.
+///
+/// Thin wrapper: reads the per-frame time bindings, quantizes to the minute,
+/// and hands plain values to `CityRowBody` so unchanged rows are pruned.
+fileprivate struct CityRowContent: View {
+    let clock: WorldClock
+    @Binding var currentDate: Date
+    @Binding var timeOffset: TimeInterval
+    let complicationOptions: ComplicationDisplayOptions
+    @ObservedObject var weatherManager: WeatherManager
+
+    var body: some View {
+        CityRowBody(
+            clock: clock,
+            displayDate: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
+            referenceDate: RowTimeFormat.minuteQuantized(date: currentDate, offset: 0),
+            complicationOptions: complicationOptions,
+            weatherManager: weatherManager
+        )
+        .equatable()
+    }
+}
+
+fileprivate struct CityRowBody: View, Equatable {
+    let clock: WorldClock
+    let displayDate: Date
+    let referenceDate: Date
+    let complicationOptions: ComplicationDisplayOptions
+    @ObservedObject var weatherManager: WeatherManager
+
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
+    @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("showWeather") private var showWeather = false
+    @AppStorage("useCelsius") private var useCelsius = true
+
+    // Dynamic properties (@AppStorage / @ObservedObject) invalidate the view
+    // through their own dependency channel, so == only needs to cover the
+    // plain inputs coming from the wrapper.
+    static func == (lhs: CityRowBody, rhs: CityRowBody) -> Bool {
+        lhs.clock == rhs.clock
+            && lhs.displayDate == rhs.displayDate
+            && lhs.referenceDate == rhs.referenceDate
+            && lhs.complicationOptions == rhs.complicationOptions
+    }
+
+    private var hasVisibleComplication: Bool { complicationOptions.hasVisibleComplication }
+
+    private var cityDateText: String {
+        RowTimeFormat.cityDate(
+            timeZoneIdentifier: clock.timeZoneIdentifier,
+            displayDate: displayDate,
+            referenceDate: referenceDate,
+            dateStyle: dateStyle
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            VStack(alignment: .leading, spacing: 4) {
+                // Top row: Additional time display and Date
+                if additionalTimeDisplay != "None" {
+                    HStack {
+                        additionalTimeView
+
+                        Spacer()
+
+                        // Weather display for world clock
+                        if showWeather {
+                            WeatherView(
+                                weather: weatherManager.weatherData[clock.timeZoneIdentifier],
+                                useCelsius: useCelsius
+                            )
+                            .contentTransition(.numericText())
+                        }
+
+                        Text(cityDateText)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .blendMode(.plusLighter)
+                            .contentTransition(.numericText())
+                            .clipped()
+                    }
+                } else {
+                    HStack {
+                        Spacer()
+
+                        // Weather display for world clock (when time difference is hidden)
+                        if showWeather {
+                            WeatherView(
+                                weather: weatherManager.weatherData[clock.timeZoneIdentifier],
+                                useCelsius: useCelsius
+                            )
+                            .contentTransition(.numericText())
+                        }
+
+                        Text(cityDateText)
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .contentTransition(.numericText())
+                            .clipped()
+                    }
+                }
+
+                // Bottom row: City name and Time (baseline aligned)
+                HStack(alignment: .lastTextBaseline) {
+                    Text(clock.localizedCityName)
+                        .font(.headline)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .frame(maxWidth: hasVisibleComplication ? 120 : .infinity, alignment: .leading)
+                        .contentTransition(.numericText())
+
+                    Spacer()
+
+                    PulsingTimeText(timeText: RowTimeFormat.time(
+                        date: displayDate,
+                        offset: 0,
+                        timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? .current,
+                        use24Hour: use24HourFormat
+                    ))
+                    .font(.system(size: 36))
+                    .fontWeight(.light)
+                    .fontDesign(.rounded)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .clipped()
+                }
+                .padding(.bottom, -4)
+            }
+            .frame(minHeight: 64) // For Complication Overlays
+
+            // Complication Overlays
+            ComplicationOverlayView(
+                date: displayDate,
+                timeZone: TimeZone(identifier: clock.timeZoneIdentifier) ?? TimeZone.current,
+                options: complicationOptions,
+                bottomPadding: 0
+            )
+            .environmentObject(weatherManager)
+        }
+        .animation(nil, value: complicationOptions)
+        .contentShape(Rectangle())
+    }
+
+    @ViewBuilder
+    private var additionalTimeView: some View {
+        if additionalTimeDisplay == "Weekday" {
+            if let weekday = RowTimeFormat.weekdayDisplay(
+                for: clock.timeZoneIdentifier,
+                baseDate: displayDate,
+                offset: 0
+            ) {
+                HStack(spacing: 5) {
+                    Text(weekday.previous)
+                        .font(.caption.weight(.semibold))
+                        .fontDesign(.rounded)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20, height: 16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                        )
+                        .blendMode(.plusLighter)
+                        .contentTransition(.numericText())
+
+                    Text(weekday.current)
+                        .font(.caption.weight(.bold))
+                        .fontDesign(.rounded)
+                        .foregroundStyle(Color.white)
+                        .frame(width: 20, height: 16)
+                        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: 5, style: .continuous))
+                        .contentTransition(.numericText())
+
+                    Text(weekday.next)
+                        .font(.caption.weight(.semibold))
+                        .fontDesign(.rounded)
+                        .foregroundStyle(.secondary)
+                        .frame(width: 20, height: 16)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .stroke(Color.white.opacity(0.10), lineWidth: 1)
+                        )
+                        .blendMode(.plusLighter)
+                        .contentTransition(.numericText())
+                }
+            }
+        } else {
+            let text = RowTimeFormat.additionalText(
+                for: clock,
+                display: additionalTimeDisplay,
+                baseDate: displayDate,
+                offset: 0
+            )
+            if !text.isEmpty || additionalTimeDisplay == "UTC" {
+                Text(text)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+            }
+        }
     }
 }

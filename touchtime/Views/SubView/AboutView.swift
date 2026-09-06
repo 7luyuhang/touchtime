@@ -14,12 +14,13 @@ struct AboutView: View {
     @ObservedObject var weatherManager: WeatherManager
     @State private var showOnboarding = false
     @State private var showResetConfirmation = false
+    @State private var didResetSuccessfully = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+    @AppStorage("showLocalTime") private var showLocalTime = true
     @State private var rippleCounter: Int = 0
     @State private var rippleOrigin: CGPoint = .init(x: 50, y: 50)
     @State private var safariURL: URL?
-    @State private var scrollOffset: CGFloat = 0
     
     // UserDefaults keys
     private let worldClocksKey = "savedWorldClocks"
@@ -42,6 +43,50 @@ struct AboutView: View {
     
     var body: some View {
         List {
+            VStack(spacing: 16) {
+                Image("TouchTimeAppIcon")
+                    .resizable()
+                    .scaledToFit()
+                    .glassEffect(.clear, in:
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                    )
+                    .frame(width: 100, height: 100)
+                    .modifier(RippleEffect(at: rippleOrigin, trigger: rippleCounter))
+                    .modifier(PushEffect(trigger: rippleCounter))
+                    .onPressingChanged { point in
+                        if let point {
+                            rippleOrigin = point
+                            rippleCounter += 1
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                        }
+                    }
+
+                VStack(spacing: 4) {
+                    Text("Touch Time")
+                        .font(.title3.weight(.semibold))
+                        .foregroundStyle(.primary)
+
+                    Text(getVersionString())
+                        .foregroundColor(.secondary)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .center)
+            .listRowBackground(Color.clear)
+
+            // Local Time
+            Section(footer: Text("System time shows at the top of the list with ambient background.")) {
+                TouchTimeToggle(isOn: $showLocalTime) {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "location.circle.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                        Text("System Time")
+                    }
+                }
+            }
+
             Section {
                 // Language
                 Button(action: {
@@ -55,9 +100,16 @@ struct AboutView: View {
                             Text("Language")
                         }
                         .layoutPriority(1)
+                        
                         Spacer(minLength: 8)
-                        Text(currentLanguageName)
-                            .foregroundStyle(.secondary)
+                        
+                        HStack(spacing: 6) {
+                            Text(currentLanguageName)
+                                .foregroundStyle(.secondary)
+                            Image(systemName: "arrow.up.forward.app.fill")
+                                .font(.headline)
+                                .foregroundStyle(.tertiary)
+                        }
                     }
                 }
                 .foregroundStyle(.primary)
@@ -90,11 +142,23 @@ struct AboutView: View {
                     showResetConfirmation = true
                 }) {
                     HStack(spacing: 12) {
-                        SystemIconImage(systemName: "arrowshape.backward.fill", topColor: .gray, bottomColor: .gray, style: .plain)
-                        Text("Reset Cities")
+                        // Same metrics as SystemIconImage's plain style, but
+                        // red.gradient instead of its two-color LinearGradient
+                        Image(systemName: "arrowshape.backward.fill")
+                            .symbolRenderingMode(.monochrome)
+                            .font(.system(size: 22))
+                            .fontWeight(.semibold)
+                            .foregroundStyle(
+                                Color.red.gradient
+                                    .shadow(.inner(color: .white.opacity(0.50), radius: 0, x: 0, y: 0.50))
+                            )
+                            .frame(width: 28, height: 28)
+                        Text(didResetSuccessfully ? "Reset Successfully" : "Reset Cities")
+                            .contentTransition(.numericText())
                     }
                 }
                 .foregroundStyle(.primary)
+                .disabled(didResetSuccessfully)
                 .alert("Reset Cities", isPresented: $showResetConfirmation) {
                     Button("Cancel", role: .cancel) {}
                     Button("Reset", role: .destructive) {
@@ -139,39 +203,51 @@ struct AboutView: View {
             
             // Acknowledgements Section
             Section {
-                Link(destination: URL(string: "https://github.com/SunKit-Swift/SunKit")!) {
-                    Text("SunKit")
-                        .tint(.primary)
-                }
-
-                Link(destination: URL(string: "https://github.com/davideilmito/MoonKit")!) {
+                Button {
+                    safariURL = URL(string: "https://github.com/davideilmito/MoonKit")
+                } label: {
                     Text("MoonKit")
-                        .tint(.primary)
                 }
+                .foregroundStyle(.primary)
 
-                Link(destination: URL(string: "https://github.com/markiv/SwiftUI-Shimmer")!) {
+                Button {
+                    safariURL = URL(string: "https://github.com/markiv/SwiftUI-Shimmer")
+                } label: {
                     Text("SwiftUI-Shimmer")
-                        .tint(.primary)
                 }
+                .foregroundStyle(.primary)
 
-                Link(destination: URL(string: "https://developer.apple.com/documentation/weatherkit/")!) {
+                Button {
+                    safariURL = URL(string: "https://developer.apple.com/documentation/weatherkit/")
+                } label: {
                     Text("WeatherKit")
-                        .tint(.primary)
                 }
+                .foregroundStyle(.primary)
 
-                Link(destination: URL(string: "https://github.com/nikstar/VariableBlur")!) {
+                Button {
+                    safariURL = URL(string: "https://github.com/nikstar/VariableBlur")
+                } label: {
                     Text("VariableBlur")
-                        .tint(.primary)
                 }
+                .foregroundStyle(.primary)
 
-                Link(destination: URL(string: "https://harshil.net/blog/swiftui-rotationeffect-is-kinda-funky")!) {
+                Button {
+                    safariURL = URL(string: "https://harshil.net/blog/swiftui-rotationeffect-is-kinda-funky")
+                } label: {
                     Text("Adventures in Orienting Views")
-                        .tint(.primary)
                 }
+                .foregroundStyle(.primary)
+
+                Button {
+                    safariURL = URL(string: "https://svs.gsfc.nasa.gov/5587/")
+                } label: {
+                    Text("Moon Phase Images")
+                }
+                .foregroundStyle(.primary)
             } header: {
-                Text("Open Source Library", comment: "Credits section header")
+                Text("Open Source Library")
             } footer: {
-                Text("Thanks for these kind human beings.", comment: "Credits section footer")
+                Text("Thanks for these kind human beings.")
             }
 
             // Terms / Privacy / Copyright Section
@@ -212,49 +288,6 @@ struct AboutView: View {
 //            }
         }
         .scrollIndicators(.hidden)
-        .onScrollGeometryChange(for: CGFloat.self) { geometry in
-            geometry.contentOffset.y + geometry.contentInsets.top
-        } action: { _, newValue in
-            scrollOffset = newValue
-        }
-        .safeAreaInset(edge: .top, spacing: 0) {
-            VStack(spacing: 16) {
-                Image("TouchTimeAppIcon")
-                    .resizable()
-                    .scaledToFit()
-                    .glassEffect(.clear, in:
-                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    )
-                    .frame(width: 100, height: 100)
-                    .modifier(RippleEffect(at: rippleOrigin, trigger: rippleCounter))
-                    .modifier(PushEffect(trigger: rippleCounter))
-                    .onPressingChanged { point in
-                        if let point {
-                            rippleOrigin = point
-                            rippleCounter += 1
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                        }
-                    }
-
-                VStack(spacing: 4) {
-                    Text("Touch Time")
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.primary)
-
-                    Text(getVersionString())
-                        .foregroundColor(.secondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .center)
-            .padding(.vertical)
-            .padding(.top)
-            .blur(radius: min(max(scrollOffset, CGFloat(0)) / CGFloat(20), CGFloat(5)))
-            .opacity(Double(max(0, 1 - max(scrollOffset, CGFloat(0)) / CGFloat(150))))
-        }
         .navigationTitle("About")
         .navigationBarTitleDisplayMode(.inline)
         
@@ -271,19 +304,7 @@ struct AboutView: View {
                         showOnboarding = false
                     }
                 }
-            ), weatherManager: weatherManager)
-            .overlay(alignment: .topTrailing) {
-                Button(action: {
-                    showOnboarding = false
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
-                        .glassEffect(.clear.interactive())
-                }
-                .padding(.horizontal)
-            }
+            ), weatherManager: weatherManager, isReviewing: true)
         }
     }
     
@@ -318,6 +339,10 @@ struct AboutView: View {
         // Clear selected collection
         UserDefaults.standard.removeObject(forKey: "selectedCollectionId")
         
+        // Clear hourly notification city selection (old ids no longer exist)
+        UserDefaults.standard.removeObject(forKey: HourlyNotificationManager.selectedCityIdsKey)
+        HourlyNotificationManager.shared.reschedule()
+        
         // Post notification to reset scroll time
         NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
         
@@ -326,6 +351,17 @@ struct AboutView: View {
             let impactFeedback = UINotificationFeedbackGenerator()
             impactFeedback.prepare()
             impactFeedback.notificationOccurred(.success)
+        }
+        
+        // Show success feedback, then revert after a short delay
+        withAnimation {
+            didResetSuccessfully = true
+        }
+        Task {
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation {
+                didResetSuccessfully = false
+            }
         }
     }
 }

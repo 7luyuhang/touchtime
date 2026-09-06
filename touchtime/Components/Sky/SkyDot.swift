@@ -19,8 +19,11 @@ struct SkyDotView: View {
     }
     
     var body: some View {
+        // Reuse a single `SkyColorGradient` instead of constructing one per access
+        // (each init does Calendar copies + dateComponents).
+        let gradient = skyColorGradient
         Capsule(style: .continuous)
-            .fill(skyColorGradient.linearGradient())
+            .fill(gradient.linearGradient())
             .frame(width: 24, height: 16)
 //            .overlay(
 //                Capsule(style: .continuous)
@@ -28,6 +31,6 @@ struct SkyDotView: View {
 //                    .blendMode(.plusLighter)
 //            )
             .glassEffect(.clear)
-            .animation(.easeInOut(duration: 0.5), value: skyColorGradient.animationValue)
+            .animation(.easeInOut(duration: 0.5), value: gradient.animationValue)
     }
 }

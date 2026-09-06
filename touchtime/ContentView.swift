@@ -8,6 +8,13 @@
 import SwiftUI
 
 struct ContentView: View {
+    private enum MainTab: Hashable {
+        case list
+        case clock
+        case search
+    }
+
+    @State private var selectedTab: MainTab = .list
     @State private var worldClocks: [WorldClock] = []
     @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
     @StateObject private var weatherManager = WeatherManager()
@@ -24,8 +31,8 @@ struct ContentView: View {
     
     var body: some View {
         if hasCompletedOnboarding {
-            TabView {
-            Tab(String(localized: "List"), systemImage: "list.bullet") {
+            TabView(selection: $selectedTab) {
+            Tab(String(localized: "List"), systemImage: "list.bullet", value: MainTab.list) {
                 HomeView(
                     worldClocks: $worldClocks,
                     timeOffset: $timeOffset,
@@ -34,7 +41,7 @@ struct ContentView: View {
                 )
             }
             
-            Tab(String(localized: "Clock"), systemImage: "clock") {
+            Tab(String(localized: "Clock"), systemImage: "clock", value: MainTab.clock) {
                 AnalogClockFullView(
                     worldClocks: $worldClocks,
                     timeOffset: $timeOffset,
@@ -43,7 +50,7 @@ struct ContentView: View {
                 )
             }
             
-            Tab(role: .search) {
+            Tab(value: MainTab.search, role: .search) {
                 SearchTabView(worldClocks: $worldClocks)
                     .onAppear {
                         if hapticEnabled {
@@ -59,6 +66,25 @@ struct ContentView: View {
             .tabViewStyle(.automatic)
             .onAppear {
                 loadWorldClocks()
+            }
+            // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)
+            // land on the List tab, where HomeView presents the matching sheet.
+            // The publisher also delivers the pending value on subscription,
+            // which covers cold launches.
+            .onReceive(QuickActionsManager.shared.$pendingAction) { action in
+                guard let action else { return }
+                selectedTab = .list
+                DispatchQueue.main.async {
+                    QuickActionsManager.shared.pendingAction = nil
+                    switch action {
+                    case .setAlarm:
+                        NotificationCenter.default.post(name: .quickActionSetAlarm, object: nil)
+                    case .setTimer:
+                        NotificationCenter.default.post(name: .quickActionSetTimer, object: nil)
+                    case .countdown:
+                        NotificationCenter.default.post(name: .quickActionCountdown, object: nil)
+                    }
+                }
             }
         } else {
             OnboardingView(

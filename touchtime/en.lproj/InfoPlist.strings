@@ -6,3 +6,6 @@
 
 /* AlarmKit - shown when user sets alarms in app */
 "NSAlarmKitUsageDescription" = "Allow alarm access to let you set local alarms.";
+
+/* Home Screen quick actions - shown when user long-presses the app icon */
+"Set Timer" = "Set Timer";

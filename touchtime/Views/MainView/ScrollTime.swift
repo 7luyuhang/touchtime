@@ -10,6 +10,8 @@ import EventKit
 import EventKitUI
 import CoreHaptics
 import StoreKit
+import Combine
+import QuartzCore
 
 struct ScrollTimeView: View {
     enum ExpandedControlsMode {
@@ -40,21 +42,34 @@ struct ScrollTimeView: View {
     @State private var hapticEngine: CHHapticEngine?
     @State private var lastHapticOffset: CGFloat = 0
     @State private var hapticPlayer: CHHapticPatternPlayer?
-    @State private var inertiaTimer: Timer?
     @State private var inertiaVelocity: CGFloat = 0
     @State private var lastInertiaHapticOffset: TimeInterval = 0
+    @State private var inertiaActive = false
+    // Latest offset requested by an in-progress scrub / inertia frame. It is
+    // flushed to the shared `timeOffset` binding at most once per display frame
+    // (via `frameDriver`), so the city list re-renders no more than once per frame
+    // even though the drag gesture and inertia integrator fire far more often.
+    @State private var pendingScrubOffset: TimeInterval?
+    @State private var isDragging = false
+    @State private var frameDriver = ScrollTimeFrameDriver()
+    @State private var showTimeOffsetAdjustmentSheet = false
+    @State private var pendingOffsetDirection: ScrollTimeOffsetDirection = .increase
+    @State private var pendingOffsetHours = 0
+    @State private var pendingOffsetMinutes = 0
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
-    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = true
+    @AppStorage("showCitiesInNotes") private var showCitiesInNotes = false
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
+    @AppStorage("addMeetLinkToEvents") private var addMeetLinkToEvents = false
     @AppStorage("hasRequestedReviewAfterFirstReset") private var hasRequestedReviewAfterFirstReset = false
     @AppStorage("resetCount") private var resetCount: Int = 0
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @Environment(\.requestReview) private var requestReview
     @Namespace private var glassNamespace
     @State private var showCalendarPermissionAlert = false
+    @ObservedObject private var googleMeet = GoogleMeetManager.shared
     
     // Calculate hours from drag offset
     func hoursFromOffset(_ offset: CGFloat) -> Double {
@@ -267,15 +282,23 @@ struct ScrollTimeView: View {
     
     // Stop any ongoing inertia animation
     func stopInertia() {
-        inertiaTimer?.invalidate()
-        inertiaTimer = nil
+        inertiaActive = false
         inertiaVelocity = 0
+        // If the user isn't actively dragging there is no more work for the
+        // per-frame driver, so drop any pending push and shut it down.
+        if !isDragging {
+            pendingScrubOffset = nil
+            frameDriver.stop()
+        }
     }
     
     // Start inertia scroll animation
     func startInertiaScroll(velocity: CGFloat) {
-        // Stop any existing inertia
-        stopInertia()
+        // Cancel any existing inertia, but keep the frame driver alive — we are
+        // about to need it again (either for inertia or to flush the final drag
+        // position).
+        inertiaActive = false
+        inertiaVelocity = 0
         
         // Only start inertia if velocity is significant enough
         guard abs(velocity) > 200 else { return }
@@ -287,36 +310,53 @@ struct ScrollTimeView: View {
         // Initialize haptic tracking
         lastInertiaHapticOffset = accumulatedOffset
         
-        // Use a timer for smooth deceleration (60 fps)
-        let frameInterval: TimeInterval = 1.0 / 60.0
+        // Advance the inertia from the shared per-frame driver so the list still
+        // sees at most one update per frame.
+        inertiaActive = true
+        frameDriver.start()
+    }
+    
+    // Per-frame integration of the inertia velocity. Expressed in real time so it
+    // keeps the previous 0.96-per-frame-at-60fps feel identically on 60 Hz and
+    // 120 Hz (ProMotion) displays.
+    private func advanceInertia(dt: CFTimeInterval) {
+        guard inertiaActive else { return }
         
-        // Create timer and add to .common mode so it continues running during List scrolling
-        let timer = Timer(timeInterval: frameInterval, repeats: true) { [self] timer in
-            let decelerationRate: CGFloat = 0.96
-            inertiaVelocity *= decelerationRate
-            
-            // Stop when velocity is negligible
-            if abs(inertiaVelocity) < 5 {
-                timer.invalidate()
-                inertiaTimer = nil
-                return
-            }
-            
-            // Calculate time change from velocity
-            // velocity is in points/second, convert to hours then to seconds
-            let deltaPoints = inertiaVelocity * CGFloat(frameInterval)
-            let deltaHours = hoursFromOffset(deltaPoints)
-            let deltaSeconds = deltaHours * 3600
-            
-            // Update offsets
-            accumulatedOffset += deltaSeconds
-            commitTimeOffset(accumulatedOffset)
-            
-            // Play haptic during inertia scroll
-            checkAndPlayInertiaHapticTick()
+        let decelerationPerSecond = pow(0.96, 60.0)
+        inertiaVelocity *= CGFloat(pow(decelerationPerSecond, Double(dt)))
+        
+        // Stop when velocity is negligible
+        if abs(inertiaVelocity) < 5 {
+            inertiaActive = false
+            inertiaVelocity = 0
+            return
         }
-        RunLoop.current.add(timer, forMode: .common)
-        inertiaTimer = timer
+        
+        // velocity is in points/second, convert to hours then to seconds
+        let deltaPoints = inertiaVelocity * CGFloat(dt)
+        let deltaSeconds = hoursFromOffset(deltaPoints) * 3600
+        
+        accumulatedOffset += deltaSeconds
+        pendingScrubOffset = accumulatedOffset
+        
+        // Play haptic during inertia scroll
+        checkAndPlayInertiaHapticTick()
+    }
+    
+    // Called once per display frame by `frameDriver`: advance inertia (if any) and
+    // push the most recent offset to the list a single time.
+    private func handleFrameTick(dt: CFTimeInterval) {
+        advanceInertia(dt: dt)
+        
+        if let pending = pendingScrubOffset {
+            pendingScrubOffset = nil
+            commitTimeOffset(pending)
+        }
+        
+        // No drag, no inertia, nothing buffered → nothing to do; stop the driver.
+        if !isDragging && !inertiaActive && pendingScrubOffset == nil {
+            frameDriver.stop()
+        }
     }
     
     // Generate notes text with selected cities and their times
@@ -370,42 +410,12 @@ struct ScrollTimeView: View {
     func addToCalendar() {
         // Request calendar permission
         eventStore.requestFullAccessToEvents { granted, error in
-            if granted && error == nil {
-                DispatchQueue.main.async {
-                    // Create event with adjusted time
-                    let event = EKEvent(eventStore: self.eventStore)
-                    
-                    // Calculate the adjusted start time
-                    let currentDate = Date()
-                    let startDate = currentDate.addingTimeInterval(self.timeOffset)
-                    event.startDate = startDate
-                    
-                    // Set end date with user-configured default duration
-                    event.endDate = startDate.addingTimeInterval(self.defaultEventDuration)
-                    
-                    // Set calendar - use selected calendar if available, otherwise default
-                    if !self.selectedCalendarIdentifier.isEmpty,
-                       let selectedCalendar = self.eventStore.calendars(for: .event).first(where: { $0.calendarIdentifier == self.selectedCalendarIdentifier }) {
-                        event.calendar = selectedCalendar
-                    } else {
-                        event.calendar = self.eventStore.defaultCalendarForNewEvents
-                    }
-                    
-                    // Add notes with selected cities and their times
-                    if let notesText = self.generateCityNotesText() {
-                        event.notes = notesText
-                    }
-                    
-                    // Store the event and show the editor
-                    self.eventToEdit = event
-                    self.showEventEditor = true
-                }
-            } else {
+            guard granted, error == nil else {
                 print("Calendar access denied or error: \(String(describing: error))")
                 DispatchQueue.main.async {
                     // Show permission alert
                     self.showCalendarPermissionAlert = true
-                    
+
                     // Provide haptic feedback on permission denied if enabled
                     if self.hapticEnabled {
                         let impactFeedback = UINotificationFeedbackGenerator()
@@ -413,8 +423,54 @@ struct ScrollTimeView: View {
                         impactFeedback.notificationOccurred(.warning)
                     }
                 }
+                return
+            }
+
+            Task { @MainActor in
+                await self.prepareAndPresentEvent()
             }
         }
+    }
+
+    // Build the event (notes + optional Google Meet link) and present the editor
+    @MainActor
+    private func prepareAndPresentEvent() async {
+        // Create event with adjusted time
+        let event = EKEvent(eventStore: eventStore)
+
+        // Calculate the adjusted start time
+        let startDate = Date().addingTimeInterval(timeOffset)
+        event.startDate = startDate
+
+        // Set end date with user-configured default duration
+        event.endDate = startDate.addingTimeInterval(defaultEventDuration)
+
+        // Set calendar - use selected calendar if available, otherwise default
+        if !selectedCalendarIdentifier.isEmpty,
+           let selectedCalendar = eventStore.calendars(for: .event).first(where: { $0.calendarIdentifier == selectedCalendarIdentifier }) {
+            event.calendar = selectedCalendar
+        } else {
+            event.calendar = eventStore.defaultCalendarForNewEvents
+        }
+
+        // Build notes: selected cities and their times first, then a Google Meet
+        // link on its own line below them.
+        var noteSections: [String] = []
+        if let cityNotes = generateCityNotesText() {
+            noteSections.append(cityNotes)
+        }
+        if addMeetLinkToEvents,
+           googleMeet.isSignedIn,
+           let meetLink = try? await googleMeet.createMeetLink() {
+            noteSections.append(String(localized: "Google Meet:") + "\n" + meetLink)
+        }
+        if !noteSections.isEmpty {
+            event.notes = noteSections.joined(separator: "\n\n")
+        }
+
+        // Store the event and show the editor
+        eventToEdit = event
+        showEventEditor = true
     }
     
     // Reset time offset
@@ -455,11 +511,25 @@ struct ScrollTimeView: View {
     
     // MARK: - Sub Views
     
-    /// Dragging indicator with dots and chevrons
+    /// Dragging indicator with the tick tape and chevrons
     @ViewBuilder
     private var draggingIndicator: some View {
         ZStack {
-            ScrollTimeDotsIndicator()
+            // The tape tracks the committed offset (flushed once per display
+            // frame while dragging), converted at the drag mapping of
+            // 15 points per hour so it moves 1:1 with the finger.
+            ScrollTimeDotsIndicator(scrollOffset: CGFloat(timeOffset / 3600) * 15)
+                .transaction { transaction in
+                    // While actively scrubbing the tape must track raw, so
+                    // strip any animation the outer value-keyed springs try
+                    // to inject. This also cancels a leftover reset spring
+                    // when the indicator is re-entered mid-transition
+                    // (slide → reset → slide quickly), which otherwise
+                    // replays as a sweep before snapping back to the finger.
+                    if isDragging || inertiaActive {
+                        transaction.animation = nil
+                    }
+                }
             HStack {
                 Image(systemName: "chevron.left")
                     .fontWeight(.semibold)
@@ -557,6 +627,34 @@ struct ScrollTimeView: View {
         }
     }
 
+    private func prepareTimeOffsetAdjustmentSheet() {
+        stopInertia()
+
+        let snappedOffset = snappedToWholeMinute(timeOffset)
+        let totalMinutes = Int(abs(snappedOffset) / 60)
+        pendingOffsetDirection = snappedOffset >= 0 ? .increase : .decrease
+        pendingOffsetHours = min(totalMinutes / 60, 24)
+        pendingOffsetMinutes = totalMinutes % 60
+    }
+
+    private func confirmTimeOffsetAdjustment() {
+        let totalMinutes = pendingOffsetHours * 60 + pendingOffsetMinutes
+        let signedOffset = TimeInterval(totalMinutes * 60 * pendingOffsetDirection.rawValue)
+
+        stopInertia()
+        withAnimation(.spring()) {
+            accumulatedOffset = signedOffset
+            commitTimeOffset(signedOffset)
+            dragOffset = 0
+            lastHapticOffset = 0
+            lastInertiaHapticOffset = 0
+            showButtons = false
+        }
+
+        showTimeOffsetAdjustmentSheet = false
+        triggerControlHaptic(style: .soft)
+    }
+
     private var resolvedTimerPlayPauseTitle: String {
         if let timerPlayPauseTitle {
             return timerPlayPauseTitle
@@ -583,8 +681,12 @@ struct ScrollTimeView: View {
         }
         .padding(.horizontal, 16)
         .font(.subheadline)
-        .animation(.spring(duration: 0.25), value: dragOffset)
-        .animation(.spring(duration: 0.25), value: timeOffset)
+        // Animate only the local indicator swap (dragging vs. idle), keyed on the
+        // boolean that drives it. Keying on the continuous `dragOffset`/`timeOffset`
+        // values re-fired this spring every frame / every minute-crossing and, for the
+        // shared `timeOffset` binding, risked dragging the whole dependent tree into
+        // the transaction. The boolean flips only when the indicator actually changes.
+        .animation(.spring(duration: 0.25), value: dragOffset != 0 || timeOffset != 0)
         .frame(maxWidth: .infinity)
         .frame(height: controlHeight)
         .contentShape(Rectangle())
@@ -784,9 +886,17 @@ struct ScrollTimeView: View {
             }
             .buttonStyle(.plain)
 
-            Text(formattedTimeOffset(timeOffset))
-                .font(.footnote.weight(.semibold))
-                .monospacedDigit()
+            Button {
+                prepareTimeOffsetAdjustmentSheet()
+                showTimeOffsetAdjustmentSheet = true
+                triggerControlHaptic(style: .soft)
+            } label: {
+                Text(formattedTimeOffset(timeOffset))
+                    .font(.footnote.weight(.semibold))
+                    .monospacedDigit()
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
 
             // Reset button
             Button(action: {
@@ -819,13 +929,19 @@ struct ScrollTimeView: View {
     private var scrollDragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
+                isDragging = true
                 stopInertia()
                 dragOffset = value.translation.width
                 let hours = hoursFromOffset(dragOffset)
-                commitTimeOffset(accumulatedOffset + hours * 3600)
+                // Don't write `timeOffset` here. Buffer the desired value and let
+                // the per-frame driver flush it, coalescing the high-frequency drag
+                // callbacks into at most one list update per frame.
+                pendingScrubOffset = accumulatedOffset + hours * 3600
+                frameDriver.start()
                 checkAndPlayHapticTick()
             }
             .onEnded { value in
+                isDragging = false
                 lastHapticOffset = 0
                 
                 if hapticEnabled {
@@ -836,6 +952,7 @@ struct ScrollTimeView: View {
 
                 let hours = hoursFromOffset(dragOffset)
                 accumulatedOffset += hours * 3600
+                pendingScrubOffset = accumulatedOffset
                 let velocity = value.velocity.width
 
                 withAnimation(.spring()) {
@@ -843,6 +960,9 @@ struct ScrollTimeView: View {
                 }
 
                 startInertiaScroll(velocity: velocity)
+                // Keep the driver running to flush the final position (and to run
+                // inertia if it started).
+                frameDriver.start()
             }
     }
     
@@ -867,6 +987,9 @@ struct ScrollTimeView: View {
         }
         .animation(.spring(), value: isExpanded)
         .animation(.spring(), value: timeOffset != 0)
+        .onReceive(frameDriver.publisher) { dt in
+            handleFrameTick(dt: dt)
+        }
         .onAppear {
             if !continuousScrollMode {
                 continuousScrollMode = true
@@ -875,7 +998,9 @@ struct ScrollTimeView: View {
             prepareHaptics()
         }
         .onDisappear {
+            isDragging = false
             stopInertia()
+            frameDriver.stop()
             hapticEngine?.stop()
         }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.willEnterForegroundNotification)) { _ in
@@ -920,10 +1045,22 @@ struct ScrollTimeView: View {
         }
         .onChange(of: timeOffset) { _, newValue in
             if dragOffset == 0,
-               inertiaTimer == nil,
+               !inertiaActive,
                newValue != snappedToWholeMinute(accumulatedOffset) {
                 accumulatedOffset = newValue
             }
+        }
+        .sheet(isPresented: $showTimeOffsetAdjustmentSheet) {
+            ScrollTimeOffsetAdjustmentSheet(
+                direction: $pendingOffsetDirection,
+                hours: $pendingOffsetHours,
+                minutes: $pendingOffsetMinutes,
+                onClose: {
+                    showTimeOffsetAdjustmentSheet = false
+                    triggerControlHaptic(style: .soft)
+                },
+                onConfirm: confirmTimeOffsetAdjustment
+            )
         }
         .sheet(isPresented: $showEventEditor) {
             EventEditView(
@@ -946,29 +1083,104 @@ struct ScrollTimeView: View {
     }
 }
 
-// MARK: - Static Dots Indicator
-struct ScrollTimeDotsIndicator: View {
-    // Pre-calculated static values - computed once
-    private static let dotData: [(opacity: Double, blur: CGFloat)] = {
-        let center = 11.5
-        let maxDistance = 11.5
-        return (0..<24).map { index in
-            let distance = abs(Double(index) - center)
-            let opacity = 1.0 - (distance / maxDistance)
-            let blur = CGFloat((distance / maxDistance) * 1.0)
-            return (opacity, blur)
-        }
-    }()
-    
+// MARK: - Per-Frame Driver
+/// Drives at most one callback per display refresh via `CADisplayLink`.
+///
+/// Used to throttle how often time scrubbing pushes a new `timeOffset` to the
+/// city list: the drag gesture and inertia integrator can fire much faster than
+/// the screen refreshes, so they only buffer the latest value and this driver
+/// flushes it once per frame. Because `CADisplayLink` callbacks are skipped when
+/// the main thread is busy, list updates also self-throttle under heavy load.
+final class ScrollTimeFrameDriver: NSObject {
+    private var displayLink: CADisplayLink?
+    private var lastTimestamp: CFTimeInterval = 0
+    /// Emits the elapsed time (seconds) since the previous frame, on the main thread.
+    let publisher = PassthroughSubject<CFTimeInterval, Never>()
+
+    func start() {
+        guard displayLink == nil else { return }
+        lastTimestamp = 0
+        let link = CADisplayLink(target: self, selector: #selector(step(_:)))
+        link.add(to: .main, forMode: .common)
+        displayLink = link
+    }
+
+    func stop() {
+        displayLink?.invalidate()
+        displayLink = nil
+        lastTimestamp = 0
+    }
+
+    @objc private func step(_ link: CADisplayLink) {
+        let now = link.timestamp
+        let dt = lastTimestamp == 0 ? link.duration : now - lastTimestamp
+        lastTimestamp = now
+        publisher.send(dt)
+    }
+
+    deinit {
+        displayLink?.invalidate()
+    }
+}
+
+// MARK: - Ticks Indicator
+/// Ruler-style tick tape inside the scrub pill. The ticks translate with
+/// `scrollOffset` and wrap seamlessly, so the tape appears to move under the
+/// finger while scrubbing; every 4th tick is a taller major graduation, like
+/// a tape measure. With the default offset of 0 it renders as a static row.
+struct ScrollTimeDotsIndicator: View, Animatable {
+    /// Horizontal tape position in points; positive moves the ticks right.
+    var scrollOffset: CGFloat = 0
+
+    // Animatable so `withAnimation` changes (e.g. reset springing the offset
+    // back to zero) glide the tape instead of snapping it.
+    var animatableData: CGFloat {
+        get { scrollOffset }
+        set { scrollOffset = newValue }
+    }
+
+    // 2pt ticks every 10pt: the same density as the previous static row of
+    // 24 dots with 8pt gaps.
+    private static let tickSpacing: CGFloat = 10
+    private static let tickWidth: CGFloat = 2
+    private static let minorHeight: CGFloat = 8
+    private static let majorHeight: CGFloat = 12
+    /// Four short ticks between each taller major tick (period of five).
+    private static let majorInterval = 5
+
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(0..<24, id: \.self) { index in
-                Capsule()
-                    .fill(.primary.opacity(Self.dotData[index].opacity))
-                    .frame(width: 2, height: 12)
-                    .blur(radius: Self.dotData[index].blur)
+        Canvas { context, size in
+            let halfWidth = size.width / 2
+            let midY = size.height / 2
+
+            // Global tick indices whose x position falls inside the canvas
+            let firstIndex = Int(floor((-Self.tickWidth - scrollOffset) / Self.tickSpacing))
+            let lastIndex = Int(ceil((size.width + Self.tickWidth - scrollOffset) / Self.tickSpacing))
+
+            for index in firstIndex...lastIndex {
+                let x = CGFloat(index) * Self.tickSpacing + scrollOffset
+                // Same center-out linear fade as the previous static dots
+                let opacity = max(0, 1 - abs(x - halfWidth) / halfWidth)
+                guard opacity > 0 else { continue }
+
+                let height = index.isMultiple(of: Self.majorInterval)
+                    ? Self.majorHeight
+                    : Self.minorHeight
+                let rect = CGRect(
+                    x: x - Self.tickWidth / 2,
+                    y: midY - height / 2,
+                    width: Self.tickWidth,
+                    height: height
+                )
+                context.fill(
+                    Capsule().path(in: rect),
+                    with: .color(.primary.opacity(opacity))
+                )
             }
         }
+        // Same footprint as the previous 24-dot row (24 × 2pt + 23 × 8pt)
+        .frame(width: 232, height: Self.majorHeight)
+        .allowsHitTesting(false)
     }
 }
 

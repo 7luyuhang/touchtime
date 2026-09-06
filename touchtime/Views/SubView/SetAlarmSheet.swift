@@ -21,7 +21,6 @@ struct SetAlarmSheet: View {
     @State private var errorMessage = ""
     @State private var showErrorAlert = false
     @State private var showPermissionAlert = false
-    @State private var showRemoveAllConfirmationDialog = false
     @State private var showRenameEventAlert = false
     @State private var renameEventTitleInput = ""
     @State private var renameTargetRecordID: UUID? = nil
@@ -116,22 +115,35 @@ struct SetAlarmSheet: View {
                                 Divider()
                             }
 
-                            Button(role: .destructive) {
-                                showRemoveAllConfirmationDialog = true
+                            Section(String(localized: "Action")) {
+                                Button {
+                                    Task {
+                                        await enableAllRecords()
+                                    }
+                                } label: {
+                                    Label(String(localized: "Turn On All"), systemImage: "bell")
+                                }
+
+                                Button {
+                                    disableAllRecords()
+                                } label: {
+                                    Label(String(localized: "Turn Off All"), systemImage: "bell.slash")
+                                }
+                            }
+
+                            Divider()
+
+                            Menu {
+                                Button(role: .destructive) {
+                                    deleteAllRecords()
+                                } label: {
+                                    Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                                }
                             } label: {
                                 Label(String(localized: "Remove All"), systemImage: "minus.circle")
                             }
                         } label: {
                             Image(systemName: "ellipsis")
-                        }
-                        .confirmationDialog(
-                            String(localized: "Are you sure want to remove all alarms?"),
-                            isPresented: $showRemoveAllConfirmationDialog,
-                            titleVisibility: .visible
-                        ) {
-                            Button(String(localized: "Remove"), role: .destructive) {
-                                deleteAllRecords()
-                            }
                         }
                     }
                 }
@@ -327,8 +339,12 @@ struct SetAlarmSheet: View {
                             
                             Divider()
 
-                            Button(role: .destructive) {
-                                deleteRecord(record)
+                            Menu {
+                                Button(role: .destructive) {
+                                    deleteRecord(record)
+                                } label: {
+                                    Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                                }
                             } label: {
                                 Label(String(localized: "Remove"), systemImage: "minus.circle")
                             }
@@ -470,6 +486,11 @@ struct SetAlarmSheet: View {
 
     @MainActor
     private func synchronizeWithAlarmUpdates(_ alarms: [Alarm]) {
+        // Reload first: a record saved after this sheet loaded (e.g. an alarm
+        // just created from CityTimeAdjustmentSheet) would otherwise stay
+        // invisible and be clobbered when the stale copy is saved below.
+        loadAlarmRecords()
+
         let activeAlarmIDs = Set(alarms.map(\.id))
         var didChange = false
 
@@ -584,6 +605,56 @@ struct SetAlarmSheet: View {
         }
 
         alarmRecords.removeAll()
+        saveAlarmRecords()
+        triggerHaptic()
+    }
+
+    @MainActor
+    private func enableAllRecords() async {
+        guard await ensureAuthorizationForAlarmActions() else { return }
+
+        var firstError: Error? = nil
+
+        for index in alarmRecords.indices where !alarmRecords[index].isEnabled {
+            let record = alarmRecords[index]
+            do {
+                // Avoid duplicate-ID failures if a system alarm with the same ID still exists.
+                try? alarmManager.cancel(id: record.id)
+                try await AlarmSupport.scheduleAlarm(
+                    id: record.id,
+                    hour: record.hour,
+                    minute: record.minute,
+                    eventTitle: record.eventTitle,
+                    repeatRule: record.repeatRule,
+                    repeatWeekdays: record.repeatWeekdays,
+                    using: alarmManager
+                )
+                alarmRecords[index].isEnabled = true
+            } catch {
+                if firstError == nil {
+                    firstError = error
+                }
+            }
+        }
+
+        saveAlarmRecords()
+        synchronizeWithSystemAlarms()
+        triggerHaptic()
+
+        if let firstError {
+            presentError(firstError)
+        }
+    }
+
+    @MainActor
+    private func disableAllRecords() {
+        // Same fire-and-forget cancel as deleteRecord: a missing system
+        // alarm just means it is already off.
+        for index in alarmRecords.indices where alarmRecords[index].isEnabled {
+            try? alarmManager.cancel(id: alarmRecords[index].id)
+            alarmRecords[index].isEnabled = false
+        }
+
         saveAlarmRecords()
         triggerHaptic()
     }

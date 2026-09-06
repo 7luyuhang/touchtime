@@ -34,6 +34,10 @@ struct HomeTimerSection: View {
         return Date(timeIntervalSince1970: endDateEpoch)
     }
 
+    private var isTimerRunning: Bool {
+        !isPaused && remainingSeconds(at: Date()) > 0
+    }
+
     private func remainingSeconds(at date: Date) -> Int {
         if isPaused {
             return max(0, min(pausedRemainingSeconds, 59 * 60 + 59))
@@ -121,7 +125,7 @@ struct HomeTimerSection: View {
                         Image(systemName: symbol)
                             .font(.title2.weight(.semibold))
                             .foregroundStyle(.white)
-                            .contentTransition(.symbolEffect(.replace))
+                            .contentTransition(.symbolEffect(.replace, options: .speed(2.0)))
                             .animation(.spring(), value: symbol)
                             .frame(width: complicationButtonSize, height: complicationButtonSize)
                     }
@@ -144,10 +148,12 @@ struct HomeTimerSection: View {
 //                .tint(.orange)
             }
             .contextMenu {
-                Button(action: onRename) {
-                    Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
+                if !isTimerRunning {
+                    Button(action: onRename) {
+                        Label(String(localized: "Rename"), systemImage: "pencil.tip.crop.circle")
+                    }
+                    Divider()
                 }
-                Divider()
                 Button(action: onReset) {
                     Label(String(localized: "Reset"), systemImage: "arrow.counterclockwise")
                 }

@@ -95,7 +95,7 @@ struct TimePreviewCard<OverlayContent: View>: View {
 
                     Spacer()
 
-                    Text(timeText)
+                    PulsingTimeText(timeText: timeText)
                         .font(.system(size: 36))
                         .fontWeight(.light)
                         .fontDesign(.rounded)
@@ -190,6 +190,49 @@ struct TimePreviewCard<OverlayContent: View>: View {
             return String(localized: "Sat")
         default:
             return ""
+        }
+    }
+}
+
+// MARK: - Seconds Pulse time text
+
+/// Time text whose ":" separator pulses once per second as a seconds
+/// indicator when the "Seconds Pulse" setting is enabled.
+/// Font/weight/design modifiers applied by the caller propagate through
+/// the environment, so it drops in wherever a plain `Text` was used.
+struct PulsingTimeText: View {
+    let timeText: String
+    @AppStorage("secondsPulse") private var secondsPulse = false
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
+
+    // Anchored to a whole wall-clock second so ticks land on second
+    // boundaries and every visible colon stays in sync.
+    private static let origin = Date(
+        timeIntervalSinceReferenceDate: Date().timeIntervalSinceReferenceDate.rounded(.down)
+    )
+
+    var body: some View {
+        if hasLifetimeAccess && secondsPulse, let colonIndex = timeText.firstIndex(of: ":") {
+            TimelineView(.periodic(from: Self.origin, by: 1)) { context in
+                let second = Int(context.date.timeIntervalSinceReferenceDate.rounded())
+                // Interpolated runs lay out as one string, so every glyph
+                // sits exactly where the plain `Text(timeText)` puts it;
+                // only the colon's foreground style changes. Full opacity
+                // on even seconds, dimmed on odd seconds: an instant toggle
+                // once per second, kept in phase across cards by the parity
+                // of the absolute second.
+                let hour = Text(String(timeText[..<colonIndex]))
+                let colon = Text(verbatim: ":")
+                    .foregroundStyle(
+                        ForegroundStyle()
+                            .opacity(second.isMultiple(of: 2) ? 1 : 0.25)
+                            .blendMode(.plusLighter)
+                    )
+                let minutes = Text(String(timeText[timeText.index(after: colonIndex)...]))
+                Text("\(hour)\(colon)\(minutes)")
+            }
+        } else {
+            Text(timeText)
         }
     }
 }
