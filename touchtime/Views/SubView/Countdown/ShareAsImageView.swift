@@ -120,71 +120,61 @@ struct ShareAsImageView: View {
         .environment(\.colorScheme, .dark)
     }
 
-    /// Save, aspect ratio, share: three glass circles. The middle one
-    /// shows the current ratio as its label, the way a camera zoom button
-    /// shows its factor, and opens the ratio menu.
+    /// Aspect ratio (a capsule showing the current ratio, the way a
+    /// camera zoom button shows its factor), share, then save as the
+    /// tinted primary action.
+    ///
+    /// No GlassEffectContainer here: the buttons never merge, and a Menu
+    /// inside a container loses its glass while its label morphs into the
+    /// menu.
     private var actionButtons: some View {
-        GlassEffectContainer(spacing: 12) {
-            HStack(spacing: 24) {
-                Button {
-                    saveToPhotos()
-                } label: {
-                    circleLabel {
-                        Image(systemName: didSave ? "checkmark" : "square.and.arrow.down")
-                            .contentTransition(.symbolEffect(.replace))
-                    }
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: Circle())
-
-                Menu {
-                    Section(String(localized: "Aspect Ratio")) {
-                        ForEach(CountdownShare.AspectRatio.allCases, id: \.self) { ratio in
-                            Button {
-                                select(ratio)
-                            } label: {
-                                if ratio == aspectRatio {
-                                    Label(ratio.rawValue, systemImage: "checkmark.circle")
-                                } else {
-                                    Text(ratio.rawValue)
-                                }
+        HStack(spacing: 10) {
+            Menu {
+                Section(String(localized: "Aspect Ratio")) {
+                    ForEach(CountdownShare.AspectRatio.allCases, id: \.self) { ratio in
+                        Button {
+                            select(ratio)
+                        } label: {
+                            if ratio == aspectRatio {
+                                Label(ratio.rawValue, systemImage: "checkmark.circle")
+                            } else {
+                                Text(ratio.rawValue)
                             }
                         }
                     }
-                } label: {
-                    circleLabel {
-                        Text(aspectRatio.rawValue)
-                            .font(.subheadline.weight(.semibold))
-                            .fontDesign(.rounded)
-                            .monospacedDigit()
-                            .contentTransition(.numericText())
-                            .animation(.spring(), value: aspectRatio)
-                    }
                 }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: Circle())
-
-                ShareLink(
-                    item: LazyCardImage { renderImage() },
-                    preview: SharePreview(title)
-                ) {
-                    circleLabel {
-                        Image(systemName: "square.and.arrow.up")
-                    }
-                }
-                .buttonStyle(.plain)
-                .glassEffect(.regular.interactive(), in: Circle())
+            } label: {
+                Text(aspectRatio.rawValue)
+                    .font(.subheadline.weight(.semibold))
+                    .fontDesign(.rounded)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+                    .animation(.spring(), value: aspectRatio)
+                    .frame(width: 64, height: Self.buttonSize)
             }
-        }
-    }
+            .buttonStyle(GlassActionButtonStyle(shape: Capsule(style: .continuous)))
 
-    /// Circle-button content: the glyph centred in a fixed hit area.
-    private func circleLabel<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
-        content()
-            .font(.title3.weight(.medium))
-            .foregroundStyle(.primary)
-            .frame(width: Self.buttonSize, height: Self.buttonSize)
-            .contentShape(Circle())
+            ShareLink(
+                item: LazyCardImage { renderImage() },
+                preview: SharePreview(title)
+            ) {
+                Image(systemName: "square.and.arrow.up")
+                    .frame(width: Self.buttonSize, height: Self.buttonSize)
+            }
+            .buttonStyle(GlassActionButtonStyle(shape: Circle()))
+
+            Button {
+                saveToPhotos()
+            } label: {
+                Image(systemName: didSave ? "checkmark" : "arrow.down.to.line.compact")
+                    .contentTransition(.symbolEffect(.replace))
+                    .foregroundStyle(.black)
+                    .frame(width: Self.buttonSize, height: Self.buttonSize)
+            }
+            .buttonStyle(GlassActionButtonStyle(shape: Circle(), tint: .white))
+        }
+        .font(.title3.weight(.medium))
+        .foregroundStyle(.primary)
     }
 
     /// Scale that fits the card's export frame into the viewport.
@@ -257,5 +247,31 @@ struct ShareAsImageView: View {
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
+    }
+}
+
+/// Glass for the action row, applied through a button style rather than
+/// as a `glassEffect` on the control.
+///
+/// A `Menu` is itself a button: modifying the Menu (or its label view)
+/// with `glassEffect` leaves the glass out of the label the system morphs
+/// into the open menu, so the button looks unstyled while the menu is up
+/// and snaps back on dismiss. Applied to the style's label it travels
+/// with the morph, and `contentShape` keeps the animation on the same
+/// shape as the glass instead of starting from a rectangle.
+private struct GlassActionButtonStyle<S: Shape>: ButtonStyle {
+    let shape: S
+    /// Tint for the primary action; nil keeps the neutral glass.
+    var tint: Color? = nil
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .glassEffect(glass, in: shape)
+            .contentShape(shape)
+    }
+
+    private var glass: Glass {
+        guard let tint else { return .regular.interactive() }
+        return .regular.tint(tint).interactive()
     }
 }

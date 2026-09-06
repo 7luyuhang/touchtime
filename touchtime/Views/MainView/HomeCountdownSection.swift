@@ -126,7 +126,6 @@ enum CountdownShare {
         case nineBySixteen = "9:16"
         case twoByThree = "2:3"
         case threeByFour = "3:4"
-        case fourByFive = "4:5"
         case oneByOne = "1:1"
 
         /// Point size of the rendered view; the image is 3x this.
@@ -135,7 +134,6 @@ enum CountdownShare {
             case .nineBySixteen: CGSize(width: 360, height: 640)
             case .twoByThree: CGSize(width: 360, height: 540)
             case .threeByFour: CGSize(width: 360, height: 480)
-            case .fourByFive: CGSize(width: 360, height: 450)
             case .oneByOne: CGSize(width: 360, height: 360)
             }
         }
