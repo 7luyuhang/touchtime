@@ -41,6 +41,8 @@ struct ShareAsImageView: View {
     /// Flips the Save arrow to a checkmark for a moment after saving.
     @State private var didSave = false
     @State private var showPhotoAccessAlert = false
+    /// Drives the card's bounce-in on appear.
+    @State private var animateCard = false
 
     private static let buttonSize: CGFloat = 48
     private static let previewCornerRadius: CGFloat = 28
@@ -67,8 +69,21 @@ struct ShareAsImageView: View {
                     .frame(width: viewport.size.width, height: viewport.size.height)
             }
             .animation(.spring(duration: 0.25), value: aspectRatio)
+            // Outside the GeometryReader so the scale is anchored on the
+            // centred card rather than on a viewport that is still zero
+            // sized on the first layout pass.
+            .blur(radius: animateCard ? 0 : 10)
+            .scaleEffect(animateCard ? 1.0 : 0.5)
+            .opacity(animateCard ? 1.0 : 0.0)
+            .offset(y: animateCard ? 0 : 100)
             .padding(.horizontal, 32)
             .padding(.vertical, 16)
+            .onAppear {
+                guard !animateCard else { return }
+                withAnimation(.spring(duration: 0.50)) {
+                    animateCard = true
+                }
+            }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 actionButtons
                     .padding(.bottom, 8)
