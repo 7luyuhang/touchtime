@@ -276,9 +276,12 @@ struct CountdownCardSnapshotView: View {
     /// same backdrop shows instead of re-cropping the photo.
     private static let backdropSize = CountdownShare.AspectRatio.nineBySixteen.size
 
+    /// Memoised: decoding here would hand `Image` a fresh `UIImage` on
+    /// every update, and the blurred backdrop layer gets rebuilt whenever
+    /// that identity changes.
     private var photoImage: UIImage? {
         guard let photoData else { return nil }
-        return UIImage(data: photoData)
+        return CountdownPreviewCard.cachedImage(from: photoData)
     }
 
     private var emojiColor: Color? {
@@ -320,6 +323,10 @@ struct CountdownCardSnapshotView: View {
     }
 
     var body: some View {
+        // Read three times below; the cache is keyed on the photo blob,
+        // so looking it up once keeps that comparison off the hot path.
+        let photoImage = self.photoImage
+
         ZStack {
             // Full-bleed backdrop echoing the card cover
             Color.black

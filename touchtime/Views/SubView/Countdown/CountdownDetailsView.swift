@@ -929,7 +929,7 @@ struct CountdownPreviewCard: View {
     /// entries so abandoned photos don't pile up in memory.
     private static var imageCache: [Data: UIImage] = [:]
 
-    private static func cachedImage(from data: Data) -> UIImage? {
+    static func cachedImage(from data: Data) -> UIImage? {
         if let cached = imageCache[data] {
             return cached
         }
