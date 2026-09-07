@@ -49,6 +49,7 @@ struct ShareAsImageView: View {
 
     private static let buttonSize: CGFloat = 48
     private static let previewCornerRadius: CGFloat = 28
+    private static let previewOutlineWidth: CGFloat = 1
     /// Tallest side of the ratio icon; every frame here is portrait or
     /// square, so the width is what varies.
     private static let ratioIconHeight: CGFloat = 16
@@ -64,12 +65,15 @@ struct ShareAsImageView: View {
                 snapshotView
                     // Masked before scaling so the rounded corners track
                     // the card exactly while the frame animates.
-                    .clipShape(
-                        RoundedRectangle(
-                            cornerRadius: Self.previewCornerRadius / scale,
-                            style: .continuous
-                        )
-                    )
+                    .clipShape(previewShape(scale: scale))
+                    .overlay {
+                        previewShape(scale: scale)
+                            .strokeBorder(
+                                .white.opacity(0.1),
+                                lineWidth: Self.previewOutlineWidth / scale
+                            )
+                            .blendMode(.plusLighter)
+                    }
                     .scaleEffect(scale)
                     .frame(width: frame.width * scale, height: frame.height * scale)
                     .frame(width: viewport.size.width, height: viewport.size.height)
@@ -206,6 +210,16 @@ struct ShareAsImageView: View {
         }
         .font(.title3.weight(.medium))
         .foregroundStyle(.primary)
+    }
+
+    /// The preview's rounded frame, divided by the preview scale so the
+    /// radius and outline land at their on-screen sizes once the card is
+    /// scaled down.
+    private func previewShape(scale: CGFloat) -> RoundedRectangle {
+        RoundedRectangle(
+            cornerRadius: Self.previewCornerRadius / scale,
+            style: .continuous
+        )
     }
 
     /// Scale that fits the card's export frame into the viewport.
