@@ -166,9 +166,6 @@ struct ShareAsImageView: View {
                 }
             } label: {
                 HStack(spacing: 6) {
-                    // The frame drawn as its own icon. Held in a square
-                    // box so only the outline changes shape; the label
-                    // beside it stays put.
                     RoundedRectangle(cornerRadius: 3.0, style: .continuous)
                         .stroke(lineWidth: 2.0)
                         .frame(
