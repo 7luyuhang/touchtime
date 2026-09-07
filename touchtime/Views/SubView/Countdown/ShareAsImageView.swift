@@ -49,6 +49,9 @@ struct ShareAsImageView: View {
 
     private static let buttonSize: CGFloat = 48
     private static let previewCornerRadius: CGFloat = 28
+    /// Tallest side of the ratio icon; every frame here is portrait or
+    /// square, so the width is what varies.
+    private static let ratioIconHeight: CGFloat = 16
 
     var body: some View {
         NavigationStack {
@@ -162,13 +165,26 @@ struct ShareAsImageView: View {
                     }
                 }
             } label: {
-                Text(aspectRatio.rawValue)
-                    .font(.subheadline.weight(.semibold))
-                    .fontDesign(.rounded)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
-                    .animation(.spring(), value: aspectRatio)
-                    .frame(width: 64, height: Self.buttonSize)
+                HStack(spacing: 6) {
+                    // The frame drawn as its own icon. Held in a square
+                    // box so only the outline changes shape; the label
+                    // beside it stays put.
+                    RoundedRectangle(cornerRadius: 3.0, style: .continuous)
+                        .stroke(lineWidth: 2.0)
+                        .frame(
+                            width: Self.ratioIconHeight * aspectRatio.widthOverHeight,
+                            height: Self.ratioIconHeight
+                        )
+                        .frame(width: Self.ratioIconHeight)
+
+                    Text(aspectRatio.rawValue)
+                        .font(.subheadline.weight(.semibold))
+                        .fontDesign(.rounded)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+                }
+                .animation(.spring(), value: aspectRatio)
+                .frame(width: 85, height: Self.buttonSize)
             }
             .buttonStyle(GlassActionButtonStyle(shape: Capsule(style: .continuous)))
 

@@ -137,6 +137,11 @@ enum CountdownShare {
             case .oneByOne: CGSize(width: 360, height: 360)
             }
         }
+
+        /// Proportions of the frame, for drawing it as an icon.
+        var widthOverHeight: CGFloat {
+            size.width / size.height
+        }
     }
 
     /// Whole calendar days from the reference date to the target date;
