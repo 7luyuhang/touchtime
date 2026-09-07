@@ -263,18 +263,20 @@ struct CountdownCardSnapshotView: View {
     let now: Date
     /// Context line under the card, e.g. "in 1 year 4 days".
     let footerText: String
-    /// Frame of the image; the card keeps its size and the backdrop
-    /// fills whatever is around it.
+    /// Frame of the image: a centred crop of the 9:16 layout, so the card
+    /// keeps its size and only the amount of backdrop around it changes.
     var aspectRatio: CountdownShare.AspectRatio = .nineBySixteen
 
     private var size: CGSize {
         aspectRatio.size
     }
 
-    /// The backdrop is always laid out at the tallest frame and cropped
-    /// by the image bounds, so switching ratio changes how much of the
-    /// same backdrop shows instead of re-cropping the photo.
-    private static let backdropSize = CountdownShare.AspectRatio.nineBySixteen.size
+    /// Everything is laid out at the tallest frame and the shorter ratios
+    /// take a centred crop of it. The card sits in the middle of both
+    /// boxes, so the crop lands exactly where laying the card out in the
+    /// shorter frame would have put it, while the backdrop keeps its 9:16
+    /// framing instead of being re-cropped per ratio.
+    private static let layoutSize = CountdownShare.AspectRatio.nineBySixteen.size
 
     /// Memoised: decoding here would hand `Image` a fresh `UIImage` on
     /// every update, and the blurred backdrop layer gets rebuilt whenever
@@ -334,7 +336,7 @@ struct CountdownCardSnapshotView: View {
                 Image(uiImage: photoImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: Self.backdropSize.width, height: Self.backdropSize.height)
+                    .frame(width: Self.layoutSize.width, height: Self.layoutSize.height)
                     .clipped()
                     .blur(radius: 60, opaque: true)
                     .overlay(Color.black.opacity(0.35))
@@ -434,6 +436,12 @@ struct CountdownCardSnapshotView: View {
                     .padding(.horizontal, 24)
             }
         }
+        // Pinned to 9:16 so nothing inside re-lays out when the ratio
+        // changes; the second frame only shrinks the window the content
+        // is seen through. That keeps the blurred backdrop, the card's
+        // own blur and the glass badge off the animation's hot path,
+        // where redrawing them every frame showed up as a flicker.
+        .frame(width: Self.layoutSize.width, height: Self.layoutSize.height)
         .frame(width: size.width, height: size.height) // 9:16 unless another frame is picked
         .clipped()
     }

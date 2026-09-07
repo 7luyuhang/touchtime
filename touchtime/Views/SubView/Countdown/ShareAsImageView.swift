@@ -43,6 +43,9 @@ struct ShareAsImageView: View {
     @State private var showPhotoAccessAlert = false
     /// Drives the card's bounce-in on appear.
     @State private var animateCard = false
+    /// Set once the bounce-in has played, so the entrance blur can leave
+    /// the tree.
+    @State private var entranceSettled = false
 
     private static let buttonSize: CGFloat = 48
     private static let previewCornerRadius: CGFloat = 28
@@ -69,12 +72,10 @@ struct ShareAsImageView: View {
                     .frame(width: viewport.size.width, height: viewport.size.height)
             }
             .animation(.spring(duration: 0.25), value: aspectRatio)
-            // Outside the GeometryReader so the scale is anchored on the
-            // centred card rather than on a viewport that is still zero
-            // sized on the first layout pass.
-            .blur(radius: animateCard ? 0 : 10)
+            .modifier(EntranceBlur(isActive: !entranceSettled, radius: animateCard ? 0 : 10))
             .scaleEffect(animateCard ? 1.0 : 0.5)
             .opacity(animateCard ? 1.0 : 0.0)
+            .blur(radius: animateCard ? 0 : 20)
             .offset(y: animateCard ? 0 : 100)
             .padding(.horizontal, 32)
             .padding(.vertical, 16)
@@ -82,6 +83,8 @@ struct ShareAsImageView: View {
                 guard !animateCard else { return }
                 withAnimation(.spring(duration: 0.50)) {
                     animateCard = true
+                } completion: {
+                    entranceSettled = true
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -262,6 +265,23 @@ struct ShareAsImageView: View {
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
+    }
+}
+
+/// The preview's bounce-in blur, removed from the tree instead of being
+/// animated to radius 0. The swap happens on the animation's completion,
+/// when the radius is already 0 and the rebuilt subtree looks identical.
+private struct EntranceBlur: ViewModifier {
+    let isActive: Bool
+    let radius: CGFloat
+
+    @ViewBuilder
+    func body(content: Content) -> some View {
+        if isActive {
+            content.blur(radius: radius)
+        } else {
+            content
+        }
     }
 }
 
