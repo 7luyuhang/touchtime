@@ -14,5 +14,6 @@ struct TouchTimeWidgetBundle: WidgetBundle {
         MoonPhaseWidget()
         MoonCalendarWidget()
         WorldCitiesWidget()
+        CountdownWidget()
     }
 }

@@ -86,6 +86,12 @@ struct ContentView: View {
                     }
                 }
             }
+            // The Countdown widget's tap URL goes through the same route as
+            // the quick actions above.
+            .onOpenURL { url in
+                guard url.scheme == "touchtime", url.host == "countdown" else { return }
+                QuickActionsManager.shared.pendingAction = .countdown
+            }
         } else {
             OnboardingView(
                 hasCompletedOnboarding: $hasCompletedOnboarding,
