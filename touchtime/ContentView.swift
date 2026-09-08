@@ -50,7 +50,7 @@ struct ContentView: View {
                 )
             }
             
-            Tab(value: MainTab.search, role: .search) {
+                Tab(value: MainTab.search, role: .search) {
                 SearchTabView(worldClocks: $worldClocks)
                     .onAppear {
                         if hapticEnabled {
@@ -85,12 +85,6 @@ struct ContentView: View {
                         NotificationCenter.default.post(name: .quickActionCountdown, object: nil)
                     }
                 }
-            }
-            // The Countdown widget's tap URL goes through the same route as
-            // the quick actions above.
-            .onOpenURL { url in
-                guard url.scheme == "touchtime", url.host == "countdown" else { return }
-                QuickActionsManager.shared.pendingAction = .countdown
             }
         } else {
             OnboardingView(

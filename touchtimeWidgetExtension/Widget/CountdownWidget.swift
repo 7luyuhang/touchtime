@@ -223,8 +223,6 @@ struct CountdownWidgetView: View {
         .containerBackground(for: .widget) {
             background
         }
-        // Tapping opens the app on the countdown sheet (handled in ContentView).
-        .widgetURL(URL(string: "touchtime://countdown"))
     }
 
     /// The centre circle: the cover photo, the cover emoji, the event date
@@ -311,8 +309,6 @@ struct CountdownWidgetView: View {
                     .overlay(Color.black.opacity(0.25))
             }
         } else if let emojiColor {
-            // The emoji's dominant colour, flat, exactly as the app's
-            // countdown preview card fills it.
             emojiColor.color
         } else {
             // Without a cover: the local sky, same as City Time
@@ -343,28 +339,4 @@ struct CountdownWidget: Widget {
         .supportedFamilies([.systemSmall])
         .contentMarginsDisabled()
     }
-}
-
-#Preview(as: .systemSmall) {
-    CountdownWidget()
-} timeline: {
-    CountdownWidgetEntry(
-        date: .now,
-        countdown: CountdownWidgetEntry.Countdown(
-            title: "Japan Trip",
-            targetDate: .now.addingTimeInterval(86_400 * 30),
-            emoji: "✈️",
-            photoData: nil
-        )
-    )
-    CountdownWidgetEntry(
-        date: .now,
-        countdown: CountdownWidgetEntry.Countdown(
-            title: "Birthday",
-            targetDate: .now.addingTimeInterval(86_400 * 12),
-            emoji: nil,
-            photoData: nil
-        )
-    )
-    CountdownWidgetEntry(date: .now, countdown: nil)
 }
