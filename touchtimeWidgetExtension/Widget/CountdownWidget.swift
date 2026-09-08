@@ -237,8 +237,8 @@ struct CountdownWidgetView: View {
                     // Empty state (and a countdown saved without a cover by
                     // an app version that still allowed that)
                     Image(systemName: "hourglass")
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.70))
+                        .font(.system(size: 32, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.50))
                 }
             }
         }
