@@ -38,7 +38,25 @@ final class CountdownStore {
               let items = try? JSONDecoder().decode([CountdownItem].self, from: data) else {
             return []
         }
-        return items
+        return withDefaultCovers(items)
+    }
+
+    /// Countdowns saved before covers became mandatory get a random emoji,
+    /// like new ones do in the editor. Written straight back (`didSet`
+    /// doesn't run for the initial assignment) so the Home cards and the
+    /// widget's App Group copy pick the covers up without waiting for an
+    /// edit.
+    private static func withDefaultCovers(_ items: [CountdownItem]) -> [CountdownItem] {
+        let covered = items.map { item in
+            guard item.emoji == nil, item.photoData == nil else { return item }
+            var item = item
+            item.emoji = CountdownCoverEmojis.random
+            return item
+        }
+        if covered != items {
+            persist(covered)
+        }
+        return covered
     }
 
     private static func persist(_ items: [CountdownItem]) {

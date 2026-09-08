@@ -87,10 +87,10 @@ struct CountdownDetailsView: View {
         let defaultDate = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: tomorrow) ?? tomorrow
         _targetDate = State(initialValue: countdown?.targetDate ?? defaultDate)
 
-        // Every countdown has a cover: a new one (or one saved before covers
-        // were mandatory) starts with a random emoji from the picker's grid.
+        // Every countdown has a cover: a new one starts with a random emoji
+        // from the picker's grid.
         let hasCover = countdown?.emoji != nil || countdown?.photoData != nil
-        _emoji = State(initialValue: hasCover ? countdown?.emoji : CoverPickerSheet.randomEmoji)
+        _emoji = State(initialValue: hasCover ? countdown?.emoji : CountdownCoverEmojis.random)
         _photoData = State(initialValue: countdown?.photoData)
         _isPinned = State(initialValue: countdown?.isPinned ?? false)
         _repeatFrequency = State(initialValue: countdown?.repeatFrequency ?? .never)
@@ -971,37 +971,13 @@ private struct CoverPickerSheet: View {
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var showRemovePhotoDialog = false
 
-    /// A random cover from the grid, for countdowns that have none yet.
-    static var randomEmoji: String {
-        emojis.randomElement() ?? "🎉"
-    }
-
-    private static let emojis: [String] = [
-        "🎂", "🎉", "🎈", "🎁", "🍰", "🥂", "🎊", "🪩",
-        "🥳", "🍾", "🧁", "🍻", "🪅", "🎟️", "🎪", "🎇",
-        "❤️", "💍", "💒", "👶", "🌹", "💌", "💘", "🫶",
-        "🎓", "📚", "✏️", "💼", "🏆", "🥇", "🎯", "🧳",
-        "✈️", "🏝️", "🗺️", "🚗", "⛺️", "🎡", "🛳️", "🚀",
-        "🛫", "🚄", "🏖️", "🏔️", "🗽", "🗼", "⛩️", "🏰",
-        "🎄", "🎃", "🧧", "🏮", "🐰", "🦃", "🌕", "🎆",
-        "🪔", "🕎", "☘️", "🎍", "🌅", "🕯️", "🎗️", "🛍️",
-        "☀️", "🌸", "🍂", "❄️", "⭐️", "🌈", "🔥", "💧",
-        "⚽️", "🏀", "🎾", "🏃", "🧘", "🎮", "🎵", "🎬",
-        "🏊", "🚴", "⛷️", "🏂", "⛳️", "🏓", "🥊", "🛹",
-        "🎤", "🎸", "🎹", "🎻", "🎭", "🎨", "🎧", "🎫",
-        "🍽️", "☕️", "🍕", "🍜", "🍣", "🍦", "🍷", "🧋",
-        "📦", "🤝", "📝", "💻", "🩺", "🐶", "🐱", "🧸",
-        "🏠", "🔑", "💰", "💎", "📅", "⏰", "🔔", "📌",
-        "⏳", "🚩", "📷", "🗳️", "💵", "🪴", "🌙", "🌊"
-    ]
-
     private let columns = [GridItem(.adaptive(minimum: 52), spacing: 8)]
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(Self.emojis, id: \.self) { option in
+                    ForEach(CountdownCoverEmojis.all, id: \.self) { option in
                         Button {
                             triggerHaptic()
                             selectedEmoji = option
@@ -1051,7 +1027,7 @@ private struct CoverPickerSheet: View {
                                 // Photo-only countdowns saved before covers
                                 // were mandatory have no emoji to fall back on.
                                 if selectedEmoji == nil {
-                                    selectedEmoji = Self.randomEmoji
+                                    selectedEmoji = CountdownCoverEmojis.random
                                 }
                             }
                         }
