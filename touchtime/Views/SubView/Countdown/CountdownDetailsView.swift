@@ -87,7 +87,10 @@ struct CountdownDetailsView: View {
         let defaultDate = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: tomorrow) ?? tomorrow
         _targetDate = State(initialValue: countdown?.targetDate ?? defaultDate)
 
-        _emoji = State(initialValue: countdown?.emoji)
+        // Every countdown has a cover: a new one (or one saved before covers
+        // were mandatory) starts with a random emoji from the picker's grid.
+        let hasCover = countdown?.emoji != nil || countdown?.photoData != nil
+        _emoji = State(initialValue: hasCover ? countdown?.emoji : CoverPickerSheet.randomEmoji)
         _photoData = State(initialValue: countdown?.photoData)
         _isPinned = State(initialValue: countdown?.isPinned ?? false)
         _repeatFrequency = State(initialValue: countdown?.repeatFrequency ?? .never)
@@ -951,7 +954,9 @@ struct CountdownPreviewCard: View {
 
 /// Cover picker: a grid of common event emojis, the chosen one colouring
 /// the preview card, or alternatively a photo from the library that fills
-/// the centre badge with a blurred copy as the card background.
+/// the centre badge with a blurred copy as the card background. Every
+/// countdown keeps an emoji; a photo sits on top of it and is the only
+/// cover that can be removed.
 private struct CoverPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -965,6 +970,11 @@ private struct CoverPickerSheet: View {
     @State private var showPhotoPicker = false
     @State private var photoPickerItem: PhotosPickerItem?
     @State private var showRemovePhotoDialog = false
+
+    /// A random cover from the grid, for countdowns that have none yet.
+    static var randomEmoji: String {
+        emojis.randomElement() ?? "🎉"
+    }
 
     private static let emojis: [String] = [
         "🎂", "🎉", "🎈", "🎁", "🍰", "🥂", "🎊", "🪩",
@@ -1021,15 +1031,12 @@ private struct CoverPickerSheet: View {
                     }
                 }
 
-                if selectedEmoji != nil || selectedPhotoData != nil {
+                // Only a photo can be removed; the emoji underneath comes back.
+                if selectedPhotoData != nil {
                     ToolbarItem(placement: .topBarTrailing) {
                         Button(role: .destructive) {
                             triggerHaptic()
-                            if selectedPhotoData != nil {
-                                showRemovePhotoDialog = true
-                            } else {
-                                selectedEmoji = nil
-                            }
+                            showRemovePhotoDialog = true
                         } label: {
                             Image(systemName: "minus.circle")
                         }
@@ -1040,8 +1047,12 @@ private struct CoverPickerSheet: View {
                         ) {
                             Button(String(localized: "Remove"), role: .destructive) {
                                 triggerHaptic()
-                                selectedEmoji = nil
                                 selectedPhotoData = nil
+                                // Photo-only countdowns saved before covers
+                                // were mandatory have no emoji to fall back on.
+                                if selectedEmoji == nil {
+                                    selectedEmoji = Self.randomEmoji
+                                }
                             }
                         }
                     }
@@ -1074,8 +1085,9 @@ private struct CoverPickerSheet: View {
             Task {
                 guard let data = try? await newItem.loadTransferable(type: Data.self),
                       let processed = Self.downsampledJPEGData(from: data) else { return }
+                // The emoji stays stored under the photo, so removing the
+                // photo later restores it.
                 selectedPhotoData = processed
-                selectedEmoji = nil
                 triggerHaptic()
                 photoPickerItem = nil
             }

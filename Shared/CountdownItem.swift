@@ -140,9 +140,11 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     let createdAt: Date
     var isPinned: Bool
     var repeatFrequency: RepeatFrequency
+    /// Cover emoji; every countdown created in the editor has one.
     var emoji: String?
     /// Downsampled JPEG shown in the centre badge, with a blurred version
-    /// as the card background. Mutually exclusive with `emoji`.
+    /// as the card background. Shown instead of `emoji` when set; the
+    /// emoji stays stored so removing the photo brings it back.
     var photoData: Data?
     /// Notification on the day of the event at this time of day; only the
     /// hour and minute are meaningful. Nil when the reminder is off.

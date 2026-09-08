@@ -4,10 +4,9 @@
 //
 //  Small widget, laid out like City Time: event name on top, the
 //  countdown's cover (emoji or photo) in the centre circle (80x80), the
-//  days to the event at the bottom. The background follows the cover the
-//  way the app's countdown card does — the emoji's dominant colour, or
-//  the photo blurred — and is plain black or white without one, like
-//  Daylight.
+//  days to the event at the bottom. Every countdown has a cover, and the
+//  background follows it the way the app's countdown card does — the
+//  emoji's dominant colour, or the photo blurred.
 //
 
 import WidgetKit
@@ -114,17 +113,19 @@ struct CountdownWidgetView: View {
     @Environment(\.redactionReasons) private var redactionReasons
     @Environment(\.widgetRenderingMode) private var renderingMode
     @Environment(\.displayScale) private var displayScale
-    @Environment(\.colorScheme) private var colorScheme
 
     // Same size as the City Time complication
     private static let badgeSize: CGFloat = 80
     private static let emojiPointSize: CGFloat = 40
+    /// Background while loading and in the empty state: a neutral grey
+    /// rather than any cover's colour.
+    private static let neutralBackground = Color(white: 0.50)
 
     private var countdown: CountdownWidgetEntry.Countdown? {
         entry.countdown
     }
 
-    /// Decoded cover photo; nil for emoji covers and without a cover.
+    /// Decoded cover photo; nil for emoji covers.
     private var photoImage: UIImage? {
         countdown?.photoData.flatMap { UIImage(data: $0) }
     }
@@ -132,31 +133,6 @@ struct CountdownWidgetView: View {
     /// Dominant colour of the cover emoji, the same one the app's card uses.
     private var emojiColor: EmojiDominantColor? {
         countdown?.emoji.flatMap { EmojiDominantColor.cached(for: $0) }
-    }
-
-    /// Whether a cover (photo or emoji colour) paints the background. The
-    /// text is white on a cover; without one the widget is black or white
-    /// like Daylight and uses the system text colours instead.
-    private var hasCover: Bool {
-        photoImage != nil || emojiColor != nil
-    }
-
-    private var titleColor: Color {
-        hasCover ? .white : .primary
-    }
-
-    private var countdownColor: Color {
-        hasCover ? .white : .secondary
-    }
-
-    /// Hairline around the badge: lightening on a cover and in dark mode,
-    /// darkening on the white background, like the Daylight ring's edges.
-    private var badgeEdgeColor: Color {
-        hasCover || colorScheme == .dark ? .white : .black
-    }
-
-    private var badgeEdgeBlend: BlendMode {
-        hasCover || colorScheme == .dark ? .plusLighter : .plusDarker
     }
 
     /// Whole calendar days from the entry's date to the event; negative
@@ -197,8 +173,8 @@ struct CountdownWidgetView: View {
                     badge
                         .overlay {
                             Circle()
-                                .strokeBorder(badgeEdgeColor.opacity(0.10), lineWidth: 1.50)
-                                .blendMode(badgeEdgeBlend)
+                                .strokeBorder(.white.opacity(0.10), lineWidth: 1.50)
+                                .blendMode(.plusLighter)
                         }
                 }
             }
@@ -207,7 +183,6 @@ struct CountdownWidgetView: View {
             VStack {
                 Text(countdown?.title ?? String(localized: "No Countdowns"))
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(titleColor)
                     .lineLimit(1)
                     .truncationMode(.tail)
                     .padding(.horizontal, 8)
@@ -216,20 +191,20 @@ struct CountdownWidgetView: View {
 
                 Text(countdownString)
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundStyle(countdownColor)
                     .monospacedDigit()
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
             }
         }
+        .foregroundStyle(.white)
         .padding(14)
         .containerBackground(for: .widget) {
             background
         }
     }
 
-    /// The centre circle: the cover photo, the cover emoji, the event date
-    /// without a cover, or an hourglass in the empty state.
+    /// The centre circle: the cover photo or emoji, or an hourglass in the
+    /// empty state.
     @ViewBuilder
     private var badge: some View {
         if let photoImage {
@@ -241,6 +216,7 @@ struct CountdownWidgetView: View {
                 .clipShape(Circle())
         } else {
             ZStack {
+                // Fills the badge frame so the hairline overlay hugs the circle
                 Circle()
                     .fill(.clear)
 
@@ -257,24 +233,12 @@ struct CountdownWidgetView: View {
                         Text(emoji)
                             .font(.system(size: Self.emojiPointSize))
                     }
-                } else if let countdown {
-                    // No cover: the event's date, like a calendar tile, in
-                    // the system text colours on the black or white background
-                    VStack(spacing: 0) {
-                        Text(countdown.targetDate.formatted(.dateTime.month(.abbreviated)))
-                            .font(.system(size: 12, weight: .semibold, design: .rounded))
-                            .textCase(.uppercase)
-                            .foregroundStyle(.secondary)
-
-                        Text(countdown.targetDate.formatted(.dateTime.day()))
-                            .font(.system(size: 28, weight: .medium, design: .rounded))
-                            .monospacedDigit()
-                            .foregroundStyle(.primary)
-                    }
                 } else {
+                    // Empty state (and a countdown saved without a cover by
+                    // an app version that still allowed that)
                     Image(systemName: "hourglass")
                         .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(.white.opacity(0.70))
                 }
             }
         }
@@ -299,8 +263,7 @@ struct CountdownWidgetView: View {
     @ViewBuilder
     private var background: some View {
         if redactionReasons.contains(.placeholder) {
-            // Loading: a neutral grey, not the sample cover's colour
-            Color(white: 0.50)
+            Self.neutralBackground
         } else if let photoImage {
             // Blurred copy of the cover photo, darkened a touch for text contrast
             GeometryReader { geometry in
@@ -315,10 +278,8 @@ struct CountdownWidgetView: View {
         } else if let emojiColor {
             emojiColor.color
         } else {
-            // Without a cover: plain black or white, same as Daylight.
-            // Explicit colours instead of systemBackground: widgets can
-            // resolve the "elevated" dark variant (#1C1C1E) otherwise.
-            colorScheme == .dark ? Color.black : Color.white
+            // Empty state
+            Self.neutralBackground
         }
     }
 }
