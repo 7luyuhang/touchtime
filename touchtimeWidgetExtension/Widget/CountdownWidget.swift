@@ -193,6 +193,11 @@ struct CountdownWidgetView: View {
                         .fill(.white.opacity(0.10))
                 } else {
                     badge
+                        .overlay {
+                            Circle()
+                                .strokeBorder(.white.opacity(0.10), lineWidth: 1.50)
+                                .blendMode(.plusLighter)
+                        }
                 }
             }
             .frame(width: Self.badgeSize, height: Self.badgeSize)
@@ -293,7 +298,7 @@ struct CountdownWidgetView: View {
     private var background: some View {
         if redactionReasons.contains(.placeholder) {
             // Loading: a neutral grey, not the sample cover's colour
-            Color(white: 0.45)
+            Color(white: 0.50)
         } else if let photoImage {
             // Blurred copy of the cover photo, darkened a touch for text contrast
             GeometryReader { geometry in
@@ -306,18 +311,9 @@ struct CountdownWidgetView: View {
                     .overlay(Color.black.opacity(0.25))
             }
         } else if let emojiColor {
-            // The emoji's dominant colour, a touch lighter at the top and
-            // darker at the bottom so it reads like the sky widgets rather
-            // than a flat swatch.
-            LinearGradient(
-                colors: [
-                    emojiColor.color(brightnessOffset: 0.08),
-                    emojiColor.color,
-                    emojiColor.color(brightnessOffset: -0.12)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+            // The emoji's dominant colour, flat, exactly as the app's
+            // countdown preview card fills it.
+            emojiColor.color
         } else {
             // Without a cover: the local sky, same as City Time
             WidgetSkyBackground(

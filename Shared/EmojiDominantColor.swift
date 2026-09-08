@@ -19,12 +19,6 @@ struct EmojiDominantColor {
         Color(hue: hue, saturation: saturation, brightness: brightness)
     }
 
-    /// Same hue and saturation with the brightness shifted (and clamped),
-    /// for building gradient stops around the base colour.
-    func color(brightnessOffset offset: CGFloat) -> Color {
-        Color(hue: hue, saturation: saturation, brightness: min(max(brightness + offset, 0), 1))
-    }
-
     /// The bitmap analysis is not free and the Home card re-renders every
     /// second, so computed colours are memoised per emoji. Main-thread
     /// only, like all SwiftUI body evaluation.
