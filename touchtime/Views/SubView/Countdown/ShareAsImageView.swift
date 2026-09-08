@@ -62,10 +62,9 @@ struct ShareAsImageView: View {
             GeometryReader { viewport in
                 let frame = aspectRatio.size
                 let scale = previewScale(for: frame, in: viewport.size)
-                snapshotView
-                    // Masked before scaling so the rounded corners track
-                    // the card exactly while the frame animates.
-                    .clipShape(previewShape(scale: scale))
+                // Rounded by the card's own crop, before scaling, so the
+                // corners track the frame exactly while it animates.
+                snapshotView(frameCornerRadius: Self.previewCornerRadius / scale)
                     .overlay {
                         previewShape(scale: scale)
                             .strokeBorder(
@@ -82,7 +81,7 @@ struct ShareAsImageView: View {
             .modifier(EntranceBlur(isActive: !entranceSettled, radius: animateCard ? 0 : 10))
             .scaleEffect(animateCard ? 1.0 : 0.5)
             .opacity(animateCard ? 1.0 : 0.0)
-            .blur(radius: animateCard ? 0 : 20)
+            .modifier(EntranceBlur(isActive: !entranceSettled, radius: animateCard ? 0 : 20))
             .offset(y: animateCard ? 0 : 100)
             .padding(.horizontal, 32)
             .padding(.vertical, 16)
@@ -123,9 +122,10 @@ struct ShareAsImageView: View {
         }
     }
 
-    /// The share card at its natural export size; the preview scales this
-    /// down and the renderer draws it as is.
-    private var snapshotView: some View {
+    /// The share card at its natural export size, its frame rounded for
+    /// the preview; the preview scales this down and the renderer draws
+    /// the square-cornered card as is.
+    private func snapshotView(frameCornerRadius: CGFloat) -> some View {
         CountdownCardSnapshotView(
             title: title,
             targetDate: targetDate,
@@ -140,7 +140,8 @@ struct ShareAsImageView: View {
                 showMonths: showMonths,
                 showDays: showDays
             ),
-            aspectRatio: aspectRatio
+            aspectRatio: aspectRatio,
+            frameCornerRadius: frameCornerRadius
         )
         .environment(\.colorScheme, .dark)
     }
@@ -212,9 +213,9 @@ struct ShareAsImageView: View {
         .foregroundStyle(.primary)
     }
 
-    /// The preview's rounded frame, divided by the preview scale so the
-    /// radius and outline land at their on-screen sizes once the card is
-    /// scaled down.
+    /// The preview's rounded frame, for the outline; divided by the
+    /// preview scale so the radius and outline land at their on-screen
+    /// sizes once the card is scaled down.
     private func previewShape(scale: CGFloat) -> RoundedRectangle {
         RoundedRectangle(
             cornerRadius: Self.previewCornerRadius / scale,
@@ -295,9 +296,11 @@ struct ShareAsImageView: View {
     }
 }
 
-/// The preview's bounce-in blur, removed from the tree instead of being
-/// animated to radius 0. The swap happens on the animation's completion,
-/// when the radius is already 0 and the rebuilt subtree looks identical.
+/// The preview's bounce-in blurs, removed from the tree instead of being
+/// left at radius 0: a zero-radius blur still routes everything under it
+/// through an offscreen filter pass on every frame. The swap happens on
+/// the animation's completion, when the radius is already 0 and the
+/// rebuilt subtree looks identical.
 private struct EntranceBlur: ViewModifier {
     let isActive: Bool
     let radius: CGFloat

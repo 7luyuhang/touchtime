@@ -271,6 +271,10 @@ struct CountdownCardSnapshotView: View {
     /// Frame of the image: a centred crop of the 9:16 layout, so the card
     /// keeps its size and only the amount of backdrop around it changes.
     var aspectRatio: CountdownShare.AspectRatio = .nineBySixteen
+    /// Corner radius of that frame. Square (0) for the exported file; the
+    /// share preview rounds it here so the crop is its only clip, rather
+    /// than a rounded clip wrapped around a square one.
+    var frameCornerRadius: CGFloat = 0
 
     private var size: CGSize {
         aspectRatio.size
@@ -345,6 +349,12 @@ struct CountdownCardSnapshotView: View {
                     .clipped()
                     .blur(radius: 60, opaque: true)
                     .overlay(Color.black.opacity(0.35))
+                    // Flattened into one bitmap. Left live, the blur is a
+                    // Core Animation filter re-rendered on every frame of
+                    // the ratio animation, and the bands where the moving
+                    // crop edge cut into it flickered; a bitmap is just
+                    // cropped.
+                    .drawingGroup()
             } else if let emojiColor {
                 // Slightly dimmed so the full-colour card reads on top.
                 emojiColor.opacity(0.75)
@@ -448,6 +458,6 @@ struct CountdownCardSnapshotView: View {
         // where redrawing them every frame showed up as a flicker.
         .frame(width: Self.layoutSize.width, height: Self.layoutSize.height)
         .frame(width: size.width, height: size.height) // 9:16 unless another frame is picked
-        .clipped()
+        .clipShape(RoundedRectangle(cornerRadius: frameCornerRadius, style: .continuous))
     }
 }
