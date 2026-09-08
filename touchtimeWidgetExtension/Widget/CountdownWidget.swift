@@ -141,7 +141,7 @@ struct CountdownWidgetView: View {
 
     // Same size as the City Time complication
     private static let badgeSize: CGFloat = 80
-    private static let emojiPointSize: CGFloat = 44
+    private static let emojiPointSize: CGFloat = 40
 
     private var countdown: CountdownWidgetEntry.Countdown? {
         entry.countdown
@@ -240,9 +240,8 @@ struct CountdownWidgetView: View {
                 .clipShape(Circle())
         } else {
             ZStack {
-                // Same dark disc the complications sit on in City Time
                 Circle()
-                    .fill(.black.opacity(0.10))
+                    .fill(.clear)
 
                 if let emoji = countdown?.emoji {
                     if renderingMode == .accented,
