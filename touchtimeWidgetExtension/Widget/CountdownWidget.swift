@@ -260,12 +260,13 @@ struct CountdownWidgetView: View {
                     // No cover: the event's date, like a calendar tile
                     VStack(spacing: 0) {
                         Text(countdown.targetDate.formatted(.dateTime.month(.abbreviated)))
-                            .font(.system(size: 12, weight: .semibold))
+                            .font(.system(size: 12, weight: .semibold, design: .rounded))
                             .textCase(.uppercase)
-                            .foregroundStyle(.white.opacity(0.70))
+                            .foregroundStyle(.white.opacity(0.50))
+                            .blendMode(.plusLighter)
 
                         Text(countdown.targetDate.formatted(.dateTime.day()))
-                            .font(.system(size: 30, weight: .medium, design: .rounded))
+                            .font(.system(size: 28, weight: .medium, design: .rounded))
                             .monospacedDigit()
                     }
                 } else {
