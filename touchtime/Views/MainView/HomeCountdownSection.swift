@@ -21,6 +21,9 @@ struct HomeCountdownSection: View {
     /// Called from the card's context menu; Home unpins the countdown,
     /// which removes its card since only pinned ones show here.
     let onUnpin: (CountdownItem) -> Void
+    /// Called from the card's context menu; Home opens the share-as-image
+    /// screen for the countdown.
+    let onShare: (CountdownItem) -> Void
 
     // Same Time Display settings as the countdown sheet rows, so shared
     // text breaks the interval into the units chosen there.
@@ -70,19 +73,6 @@ struct HomeCountdownSection: View {
 
     @ViewBuilder
     private func shareMenu(for item: CountdownItem) -> some View {
-        let lazyImage = LazyCardImage {
-            CountdownShare.renderCardImage(
-                title: item.title,
-                targetDate: item.effectiveTargetDate(at: now),
-                emoji: item.emoji,
-                photoData: item.photoData,
-                isRepeating: item.repeatFrequency != .never,
-                now: now,
-                showYears: showYears,
-                showMonths: showMonths,
-                showDays: showDays
-            )
-        }
         Menu {
             Button {
                 UIPasteboard.general.string = CountdownShare.copyText(
@@ -101,7 +91,9 @@ struct HomeCountdownSection: View {
             } label: {
                 Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
             }
-            ShareLink(item: lazyImage, preview: SharePreview(item.title)) {
+            Button {
+                onShare(item)
+            } label: {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
         } label: {
@@ -117,33 +109,6 @@ struct HomeCountdownSection: View {
 /// card image (9:16 unless another frame is picked). The unit flags are
 /// the countdown sheet's Time Display settings.
 enum CountdownShare {
-    /// Frame of the share image. The width is fixed so the card keeps the
-    /// same size in every ratio; only the backdrop around it grows or
-    /// shrinks. The raw value doubles as the menu label.
-    /// Listed tallest first, so the menu reads like a frame getting
-    /// squarer from top to bottom.
-    enum AspectRatio: String, CaseIterable {
-        case nineBySixteen = "9:16"
-        case twoByThree = "2:3"
-        case threeByFour = "3:4"
-        case oneByOne = "1:1"
-
-        /// Point size of the rendered view; the image is 3x this.
-        var size: CGSize {
-            switch self {
-            case .nineBySixteen: CGSize(width: 360, height: 640)
-            case .twoByThree: CGSize(width: 360, height: 540)
-            case .threeByFour: CGSize(width: 360, height: 480)
-            case .oneByOne: CGSize(width: 360, height: 360)
-            }
-        }
-
-        /// Proportions of the frame, for drawing it as an icon.
-        var widthOverHeight: CGFloat {
-            size.width / size.height
-        }
-    }
-
     /// Whole calendar days from the reference date to the target date;
     /// negative once the event has happened.
     static func dayDifference(from now: Date, to targetDate: Date) -> Int {
@@ -184,7 +149,7 @@ enum CountdownShare {
 
     /// Renders the countdown card into a share image, like the city card
     /// share: 9:16 by default, or the frame the share sheet picked.
-    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, isRepeating: Bool, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool, aspectRatio: AspectRatio = .nineBySixteen) -> UIImage {
+    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, isRepeating: Bool, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool, aspectRatio: ShareAspectRatio = .nineBySixteen) -> UIImage {
         let snapshotView = CountdownCardSnapshotView(
             title: title,
             targetDate: targetDate,
@@ -270,7 +235,7 @@ struct CountdownCardSnapshotView: View {
     let footerText: String
     /// Frame of the image: a centred crop of the 9:16 layout, so the card
     /// keeps its size and only the amount of backdrop around it changes.
-    var aspectRatio: CountdownShare.AspectRatio = .nineBySixteen
+    var aspectRatio: ShareAspectRatio = .nineBySixteen
     /// Corner radius of that frame. Square (0) for the exported file; the
     /// share preview rounds it here so the crop is its only clip, rather
     /// than a rounded clip wrapped around a square one.
@@ -285,7 +250,7 @@ struct CountdownCardSnapshotView: View {
     /// boxes, so the crop lands exactly where laying the card out in the
     /// shorter frame would have put it, while the backdrop keeps its 9:16
     /// framing instead of being re-cropped per ratio.
-    private static let layoutSize = CountdownShare.AspectRatio.nineBySixteen.size
+    private static let layoutSize = ShareAspectRatio.nineBySixteen.size
 
     /// Memoised: decoding here would hand `Image` a fresh `UIImage` on
     /// every update, and the blurred backdrop layer gets rebuilt whenever

@@ -121,6 +121,21 @@ struct CityCardSnapshotView: View {
     let additionalTimeDisplay: String
     let showSkyDot: Bool
     let additionalTimeText: String
+    /// Frame of the image: a centred crop of the 9:16 layout, so the card
+    /// keeps its size and only the amount of backdrop around it changes.
+    var aspectRatio: ShareAspectRatio = .nineBySixteen
+    /// Corner radius of that frame. Square (0) for the exported file; the
+    /// share preview rounds it here so the crop is its only clip, rather
+    /// than a rounded clip wrapped around a square one.
+    var frameCornerRadius: CGFloat = 0
+    
+    /// Everything is laid out at the tallest frame and the shorter ratios
+    /// take a centred crop of it, as the countdown share card does: the
+    /// card sits in the middle of both boxes, so the crop lands exactly
+    /// where laying the card out in the shorter frame would have put it,
+    /// while the sky keeps its 9:16 framing instead of being re-cropped
+    /// per ratio.
+    private static let layoutSize = ShareAspectRatio.nineBySixteen.size
     
     private var hasComplication: Bool {
         complications.hasVisibleComplication
@@ -331,6 +346,12 @@ struct CityCardSnapshotView: View {
                 .padding(.horizontal, 24)
             }
         }
-        .frame(width: 360, height: 640) // 9:16 share frame ratio
+        // Pinned to 9:16 so nothing inside re-lays out when the ratio
+        // changes; the second frame only shrinks the window the content
+        // is seen through, keeping the stars and the sky shader off the
+        // ratio animation's hot path.
+        .frame(width: Self.layoutSize.width, height: Self.layoutSize.height)
+        .frame(width: aspectRatio.size.width, height: aspectRatio.size.height) // 9:16 unless another frame is picked
+        .clipShape(RoundedRectangle(cornerRadius: frameCornerRadius, style: .continuous))
     }
 }

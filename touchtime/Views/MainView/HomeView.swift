@@ -66,10 +66,29 @@ struct HomeView: View {
         let collectionPositions: [CollectionPosition]
     }
 
-    private struct WeekdayDisplay {
-        let previous: String
-        let current: String
-        let next: String
+    /// City whose card is being shared as an image. The time is fixed
+    /// when the menu item is tapped, so the share preview shows that
+    /// moment instead of ticking (and reseeding its stars) every second.
+    private struct CityShareData: Identifiable {
+        let id = UUID()
+        let cityName: String
+        let timeZoneIdentifier: String
+        /// Wall-clock time and Slide to Adjust offset at the tap.
+        let baseDate: Date
+        let timeOffset: TimeInterval
+
+        /// The time the card shows.
+        var date: Date {
+            baseDate.addingTimeInterval(timeOffset)
+        }
+    }
+
+    /// Pinned countdown whose card is being shared as an image, with the
+    /// scrubbed time at the tap so the share screen shows that moment.
+    private struct CountdownShareData: Identifiable {
+        let id = UUID()
+        let item: CountdownItem
+        let now: Date
     }
 
     @Binding var worldClocks: [WorldClock]
@@ -105,10 +124,14 @@ struct HomeView: View {
     @Environment(CountdownStore.self) private var countdownStore
     // Countdown being edited after tapping its pinned card on Home.
     @State private var editingHomeCountdown: CountdownItem? = nil
+    // Pinned countdown being shared as an image from its card's context menu.
+    @State private var countdownShareData: CountdownShareData? = nil
     @State private var showComplicationsSheet = false
     @State private var showWidgetIntroSheet = false
     @State private var showEarthView = false
     @State private var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
+    // City card being shared as an image from its context menu.
+    @State private var cityShareData: CityShareData? = nil
     @State private var showCalendarPermissionAlert = false
     
     // Collection management
@@ -540,11 +563,6 @@ struct HomeView: View {
         }
     }
 
-    private func weatherConditionForSky(at timeZoneIdentifier: String) -> WeatherCondition? {
-        guard showWeather else { return nil }
-        return weatherManager.weatherData[timeZoneIdentifier]?.condition
-    }
-
     private var effectiveShowWeatherCondition: Bool {
         showWeatherCondition
     }
@@ -826,74 +844,6 @@ struct HomeView: View {
         )
     }
 
-    private func additionalText(for clock: WorldClock) -> String {
-        switch additionalTimeDisplay {
-        case "Time Difference":
-            return clock.timeDifference
-        case "UTC":
-            return clock.utcOffset
-        case "Weekday":
-            guard let weekday = weekdayDisplay(
-                for: clock.timeZoneIdentifier,
-                baseDate: currentDate,
-                offset: timeOffset
-            ) else {
-                return ""
-            }
-            return weekdayInlineText(for: weekday)
-        default:
-            return ""
-        }
-    }
-
-    private func weekdayDisplay(
-        for timeZoneIdentifier: String,
-        baseDate: Date,
-        offset: TimeInterval
-    ) -> WeekdayDisplay? {
-        guard let timeZone = TimeZone(identifier: timeZoneIdentifier) else {
-            return nil
-        }
-
-        var calendar = Calendar.current
-        calendar.timeZone = timeZone
-
-        let displayDate = baseDate.addingTimeInterval(offset)
-        let previousDate = calendar.date(byAdding: .day, value: -1, to: displayDate) ?? displayDate.addingTimeInterval(-86_400)
-        let nextDate = calendar.date(byAdding: .day, value: 1, to: displayDate) ?? displayDate.addingTimeInterval(86_400)
-
-        let previous = weekdaySymbol(for: calendar.component(.weekday, from: previousDate))
-        let current = weekdaySymbol(for: calendar.component(.weekday, from: displayDate))
-        let next = weekdaySymbol(for: calendar.component(.weekday, from: nextDate))
-
-        return WeekdayDisplay(previous: previous, current: current, next: next)
-    }
-
-    private func weekdaySymbol(for weekday: Int) -> String {
-        switch weekday {
-        case 1:
-            return String(localized: "Sun")
-        case 2:
-            return String(localized: "Mon")
-        case 3:
-            return String(localized: "Tue")
-        case 4:
-            return String(localized: "Wed")
-        case 5:
-            return String(localized: "Thu")
-        case 6:
-            return String(localized: "Fri")
-        case 7:
-            return String(localized: "Sat")
-        default:
-            return ""
-        }
-    }
-
-    private func weekdayInlineText(for weekday: WeekdayDisplay) -> String {
-        "\(weekday.previous) [\(weekday.current)] \(weekday.next)"
-    }
-
     // Copy time as text
     func copyTimeAsText(cityName: String, timeZoneIdentifier: String) {
         let formatter = DateFormatter()
@@ -943,13 +893,6 @@ struct HomeView: View {
         
         Divider()
         
-        let localLazy = LazyCardImage { [self] in
-            renderCardImage(
-                cityName: String(localized: "Local"),
-                timeZoneIdentifier: TimeZone.current.identifier,
-                weatherCondition: weatherConditionForSky(at: TimeZone.current.identifier)
-            ).uiImage
-        }
         Menu {
             Button(action: {
                 let cityName = String(localized: "Local")
@@ -957,7 +900,9 @@ struct HomeView: View {
             }) {
                 Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
             }
-            ShareLink(item: localLazy, preview: SharePreview(String(localized: "Local"))) {
+            Button(action: {
+                shareCardAsImage(cityName: String(localized: "Local"), timeZoneIdentifier: TimeZone.current.identifier)
+            }) {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
         } label: {
@@ -987,20 +932,15 @@ struct HomeView: View {
         
         Divider()
         
-        let cityLazy = LazyCardImage { [self] in
-            renderCardImage(
-                cityName: getLocalizedCityName(for: clock),
-                timeZoneIdentifier: clock.timeZoneIdentifier,
-                weatherCondition: weatherConditionForSky(at: clock.timeZoneIdentifier)
-            ).uiImage
-        }
         Menu {
             Button(action: {
                 copyTimeAsText(cityName: getLocalizedCityName(for: clock), timeZoneIdentifier: clock.timeZoneIdentifier)
             }) {
                 Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
             }
-            ShareLink(item: cityLazy, preview: SharePreview(getLocalizedCityName(for: clock))) {
+            Button(action: {
+                shareCardAsImage(cityName: getLocalizedCityName(for: clock), timeZoneIdentifier: clock.timeZoneIdentifier)
+            }) {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
         } label: {
@@ -1063,65 +1003,77 @@ struct HomeView: View {
         }
     }
     
-    // Render city card as image for sharing
-    func renderCardImage(cityName: String, timeZoneIdentifier: String, weatherCondition: WeatherCondition? = nil) -> CardImage {
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        let effectiveWeatherCondition = showWeather ? weatherCondition : nil
-        let weatherForSnapshot = showWeather ? weatherManager.weatherData[timeZoneIdentifier] : nil
-        
-        let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        if use24HourFormat {
-            formatter.dateFormat = "HH:mm"
-        } else {
-            formatter.dateFormat = "h:mm"
-        }
-        let timeString = formatter.string(from: adjustedDate)
-        formatter.timeZone = TimeZone.current
-        let localTimeString = formatter.string(from: adjustedDate)
-        
-        let dateString = getCityDate(
+    // MARK: - Share as Image
+    
+    /// Opens the share-as-image screen for a city card, fixing the time it
+    /// shows at this moment.
+    private func shareCardAsImage(cityName: String, timeZoneIdentifier: String) {
+        cityShareData = CityShareData(
+            cityName: cityName,
             timeZoneIdentifier: timeZoneIdentifier,
             baseDate: currentDate,
-            offset: timeOffset
+            timeOffset: timeOffset
         )
-        
+    }
+    
+    /// The share card for a city at the export size of the given frame: the
+    /// row's card replica on its sky backdrop, with the local time as the
+    /// footer. Built here because it reads the same settings as the rows;
+    /// the share screen previews it live and renders it for the file.
+    private func cityShareCard(for share: CityShareData, aspectRatio: ShareAspectRatio, frameCornerRadius: CGFloat = 0) -> some View {
+        let timeZoneIdentifier = share.timeZoneIdentifier
         let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+        let weather = showWeather ? weatherManager.weatherData[timeZoneIdentifier] : nil
+        let clock = WorldClock(cityName: share.cityName, timeZoneIdentifier: timeZoneIdentifier)
         
-        let clock = WorldClock(cityName: cityName, timeZoneIdentifier: timeZoneIdentifier)
-        let additionalText = additionalText(for: clock)
-        
-        let snapshotView = CityCardSnapshotView(
-            cityName: cityName,
-            timeString: timeString,
+        return CityCardSnapshotView(
+            cityName: share.cityName,
+            timeString: RowTimeFormat.time(
+                date: share.baseDate,
+                offset: share.timeOffset,
+                timeZone: targetTimeZone,
+                use24Hour: use24HourFormat
+            ),
             localCityName: localCityName,
-            localTimeString: localTimeString,
-            dateString: dateString,
-            date: adjustedDate,
+            localTimeString: RowTimeFormat.time(
+                date: share.baseDate,
+                offset: share.timeOffset,
+                timeZone: TimeZone.current,
+                use24Hour: use24HourFormat
+            ),
+            dateString: getCityDate(
+                timeZoneIdentifier: timeZoneIdentifier,
+                baseDate: share.baseDate,
+                offset: share.timeOffset
+            ),
+            date: share.date,
             timeZone: targetTimeZone,
             timeZoneIdentifier: timeZoneIdentifier,
-            weather: weatherForSnapshot,
-            weatherCondition: effectiveWeatherCondition,
+            weather: weather,
+            weatherCondition: weather?.condition,
             useCelsius: useCelsius,
             complications: complicationOptions,
             additionalTimeDisplay: additionalTimeDisplay,
             showSkyDot: showSkyDot,
-            additionalTimeText: additionalText
+            additionalTimeText: RowTimeFormat.additionalText(
+                for: clock,
+                display: additionalTimeDisplay,
+                baseDate: share.baseDate,
+                offset: share.timeOffset
+            ),
+            aspectRatio: aspectRatio,
+            frameCornerRadius: frameCornerRadius
         )
         .environmentObject(weatherManager)
         .environment(\.colorScheme, .dark)
-        
-        let renderer = ImageRenderer(content: snapshotView)
+    }
+    
+    /// Renders the city share card into the image that gets saved or
+    /// shared, falling back to a placeholder if rendering fails.
+    private func renderCityShareImage(for share: CityShareData, aspectRatio: ShareAspectRatio) -> UIImage {
+        let renderer = ImageRenderer(content: cityShareCard(for: share, aspectRatio: aspectRatio))
         renderer.scale = 3
-        
-        if let uiImage = renderer.uiImage {
-            return CardImage(uiImage: uiImage)
-        }
-        
-        // Fallback: create a simple placeholder image
-        let placeholderImage = UIImage(systemName: "photo") ?? UIImage()
-        return CardImage(uiImage: placeholderImage)
+        return renderer.uiImage ?? UIImage(systemName: "photo") ?? UIImage()
     }
     
     var body: some View {
@@ -1278,6 +1230,12 @@ struct HomeView: View {
                             },
                             onUnpin: { item in
                                 unpinCountdown(item)
+                            },
+                            onShare: { item in
+                                countdownShareData = CountdownShareData(
+                                    item: item,
+                                    now: currentDate.addingTimeInterval(timeOffset)
+                                )
                             }
                         )
                         
@@ -1878,6 +1836,16 @@ struct HomeView: View {
                 }
             }
             
+            // Share as Image: full-screen preview of one city card with
+            // frame, share and save actions, from the row's context menu
+            .fullScreenCover(item: $cityShareData) { share in
+                ShareAsImageView(title: share.cityName) { aspectRatio, frameCornerRadius in
+                    cityShareCard(for: share, aspectRatio: aspectRatio, frameCornerRadius: frameCornerRadius)
+                } render: { aspectRatio in
+                    renderCityShareImage(for: share, aspectRatio: aspectRatio)
+                }
+            }
+            
             // Settings Sheet
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(
@@ -1972,6 +1940,19 @@ struct HomeView: View {
                 // Force a fresh view identity per item, otherwise SwiftUI reuses
                 // the sheet content and @State keeps the previous item's values.
                 .id(item.id)
+            }
+
+            // Share as Image for a pinned card: same full-screen preview as
+            // the countdown editor, with the day count at the scrubbed time
+            .fullScreenCover(item: $countdownShareData) { share in
+                CountdownShareAsImageView(
+                    title: share.item.title,
+                    targetDate: share.item.effectiveTargetDate(at: share.now),
+                    emoji: share.item.emoji,
+                    photoData: share.item.photoData,
+                    isRepeating: share.item.repeatFrequency != .never,
+                    now: share.now
+                )
             }
 
             // Complications Sheet

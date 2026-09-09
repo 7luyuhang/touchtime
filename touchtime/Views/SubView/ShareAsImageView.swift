@@ -9,34 +9,56 @@ import SwiftUI
 import UIKit
 import Photos
 
-/// Full-screen share-as-image view for a countdown: the share card
-/// centred as a preview, with Save (to Photos), Aspect Ratio
-/// (9:16 / 3:4 / 1:1) and Share (system share sheet) as glass circle
-/// buttons underneath.
+/// Frame of a share image. The width is fixed so the card keeps the
+/// same size in every ratio; only the backdrop around it grows or
+/// shrinks. The raw value doubles as the menu label.
+/// Listed tallest first, so the menu reads like a frame getting
+/// squarer from top to bottom.
+enum ShareAspectRatio: String, CaseIterable {
+    case nineBySixteen = "9:16"
+    case twoByThree = "2:3"
+    case threeByFour = "3:4"
+    case oneByOne = "1:1"
+
+    /// Point size of the rendered view; the image is 3x this.
+    var size: CGSize {
+        switch self {
+        case .nineBySixteen: CGSize(width: 360, height: 640)
+        case .twoByThree: CGSize(width: 360, height: 540)
+        case .threeByFour: CGSize(width: 360, height: 480)
+        case .oneByOne: CGSize(width: 360, height: 360)
+        }
+    }
+
+    /// Proportions of the frame, for drawing it as an icon.
+    var widthOverHeight: CGFloat {
+        size.width / size.height
+    }
+}
+
+/// Full-screen share-as-image view for a card (a countdown or a city):
+/// the share card centred as a preview, with Aspect Ratio
+/// (9:16 / 2:3 / 3:4 / 1:1), Share (system share sheet) and Save (to
+/// Photos) as glass buttons underneath.
 ///
 /// The preview is the live share card rather than a rendered bitmap, so
 /// changing ratio only resizes the frame around an unchanged backdrop and
 /// card instead of swapping one snapshot for another. Saving and sharing
-/// render the same view through ImageRenderer.
-struct ShareAsImageView: View {
+/// render the same card through ImageRenderer.
+struct ShareAsImageView<Card: View>: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     /// Last picked frame, remembered across shares.
-    @AppStorage("countdownShareAspectRatio") private var aspectRatio: CountdownShare.AspectRatio = .nineBySixteen
-    // Time Display settings from the countdown sheet, as the menu shares use.
-    @AppStorage("countdownShowYears") private var showYears = false
-    @AppStorage("countdownShowMonths") private var showMonths = false
-    @AppStorage("countdownShowDays") private var showDays = true
+    @AppStorage("shareAspectRatio") private var aspectRatio: ShareAspectRatio = .nineBySixteen
 
+    /// Title of the share sheet preview.
     let title: String
-    let targetDate: Date
-    let emoji: String?
-    let photoData: Data?
-    /// True for repeating countdowns; swaps the card's arrow for a
-    /// repeat symbol.
-    let isRepeating: Bool
-    /// Reference "now" for the day count and the footer line.
-    var now: Date = Date()
+    /// The card at its export size for a frame, that frame rounded by the
+    /// given corner radius; the preview scales this down.
+    let card: (_ aspectRatio: ShareAspectRatio, _ frameCornerRadius: CGFloat) -> Card
+    /// The card for a frame, rendered into the image that gets saved or
+    /// shared.
+    let render: (_ aspectRatio: ShareAspectRatio) -> UIImage
 
     /// Flips the Save arrow to a checkmark for a moment after saving.
     @State private var didSave = false
@@ -47,12 +69,23 @@ struct ShareAsImageView: View {
     /// the tree.
     @State private var entranceSettled = false
 
-    private static let buttonSize: CGFloat = 48
-    private static let previewCornerRadius: CGFloat = 28
-    private static let previewOutlineWidth: CGFloat = 1
+    // Computed rather than stored: generic types can't hold static storage.
+    private static var buttonSize: CGFloat { 48 }
+    private static var previewCornerRadius: CGFloat { 28 }
+    private static var previewOutlineWidth: CGFloat { 1 }
     /// Tallest side of the ratio icon; every frame here is portrait or
     /// square, so the width is what varies.
-    private static let ratioIconHeight: CGFloat = 16
+    private static var ratioIconHeight: CGFloat { 16 }
+
+    init(
+        title: String,
+        @ViewBuilder card: @escaping (_ aspectRatio: ShareAspectRatio, _ frameCornerRadius: CGFloat) -> Card,
+        render: @escaping (_ aspectRatio: ShareAspectRatio) -> UIImage
+    ) {
+        self.title = title
+        self.card = card
+        self.render = render
+    }
 
     var body: some View {
         NavigationStack {
@@ -64,7 +97,7 @@ struct ShareAsImageView: View {
                 let scale = previewScale(for: frame, in: viewport.size)
                 // Rounded by the card's own crop, before scaling, so the
                 // corners track the frame exactly while it animates.
-                snapshotView(frameCornerRadius: Self.previewCornerRadius / scale)
+                card(aspectRatio, Self.previewCornerRadius / scale)
                     .overlay {
                         previewShape(scale: scale)
                             .strokeBorder(
@@ -122,30 +155,6 @@ struct ShareAsImageView: View {
         }
     }
 
-    /// The share card at its natural export size, its frame rounded for
-    /// the preview; the preview scales this down and the renderer draws
-    /// the square-cornered card as is.
-    private func snapshotView(frameCornerRadius: CGFloat) -> some View {
-        CountdownCardSnapshotView(
-            title: title,
-            targetDate: targetDate,
-            emoji: emoji,
-            photoData: photoData,
-            isRepeating: isRepeating,
-            now: now,
-            footerText: CountdownShare.footerText(
-                from: now,
-                to: targetDate,
-                showYears: showYears,
-                showMonths: showMonths,
-                showDays: showDays
-            ),
-            aspectRatio: aspectRatio,
-            frameCornerRadius: frameCornerRadius
-        )
-        .environment(\.colorScheme, .dark)
-    }
-
     /// Aspect ratio (a capsule showing the current ratio, the way a
     /// camera zoom button shows its factor), share, then save as the
     /// tinted primary action.
@@ -157,7 +166,7 @@ struct ShareAsImageView: View {
         HStack(spacing: 10) {
             Menu {
                 Section(String(localized: "Aspect Ratio")) {
-                    ForEach(CountdownShare.AspectRatio.allCases, id: \.self) { ratio in
+                    ForEach(ShareAspectRatio.allCases, id: \.self) { ratio in
                         Button {
                             select(ratio)
                         } label: {
@@ -191,7 +200,7 @@ struct ShareAsImageView: View {
             .buttonStyle(GlassActionButtonStyle(shape: Capsule(style: .continuous)))
 
             ShareLink(
-                item: LazyCardImage { renderImage() },
+                item: LazyCardImage { render(aspectRatio) },
                 preview: SharePreview(title)
             ) {
                 Image(systemName: "square.and.arrow.up")
@@ -231,24 +240,9 @@ struct ShareAsImageView: View {
         return min(available.width / frame.width, available.height / frame.height)
     }
 
-    private func select(_ ratio: CountdownShare.AspectRatio) {
+    private func select(_ ratio: ShareAspectRatio) {
         triggerHaptic()
         aspectRatio = ratio
-    }
-
-    private func renderImage() -> UIImage {
-        CountdownShare.renderCardImage(
-            title: title,
-            targetDate: targetDate,
-            emoji: emoji,
-            photoData: photoData,
-            isRepeating: isRepeating,
-            now: now,
-            showYears: showYears,
-            showMonths: showMonths,
-            showDays: showDays,
-            aspectRatio: aspectRatio
-        )
     }
 
     /// Saves the card as a PNG into the photo library, asking for
@@ -256,7 +250,7 @@ struct ShareAsImageView: View {
     private func saveToPhotos() {
         triggerHaptic()
         guard !didSave else { return }
-        let image = renderImage()
+        let image = render(aspectRatio)
         Task { @MainActor in
             let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
             guard status == .authorized || status == .limited else {

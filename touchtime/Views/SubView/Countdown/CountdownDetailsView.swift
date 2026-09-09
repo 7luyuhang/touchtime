@@ -414,7 +414,7 @@ struct CountdownDetailsView: View {
                 }
             }
             .fullScreenCover(isPresented: $showShareImageSheet) {
-                ShareAsImageView(
+                CountdownShareAsImageView(
                     title: shareTitle,
                     targetDate: effectiveTargetDate,
                     emoji: emoji,
