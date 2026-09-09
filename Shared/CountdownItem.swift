@@ -146,6 +146,10 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     /// as the card background. Shown instead of `emoji` when set; the
     /// emoji stays stored so removing the photo brings it back.
     var photoData: Data?
+    /// How the photo is framed in the badge (see `PhotoCrop`); nil shows
+    /// it centred. The photo itself stays as picked so the framing can be
+    /// changed again.
+    var photoCrop: PhotoCrop?
     /// Notification on the day of the event at this time of day; only the
     /// hour and minute are meaningful. Nil when the reminder is off.
     var reminderTime: Date?
@@ -153,7 +157,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     /// the day of the event.
     var reminderLeadDays: Int
 
-    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0) {
+    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
@@ -162,6 +166,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         self.repeatFrequency = repeatFrequency
         self.emoji = emoji
         self.photoData = photoData
+        self.photoCrop = photoCrop
         self.reminderTime = reminderTime
         self.reminderLeadDays = reminderLeadDays
     }
@@ -185,6 +190,9 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         }
         emoji = try container.decodeIfPresent(String.self, forKey: .emoji)
         photoData = try container.decodeIfPresent(Data.self, forKey: .photoData)
+        // A framing that doesn't decode falls back to centred rather than
+        // dropping the whole store.
+        photoCrop = (try? container.decodeIfPresent(PhotoCrop.self, forKey: .photoCrop)) ?? nil
         reminderTime = try container.decodeIfPresent(Date.self, forKey: .reminderTime)
         reminderLeadDays = try container.decodeIfPresent(Int.self, forKey: .reminderLeadDays) ?? 0
     }

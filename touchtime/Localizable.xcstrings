@@ -4213,6 +4213,22 @@
         }
       }
     },
+    "Crop" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "裁剪"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "裁切"
+          }
+        }
+      }
+    },
     "Cuiaba" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11888,22 +11904,6 @@
         }
       }
     },
-    "Replace Photo" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "替换照片"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取代照片"
-          }
-        }
-      }
-    },
     "Reset" : {
       "localizations" : {
         "zh-Hans" : {
@@ -15299,6 +15299,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "永珍"
+          }
+        }
+      }
+    },
+    "View Photo" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看照片"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "檢視照片"
           }
         }
       }

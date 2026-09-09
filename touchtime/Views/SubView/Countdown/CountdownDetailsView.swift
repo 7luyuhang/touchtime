@@ -21,7 +21,7 @@ struct CountdownDetailsView: View {
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
 
-    let onSave: (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void
+    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
@@ -29,6 +29,7 @@ struct CountdownDetailsView: View {
     @State private var targetDate: Date
     @State private var emoji: String?
     @State private var photoData: Data?
+    @State private var photoCrop: CountdownItem.PhotoCrop?
     @State private var isPinned: Bool
     @State private var repeatFrequency: CountdownItem.RepeatFrequency
     @State private var reminderEnabled: Bool
@@ -75,7 +76,7 @@ struct CountdownDetailsView: View {
         scrolledTab ?? .detail
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -92,6 +93,7 @@ struct CountdownDetailsView: View {
         let hasCover = countdown?.emoji != nil || countdown?.photoData != nil
         _emoji = State(initialValue: hasCover ? countdown?.emoji : CountdownCoverEmojis.random)
         _photoData = State(initialValue: countdown?.photoData)
+        _photoCrop = State(initialValue: countdown?.photoCrop)
         _isPinned = State(initialValue: countdown?.isPinned ?? false)
         _repeatFrequency = State(initialValue: countdown?.repeatFrequency ?? .never)
 
@@ -147,6 +149,7 @@ struct CountdownDetailsView: View {
             || targetDate != original.targetDate
             || emoji != original.emoji
             || photoData != original.photoData
+            || photoCrop != original.photoCrop
             || isPinned != original.isPinned
             || repeatFrequency != original.repeatFrequency
             || draftReminderTime != original.reminderTime
@@ -181,6 +184,7 @@ struct CountdownDetailsView: View {
                         targetDate: effectiveTargetDate,
                         emoji: emoji,
                         photoData: photoData,
+                        photoCrop: photoCrop,
                         isRepeating: repeatFrequency != .never,
                         emojiParticleBurst: emojiParticleBurst
                     ) {
@@ -404,7 +408,7 @@ struct CountdownDetailsView: View {
                 isTitleFocused = false
             }
             .sheet(isPresented: $showCoverPicker) {
-                CoverPickerSheet(selectedEmoji: $emoji, selectedPhotoData: $photoData) {
+                CoverPickerSheet(selectedEmoji: $emoji, selectedPhotoData: $photoData, selectedPhotoCrop: $photoCrop) {
                     emojiParticleBurst += 1
                 }
             }
@@ -419,6 +423,7 @@ struct CountdownDetailsView: View {
                     targetDate: effectiveTargetDate,
                     emoji: emoji,
                     photoData: photoData,
+                    photoCrop: photoCrop,
                     isRepeating: repeatFrequency != .never
                 )
             }
@@ -483,7 +488,7 @@ struct CountdownDetailsView: View {
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays)
+                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -696,7 +701,7 @@ struct CountdownDetailsView: View {
 
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays)
+        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays)
         dismiss()
     }
 
@@ -721,6 +726,8 @@ struct CountdownPreviewCard: View {
     /// Downsampled photo shown in the centre badge instead of the emoji,
     /// with a blurred copy as the card background.
     var photoData: Data? = nil
+    /// How the photo is framed in the badge; nil shows it centred.
+    var photoCrop: CountdownItem.PhotoCrop? = nil
     /// Reference "now" for the day count; the Home screen passes the
     /// scrubbed time so the number follows Slide to Adjust.
     var now: Date = Date()
@@ -743,7 +750,7 @@ struct CountdownPreviewCard: View {
 
     private var photoImage: UIImage? {
         guard let photoData else { return nil }
-        return Self.cachedImage(from: photoData)
+        return Self.cachedImage(from: photoData, crop: photoCrop)
     }
 
     private var calendar: Calendar {
@@ -894,6 +901,7 @@ struct CountdownPreviewCard: View {
         .animation(.spring(), value: isRepeating)
         .animation(.spring(), value: emoji)
         .animation(.spring(), value: photoData)
+        .animation(.spring(), value: photoCrop)
     }
 
     // A ZStack (not a Group) so the frame and the glass effect belong to a
@@ -927,20 +935,31 @@ struct CountdownPreviewCard: View {
         .frame(width: 64, height: 64)
     }
 
-    /// Decoded badge photos, memoised because the card re-renders every
-    /// second on the Home screen. Wiped when it grows past a handful of
-    /// entries so abandoned photos don't pile up in memory.
-    private static var imageCache: [Data: UIImage] = [:]
+    /// Decoded badge photos, cut to their framing, memoised because the
+    /// card re-renders every second on the Home screen. Wiped when it grows
+    /// past a handful of entries so abandoned photos don't pile up in
+    /// memory.
+    private static var imageCache: [ImageCacheKey: UIImage] = [:]
 
-    static func cachedImage(from data: Data) -> UIImage? {
-        if let cached = imageCache[data] {
+    private struct ImageCacheKey: Hashable {
+        let data: Data
+        let crop: CountdownItem.PhotoCrop?
+    }
+
+    /// The photo as the badge shows it: decoded, and cut to `crop` when
+    /// there is one. Without a crop this is the full photo, which is also
+    /// what the cover sheet's editor starts from.
+    static func cachedImage(from data: Data, crop: CountdownItem.PhotoCrop? = nil) -> UIImage? {
+        let key = ImageCacheKey(data: data, crop: crop)
+        if let cached = imageCache[key] {
             return cached
         }
-        guard let image = UIImage(data: data) else { return nil }
+        guard let decoded = UIImage(data: data) else { return nil }
+        let image = crop.map { $0.croppedImage(from: decoded) } ?? decoded
         if imageCache.count > 12 {
             imageCache.removeAll()
         }
-        imageCache[data] = image
+        imageCache[key] = image
         return image
     }
 
@@ -953,7 +972,7 @@ struct CountdownPreviewCard: View {
 }
 
 #Preview {
-    CountdownDetailsView { _, _, _, _, _, _, _, _ in }
+    CountdownDetailsView { _, _, _, _, _, _, _, _, _ in }
 }
 
 #Preview("Editing") {
@@ -964,5 +983,5 @@ struct CountdownPreviewCard: View {
             targetDate: Date().addingTimeInterval(86_400 * 30),
             createdAt: Date()
         )
-    ) { _, _, _, _, _, _, _, _ in }
+    ) { _, _, _, _, _, _, _, _, _ in }
 }

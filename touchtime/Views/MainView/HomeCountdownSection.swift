@@ -46,6 +46,7 @@ struct HomeCountdownSection: View {
                     targetDate: item.effectiveTargetDate(at: now),
                     emoji: item.emoji,
                     photoData: item.photoData,
+                    photoCrop: item.photoCrop,
                     now: now,
                     isRepeating: item.repeatFrequency != .never
                 )
@@ -149,12 +150,13 @@ enum CountdownShare {
 
     /// Renders the countdown card into a share image, like the city card
     /// share: 9:16 by default, or the frame the share sheet picked.
-    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, isRepeating: Bool, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool, aspectRatio: ShareAspectRatio = .nineBySixteen) -> UIImage {
+    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isRepeating: Bool, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool, aspectRatio: ShareAspectRatio = .nineBySixteen) -> UIImage {
         let snapshotView = CountdownCardSnapshotView(
             title: title,
             targetDate: targetDate,
             emoji: emoji,
             photoData: photoData,
+            photoCrop: photoCrop,
             isRepeating: isRepeating,
             now: now,
             footerText: footerText(from: now, to: targetDate, showYears: showYears, showMonths: showMonths, showDays: showDays),
@@ -226,6 +228,8 @@ struct CountdownCardSnapshotView: View {
     let targetDate: Date
     let emoji: String?
     let photoData: Data?
+    /// How the photo is framed in the badge; nil shows it centred.
+    let photoCrop: CountdownItem.PhotoCrop?
     /// True for repeating countdowns; swaps the top-left arrow for a
     /// repeat symbol.
     let isRepeating: Bool
@@ -257,7 +261,7 @@ struct CountdownCardSnapshotView: View {
     /// that identity changes.
     private var photoImage: UIImage? {
         guard let photoData else { return nil }
-        return CountdownPreviewCard.cachedImage(from: photoData)
+        return CountdownPreviewCard.cachedImage(from: photoData, crop: photoCrop)
     }
 
     private var emojiColor: Color? {

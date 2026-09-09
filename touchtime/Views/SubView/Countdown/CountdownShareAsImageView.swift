@@ -21,6 +21,8 @@ struct CountdownShareAsImageView: View {
     let targetDate: Date
     let emoji: String?
     let photoData: Data?
+    /// How the photo is framed in the badge; nil shows it centred.
+    let photoCrop: CountdownItem.PhotoCrop?
     /// True for repeating countdowns; swaps the card's arrow for a
     /// repeat symbol.
     let isRepeating: Bool
@@ -34,6 +36,7 @@ struct CountdownShareAsImageView: View {
                 targetDate: targetDate,
                 emoji: emoji,
                 photoData: photoData,
+                photoCrop: photoCrop,
                 isRepeating: isRepeating,
                 now: now,
                 footerText: CountdownShare.footerText(
@@ -53,6 +56,7 @@ struct CountdownShareAsImageView: View {
                 targetDate: targetDate,
                 emoji: emoji,
                 photoData: photoData,
+                photoCrop: photoCrop,
                 isRepeating: isRepeating,
                 now: now,
                 showYears: showYears,

@@ -22,6 +22,8 @@ struct CountdownWidgetEntry: TimelineEntry {
         let targetDate: Date
         let emoji: String?
         let photoData: Data?
+        /// How the photo is framed in the badge; nil shows it centred.
+        let photoCrop: CountdownItem.PhotoCrop?
     }
 
     let date: Date
@@ -48,7 +50,8 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
                 title: $0.title,
                 targetDate: $0.effectiveTargetDate(at: date),
                 emoji: $0.emoji,
-                photoData: $0.photoData
+                photoData: $0.photoData,
+                photoCrop: $0.photoCrop
             )
         }
         return CountdownWidgetEntry(date: date, countdown: countdown)
@@ -65,7 +68,8 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
                 title: String(localized: "New Year"),
                 targetDate: newYear,
                 emoji: "🎆",
-                photoData: nil
+                photoData: nil,
+                photoCrop: nil
             )
         )
     }
@@ -125,9 +129,11 @@ struct CountdownWidgetView: View {
         entry.countdown
     }
 
-    /// Decoded cover photo; nil for emoji covers.
+    /// Decoded cover photo, cut to its framing; nil for emoji covers.
     private var photoImage: UIImage? {
-        countdown?.photoData.flatMap { UIImage(data: $0) }
+        guard let countdown, let photoData = countdown.photoData,
+              let image = UIImage(data: photoData) else { return nil }
+        return countdown.photoCrop?.croppedImage(from: image) ?? image
     }
 
     /// Dominant colour of the cover emoji, the same one the app's card uses.
