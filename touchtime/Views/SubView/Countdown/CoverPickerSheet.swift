@@ -63,13 +63,12 @@ struct CoverPickerSheet: View {
 
     var body: some View {
         NavigationStack {
+            // Cover and Crop swap in place, without animation.
             Group {
                 if isEditingPhoto, let photoImage {
                     photoEditor(image: photoImage)
-                        .transition(.blurReplace)
                 } else {
                     emojiGrid
-                        .transition(.blurReplace)
                 }
             }
             .navigationTitle(isEditingPhoto ? String(localized: "Crop") : String(localized: "Cover"))
@@ -326,15 +325,11 @@ struct CoverPickerSheet: View {
     /// gets its sheet-filling start once the editor knows the sheet.
     private func enterPhotoEditor() {
         editingCrop = selectedPhotoCrop
-        withAnimation(.spring()) {
-            isEditingPhoto = true
-        }
+        isEditingPhoto = true
     }
 
     private func exitPhotoEditor() {
-        withAnimation(.spring()) {
-            isEditingPhoto = false
-        }
+        isEditingPhoto = false
     }
 
     /// Keeps the framing and leaves the editor. Only the framing changes;
