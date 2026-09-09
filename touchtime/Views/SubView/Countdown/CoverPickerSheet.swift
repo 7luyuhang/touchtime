@@ -16,11 +16,11 @@ import PhotosUI
 /// cover that can be removed.
 ///
 /// With a photo set, View turns the sheet into a photo editor: the photo
-/// starts out filling the whole sheet, like a wallpaper, under a circular
-/// window standing in for the badge; it pans by dragging and zooms by
-/// pinching, down to just covering the circle. The checkmark keeps that
-/// framing (`selectedPhotoCrop`); the photo itself is never altered, so
-/// coming back to the editor starts from the full photo again.
+/// starts out just covering a circular window standing in for the badge,
+/// centred on it, the way the badge shows an unframed photo; it pans by
+/// dragging and zooms in by pinching. The checkmark keeps that framing
+/// (`selectedPhotoCrop`); the photo itself is never altered, so coming
+/// back to the editor starts from the full photo again.
 struct CoverPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -37,11 +37,11 @@ struct CoverPickerSheet: View {
     @State private var showRemovePhotoDialog = false
 
     // Photo editor. `editingCrop` is the framing being edited; nil for a
-    // photo not framed yet, which the editor fits to the sheet it appears
-    // in (see `EditorGeometry`) as soon as it is on screen. The gestures
-    // report cumulative values, so the previous ones are kept to apply
-    // every change as a delta; that way a pan and a pinch going on at the
-    // same time compose.
+    // photo not framed yet, which the editor shows just covering the
+    // circle (see `EditorGeometry`) as soon as it is on screen. The
+    // gestures report cumulative values, so the previous ones are kept to
+    // apply every change as a delta; that way a pan and a pinch going on
+    // at the same time compose.
     @State private var isEditingPhoto = false
     @State private var editingCrop: CountdownItem.PhotoCrop?
     @State private var previousPanTranslation: CGSize = .zero
@@ -223,11 +223,11 @@ struct CoverPickerSheet: View {
         .scrollIndicators(.hidden)
     }
 
-    /// The Crop page: the photo across the whole sheet, running
-    /// under the bars, with the circular window centred in the space
-    /// between them. A fresh photo starts out filling the sheet. Dragging
-    /// pans, pinching zooms about the circle's centre, and both are clamped
-    /// so the photo never leaves a gap inside the circle.
+    /// The Crop page: the photo over the whole sheet, free to run under
+    /// the bars, with the circular window centred in the space between
+    /// them. A fresh photo starts out just covering the circle, centred on
+    /// it. Dragging pans, pinching zooms about the circle's centre, and
+    /// both are clamped so the photo never leaves a gap inside the circle.
     private func photoEditor(image: UIImage) -> some View {
         GeometryReader { viewport in
             let geometry = EditorGeometry(viewport: viewport, image: image)
@@ -260,9 +260,9 @@ struct CoverPickerSheet: View {
             .clipped()
             .contentShape(Rectangle())
             .gesture(panGesture(in: geometry).simultaneously(with: pinchGesture(in: geometry)))
-            // Fit the framing to this sheet: a fresh photo (also one swapped
-            // in from here) gets the sheet-filling start, a saved framing is
-            // kept within the editor's bounds.
+            // Resolve the framing for this sheet: a fresh photo (also one
+            // swapped in from here) gets the circle-fitting start, a saved
+            // framing is kept within the editor's bounds.
             .onAppear { editingCrop = geometry.resolved(editingCrop) }
             .onChange(of: geometry) { _, geometry in editingCrop = geometry.resolved(editingCrop) }
             .onChange(of: selectedPhotoData) { _, _ in editingCrop = geometry.resolved(editingCrop) }
@@ -322,7 +322,7 @@ struct CoverPickerSheet: View {
     }
 
     /// Opens the editor on the saved framing, if any; a photo without one
-    /// gets its sheet-filling start once the editor knows the sheet.
+    /// starts out just covering the circle.
     private func enterPhotoEditor() {
         editingCrop = selectedPhotoCrop
         isEditingPhoto = true
@@ -378,19 +378,14 @@ struct CoverPickerSheet: View {
             return max(viewportSize.width / fillSize.width, viewportSize.height / fillSize.height)
         }
 
-        /// Where a fresh photo starts: filling the sheet, centred on it.
-        var sheetFillingFraming: CountdownItem.PhotoCrop {
-            let centredOnSheet = CGSize(
-                width: (viewportSize.width / 2 - circleCenter.x) / diameter,
-                height: (viewportSize.height / 2 - circleCenter.y) / diameter
-            )
-            return CountdownItem.PhotoCrop(scale: coverScale, offset: clampedOffset(centredOnSheet, at: coverScale))
-        }
+        /// Where a fresh photo starts: just covering the circle, centred on
+        /// it, which is also how the badge shows a photo with no framing.
+        static let circleFittingFraming = CountdownItem.PhotoCrop(scale: 1, offset: .zero)
 
-        /// The framing as the editor shows it: the sheet-filling start for
+        /// The framing as the editor shows it: the circle-fitting start for
         /// a photo not framed yet, otherwise the framing within bounds.
         func resolved(_ framing: CountdownItem.PhotoCrop?) -> CountdownItem.PhotoCrop {
-            guard let framing else { return sheetFillingFraming }
+            let framing = framing ?? Self.circleFittingFraming
             let scale = clampedScale(framing.scale)
             return CountdownItem.PhotoCrop(scale: scale, offset: clampedOffset(framing.offset, at: scale))
         }
