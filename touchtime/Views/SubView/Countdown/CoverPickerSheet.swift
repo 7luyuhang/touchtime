@@ -236,15 +236,24 @@ struct CoverPickerSheet: View {
             // right even before the state has been fitted to the sheet.
             let framing = geometry.resolved(editingCrop)
             let photoSize = geometry.photoSize(at: framing.scale)
+            let photo = Image(uiImage: image)
+                .resizable()
+                .frame(width: photoSize.width, height: photoSize.height)
+                .position(geometry.photoCenter(for: framing.offset))
 
             ZStack {
-                Image(uiImage: image)
-                    .resizable()
-                    .frame(width: photoSize.width, height: photoSize.height)
-                    .position(geometry.photoCenter(for: framing.offset))
+                photo
+                    .blur(radius: 25)
+
+                photo
+                    .mask {
+                        Circle()
+                            .frame(width: geometry.diameter, height: geometry.diameter)
+                            .position(geometry.circleCenter)
+                    }
 
                 Circle()
-                    .strokeBorder(.white.opacity(0.50), lineWidth: 2)
+                    .strokeBorder(.white.opacity(0.10), lineWidth: 1.0)
                     .frame(width: geometry.diameter, height: geometry.diameter)
                     .position(geometry.circleCenter)
                     .blendMode(.plusLighter)
@@ -293,9 +302,10 @@ struct CoverPickerSheet: View {
                 previousMagnification = value.magnification
                 let framing = geometry.resolved(editingCrop)
                 let newScale = geometry.clampedScale(framing.scale * delta)
-                // Reaching the smallest zoom taps once, like a detent;
+                // Reaching either end of the zoom taps once, like a detent;
                 // pinching on against it stays quiet.
-                if newScale == geometry.scaleRange.lowerBound && framing.scale > newScale {
+                let hitsEnd = newScale == geometry.scaleRange.lowerBound || newScale == geometry.scaleRange.upperBound
+                if hitsEnd && newScale != framing.scale {
                     triggerHaptic()
                 }
                 let growth = newScale / framing.scale
