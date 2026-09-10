@@ -46,6 +46,9 @@ struct CoverPickerSheet: View {
     @State private var editingCrop: CountdownItem.PhotoCrop?
     @State private var previousPanTranslation: CGSize = .zero
     @State private var previousMagnification: CGFloat = 1
+    // True while the photo is being dragged; the crosshair through the
+    // circle shows only then, as a guide for centring the photo.
+    @State private var isPanningPhoto = false
 
     private let columns = [GridItem(.adaptive(minimum: 52), spacing: 8)]
 
@@ -251,6 +254,21 @@ struct CoverPickerSheet: View {
                             .position(geometry.circleCenter)
                     }
 
+                // Crosshair spanning the circle while the photo is dragged,
+                // drawn like the border. The opacity sits inside the blend
+                // mode so the fade keeps blending with the photo.
+                Path { path in
+                    let radius = geometry.diameter / 2
+                    path.move(to: CGPoint(x: geometry.circleCenter.x - radius, y: geometry.circleCenter.y))
+                    path.addLine(to: CGPoint(x: geometry.circleCenter.x + radius, y: geometry.circleCenter.y))
+                    path.move(to: CGPoint(x: geometry.circleCenter.x, y: geometry.circleCenter.y - radius))
+                    path.addLine(to: CGPoint(x: geometry.circleCenter.x, y: geometry.circleCenter.y + radius))
+                }
+                .stroke(.white.opacity(0.20), lineWidth: 1.0)
+                .opacity(isPanningPhoto ? 1 : 0)
+                .animation(.spring(duration: 0.10), value: isPanningPhoto)
+                .blendMode(.plusLighter)
+
                 Circle()
                     .strokeBorder(.white.opacity(0.10), lineWidth: 1.0)
                     .frame(width: geometry.diameter, height: geometry.diameter)
@@ -275,6 +293,7 @@ struct CoverPickerSheet: View {
     private func panGesture(in geometry: EditorGeometry) -> some Gesture {
         DragGesture()
             .onChanged { value in
+                isPanningPhoto = true
                 let delta = CGSize(
                     width: (value.translation.width - previousPanTranslation.width) / geometry.diameter,
                     height: (value.translation.height - previousPanTranslation.height) / geometry.diameter
@@ -289,6 +308,7 @@ struct CoverPickerSheet: View {
             }
             .onEnded { _ in
                 previousPanTranslation = .zero
+                isPanningPhoto = false
             }
     }
 
@@ -325,6 +345,9 @@ struct CoverPickerSheet: View {
     /// starts out just covering the circle.
     private func enterPhotoEditor() {
         editingCrop = selectedPhotoCrop
+        // A drag cut short by the system never reports its end; the
+        // crosshair must not come back on with the editor.
+        isPanningPhoto = false
         isEditingPhoto = true
     }
 
