@@ -228,15 +228,15 @@ struct CountdownSheet: View {
                 }
         }
         .sheet(isPresented: $showEditorSheet) {
-            CountdownDetailsView { title, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, reminderTime, reminderLeadDays in
-                addCountdown(title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, photoCrop: photoCrop, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays)
+            CountdownDetailsView { title, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, reminderTime, reminderLeadDays, reminderKind in
+                addCountdown(title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, photoCrop: photoCrop, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind)
             }
         }
         .sheet(item: $editingCountdown) { item in
             CountdownDetailsView(countdown: item, onDelete: {
                 deleteCountdown(item)
-            }) { title, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, reminderTime, reminderLeadDays in
-                updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, photoCrop: photoCrop, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays)
+            }) { title, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, reminderTime, reminderLeadDays, reminderKind in
+                updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, photoCrop: photoCrop, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind)
             }
             // Force a fresh view identity per item, otherwise SwiftUI reuses
             // the sheet content and @State keeps the previous item's values.
@@ -460,8 +460,8 @@ struct CountdownSheet: View {
         }
     }
 
-    private func addCountdown(title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int) {
-        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, repeatFrequency: repeatFrequency, emoji: emoji, photoData: photoData, photoCrop: photoCrop, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays)
+    private func addCountdown(title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int, reminderKind: CountdownItem.ReminderKind) {
+        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, repeatFrequency: repeatFrequency, emoji: emoji, photoData: photoData, photoCrop: photoCrop, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind)
         withAnimation(.spring()) {
             countdownStore.countdowns.append(item)
         }
@@ -476,7 +476,7 @@ struct CountdownSheet: View {
         triggerHaptic()
     }
 
-    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int) {
+    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int, reminderKind: CountdownItem.ReminderKind) {
         guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
         // Assemble the edited item first so the store (and UserDefaults)
         // sees a single mutation instead of one per field.
@@ -490,6 +490,7 @@ struct CountdownSheet: View {
         updated.repeatFrequency = repeatFrequency
         updated.reminderTime = reminderTime
         updated.reminderLeadDays = reminderLeadDays
+        updated.reminderKind = reminderKind
         withAnimation(.spring()) {
             countdownStore.countdowns[index] = updated
         }

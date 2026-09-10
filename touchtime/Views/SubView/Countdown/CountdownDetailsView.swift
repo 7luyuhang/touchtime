@@ -21,7 +21,7 @@ struct CountdownDetailsView: View {
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
 
-    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void
+    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
@@ -35,10 +35,12 @@ struct CountdownDetailsView: View {
     @State private var reminderEnabled: Bool
     @State private var reminderTime: Date
     @State private var reminderLeadDays: Int
+    @State private var reminderKind: CountdownItem.ReminderKind
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
     @State private var showShareImageSheet = false
     @State private var showNotificationPermissionAlert = false
+    @State private var showAlarmPermissionAlert = false
     // Custom repeat sheet: the wheels edit these and confirm applies them
     // to `repeatFrequency`, so cancelling leaves the frequency untouched.
     @State private var showCustomRepeatSheet = false
@@ -76,7 +78,7 @@ struct CountdownDetailsView: View {
         scrolledTab ?? .detail
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -102,6 +104,7 @@ struct CountdownDetailsView: View {
         _reminderEnabled = State(initialValue: countdown?.reminderTime != nil)
         _reminderTime = State(initialValue: countdown?.reminderTime ?? defaultReminderTime)
         _reminderLeadDays = State(initialValue: countdown?.reminderLeadDays ?? 0)
+        _reminderKind = State(initialValue: countdown?.reminderKind ?? .notification)
     }
 
     private var trimmedTitle: String {
@@ -117,6 +120,35 @@ struct CountdownDetailsView: View {
     /// is off.
     private var draftReminderLeadDays: Int {
         reminderEnabled ? reminderLeadDays : 0
+    }
+
+    /// Notification or alarm as currently configured; back to the default
+    /// notification when the reminder is off.
+    private var draftReminderKind: CountdownItem.ReminderKind {
+        reminderEnabled ? reminderKind : .notification
+    }
+
+    /// Alert Type picker binding. Picking a type asks for that type's
+    /// permission and goes back to the previous type when it is denied.
+    /// The revert writes the state directly (not through this setter), so
+    /// it never asks again: with both permissions denied, an onChange-based
+    /// check would bounce between the two types forever.
+    private var reminderKindBinding: Binding<CountdownItem.ReminderKind> {
+        Binding(
+            get: {
+                reminderKind
+            },
+            set: { kind in
+                guard kind != reminderKind else { return }
+                let previousKind = reminderKind
+                reminderKind = kind
+                triggerHaptic()
+                guard reminderEnabled else { return }
+                ensureReminderAuthorization(for: kind) {
+                    reminderKind = previousKind
+                }
+            }
+        )
     }
 
     /// The selectable "remind me X days before" choices.
@@ -143,6 +175,30 @@ struct CountdownDetailsView: View {
         return formatter.string(from: reminderTime)
     }
 
+    /// Reminder section footer: what arrives (notification or alarm), at
+    /// what time, and on which day relative to the event.
+    @ViewBuilder
+    private var reminderFooter: some View {
+        switch reminderKind {
+        case .notification:
+            if reminderLeadDays == 0 {
+                Text("Get a notification at \(reminderTimeString) on the day of the event.")
+            } else if reminderLeadDays == 1 {
+                Text("Get a notification at \(reminderTimeString), 1 day before the event.")
+            } else {
+                Text("Get a notification at \(reminderTimeString), \(reminderLeadDays) days before the event.")
+            }
+        case .alarm:
+            if reminderLeadDays == 0 {
+                Text("Get an alarm at \(reminderTimeString) on the day of the event.")
+            } else if reminderLeadDays == 1 {
+                Text("Get an alarm at \(reminderTimeString), 1 day before the event.")
+            } else {
+                Text("Get an alarm at \(reminderTimeString), \(reminderLeadDays) days before the event.")
+            }
+        }
+    }
+
     private var hasChanges: Bool {
         guard let original else { return false }
         return trimmedTitle != original.title
@@ -154,6 +210,7 @@ struct CountdownDetailsView: View {
             || repeatFrequency != original.repeatFrequency
             || draftReminderTime != original.reminderTime
             || draftReminderLeadDays != original.reminderLeadDays
+            || draftReminderKind != original.reminderKind
     }
 
     /// What the countdown counts to right now: the picked date, rolled
@@ -336,16 +393,23 @@ struct CountdownDetailsView: View {
                         .datePickerStyle(.compact)
                         .labelsHidden()
                     }
+
+                    // How the reminder arrives: a notification, or an
+                    // alarm scheduled through the app's Alarms (AlarmKit).
+                    Picker(selection: reminderKindBinding) {
+                        ForEach(CountdownItem.ReminderKind.allCases, id: \.self) { kind in
+                            Text(kind.displayName)
+                                .tag(kind)
+                        }
+                    } label: {
+                        Text(String(localized: "Alert Type"))
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.secondary)
                 }
             } footer: {
                 if reminderEnabled {
-                    if reminderLeadDays == 0 {
-                        Text("Get a notification at \(reminderTimeString) on the day of the event.")
-                    } else if reminderLeadDays == 1 {
-                        Text("Get a notification at \(reminderTimeString), 1 day before the event.")
-                    } else {
-                        Text("Get a notification at \(reminderTimeString), \(reminderLeadDays) days before the event.")
-                    }
+                    reminderFooter
                 }
             }
             .animation(.spring(), value: reminderEnabled)
@@ -458,19 +522,14 @@ struct CountdownDetailsView: View {
                     showCoverPicker = false
                 }
             }
-            // Turning the reminder on needs notification permission; flip
-            // the toggle back off when it is denied.
+            // Turning the reminder on needs notification or alarm permission,
+            // whichever the alert type uses; flip the toggle back off when
+            // it is denied.
             .onChange(of: reminderEnabled) { _, enabled in
                 triggerHaptic()
                 guard enabled else { return }
-                Task {
-                    let granted = await CountdownReminderManager.shared.requestAuthorization()
-                    if !granted {
-                        await MainActor.run {
-                            reminderEnabled = false
-                            showNotificationPermissionAlert = true
-                        }
-                    }
+                ensureReminderAuthorization(for: reminderKind) {
+                    reminderEnabled = false
                 }
             }
             .alert("Notifications Disabled", isPresented: $showNotificationPermissionAlert) {
@@ -483,12 +542,20 @@ struct CountdownDetailsView: View {
             } message: {
                 Text("Allow notifications in Settings to get countdown reminders.")
             }
+            .alert(String(localized: "Alarm Permission Needed"), isPresented: $showAlarmPermissionAlert) {
+                Button(String(localized: "Go to Settings")) {
+                    AlarmSupport.openSystemSettings()
+                }
+                Button(String(localized: "Cancel"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "Allow alarm access in Settings to get countdown reminders as alarms."))
+            }
             .navigationTitle(isEditing ? "" : String(localized: "New Countdown"))
             .navigationBarTitleDisplayMode(.inline)
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays)
+                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -699,9 +766,26 @@ struct CountdownDetailsView: View {
         showCustomRepeatSheet = true
     }
 
+    /// Asks for the permission a reminder of `kind` needs (notifications or
+    /// alarms). When it is denied, `onDenied` undoes the change that needed
+    /// it and the matching Settings alert comes up.
+    private func ensureReminderAuthorization(for kind: CountdownItem.ReminderKind, onDenied: @escaping () -> Void) {
+        Task {
+            let granted = await CountdownReminderManager.shared.requestAuthorization(for: kind)
+            guard !granted else { return }
+            onDenied()
+            switch kind {
+            case .notification:
+                showNotificationPermissionAlert = true
+            case .alarm:
+                showAlarmPermissionAlert = true
+            }
+        }
+    }
+
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays)
+        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind)
         dismiss()
     }
 
@@ -972,7 +1056,7 @@ struct CountdownPreviewCard: View {
 }
 
 #Preview {
-    CountdownDetailsView { _, _, _, _, _, _, _, _, _ in }
+    CountdownDetailsView { _, _, _, _, _, _, _, _, _, _ in }
 }
 
 #Preview("Editing") {
@@ -983,5 +1067,5 @@ struct CountdownPreviewCard: View {
             targetDate: Date().addingTimeInterval(86_400 * 30),
             createdAt: Date()
         )
-    ) { _, _, _, _, _, _, _, _, _ in }
+    ) { _, _, _, _, _, _, _, _, _, _ in }
 }

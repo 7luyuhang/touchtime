@@ -1359,6 +1359,23 @@
         }
       }
     },
+    "Alert Type" : {
+      "comment" : "Countdown reminder row: whether the reminder arrives as a notification or as an alarm.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知类型"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知類型"
+          }
+        }
+      }
+    },
     "Algiers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1388,6 +1405,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "所有城市"
+          }
+        }
+      }
+    },
+    "Allow alarm access in Settings to get countdown reminders as alarms." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“设置”中允许闹钟权限，以闹钟形式接收倒计时提醒。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請在「設定」中允許鬧鐘權限，以鬧鐘形式接收倒數計時提醒。"
           }
         }
       }
@@ -6443,6 +6476,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每小時收到準點通知。"
+          }
+        }
+      }
+    },
+    "Get an alarm at %@ on the day of the event." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闹钟将在事件当天 %@ 响起。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鬧鐘將在事件當天 %@ 響起。"
+          }
+        }
+      }
+    },
+    "Get an alarm at %@, %lld days before the event." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get an alarm at %1$@, %2$lld days before the event."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闹钟将在事件前 %2$lld 天 %1$@ 响起。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鬧鐘將在事件前 %2$lld 天 %1$@ 響起。"
+          }
+        }
+      }
+    },
+    "Get an alarm at %@, 1 day before the event." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闹钟将在事件前 1 天 %@ 响起。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鬧鐘將在事件前 1 天 %@ 響起。"
           }
         }
       }

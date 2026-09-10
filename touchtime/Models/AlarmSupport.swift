@@ -164,28 +164,9 @@ enum AlarmSupport {
         repeatWeekdays: [Int] = [],
         using alarmManager: AlarmManager = .shared
     ) async throws {
-        let defaultAlarmTitle = String(localized: "Alarm")
-        let trimmedTitle = eventTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resolvedTitle = (trimmedTitle?.isEmpty == false ? trimmedTitle : nil) ?? defaultAlarmTitle
-        let alarmTitle = LocalizedStringResource(stringLiteral: resolvedTitle)
-        let doneText = LocalizedStringResource("Done")
-        let alert: AlarmPresentation.Alert
-
-        if #available(iOS 26.1, *) {
-            alert = AlarmPresentation.Alert(title: alarmTitle)
-        } else {
-            alert = AlarmPresentation.Alert(
-                title: alarmTitle,
-                stopButton: AlarmButton(
-                    text: doneText,
-                    textColor: .white,
-                    systemImageName: "checkmark"
-                )
-            )
-        }
-
+        let alarmTitle = resolvedAlarmTitle(eventTitle, fallback: String(localized: "Alarm"))
         let attributes = AlarmAttributes<TouchtimeAlarmMetadata>(
-            presentation: AlarmPresentation(alert: alert),
+            presentation: AlarmPresentation(alert: alertPresentation(title: alarmTitle)),
             tintColor: .white
         )
 
@@ -213,6 +194,28 @@ enum AlarmSupport {
         )
     }
 
+    /// Schedules a one-shot alarm that rings once at `fireDate`, presented
+    /// like the alarms from the Alarms sheet. Used for countdown reminders
+    /// delivered as alarms, which fall on a specific day rather than a
+    /// time of day.
+    static func scheduleFixedAlarm(
+        id: UUID,
+        fireDate: Date,
+        eventTitle: String? = nil,
+        using alarmManager: AlarmManager = .shared
+    ) async throws {
+        let alarmTitle = resolvedAlarmTitle(eventTitle, fallback: String(localized: "Alarm"))
+        let attributes = AlarmAttributes<TouchtimeAlarmMetadata>(
+            presentation: AlarmPresentation(alert: alertPresentation(title: alarmTitle)),
+            tintColor: .white
+        )
+
+        _ = try await alarmManager.schedule(
+            id: id,
+            configuration: .alarm(schedule: .fixed(fireDate), attributes: attributes)
+        )
+    }
+
     static func scheduleTimerAlarm(
         id: UUID,
         durationSeconds: Int,
@@ -220,29 +223,10 @@ enum AlarmSupport {
         using alarmManager: AlarmManager = .shared
     ) async throws {
         let clampedDuration = max(durationSeconds, 1)
-        let defaultAlarmTitle = String(localized: "Timer")
-        let trimmedTitle = eventTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
-        let resolvedTitle = (trimmedTitle?.isEmpty == false ? trimmedTitle : nil) ?? defaultAlarmTitle
-        let alarmTitle = LocalizedStringResource(stringLiteral: resolvedTitle)
-        let doneText = LocalizedStringResource("Done")
-        let alert: AlarmPresentation.Alert
-
-        if #available(iOS 26.1, *) {
-            alert = AlarmPresentation.Alert(title: alarmTitle)
-        } else {
-            alert = AlarmPresentation.Alert(
-                title: alarmTitle,
-                stopButton: AlarmButton(
-                    text: doneText,
-                    textColor: .white,
-                    systemImageName: "checkmark"
-                )
-            )
-        }
-
+        let alarmTitle = resolvedAlarmTitle(eventTitle, fallback: String(localized: "Timer"))
         let attributes = AlarmAttributes<TouchtimeAlarmMetadata>(
             presentation: AlarmPresentation(
-                alert: alert,
+                alert: alertPresentation(title: alarmTitle),
                 countdown: .init(title: alarmTitle)
             ),
             tintColor: .orange // Timer Orange
@@ -260,6 +244,31 @@ enum AlarmSupport {
     static func openSystemSettings() {
         guard let url = URL(string: UIApplication.openSettingsURLString) else { return }
         UIApplication.shared.open(url)
+    }
+
+    /// The alert title: the trimmed event title, or `fallback` when there
+    /// is none.
+    private static func resolvedAlarmTitle(_ eventTitle: String?, fallback: String) -> LocalizedStringResource {
+        let trimmedTitle = eventTitle?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let resolvedTitle = (trimmedTitle?.isEmpty == false ? trimmedTitle : nil) ?? fallback
+        return LocalizedStringResource(stringLiteral: resolvedTitle)
+    }
+
+    /// The ringing alert shared by every alarm the app schedules. iOS 26.1
+    /// draws its own stop button; earlier releases need one supplied.
+    private static func alertPresentation(title: LocalizedStringResource) -> AlarmPresentation.Alert {
+        if #available(iOS 26.1, *) {
+            return AlarmPresentation.Alert(title: title)
+        }
+
+        return AlarmPresentation.Alert(
+            title: title,
+            stopButton: AlarmButton(
+                text: LocalizedStringResource("Done"),
+                textColor: .white,
+                systemImageName: "checkmark"
+            )
+        )
     }
 
     private static func localeWeekday(from weekday: Int) -> Locale.Weekday? {

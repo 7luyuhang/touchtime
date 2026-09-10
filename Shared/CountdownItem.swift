@@ -134,6 +134,20 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         }
     }
 
+    /// How a reminder is delivered: as a local notification, or as an
+    /// alarm scheduled with AlarmKit like the ones in the Alarms sheet.
+    enum ReminderKind: String, Codable, CaseIterable {
+        case notification
+        case alarm
+
+        var displayName: String {
+            switch self {
+            case .notification: String(localized: "Notification")
+            case .alarm: String(localized: "Alarm")
+            }
+        }
+    }
+
     let id: UUID
     var title: String
     var targetDate: Date
@@ -150,14 +164,16 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     /// it centred. The photo itself stays as picked so the framing can be
     /// changed again.
     var photoCrop: PhotoCrop?
-    /// Notification on the day of the event at this time of day; only the
+    /// Reminder on the day of the event at this time of day; only the
     /// hour and minute are meaningful. Nil when the reminder is off.
     var reminderTime: Date?
     /// How many days before the event day the reminder fires; 0 means on
     /// the day of the event.
     var reminderLeadDays: Int
+    /// Whether the reminder arrives as a notification or as an alarm.
+    var reminderKind: ReminderKind
 
-    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0) {
+    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0, reminderKind: ReminderKind = .notification) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
@@ -169,6 +185,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         self.photoCrop = photoCrop
         self.reminderTime = reminderTime
         self.reminderLeadDays = reminderLeadDays
+        self.reminderKind = reminderKind
     }
 
     // Items saved before pinning/repeat/emoji/photo existed are missing
@@ -195,6 +212,14 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         photoCrop = (try? container.decodeIfPresent(PhotoCrop.self, forKey: .photoCrop)) ?? nil
         reminderTime = try container.decodeIfPresent(Date.self, forKey: .reminderTime)
         reminderLeadDays = try container.decodeIfPresent(Int.self, forKey: .reminderLeadDays) ?? 0
+        // Saves that predate the choice, or a kind from a newer app version,
+        // fall back to a notification rather than dropping the whole store.
+        if let rawKind = try container.decodeIfPresent(String.self, forKey: .reminderKind),
+           let kind = ReminderKind(rawValue: rawKind) {
+            reminderKind = kind
+        } else {
+            reminderKind = .notification
+        }
     }
 
     /// The stored date for one-off countdowns; for repeating ones, the
@@ -230,8 +255,9 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         return next
     }
 
-    /// When the reminder notification should next fire: `reminderLeadDays`
-    /// before the (next) occurrence day, at the reminder's time of day.
+    /// When the reminder (notification or alarm) should next fire:
+    /// `reminderLeadDays` before the (next) occurrence day, at the
+    /// reminder's time of day.
     /// Nil without a reminder, or when the time has already passed on a
     /// countdown that never repeats.
     func nextReminderFireDate(after now: Date) -> Date? {
