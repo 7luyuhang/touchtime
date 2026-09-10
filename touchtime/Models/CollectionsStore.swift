@@ -55,4 +55,24 @@ enum CollectionsStore {
             save(collections)
         }
     }
+    
+    /// Drops references to countdowns that no longer exist, called on every
+    /// countdown mutation so deleted countdowns leave their collections.
+    static func pruneCountdowns(keeping countdownIds: [UUID]) {
+        let keptIds = Set(countdownIds)
+        var collections = load()
+        var didChange = false
+        
+        for index in collections.indices {
+            let countBefore = collections[index].countdownIds.count
+            collections[index].countdownIds.removeAll { !keptIds.contains($0) }
+            if collections[index].countdownIds.count != countBefore {
+                didChange = true
+            }
+        }
+        
+        if didChange {
+            save(collections)
+        }
+    }
 }

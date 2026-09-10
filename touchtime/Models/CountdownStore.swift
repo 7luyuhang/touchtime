@@ -26,6 +26,8 @@ final class CountdownStore {
             CountdownReminderManager.shared.reschedule(for: countdowns)
             // Deleted countdowns take their space attachments with them.
             CountdownSpaceStore.shared.prune(keeping: countdowns.map(\.id))
+            // ...and leave the collections they were added to.
+            CollectionsStore.pruneCountdowns(keeping: countdowns.map(\.id))
         }
     }
 

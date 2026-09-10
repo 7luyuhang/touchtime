@@ -19,6 +19,10 @@ struct ArrangeListView: View {
     let currentDate: Date
     let timeOffset: TimeInterval
     
+    // Pinned countdowns can be added to collections like cities; the
+    // shared store is the source of truth, collections only keep their IDs.
+    @Environment(CountdownStore.self) private var countdownStore
+    
     // Collection management
     @State private var collections: [CityCollection] = []
     @State private var showAddCollectionAlert = false
@@ -182,6 +186,79 @@ struct ArrangeListView: View {
         collectionToRename = nil
     }
     
+    // MARK: - Pinned Countdowns
+    
+    // Reference "now" (current time plus the Slide to Adjust offset), so the
+    // dates shown here match the Home cards
+    var adjustedNow: Date {
+        currentDate.addingTimeInterval(timeOffset)
+    }
+    
+    // Pinned countdowns in the order Home shows them (by target date)
+    var pinnedCountdowns: [CountdownItem] {
+        countdownStore.countdowns
+            .filter(\.isPinned)
+            .sorted { $0.effectiveTargetDate(at: adjustedNow) < $1.effectiveTargetDate(at: adjustedNow) }
+    }
+    
+    // Pinned countdowns that were added to the collection
+    func pinnedCountdowns(in collection: CityCollection) -> [CountdownItem] {
+        pinnedCountdowns.filter { collection.contains(countdownId: $0.id) }
+    }
+    
+    // Cities plus pinned countdowns, i.e. the rows the collection expands to
+    func itemCount(in collection: CityCollection) -> Int {
+        collection.cities.count + pinnedCountdowns(in: collection).count
+    }
+    
+    // Check if countdown is in collection
+    func isCountdownInCollection(countdown: CountdownItem, collectionId: UUID) -> Bool {
+        if let collection = collections.first(where: { $0.id == collectionId }) {
+            return collection.contains(countdownId: countdown.id)
+        }
+        return false
+    }
+    
+    // Add countdown to collection
+    func addCountdownToCollection(countdown: CountdownItem, collectionId: UUID) {
+        if let index = collections.firstIndex(where: { $0.id == collectionId }) {
+            // Check if countdown already exists in collection
+            if !collections[index].contains(countdownId: countdown.id) {
+                collections[index].countdownIds.append(countdown.id)
+                saveCollections()
+                
+                if hapticEnabled {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                    impactFeedback.impactOccurred()
+                }
+            }
+        }
+    }
+    
+    // Remove countdown from collection
+    func removeCountdownFromCollection(countdown: CountdownItem, collectionId: UUID) {
+        if let collectionIndex = collections.firstIndex(where: { $0.id == collectionId }),
+           let countdownIndex = collections[collectionIndex].countdownIds.firstIndex(of: countdown.id) {
+            collections[collectionIndex].countdownIds.remove(at: countdownIndex)
+            saveCollections()
+            
+            if hapticEnabled {
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.impactOccurred()
+            }
+        }
+    }
+    
+    // Next occurrence of the countdown, shown where city rows show their
+    // time; the year is left out while the date falls in the current year
+    func countdownDateText(for countdown: CountdownItem) -> Text {
+        let targetDate = countdown.effectiveTargetDate(at: adjustedNow)
+        if Calendar.current.isDate(targetDate, equalTo: adjustedNow, toGranularity: .year) {
+            return Text(targetDate, format: .dateTime.month().day())
+        }
+        return Text(targetDate, format: .dateTime.year().month().day())
+    }
+    
     // Sort cities from West to East (by longitude, smallest to largest)
     func sortCitiesWestToEast() {
         worldClocks.sort { clock1, clock2 in
@@ -316,13 +393,13 @@ struct ArrangeListView: View {
                             DisclosureGroup(
                                 isExpanded: Binding(
                                     get: { 
-                                        // Disable expansion if collection has no cities
-                                        guard !collection.cities.isEmpty else { return false }
+                                        // Disable expansion if collection has no cities or countdowns
+                                        guard itemCount(in: collection) > 0 else { return false }
                                         return expandedCollections.contains(collection.id) 
                                     },
                                     set: { isExpanding in
-                                        // Prevent expansion if collection has no cities
-                                        guard !collection.cities.isEmpty else { return }
+                                        // Prevent expansion if collection has no cities or countdowns
+                                        guard itemCount(in: collection) > 0 else { return }
                                         if isExpanding {
                                             expandedCollections.insert(collection.id)
                                         } else {
@@ -331,6 +408,31 @@ struct ArrangeListView: View {
                                     }
                                 )
                             ) {
+                                // Pinned Countdowns in Collection (always above the cities, not reorderable)
+                                ForEach(pinnedCountdowns(in: collection)) { countdown in
+                                    HStack {
+                                        Text(countdown.title)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+                                        
+                                        Spacer()
+                                        
+                                        countdownDateText(for: countdown)
+                                            .monospacedDigit()
+                                            .foregroundStyle(.secondary)
+                                    }
+                                    .moveDisabled(true)
+                                    .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                        Button(role: .destructive) {
+                                            withAnimation {
+                                                removeCountdownFromCollection(countdown: countdown, collectionId: collection.id)
+                                            }
+                                        } label: {
+                                            Label("", systemImage: "xmark.circle")
+                                        }
+                                    }
+                                }
+                                
                                 // Cities in Collection
                                 ForEach(collection.cities) { city in
                                     HStack {
@@ -377,7 +479,7 @@ struct ArrangeListView: View {
                                     Text(collection.name)
                                         .lineLimit(1)
                                     Spacer()
-                                    Text("\(collection.cities.count)")
+                                    Text("\(itemCount(in: collection))")
                                         .foregroundStyle(.secondary)
                                 }
                                 .contentShape(Rectangle())
@@ -405,6 +507,66 @@ struct ArrangeListView: View {
                 } header: {
                     if !collections.isEmpty {
                         Text("Collections")
+                    }
+                }
+                
+                // Pinned Countdowns Section: same row design as All Cities,
+                // but countdowns keep Home's date order and can't be dragged
+                if !pinnedCountdowns.isEmpty {
+                    Section {
+                        ForEach(pinnedCountdowns) { countdown in
+                            HStack(spacing: 12) {
+                                // Plus icon for collection selection
+                                if !collections.isEmpty {
+                                    Menu {
+                                        Section(String(localized: "Add to Collection")) {
+                                            ForEach(collections) { collection in
+                                                Button {
+                                                    if isCountdownInCollection(countdown: countdown, collectionId: collection.id) {
+                                                        removeCountdownFromCollection(countdown: countdown, collectionId: collection.id)
+                                                    } else {
+                                                        addCountdownToCollection(countdown: countdown, collectionId: collection.id)
+                                                    }
+                                                } label: {
+                                                    if isCountdownInCollection(countdown: countdown, collectionId: collection.id) {
+                                                        Label(collection.name, systemImage: "checkmark.circle")
+                                                    } else {
+                                                        Text(collection.name)
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } label: {
+                                        Image(systemName: "plus.circle")
+                                            .font(.title3)
+                                    }
+                                    .tint(.secondary)
+                                }
+                                
+                                // Countdown title
+                                Text(countdown.title)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
+                                
+                                Spacer()
+                                
+                                // Target date
+                                countdownDateText(for: countdown)
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
+                            .deleteDisabled(true)
+                            .moveDisabled(true)
+                        }
+                    } header: {
+                        Text("Pinned Countdowns")
+                    } footer: {
+                        let countdownCount = pinnedCountdowns.count
+                        if countdownCount > 1 {
+                            Text(String(format: String(localized: "%d countdowns pinned."), countdownCount))
+                        } else {
+                            Text(String(format: String(localized: "%d countdown pinned."), countdownCount))
+                        }
                     }
                 }
                 

@@ -216,10 +216,10 @@ struct HomeView: View {
         homeTimerConfiguredSeconds > 0
     }
 
-    /// True when at least one countdown is pinned to Home, so the list
-    /// still has countdown cards to show without clocks or a timer.
+    /// True when the current view has countdown cards to show, so the list
+    /// still has content without clocks or a timer.
     private var hasPinnedCountdowns: Bool {
-        countdownStore.countdowns.contains(where: \.isPinned)
+        !displayedCountdowns.isEmpty
     }
 
     private var homeTimerDisplayName: String {
@@ -662,6 +662,18 @@ struct HomeView: View {
             return collection.cities
         }
         return worldClocks // Default - show all cities
+    }
+    
+    // Get displayed pinned countdowns based on selected collection: every
+    // pinned countdown on All Cities, only the ones added to the collection
+    // otherwise (see ArrangeListView)
+    var displayedCountdowns: [CountdownItem] {
+        let pinned = countdownStore.countdowns.filter(\.isPinned)
+        if let collectionId = selectedCollectionId,
+           let collection = collections.first(where: { $0.id == collectionId }) {
+            return pinned.filter { collection.contains(countdownId: $0.id) }
+        }
+        return pinned // Default - show all pinned countdowns
     }
     
     // Current collection name for display
@@ -1219,9 +1231,10 @@ struct HomeView: View {
                             )
                         }
                         
-                        // Countdown Preview Section: pinned countdowns live below the timer
+                        // Countdown Preview Section: pinned countdowns live below the
+                        // timer, narrowed to the selected collection like the cities
                         HomeCountdownSection(
-                            countdowns: countdownStore.countdowns,
+                            countdowns: displayedCountdowns,
                             now: currentDate.addingTimeInterval(timeOffset),
                             onTap: { item in
                                 if hapticEnabled {
