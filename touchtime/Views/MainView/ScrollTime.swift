@@ -29,6 +29,7 @@ struct ScrollTimeView: View {
     var expandedControlsMode: ExpandedControlsMode = .alarmTimerClose
     var onAlarmTap: (() -> Void)? = nil
     var onTimerTap: (() -> Void)? = nil
+    var onCountdownTap: (() -> Void)? = nil
     var onTimerResetTap: (() -> Void)? = nil
     var onTimerPlayPauseTap: (() -> Void)? = nil
     var timerPlayPauseSymbol: String = "play.fill"
@@ -615,6 +616,14 @@ struct ScrollTimeView: View {
         }
     }
 
+    private func handleCountdownAction() {
+        if let onCountdownTap {
+            onCountdownTap()
+        } else {
+            NotificationCenter.default.post(name: NSNotification.Name("ShowCountdownSheet"), object: nil)
+        }
+    }
+
     private func handleTimerResetAction() {
         onTimerResetTap?()
     }
@@ -701,78 +710,58 @@ struct ScrollTimeView: View {
         }
     }
 
-    // Double-tap Feature
+    // Double-tap Feature: icon-only capsules for Alarm, Timer and Countdown,
+    // then the close button. The visible titles are gone, so each action
+    // keeps its name as the accessibility label.
     @ViewBuilder
     private var alarmTimerCloseButtons: some View {
         HStack(spacing: 5) {
-            Button {
-                triggerControlHaptic(style: .soft)
+            expandedControlButton(systemImage: "alarm", glassID: "alarmControl") {
                 handleAlarmAction()
-                collapseActionButtons()
-            } label: {
-                HStack {
-                    Image(systemName: "alarm")
-                        .font(.headline)
-                    Text("Alarm")
-                }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            .frame(height: controlHeight)
-            .contentShape(Capsule(style: .continuous))
-            .glassEffect(.regular.interactive())
-            .glassEffectID("alarmControl", in: glassNamespace)
-            .glassEffectTransition(.matchedGeometry)
+            .accessibilityLabel(Text("Alarm"))
 
-            Button {
-                triggerControlHaptic(style: .soft)
+            expandedControlButton(systemImage: "timer", glassID: "timerControl") {
                 handleTimerAction()
-                collapseActionButtons()
-            } label: {
-                HStack {
-                    Image(systemName: "timer")
-                        .font(.headline)
-                    Text("Timer")
-                }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            .frame(height: controlHeight)
-            .contentShape(Capsule(style: .continuous))
-            .glassEffect(.regular.interactive())
-            .glassEffectID("timerControl", in: glassNamespace)
-            .glassEffectTransition(.matchedGeometry)
+            .accessibilityLabel(Text("Timer"))
 
-            Button {
-                triggerControlHaptic(style: .rigid)
-                collapseActionButtons()
-            } label: {
-                ZStack {
-                    Capsule(style: .continuous)
-                        .fill(.clear)
-
-                    Image(systemName: "xmark")
-                        .font(.headline)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Capsule(style: .continuous))
+            expandedControlButton(systemImage: "hourglass", glassID: "countdownControl") {
+                handleCountdownAction()
             }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            .frame(height: controlHeight)
-            .glassEffect(.regular.interactive())
-            .glassEffectID("closeControl", in: glassNamespace)
-            .glassEffectTransition(.matchedGeometry)
+            .accessibilityLabel(Text("Countdown"))
+
+            expandedControlButton(systemImage: "xmark", glassID: "closeControl", hapticStyle: .rigid) { }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// One capsule of the expanded controls: the action runs, then the
+    /// controls collapse. The glass ID pairs it with the collapsed pill
+    /// for the morph in and out.
+    private func expandedControlButton(
+        systemImage: String,
+        glassID: String,
+        hapticStyle: UIImpactFeedbackGenerator.FeedbackStyle = .soft,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            triggerControlHaptic(style: hapticStyle)
+            action()
+            collapseActionButtons()
+        } label: {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.medium))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .frame(height: controlHeight)
+        .contentShape(Capsule(style: .continuous))
+        .glassEffect(.regular.interactive())
+        .glassEffectID(glassID, in: glassNamespace)
+        .glassEffectTransition(.matchedGeometry)
     }
 
     // Timer Controls

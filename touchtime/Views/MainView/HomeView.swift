@@ -1477,6 +1477,9 @@ struct HomeView: View {
                         onTimerTap: {
                             showSetTimerSheet = true
                         },
+                        onCountdownTap: {
+                            showCountdownSheet = true
+                        },
                         onExpandControlsByDoubleTap: {
                             withAnimation(.spring()) {
                                 showDoubleTapMoreActionTip = false
@@ -1752,6 +1755,9 @@ struct HomeView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSetTimerSheet"))) { _ in
                 showSetTimerSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowCountdownSheet"))) { _ in
+                showCountdownSheet = true
             }
 
             // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)
