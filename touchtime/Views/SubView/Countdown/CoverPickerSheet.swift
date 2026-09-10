@@ -152,6 +152,17 @@ struct CoverPickerSheet: View {
 
                     ToolbarSpacer(.flexible, placement: .bottomBar)
                 } else {
+                    // Random pick from the grid, in plain glass on the
+                    // left; the tinted action stays the photo one.
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            triggerHaptic()
+                            selectRandomEmoji()
+                        } label: {
+                            Image(systemName: "shuffle")
+                        }
+                    }
+
                     ToolbarSpacer(.flexible, placement: .bottomBar)
 
                     ToolbarItem(placement: .bottomBar) {
@@ -208,10 +219,7 @@ struct CoverPickerSheet: View {
                 ForEach(CountdownCoverEmojis.all, id: \.self) { option in
                     Button {
                         triggerHaptic()
-                        selectedEmoji = option
-                        selectedPhotoData = nil
-                        selectedPhotoCrop = nil
-                        onEmojiPick?()
+                        select(emoji: option)
                     } label: {
                         Text(option)
                             .font(.system(size: 36))
@@ -224,6 +232,22 @@ struct CoverPickerSheet: View {
             .padding()
         }
         .scrollIndicators(.hidden)
+    }
+
+    /// Makes an emoji from the grid the cover. A photo on top goes with
+    /// it, since the emoji is what shows now; the editor's burst fires.
+    private func select(emoji: String) {
+        selectedEmoji = emoji
+        selectedPhotoData = nil
+        selectedPhotoCrop = nil
+        onEmojiPick?()
+    }
+
+    /// The shuffle button: any grid emoji but the current one, so every
+    /// tap visibly changes the cover.
+    private func selectRandomEmoji() {
+        let others = CountdownCoverEmojis.all.filter { $0 != selectedEmoji }
+        select(emoji: others.randomElement() ?? CountdownCoverEmojis.random)
     }
 
     /// The Crop page: the photo over the whole sheet, free to run under
