@@ -45,6 +45,8 @@ struct CountdownSheet: View {
     @State private var showEditorSheet = false
     @State private var showLifetimeStore = false
     @State private var editingCountdown: CountdownItem? = nil
+    /// Countdown being shared as an image from its row's context menu.
+    @State private var sharingCountdown: CountdownItem? = nil
     @State private var filter: CountdownFilter? = nil
 
     /// Read-only convenience over the shared store.
@@ -240,6 +242,20 @@ struct CountdownSheet: View {
             // the sheet content and @State keeps the previous item's values.
             .id(item.id)
         }
+        // Share as Image from a row: the same full-screen preview as the
+        // Home cards and the editor.
+        .fullScreenCover(item: $sharingCountdown) { item in
+            let now = Date()
+            CountdownShareAsImageView(
+                title: item.title,
+                targetDate: item.effectiveTargetDate(at: now),
+                emoji: item.emoji,
+                photoData: item.photoData,
+                photoCrop: item.photoCrop,
+                isRepeating: item.repeatFrequency != .never,
+                now: now
+            )
+        }
         .sheet(isPresented: $showLifetimeStore) {
             NavigationStack {
                 LifetimeStoreView()
@@ -323,6 +339,8 @@ struct CountdownSheet: View {
                                 )
                             }
 
+                            shareMenu(for: item, now: now)
+
                             Divider()
 
                             Menu {
@@ -374,6 +392,35 @@ struct CountdownSheet: View {
         }
         .listSectionSpacing(12) // List paddings
         .scrollIndicators(.hidden)
+    }
+
+    /// Share submenu of a row's context menu, as on the Home cards: the
+    /// countdown as text on the pasteboard, or as an image. `now` is the
+    /// row's reference time, so the text matches what the row shows.
+    private func shareMenu(for item: CountdownItem, now: Date) -> some View {
+        Menu {
+            Button {
+                triggerHaptic()
+                UIPasteboard.general.string = CountdownShare.copyText(
+                    title: item.title,
+                    targetDate: item.effectiveTargetDate(at: now),
+                    now: now,
+                    showYears: showYears,
+                    showMonths: showMonths,
+                    showDays: showDays
+                )
+            } label: {
+                Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
+            }
+            Button {
+                triggerHaptic()
+                sharingCountdown = item
+            } label: {
+                Label(String(localized: "Share as Image"), systemImage: "camera.macro")
+            }
+        } label: {
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // List Share
+        }
     }
 
     /// Whether the countdown's target date has already passed (before
