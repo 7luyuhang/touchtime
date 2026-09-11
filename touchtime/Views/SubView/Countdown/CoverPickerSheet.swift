@@ -34,7 +34,11 @@ struct CoverPickerSheet: View {
 
     @State private var showPhotoPicker = false
     @State private var photoPickerItem: PhotosPickerItem?
+    /// The removal question, asked by the minus button...
     @State private var showRemovePhotoDialog = false
+    /// ...and by the shuffle button while a photo is set, since a random
+    /// emoji would replace it.
+    @State private var showShufflePhotoDialog = false
 
     // Photo editor. `editingCrop` is the framing being edited; nil for a
     // photo not framed yet, which the editor shows just covering the
@@ -115,21 +119,9 @@ struct CoverPickerSheet: View {
                         } label: {
                             Image(systemName: "minus.circle")
                         }
-                        .confirmationDialog(
-                            String(localized: "Are you sure you want to remove this photo?"),
-                            isPresented: $showRemovePhotoDialog,
-                            titleVisibility: .visible
-                        ) {
-                            Button(String(localized: "Remove"), role: .destructive) {
-                                triggerHaptic()
-                                selectedPhotoData = nil
-                                selectedPhotoCrop = nil
-                                // Photo-only countdowns saved before covers
-                                // were mandatory have no emoji to fall back on.
-                                if selectedEmoji == nil {
-                                    selectedEmoji = CountdownCoverEmojis.random
-                                }
-                            }
+                        .removePhotoDialog(isPresented: $showRemovePhotoDialog) {
+                            triggerHaptic()
+                            removePhoto()
                         }
                     }
                 }
@@ -157,9 +149,20 @@ struct CoverPickerSheet: View {
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             triggerHaptic()
-                            selectRandomEmoji()
+                            // A random emoji replaces a photo cover, so with
+                            // a photo set this asks first, like the minus
+                            // button, and shuffles once confirmed.
+                            if selectedPhotoData == nil {
+                                selectRandomEmoji()
+                            } else {
+                                showShufflePhotoDialog = true
+                            }
                         } label: {
                             Image(systemName: "shuffle")
+                        }
+                        .removePhotoDialog(isPresented: $showShufflePhotoDialog) {
+                            triggerHaptic()
+                            selectRandomEmoji()
                         }
                     }
 
@@ -248,6 +251,17 @@ struct CoverPickerSheet: View {
     private func selectRandomEmoji() {
         let others = CountdownCoverEmojis.all.filter { $0 != selectedEmoji }
         select(emoji: others.randomElement() ?? CountdownCoverEmojis.random)
+    }
+
+    /// Drops the photo; the emoji underneath comes back. Photo-only
+    /// countdowns saved before covers were mandatory have no emoji to
+    /// fall back on, so one is picked for them.
+    private func removePhoto() {
+        selectedPhotoData = nil
+        selectedPhotoCrop = nil
+        if selectedEmoji == nil {
+            selectedEmoji = CountdownCoverEmojis.random
+        }
     }
 
     /// The Crop page: the photo over the whole sheet, free to run under
@@ -498,5 +512,20 @@ struct CoverPickerSheet: View {
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
+    }
+}
+
+private extension View {
+    /// The photo-removal question, on whichever button asks it: the same
+    /// title and destructive Remove (plus the system Cancel) for the minus
+    /// and shuffle buttons, only what Remove goes on to do differs.
+    func removePhotoDialog(isPresented: Binding<Bool>, onRemove: @escaping () -> Void) -> some View {
+        confirmationDialog(
+            String(localized: "Are you sure you want to remove this photo?"),
+            isPresented: isPresented,
+            titleVisibility: .visible
+        ) {
+            Button(String(localized: "Remove"), role: .destructive, action: onRemove)
+        }
     }
 }
