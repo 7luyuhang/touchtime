@@ -244,8 +244,10 @@ struct CityCardSnapshotView: View {
                         .blendMode(.plusLighter)
                         .allowsHitTesting(false)
                 }
-                Color.black.opacity(0.015)
-                    .blendMode(.plusDarker)
+                // Dimmed so the card reads on top: its sky is now the same
+                // colour as this backdrop, and only the dim keeps the
+                // card/backdrop contrast where it was.
+                Color.black.opacity(0.25)
             }
             
             VStack(spacing: 10) {
@@ -316,13 +318,20 @@ struct CityCardSnapshotView: View {
                 .padding(.vertical, 12)
                 .background {
                     if showSkyDot {
+                        // Over black, as the row sits on Home's black screen
+                        // background. The sky is 65% translucent, so left
+                        // directly on the backdrop (the same sky again) it
+                        // came out about a third brighter than on Home.
                         SkyBackgroundView(
                             date: date,
                             timeZoneIdentifier: timeZoneIdentifier,
                             weatherCondition: weatherCondition,
                             showRainEffect: true,
-                            staticRainElapsed: 30.0
+                            staticRainElapsed: 30.0,
+                            appliesCardChrome: false
                         )
+                        .background(Color.black)
+                        .skyBackgroundCardChrome()
                     } else {
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
                             .fill(Color(UIColor.secondarySystemBackground))
