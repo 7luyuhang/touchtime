@@ -7,23 +7,7 @@
 
 import SwiftUI
 import UIKit
-import UniformTypeIdentifiers
 import WeatherKit
-
-// Lazy card image for deferred rendering (Share as Image)
-private struct ShareLazyCardImage: Transferable {
-    let render: () -> UIImage
-    
-    static var transferRepresentation: some TransferRepresentation {
-        DataRepresentation(exportedContentType: .png) { lazy in
-            let image = lazy.render()
-            guard let data = image.pngData() else {
-                throw CocoaError(.fileWriteUnknown)
-            }
-            return data
-        }
-    }
-}
 
 /// Shown in place of the share sheet when there is no local time and no
 /// cities to share.
@@ -57,10 +41,28 @@ struct ShareCitiesEmptyView: View {
 }
 
 struct ShareCitiesSheet: View {
+    /// City whose card is being shared as an image. The time is fixed
+    /// when the menu item is tapped, so the share preview shows that
+    /// moment instead of ticking (and reseeding its stars) every second.
+    private struct CityShareData: Identifiable {
+        let id = UUID()
+        let cityName: String
+        let timeZoneIdentifier: String
+        /// Wall-clock time and Slide to Adjust offset at the tap.
+        let baseDate: Date
+        let timeOffset: TimeInterval
+
+        /// The time the card shows.
+        var date: Date {
+            baseDate.addingTimeInterval(timeOffset)
+        }
+    }
+
     @Binding var worldClocks: [WorldClock]
     @Binding var showSheet: Bool
     @State private var selectedCities: Set<UUID> = []
     @State private var showLocalTime = false
+    @State private var cityShareData: CityShareData? = nil
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showLocalTime") private var showLocalTimeInHome = true
     @AppStorage("customLocalName") private var customLocalName = ""
@@ -234,11 +236,11 @@ struct ShareCitiesSheet: View {
         return nil
     }
     
-    // Get formatted date for city card
-    func getCityDate(timeZoneIdentifier: String) -> String {
+    // Get formatted date for city card at a fixed time
+    func getCityDate(timeZoneIdentifier: String, baseDate: Date, offset: TimeInterval) -> String {
         guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else { return "" }
-        let adjustedTime = currentDate.addingTimeInterval(timeOffset)
-        return adjustedTime.formattedDate(style: dateStyle, timeZone: targetTimeZone, relativeTo: currentDate)
+        let adjustedTime = baseDate.addingTimeInterval(offset)
+        return adjustedTime.formattedDate(style: dateStyle, timeZone: targetTimeZone, relativeTo: baseDate)
     }
     
     // Copy time as text
@@ -251,27 +253,39 @@ struct ShareCitiesSheet: View {
         }
     }
     
-    // Render city card as image for sharing
-    func renderCardImage(cityName: String, timeZoneIdentifier: String) -> CardImage {
-        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-        let weatherForSnapshot = showWeather ? weatherManager.weatherData[timeZoneIdentifier] : nil
-        let weatherConditionForSky = showWeather ? weatherManager.weatherData[timeZoneIdentifier]?.condition : nil
+    // MARK: - Share as Image
+    
+    /// Opens the share-as-image screen for the selected city, fixing the
+    /// time it shows at this moment. No haptic here: the share screen plays
+    /// its own entrance pattern.
+    private func shareCardAsImage(cityName: String, timeZoneIdentifier: String) {
+        cityShareData = CityShareData(
+            cityName: cityName,
+            timeZoneIdentifier: timeZoneIdentifier,
+            baseDate: currentDate,
+            timeOffset: timeOffset
+        )
+    }
+    
+    /// The share card for a city at the export size of the given frame: the
+    /// row's card replica on its sky backdrop, with the local time as the
+    /// footer. The share screen previews it live and renders it for the file.
+    private func cityShareCard(for share: CityShareData, aspectRatio: ShareAspectRatio, frameCornerRadius: CGFloat = 0) -> some View {
+        let timeZoneIdentifier = share.timeZoneIdentifier
+        let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+        let weather = showWeather ? weatherManager.weatherData[timeZoneIdentifier] : nil
+        let clock = WorldClock(cityName: share.cityName, timeZoneIdentifier: timeZoneIdentifier)
         
         let formatter = DateFormatter()
-        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
         formatter.locale = Locale(identifier: "en_US_POSIX")
-        if use24HourFormat {
-            formatter.dateFormat = "HH:mm"
-        } else {
-            formatter.dateFormat = "h:mm"
-        }
-        let timeString = formatter.string(from: adjustedDate)
+        formatter.dateFormat = use24HourFormat ? "HH:mm" : "h:mm"
+        formatter.timeZone = targetTimeZone
+        let timeString = formatter.string(from: share.date)
         formatter.timeZone = TimeZone.current
-        let localTimeString = formatter.string(from: adjustedDate)
-        let dateString = getCityDate(timeZoneIdentifier: timeZoneIdentifier)
-        let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+        let localTimeString = formatter.string(from: share.date)
         
-        let clock = WorldClock(cityName: cityName, timeZoneIdentifier: timeZoneIdentifier)
+        // Weekday is drawn by the card from its own date, so only the
+        // text-based displays need a string here.
         let additionalText: String
         switch additionalTimeDisplay {
         case "Time Difference":
@@ -282,34 +296,39 @@ struct ShareCitiesSheet: View {
             additionalText = ""
         }
         
-        let snapshotView = CityCardSnapshotView(
-            cityName: cityName,
+        return CityCardSnapshotView(
+            cityName: share.cityName,
             timeString: timeString,
             localCityName: localCityName,
             localTimeString: localTimeString,
-            dateString: dateString,
-            date: adjustedDate,
+            dateString: getCityDate(
+                timeZoneIdentifier: timeZoneIdentifier,
+                baseDate: share.baseDate,
+                offset: share.timeOffset
+            ),
+            date: share.date,
             timeZone: targetTimeZone,
             timeZoneIdentifier: timeZoneIdentifier,
-            weather: weatherForSnapshot,
-            weatherCondition: weatherConditionForSky,
+            weather: weather,
+            weatherCondition: weather?.condition,
             useCelsius: useCelsius,
             complications: complicationOptions,
             additionalTimeDisplay: additionalTimeDisplay,
             showSkyDot: showSkyDot,
-            additionalTimeText: additionalText
+            additionalTimeText: additionalText,
+            aspectRatio: aspectRatio,
+            frameCornerRadius: frameCornerRadius
         )
         .environmentObject(weatherManager)
         .environment(\.colorScheme, .dark)
-        
-        let renderer = ImageRenderer(content: snapshotView)
+    }
+    
+    /// Renders the city share card into the image that gets saved or
+    /// shared, falling back to a placeholder if rendering fails.
+    private func renderCityShareImage(for share: CityShareData, aspectRatio: ShareAspectRatio) -> UIImage {
+        let renderer = ImageRenderer(content: cityShareCard(for: share, aspectRatio: aspectRatio))
         renderer.scale = 3
-        
-        if let uiImage = renderer.uiImage {
-            return CardImage(uiImage: uiImage)
-        }
-        let placeholderImage = UIImage(systemName: "photo") ?? UIImage()
-        return CardImage(uiImage: placeholderImage)
+        return renderer.uiImage ?? UIImage(systemName: "photo") ?? UIImage()
     }
     
     // Toggle all selections
@@ -465,14 +484,13 @@ struct ShareCitiesSheet: View {
                     if !selectedCities.isEmpty || (showLocalTimeInHome && showLocalTime) {
                         if isSingleSelection, let info = singleSelectionInfo {
                             // Single selection: Menu with "Copy as Text" and "Share as Image"
-                            let lazyCard = ShareLazyCardImage { [self] in
-                                renderCardImage(cityName: info.cityName, timeZoneIdentifier: info.timeZoneIdentifier).uiImage
-                            }
                             Menu {
                                 Button(action: copyTimeAsText) {
                                     Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
                                 }
-                                ShareLink(item: lazyCard, preview: SharePreview(info.cityName)) {
+                                Button {
+                                    shareCardAsImage(cityName: info.cityName, timeZoneIdentifier: info.timeZoneIdentifier)
+                                } label: {
                                     Label(String(localized: "Share as Image"), systemImage: "camera.macro")
                                 }
                             } label: {
@@ -507,6 +525,15 @@ struct ShareCitiesSheet: View {
                         Image(systemName: "xmark")
                     }
                 }
+            }
+        }
+        // Share as Image: the same full-screen preview as the Home cards,
+        // with frame, share and save actions
+        .fullScreenCover(item: $cityShareData) { share in
+            ShareAsImageView(title: share.cityName) { aspectRatio, frameCornerRadius in
+                cityShareCard(for: share, aspectRatio: aspectRatio, frameCornerRadius: frameCornerRadius)
+            } render: { aspectRatio in
+                renderCityShareImage(for: share, aspectRatio: aspectRatio)
             }
         }
         .presentationDetents([.medium])
