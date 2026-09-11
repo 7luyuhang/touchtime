@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import CoreHaptics
 import Photos
 
 /// Frame of a share image. The width is fixed so the card keeps the
@@ -68,6 +69,9 @@ struct ShareAsImageView<Card: View>: View {
     /// Set once the bounce-in has played, so the entrance blur can leave
     /// the tree.
     @State private var entranceSettled = false
+    /// Plays the entrance pattern; kept for the view's lifetime and
+    /// stopped on disappear.
+    @State private var hapticEngine: CHHapticEngine?
 
     // Computed rather than stored: generic types can't hold static storage.
     private static var buttonSize: CGFloat { 48 }
@@ -125,6 +129,11 @@ struct ShareAsImageView<Card: View>: View {
                 } completion: {
                     entranceSettled = true
                 }
+                playEntranceHaptic()
+            }
+            .onDisappear {
+                hapticEngine?.stop()
+                hapticEngine = nil
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 actionButtons
@@ -287,6 +296,64 @@ struct ShareAsImageView<Card: View>: View {
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
+    }
+
+    /// Plays the entrance pattern in step with the card's bounce-in.
+    ///
+    /// The engine starts asynchronously so the presentation never waits
+    /// on it; a failure anywhere just means a silent entrance.
+    private func playEntranceHaptic() {
+        guard hapticEnabled, CHHapticEngine.capabilitiesForHardware().supportsHaptics else { return }
+        Task { @MainActor in
+            do {
+                let engine = try CHHapticEngine()
+                engine.playsHapticsOnly = true
+                hapticEngine = engine
+                try await engine.start()
+                let player = try engine.makePlayer(with: Self.entrancePattern())
+                try player.start(atTime: CHHapticTimeImmediate)
+            } catch {
+                hapticEngine = nil
+            }
+        }
+    }
+
+    /// The card's entrance as felt: a soft swell that follows the spring,
+    /// then a light tap as the card lands.
+    ///
+    /// The bounce-in is a 0.5 s spring without bounce, so the card moves
+    /// fastest about 80 ms in (duration / 2π) and is nine tenths of the
+    /// way there by 0.3 s. The swell's intensity tracks that motion,
+    /// peaking early and fading over the rest of the spring; the tap
+    /// marks the moment the card reads as in place.
+    private static func entrancePattern() throws -> CHHapticPattern {
+        let swell = CHHapticEvent(
+            eventType: .hapticContinuous,
+            parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.75),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.25),
+            ],
+            relativeTime: 0,
+            duration: 0.50
+        )
+        let swellIntensity = CHHapticParameterCurve(
+            parameterID: .hapticIntensityControl,
+            controlPoints: [
+                .init(relativeTime: 0, value: 0),
+                .init(relativeTime: 0.10, value: 0.50),
+                .init(relativeTime: 0.50, value: 0),
+            ],
+            relativeTime: 0
+        )
+        let landing = CHHapticEvent(
+            eventType: .hapticTransient,
+            parameters: [
+                CHHapticEventParameter(parameterID: .hapticIntensity, value: 0.5),
+                CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5),
+            ],
+            relativeTime: 0.25
+        )
+        return try CHHapticPattern(events: [swell, landing], parameterCurves: [swellIntensity])
     }
 }
 
