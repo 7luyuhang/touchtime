@@ -66,9 +66,6 @@ struct ShareAsImageView<Card: View>: View {
     @State private var showPhotoAccessAlert = false
     /// Drives the card's bounce-in on appear.
     @State private var animateCard = false
-    /// Set once the bounce-in has played, so the entrance blur can leave
-    /// the tree.
-    @State private var entranceSettled = false
     /// Plays the entrance pattern; kept for the view's lifetime and
     /// stopped on disappear.
     @State private var hapticEngine: CHHapticEngine?
@@ -115,10 +112,16 @@ struct ShareAsImageView<Card: View>: View {
                     .frame(width: viewport.size.width, height: viewport.size.height)
             }
             .animation(.spring(duration: 0.25), value: aspectRatio)
-            .modifier(EntranceBlur(isActive: !entranceSettled, radius: animateCard ? 0 : 10))
             .scaleEffect(animateCard ? 1.0 : 0.5)
             .opacity(animateCard ? 1.0 : 0.0)
-            .modifier(EntranceBlur(isActive: !entranceSettled, radius: animateCard ? 0 : 20))
+            // Stays in the tree at radius 0 once the bounce-in has
+            // settled: SwiftUI emits no Core Animation filter for a
+            // zero-radius blur, so it costs nothing afterwards. Swapping
+            // the modifier out instead (an `if` around it) changes the
+            // identity of everything below and rebuilds the card in a
+            // single frame, which showed as a hitch at the end of the
+            // entrance.
+            .blur(radius: animateCard ? 0 : 20)
             .offset(y: animateCard ? 0 : 100)
             .padding(.horizontal, 32)
             .padding(.vertical, 16)
@@ -126,8 +129,6 @@ struct ShareAsImageView<Card: View>: View {
                 guard !animateCard else { return }
                 withAnimation(.spring(duration: 0.50)) {
                     animateCard = true
-                } completion: {
-                    entranceSettled = true
                 }
                 playEntranceHaptic()
             }
@@ -354,25 +355,6 @@ struct ShareAsImageView<Card: View>: View {
             relativeTime: 0.25
         )
         return try CHHapticPattern(events: [swell, landing], parameterCurves: [swellIntensity])
-    }
-}
-
-/// The preview's bounce-in blurs, removed from the tree instead of being
-/// left at radius 0: a zero-radius blur still routes everything under it
-/// through an offscreen filter pass on every frame. The swap happens on
-/// the animation's completion, when the radius is already 0 and the
-/// rebuilt subtree looks identical.
-private struct EntranceBlur: ViewModifier {
-    let isActive: Bool
-    let radius: CGFloat
-
-    @ViewBuilder
-    func body(content: Content) -> some View {
-        if isActive {
-            content.blur(radius: radius)
-        } else {
-            content
-        }
     }
 }
 
