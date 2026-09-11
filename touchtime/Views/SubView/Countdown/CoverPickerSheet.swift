@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import Photos
 import PhotosUI
 
 /// Cover picker: a grid of common event emojis, the chosen one colouring
@@ -53,6 +54,10 @@ struct CoverPickerSheet: View {
     // True while the photo is being dragged; the crosshair through the
     // circle shows only then, as a guide for centring the photo.
     @State private var isPanningPhoto = false
+    /// Flips the Save arrow to a checkmark for a moment after the photo
+    /// has been saved to the library.
+    @State private var didSavePhoto = false
+    @State private var showPhotoAccessAlert = false
 
     private let columns = [GridItem(.adaptive(minimum: 52), spacing: 8)]
 
@@ -127,8 +132,9 @@ struct CoverPickerSheet: View {
                 }
 
                 if isEditingPhoto {
-                    // Replace sits in the middle of the bar, in plain glass:
-                    // the tinted action while cropping is the checkmark.
+                    // Replace and Save sit together in the middle of the
+                    // bar, in plain glass: the tinted action while cropping
+                    // is the checkmark.
                     ToolbarSpacer(.flexible, placement: .bottomBar)
 
                     ToolbarItem(placement: .bottomBar) {
@@ -139,6 +145,19 @@ struct CoverPickerSheet: View {
                             Text(String(localized: "Replace"))
                                 .font(.headline)
                                 .frame(height: 40)
+                        }
+                    }
+
+                    ToolbarSpacer(.fixed, placement: .bottomBar)
+
+                    // Saves the photo as picked to the library, the way the
+                    // share screen saves its image.
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            savePhotoToLibrary()
+                        } label: {
+                            Image(systemName: didSavePhoto ? "checkmark" : "arrow.down.to.line.compact")
+                                .contentTransition(.symbolEffect(.replace))
                         }
                     }
 
@@ -205,6 +224,16 @@ struct CoverPickerSheet: View {
                 triggerHaptic()
                 photoPickerItem = nil
             }
+        }
+        .alert(String(localized: "Photo Access Needed"), isPresented: $showPhotoAccessAlert) {
+            Button(String(localized: "Open Settings")) {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+            }
+            Button(String(localized: "Cancel"), role: .cancel) {}
+        } message: {
+            Text(String(localized: "Allow photo library access in Settings to save images."))
         }
         .presentationDetents([.medium])
         .presentationDragIndicator(.visible)
@@ -398,6 +427,42 @@ struct CoverPickerSheet: View {
     private func applyCrop() {
         selectedPhotoCrop = editingCrop
         exitPhotoEditor()
+    }
+
+    /// Saves the cover photo into the photo library as it is stored (the
+    /// framing is only ever applied on display), asking for add-only
+    /// access first; a denied request points at Settings.
+    private func savePhotoToLibrary() {
+        triggerHaptic()
+        guard !didSavePhoto, let data = selectedPhotoData else { return }
+        Task { @MainActor in
+            let status = await PHPhotoLibrary.requestAuthorization(for: .addOnly)
+            guard status == .authorized || status == .limited else {
+                showPhotoAccessAlert = true
+                return
+            }
+            do {
+                try await PHPhotoLibrary.shared().performChanges {
+                    let request = PHAssetCreationRequest.forAsset()
+                    request.addResource(with: .photo, data: data, options: nil)
+                }
+            } catch {
+                return
+            }
+
+            if hapticEnabled {
+                let notificationFeedback = UINotificationFeedbackGenerator()
+                notificationFeedback.prepare()
+                notificationFeedback.notificationOccurred(.success)
+            }
+            withAnimation(.spring()) {
+                didSavePhoto = true
+            }
+            try? await Task.sleep(for: .seconds(1.5))
+            withAnimation(.spring()) {
+                didSavePhoto = false
+            }
+        }
     }
 
     /// The editor's layout in one sheet, and the bounds it keeps a framing
