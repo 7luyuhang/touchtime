@@ -1130,6 +1130,7 @@ struct SunriseSunsetSheet: View {
                                                         .symbolRenderingMode(.monochrome)
                                                         .font(.title3)
                                                         .foregroundStyle(.primary)
+                                                        .opacity(0.50)
                                                         .frame(height: 28)
 
                                                     // Date of the phase
