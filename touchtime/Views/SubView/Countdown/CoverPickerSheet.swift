@@ -58,10 +58,10 @@ struct CoverPickerSheet: View {
         return CountdownPreviewCard.cachedImage(from: selectedPhotoData)
     }
 
-    /// Bottom bar action on the Cover page: add a photo, or open the
+    /// Bottom bar action on the Cover page: pick a photo, or open the
     /// editor for the current one.
     private var bottomBarTitle: String {
-        selectedPhotoData == nil ? String(localized: "Add Photo") : String(localized: "View Photo")
+        selectedPhotoData == nil ? String(localized: "Use Photo") : String(localized: "View Photo")
     }
 
     var body: some View {

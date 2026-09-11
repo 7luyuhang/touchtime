@@ -1143,22 +1143,6 @@
         }
       }
     },
-    "Add Photo" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加照片"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新增照片"
-          }
-        }
-      }
-    },
     "Add selected cities and times to event notes." : {
       "localizations" : {
         "zh-Hans" : {
@@ -15174,6 +15158,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "烏魯木齊"
+          }
+        }
+      }
+    },
+    "Use Photo" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用照片"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用照片"
           }
         }
       }
