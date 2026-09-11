@@ -123,7 +123,7 @@ struct CountdownSheet: View {
     var body: some View {
         NavigationStack {
             countdownsPage
-                .navigationTitle(String(localized: "Countdown"))
+                .navigationTitle(String(localized: "Countdowns"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {

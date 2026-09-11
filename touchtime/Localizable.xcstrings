@@ -4132,6 +4132,22 @@
         }
       }
     },
+    "Countdowns" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "倒计时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "倒數計時"
+          }
+        }
+      }
+    },
     "Cover" : {
       "localizations" : {
         "zh-Hans" : {
@@ -14598,6 +14614,22 @@
       }
     },
     "Timer" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计时器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "計時器"
+          }
+        }
+      }
+    },
+    "Timers" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

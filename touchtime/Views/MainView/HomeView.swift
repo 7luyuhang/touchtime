@@ -1667,7 +1667,7 @@ struct HomeView: View {
                                 }
                                 showSetTimerSheet = true
                             }) {
-                                Label(String(localized: "Timer"), systemImage: "timer")
+                                Label(String(localized: "Timers"), systemImage: "timer")
                             }
 
                             Button(action: {
@@ -1678,7 +1678,7 @@ struct HomeView: View {
                                 }
                                 showCountdownSheet = true
                             }) {
-                                Label(String(localized: "Countdown"), systemImage: "hourglass")
+                                Label(String(localized: "Countdowns"), systemImage: "hourglass")
                             }
                         }
 
