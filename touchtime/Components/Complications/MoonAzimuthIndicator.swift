@@ -6,8 +6,6 @@
 //
 
 import SwiftUI
-import MoonKit
-import CoreLocation
 
 struct MoonAzimuthIndicator: View {
     let date: Date
@@ -21,7 +19,8 @@ struct MoonAzimuthIndicator: View {
     private struct HourlyMoonData {
         let azimuths: [Double]
         let altitudes: [Double]
-        let phases: [MoonPhase]
+        /// Day-level phase (MoonDay), the same one the moon calendar shows for the day.
+        let phase: MoonPhase
     }
 
     private final class HourlyMoonDataWrapper {
@@ -101,7 +100,7 @@ struct MoonAzimuthIndicator: View {
         return (
             interpolatedAzimuth,
             interpolatedAltitude,
-            hourlyData.phases[lowerHour]
+            hourlyData.phase
         )
     }
 
@@ -118,54 +117,28 @@ struct MoonAzimuthIndicator: View {
         let startOfDay = calendar.startOfDay(for: date)
         var azimuths: [Double] = []
         var altitudes: [Double] = []
-        var phases: [MoonPhase] = []
+        let phase: MoonPhase
 
         if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
-            let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
-            let moon = Moon(location: location, timeZone: timeZone)
-
             for hour in 0...24 {
                 let hourDate = startOfDay.addingTimeInterval(Double(hour) * 3600)
-                moon.setDate(hourDate)
-                azimuths.append(moon.azimuth)
-                altitudes.append(moon.altitude)
-                phases.append(moon.currentMoonPhase)
+                let position = MoonAstronomy.position(latitude: coords.latitude, longitude: coords.longitude, date: hourDate)
+                azimuths.append(position.azimuth)
+                altitudes.append(position.altitude)
             }
+            phase = MoonDay(containing: date, calendar: calendar).phase
         } else {
             for hour in 0...24 {
                 let progress = Double(hour) / 24.0
                 azimuths.append((progress * 360.0).truncatingRemainder(dividingBy: 360))
                 altitudes.append(sin(progress * 2 * .pi) * 30.0)
-                phases.append(.fullMoon)
             }
+            phase = .fullMoon
         }
 
-        let data = HourlyMoonData(azimuths: azimuths, altitudes: altitudes, phases: phases)
+        let data = HourlyMoonData(azimuths: azimuths, altitudes: altitudes, phase: phase)
         Self.moonDataCache.setObject(HourlyMoonDataWrapper(data), forKey: cacheKey)
         return data
-    }
-
-    private func phaseSymbol(for phase: MoonPhase) -> String {
-        switch phase {
-        case .newMoon:
-            return "moonphase.new.moon"
-        case .waxingCrescent:
-            return "moonphase.waxing.crescent"
-        case .firstQuarter:
-            return "moonphase.first.quarter"
-        case .waxingGibbous:
-            return "moonphase.waxing.gibbous"
-        case .fullMoon:
-            return "moonphase.full.moon"
-        case .waningGibbous:
-            return "moonphase.waning.gibbous"
-        case .lastQuarter:
-            return "moonphase.last.quarter"
-        case .waningCrescent:
-            return "moonphase.waning.crescent"
-        case .error:
-            return "moon.fill"
-        }
     }
 
     var body: some View {
@@ -202,7 +175,7 @@ struct MoonAzimuthIndicator: View {
             .blendMode(.plusLighter)
 
             ZStack {
-                Image(systemName: phaseSymbol(for: data.phase))
+                Image(systemName: data.phase.symbolName)
                     .font(.system(size: symbolSize, weight: .medium))
                     .foregroundStyle(.white.opacity(isMoonVisible ? 1.0 : 0.5))
                     .blendMode(.plusLighter)

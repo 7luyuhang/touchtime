@@ -11,8 +11,6 @@ import UIKit
 import AVFoundation
 import CoreHaptics
 import WeatherKit
-import MoonKit
-import CoreLocation
 import TipKit
 import AlarmKit
 import Photos
@@ -1718,18 +1716,6 @@ struct AnalogClockFaceView: View {
         return cache
     }()
     
-    // MARK: - Moon Phase Cache
-    private class MoonPhaseWrapper {
-        let icon: String
-        init(_ icon: String) { self.icon = icon }
-    }
-    
-    private static let moonPhaseCache: NSCache<NSString, MoonPhaseWrapper> = {
-        let cache = NSCache<NSString, MoonPhaseWrapper>()
-        cache.countLimit = 30
-        return cache
-    }()
-    
     // Calculate sunrise and sunset times (with caching)
     private var sunTimes: SunTimesData? {
         guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
@@ -1922,82 +1908,22 @@ struct AnalogClockFaceView: View {
         date.addingTimeInterval(-timeOffset)
     }
     
-    // Get SF Symbol for current moon phase (with caching)
-    private var moonPhaseIcon: String {
-        // Get coordinates for the timezone
-        guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
-            return "moon.fill"
-        }
-        
-        // Create cache key based on day-level precision and timezone
+    // Moon phase for the displayed day in the selected city, the same
+    // day-level rule as the moon calendar (MoonDay). The moon's age is the
+    // same everywhere on Earth and MoonAstronomy.snapshot costs
+    // microseconds, so there is nothing to cache.
+    private var moonPhase: MoonPhase {
         var calendar = Calendar.current
         calendar.timeZone = selectedTimeZone
-        let components = calendar.dateComponents([.year, .month, .day], from: date)
-        let cacheKey = "\(selectedTimeZone.identifier)_moon_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
-        
-        // Lock-free read from NSCache (thread-safe without blocking)
-        if let cached = Self.moonPhaseCache.object(forKey: cacheKey) {
-            return cached.icon
-        }
-        
-        let moon = Moon(
-            location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude),
-            timeZone: selectedTimeZone
-        )
-        moon.setDate(date)
-        
-        let phaseString = String(describing: moon.currentMoonPhase)
-            .replacingOccurrences(of: "MoonPhase.", with: "")
-            .replacingOccurrences(of: "_", with: " ")
-            .lowercased()
-        
-        let icon: String
-        switch phaseString {
-        case "newmoon", "new moon":
-            icon = "moonphase.new.moon"
-        case "waxingcrescent", "waxing crescent":
-            icon = "moonphase.waxing.crescent"
-        case "firstquarter", "first quarter":
-            icon = "moonphase.first.quarter"
-        case "waxinggibbous", "waxing gibbous":
-            icon = "moonphase.waxing.gibbous"
-        case "fullmoon", "full moon":
-            icon = "moonphase.full.moon"
-        case "waninggibbous", "waning gibbous":
-            icon = "moonphase.waning.gibbous"
-        case "lastquarter", "last quarter", "thirdquarter", "third quarter":
-            icon = "moonphase.last.quarter"
-        case "waningcrescent", "waning crescent":
-            icon = "moonphase.waning.crescent"
-        default:
-            icon = "moon.fill"
-        }
-        
-        Self.moonPhaseCache.setObject(MoonPhaseWrapper(icon), forKey: cacheKey)
-        return icon
+        return MoonDay(containing: date, calendar: calendar).phase
+    }
+
+    private var moonPhaseIcon: String {
+        moonPhase.symbolName
     }
 
     private var moonPhaseName: String {
-        switch moonPhaseIcon {
-        case "moonphase.new.moon":
-            return String(localized: "New Moon")
-        case "moonphase.waxing.crescent":
-            return String(localized: "Waxing Crescent")
-        case "moonphase.first.quarter":
-            return String(localized: "First Quarter")
-        case "moonphase.waxing.gibbous":
-            return String(localized: "Waxing Gibbous")
-        case "moonphase.full.moon":
-            return String(localized: "Full Moon")
-        case "moonphase.waning.gibbous":
-            return String(localized: "Waning Gibbous")
-        case "moonphase.last.quarter":
-            return String(localized: "Last Quarter")
-        case "moonphase.waning.crescent":
-            return String(localized: "Waning Crescent")
-        default:
-            return String(localized: "Moon")
-        }
+        moonPhase.localizedName
     }
 
     private func collapseScrollButtonsIfNeeded() {

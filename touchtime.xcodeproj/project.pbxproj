@@ -8,11 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		5A5880A12EC78BEE00344D1D /* VariableBlur in Frameworks */ = {isa = PBXBuildFile; productRef = 5A5880A02EC78BEE00344D1D /* VariableBlur */; };
-		5A864EA42EAE30FB009D5989 /* MoonKit in Frameworks */ = {isa = PBXBuildFile; productRef = 5A864EA32EAE30FB009D5989 /* MoonKit */; };
 		5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */ = {isa = PBXBuildFile; productRef = 5AD93C242EB62099001DF8F4 /* Shimmer */; };
 		5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */; };
 		E100000000000000000000AD /* touchtimeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E100000000000000000000A1 /* touchtimeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		E100000000000000000000B0 /* MoonKit in Frameworks */ = {isa = PBXBuildFile; productRef = E100000000000000000000B1 /* MoonKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,7 +90,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */,
-				5A864EA42EAE30FB009D5989 /* MoonKit in Frameworks */,
 				5A5880A12EC78BEE00344D1D /* VariableBlur in Frameworks */,
 				5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */,
 			);
@@ -102,7 +99,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E100000000000000000000B0 /* MoonKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -160,7 +156,6 @@
 			);
 			name = touchtime;
 			packageProductDependencies = (
-				5A864EA32EAE30FB009D5989 /* MoonKit */,
 				5AD93C242EB62099001DF8F4 /* Shimmer */,
 				5A5880A02EC78BEE00344D1D /* VariableBlur */,
 			);
@@ -186,7 +181,6 @@
 			);
 			name = touchtimeWidgetExtension;
 			packageProductDependencies = (
-				E100000000000000000000B1 /* MoonKit */,
 			);
 			productName = touchtimeWidgetExtension;
 			productReference = E100000000000000000000A1 /* touchtimeWidgetExtension.appex */;
@@ -222,7 +216,6 @@
 			mainGroup = 5A42D36F2E82CDCE0048963E;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */,
 				5AD93C232EB62099001DF8F4 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */,
 				5A58809F2EC78BEE00344D1D /* XCRemoteSwiftPackageReference "VariableBlur" */,
 			);
@@ -604,14 +597,6 @@
 				minimumVersion = 1.0.0;
 			};
 		};
-		5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/davideilmito/MoonKit.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 2.1.1;
-			};
-		};
 		5AD93C232EB62099001DF8F4 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/markiv/SwiftUI-Shimmer.git";
@@ -628,20 +613,10 @@
 			package = 5A58809F2EC78BEE00344D1D /* XCRemoteSwiftPackageReference "VariableBlur" */;
 			productName = VariableBlur;
 		};
-		5A864EA32EAE30FB009D5989 /* MoonKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */;
-			productName = MoonKit;
-		};
 		5AD93C242EB62099001DF8F4 /* Shimmer */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 5AD93C232EB62099001DF8F4 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */;
 			productName = Shimmer;
-		};
-		E100000000000000000000B1 /* MoonKit */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 5A864EA22EAE30FB009D5989 /* XCRemoteSwiftPackageReference "MoonKit" */;
-			productName = MoonKit;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

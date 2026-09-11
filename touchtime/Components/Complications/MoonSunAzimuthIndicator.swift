@@ -6,8 +6,6 @@
 //
 
 import SwiftUI
-import MoonKit
-import CoreLocation
 
 struct MoonSunAzimuthIndicator: View {
     let date: Date
@@ -153,14 +151,11 @@ struct MoonSunAzimuthIndicator: View {
         var altitudes: [Double] = []
 
         if let coords = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) {
-            let location = CLLocation(latitude: coords.latitude, longitude: coords.longitude)
-            let moon = Moon(location: location, timeZone: timeZone)
-
             for hour in 0...24 {
                 let hourDate = startOfDay.addingTimeInterval(Double(hour) * 3600)
-                moon.setDate(hourDate)
-                azimuths.append(moon.azimuth)
-                altitudes.append(moon.altitude)
+                let position = MoonAstronomy.position(latitude: coords.latitude, longitude: coords.longitude, date: hourDate)
+                azimuths.append(position.azimuth)
+                altitudes.append(position.altitude)
             }
         } else {
             for hour in 0...24 {

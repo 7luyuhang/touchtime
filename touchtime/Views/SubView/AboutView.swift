@@ -204,13 +204,6 @@ struct AboutView: View {
             // Acknowledgements Section
             Section {
                 Button {
-                    safariURL = URL(string: "https://github.com/davideilmito/MoonKit")
-                } label: {
-                    Text("MoonKit")
-                }
-                .foregroundStyle(.primary)
-
-                Button {
                     safariURL = URL(string: "https://github.com/markiv/SwiftUI-Shimmer")
                 } label: {
                     Text("SwiftUI-Shimmer")

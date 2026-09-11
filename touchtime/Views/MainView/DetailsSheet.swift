@@ -6,8 +6,6 @@
 //
 
 import SwiftUI
-import MoonKit
-import CoreLocation
 import Combine
 import WeatherKit
 
@@ -102,11 +100,10 @@ struct SunriseSunsetSheet: View {
 
     /// Finds the exact instant the moon's age next reaches `targetAgeDays`
     /// (0 = new moon, then quarter-cycle steps for first quarter, full moon
-    /// and last quarter). Uses the same lightweight MoonAstronomy math as the
-    /// moon phase calendar's day dots, so the dates always match them — and
-    /// unlike MoonKit's Moon it never triggers a moonrise/moonset search.
+    /// and last quarter). Uses the same MoonAstronomy age as the moon phase
+    /// calendar's day dots, so the dates always match them.
     private func findNextMoonPhaseDate(targetAgeDays: Double, startingFrom date: Date) -> Date? {
-        let cycle = 29.53058867
+        let cycle = MoonAstronomy.synodicMonthDays
         let dayInSeconds: TimeInterval = 86400
 
         // Days left until the target age, wrapping at the cycle boundary:
@@ -168,7 +165,6 @@ struct SunriseSunsetSheet: View {
         astronomyDayCacheKey = dayKey
 
         let timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
-        let location = CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude)
 
         let events = SolarCalculator.events(
             latitude: coordinates.latitude,
@@ -179,18 +175,25 @@ struct SunriseSunsetSheet: View {
         sunTimes = (events.sunrise, events.sunset)
         eveningGoldenHour = (events.eveningGoldenHourStart, events.eveningGoldenHourEnd)
 
-        let moon = Moon(location: location, timeZone: timeZone)
-        moon.setDate(adjustedDate)
-        let phase = moon.currentMoonPhase
+        let moonEvents = MoonAstronomy.riseAndSet(
+            latitude: coordinates.latitude,
+            longitude: coordinates.longitude,
+            date: adjustedDate,
+            timeZone: timeZone
+        )
+        // Day-level phase, the same rule as the moon calendar (MoonDay): the
+        // instantaneous phase would call the new moon day a crescent within
+        // two hours of the exact new moon.
+        let phase = MoonDay(containing: adjustedDate, calendar: calendarForTimeZone()).phase
         moonInfo = (
-            moonrise: moon.moonRise,
-            moonset: moon.moonSet,
-            phase: formatMoonPhase(phase),
-            phaseIcon: getMoonPhaseIcon(phase)
+            moonrise: moonEvents.moonrise,
+            moonset: moonEvents.moonset,
+            phase: phase.localizedName,
+            phaseIcon: phase.symbolName
         )
 
         // The four principal phases coming up, soonest first
-        let quarterCycle = 29.53058867 / 4
+        let quarterCycle = MoonAstronomy.synodicMonthDays / 4
         let principalPhases: [(icon: String, name: String, targetAgeDays: Double)] = [
             ("moonphase.new.moon", String(localized: "New"), 0),
             ("moonphase.first.quarter", String(localized: "First"), quarterCycle),
@@ -223,80 +226,6 @@ struct SunriseSunsetSheet: View {
             return String(localized: "Next Full Moon")
         }
     }
-    
-    // Format moon phase to readable string
-    private func formatMoonPhase(_ phase: MoonKit.MoonPhase) -> String {
-        let phaseString = String(describing: phase)
-        // Convert from camelCase or other format to Title Case
-        let formatted = phaseString
-            .replacingOccurrences(of: "MoonPhase.", with: "")
-            .replacingOccurrences(of: "_", with: " ")
-            .split(separator: " ")
-            .map { $0.capitalized }
-            .joined(separator: " ")
-        
-        // Handle common moon phase names with localization
-        switch formatted.lowercased() {
-        case "newmoon", "new moon":
-            return String(localized: "New Moon")
-        case "waxingcrescent", "waxing crescent":
-            return String(localized: "Waxing Crescent")
-        case "firstquarter", "first quarter":
-            return String(localized: "First Quarter")
-        case "waxinggibbous", "waxing gibbous":
-            return String(localized: "Waxing Gibbous")
-        case "fullmoon", "full moon":
-            return String(localized: "Full Moon")
-        case "waninggibbous", "waning gibbous":
-            return String(localized: "Waning Gibbous")
-        case "lastquarter", "last quarter", "thirdquarter", "third quarter":
-            return String(localized: "Last Quarter")
-        case "waningcrescent", "waning crescent":
-            return String(localized: "Waning Crescent")
-        default:
-            // If none match, try to make it readable by inserting spaces before capitals
-            let result = phaseString.replacingOccurrences(of: "MoonPhase.", with: "")
-            return result.enumerated().map { index, char in
-                if index > 0 && char.isUppercase {
-                    return " \(char)"
-                }
-                return String(char)
-            }.joined().capitalized
-        }
-    }
-    
-    // Get SF Symbol for moon phase
-    private func getMoonPhaseIcon(_ phase: MoonKit.MoonPhase) -> String {
-        let phaseString = String(describing: phase)
-        let formatted = phaseString
-            .replacingOccurrences(of: "MoonPhase.", with: "")
-            .replacingOccurrences(of: "_", with: " ")
-            .lowercased()
-        
-        // Return appropriate SF Symbol based on moon phase
-        switch formatted {
-        case "newmoon", "new moon":
-            return "moonphase.new.moon"
-        case "waxingcrescent", "waxing crescent":
-            return "moonphase.waxing.crescent"
-        case "firstquarter", "first quarter":
-            return "moonphase.first.quarter"
-        case "waxinggibbous", "waxing gibbous":
-            return "moonphase.waxing.gibbous"
-        case "fullmoon", "full moon":
-            return "moonphase.full.moon"
-        case "waninggibbous", "waning gibbous":
-            return "moonphase.waning.gibbous"
-        case "lastquarter", "last quarter", "thirdquarter", "third quarter":
-            return "moonphase.last.quarter"
-        case "waningcrescent", "waning crescent":
-            return "moonphase.waning.crescent"
-        default:
-            return "moon.stars.fill" // fallback icon
-        }
-    }
-    
-    // Get SF Symbol for weather condition
     
     // Map timezone identifiers to coordinates using shared utility
     private func getCoordinatesForTimeZone(_ identifier: String) -> (latitude: Double, longitude: Double)? {
