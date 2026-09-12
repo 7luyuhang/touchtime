@@ -514,6 +514,23 @@
         }
       }
     },
+    "Show in Full Color" : {
+      "comment" : "Edit-widget toggle in the Countdown widget: keep the cover photo or emoji in color in the Clear and Tinted Home Screen modes.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示为全彩"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示為全彩"
+          }
+        }
+      }
+    },
     "Show Moon Phase Name" : {
       "localizations" : {
         "zh-Hans" : {

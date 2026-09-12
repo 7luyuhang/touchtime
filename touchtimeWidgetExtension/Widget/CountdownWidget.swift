@@ -6,7 +6,9 @@
 //  countdown's cover (emoji or photo) in the centre circle (80x80), the
 //  days to the event at the bottom. Every countdown has a cover, and the
 //  background follows it the way the app's countdown card does — the
-//  emoji's dominant colour, or the photo blurred.
+//  emoji's dominant colour, or the photo blurred. In the Clear and Tinted
+//  Home Screen modes the cover is desaturated with the rest of the widget
+//  unless the edit-widget toggle keeps it in full colour.
 //
 
 import WidgetKit
@@ -29,6 +31,9 @@ struct CountdownWidgetEntry: TimelineEntry {
     let date: Date
     /// Nil when the app has no countdowns yet: the widget shows its empty state.
     let countdown: Countdown?
+    /// Edit-widget toggle: keep the cover in colour in the Clear and Tinted
+    /// Home Screen modes instead of desaturating it with the rest of the widget.
+    let showCoverInFullColor: Bool
 }
 
 struct CountdownWidgetProvider: AppIntentTimelineProvider {
@@ -44,7 +49,11 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
         return CountdownEntity.widgetOrder(saved, now: now).first
     }
 
-    private func makeEntry(for item: CountdownItem?, date: Date) -> CountdownWidgetEntry {
+    private func makeEntry(
+        for item: CountdownItem?,
+        date: Date,
+        showCoverInFullColor: Bool
+    ) -> CountdownWidgetEntry {
         let countdown = item.map {
             CountdownWidgetEntry.Countdown(
                 title: $0.title,
@@ -54,7 +63,11 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
                 photoCrop: $0.photoCrop
             )
         }
-        return CountdownWidgetEntry(date: date, countdown: countdown)
+        return CountdownWidgetEntry(
+            date: date,
+            countdown: countdown,
+            showCoverInFullColor: showCoverInFullColor
+        )
     }
 
     /// Gallery sample: a countdown to the next New Year's Day.
@@ -70,7 +83,8 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
                 emoji: "🎆",
                 photoData: nil,
                 photoCrop: nil
-            )
+            ),
+            showCoverInFullColor: false
         )
     }
 
@@ -80,12 +94,13 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
 
     func snapshot(for configuration: CountdownWidgetIntent, in context: Context) async -> CountdownWidgetEntry {
         let now = Date()
-        if let item = resolveCountdown(for: configuration, now: now) {
-            return makeEntry(for: item, date: now)
-        }
+        let item = resolveCountdown(for: configuration, now: now)
         // No countdowns yet: the gallery shows the sample, the Home Screen
         // the empty state.
-        return context.isPreview ? sampleEntry(date: now) : makeEntry(for: nil, date: now)
+        if item == nil, context.isPreview {
+            return sampleEntry(date: now)
+        }
+        return makeEntry(for: item, date: now, showCoverInFullColor: configuration.showCoverInFullColor)
     }
 
     func timeline(for configuration: CountdownWidgetIntent, in context: Context) async -> Timeline<CountdownWidgetEntry> {
@@ -104,7 +119,9 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
             day = next
         }
 
-        let entries = dates.map { makeEntry(for: item, date: $0) }
+        let entries = dates.map {
+            makeEntry(for: item, date: $0, showCoverInFullColor: configuration.showCoverInFullColor)
+        }
         return Timeline(entries: entries, policy: .atEnd)
     }
 }
@@ -139,6 +156,13 @@ struct CountdownWidgetView: View {
     /// Dominant colour of the cover emoji, the same one the app's card uses.
     private var emojiColor: EmojiDominantColor? {
         countdown?.emoji.flatMap { EmojiDominantColor.cached(for: $0) }
+    }
+
+    /// How the cover is handed to the system in the Clear and Tinted Home
+    /// Screen modes: desaturated with the rest of the widget, or kept in
+    /// colour when the edit-widget toggle is on. Ignored in full-colour mode.
+    private var coverRenderingMode: WidgetAccentedRenderingMode {
+        entry.showCoverInFullColor ? .fullColor : .desaturated
     }
 
     /// Whole calendar days from the entry's date to the event; negative
@@ -216,7 +240,7 @@ struct CountdownWidgetView: View {
         if let photoImage {
             Image(uiImage: photoImage)
                 .resizable()
-                .widgetAccentedRenderingMode(.desaturated)
+                .widgetAccentedRenderingMode(coverRenderingMode)
                 .scaledToFill()
                 .frame(width: Self.badgeSize, height: Self.badgeSize)
                 .clipShape(Circle())
@@ -232,9 +256,10 @@ struct CountdownWidgetView: View {
                         // In the Clear and Tinted Home Screen modes text is
                         // flattened to a solid silhouette (a disco ball becomes
                         // a white disc), so hand the emoji over as an image and
-                        // let the system desaturate it like the cover photo.
+                        // let the system treat it like the cover photo:
+                        // desaturated, or in full colour with the toggle on.
                         Image(uiImage: glyph)
-                            .widgetAccentedRenderingMode(.desaturated)
+                            .widgetAccentedRenderingMode(coverRenderingMode)
                     } else {
                         Text(emoji)
                             .font(.system(size: Self.emojiPointSize))

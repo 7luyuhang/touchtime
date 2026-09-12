@@ -2,7 +2,9 @@
 //  CountdownWidgetIntent.swift
 //  touchtimeWidgetExtension
 //
-//  Widget configuration: pick one of the app's saved countdowns to display.
+//  Widget configuration: pick one of the app's saved countdowns to display,
+//  and whether its cover keeps its colours in the Clear and Tinted Home
+//  Screen modes.
 //
 
 import AppIntents
@@ -75,4 +77,9 @@ struct CountdownWidgetIntent: WidgetConfigurationIntent {
 
     @Parameter(title: "Countdown")
     var countdown: CountdownEntity?
+
+    /// In the Clear and Tinted Home Screen modes the cover photo or emoji
+    /// is desaturated with the rest of the widget; this keeps it in colour.
+    @Parameter(title: "Show in Full Color", default: false)
+    var showCoverInFullColor: Bool
 }
