@@ -292,6 +292,7 @@ struct CityTimeAdjustmentSheet: View {
             Text(alarmErrorMessage)
         }
         .presentationDetents([.height(360)])
+        .presentationDragIndicator(.visible)
     }
 
     @MainActor
