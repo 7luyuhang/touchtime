@@ -377,11 +377,19 @@ struct CountdownDetailsView: View {
                                 }
                             }
                         } label: {
+                            // Blue once a lead time is set, so the shift
+                            // away from the event day is visible at a glance.
                             Image(systemName: "arrow.left")
                                 .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(reminderLeadDays > 0 ? .blue : .white)
                                 .frame(width: 34, height: 34)
-                                .background(Circle().fill(Color(UIColor.tertiarySystemFill)))
+                                .background(
+                                    Circle().fill(
+                                        reminderLeadDays > 0
+                                            ? Color.blue.opacity(0.15)
+                                            : Color(UIColor.tertiarySystemFill)
+                                    )
+                                )
                                 .contentShape(Circle())
                         }
 
