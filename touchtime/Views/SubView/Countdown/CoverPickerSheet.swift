@@ -57,8 +57,8 @@ struct CoverPickerSheet: View {
     // True while the photo is being pinched; the title reads the zoom
     // only then.
     @State private var isZoomingPhoto = false
-    /// Flips the Save arrow to a checkmark for a moment after the photo
-    /// has been saved to the library.
+    /// Flips the Save label to Saved for a moment after the photo has
+    /// been saved to the library.
     @State private var didSavePhoto = false
     @State private var showPhotoAccessAlert = false
 
@@ -170,13 +170,17 @@ struct CoverPickerSheet: View {
                     ToolbarSpacer(.fixed, placement: .bottomBar)
 
                     // Saves the photo as picked to the library, the way the
-                    // share screen saves its image.
+                    // share screen saves its image. Once saved, the label
+                    // reads Saved for a moment.
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             savePhotoToLibrary()
                         } label: {
-                            Image(systemName: didSavePhoto ? "checkmark" : "arrow.down.to.line.compact")
-                                .contentTransition(.symbolEffect(.replace))
+                            Text(didSavePhoto ? String(localized: "Saved") : String(localized: "Save"))
+                                .font(.headline)
+                                .frame(height: 40)
+                                .contentTransition(.numericText())
+                                .animation(.spring(), value: didSavePhoto)
                         }
                     }
 
