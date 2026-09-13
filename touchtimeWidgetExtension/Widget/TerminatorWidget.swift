@@ -139,7 +139,9 @@ struct TerminatorWidgetView: View {
 
                 Spacer(minLength: 0)
 
-                Text(entry.cityName)
+                // Keeps any emoji in the name shaded in the Clear and
+                // Tinted modes instead of a flattened white blob.
+                ColorEmojiText(entry.cityName)
                     .font(.system(size: 15, weight: .medium))
                     .lineLimit(1)
                     .truncationMode(.tail)

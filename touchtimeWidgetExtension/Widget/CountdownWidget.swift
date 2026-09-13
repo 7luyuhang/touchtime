@@ -211,7 +211,9 @@ struct CountdownWidgetView: View {
             .frame(width: Self.badgeSize, height: Self.badgeSize)
 
             VStack {
-                Text(countdown?.title ?? String(localized: "No Countdowns"))
+                // Keeps any emoji in the title shaded in the Clear and
+                // Tinted modes instead of a flattened white blob.
+                ColorEmojiText(countdown?.title ?? String(localized: "No Countdowns"))
                     .font(.system(size: 15, weight: .medium))
                     .lineLimit(1)
                     .truncationMode(.tail)
