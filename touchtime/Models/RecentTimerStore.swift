@@ -13,6 +13,21 @@ struct RecentTimer: Identifiable, Codable, Equatable {
     let durationSeconds: Int
     var name: String?
     let lastUsedAt: Date
+    /// How many times this timer has run all the way down to zero
+    var usageCount: Int = 0
+}
+
+extension RecentTimer {
+    // Entries saved before usage counts existed have no usageCount key;
+    // decoding it as optional keeps them loading instead of wiping Recents.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        durationSeconds = try container.decode(Int.self, forKey: .durationSeconds)
+        name = try container.decodeIfPresent(String.self, forKey: .name)
+        lastUsedAt = try container.decode(Date.self, forKey: .lastUsedAt)
+        usageCount = try container.decodeIfPresent(Int.self, forKey: .usageCount) ?? 0
+    }
 }
 
 /// Persists recently started timers in UserDefaults, most recently used first.
@@ -67,10 +82,27 @@ enum RecentTimerStore {
 
         let renamedID = timers[index].id
         timers[index].name = newName
-        // Keep duration + name unique, matching insert behaviour
-        timers.removeAll {
+        // Keep duration + name unique, matching insert behaviour. The
+        // replaced duplicate's completed runs carry over to the renamed entry.
+        let isReplacedDuplicate: (RecentTimer) -> Bool = {
             $0.id != renamedID && $0.durationSeconds == durationSeconds && $0.name == newName
         }
+        timers[index].usageCount += timers.filter(isReplacedDuplicate).reduce(0) { $0 + $1.usageCount }
+        timers.removeAll(where: isReplacedDuplicate)
+        save(timers)
+    }
+
+    /// Counts one completed run for the entry matching the given duration and
+    /// name. Called when the home timer runs all the way down to zero.
+    static func recordCompletion(durationSeconds: Int, name: String?) {
+        guard durationSeconds > 0 else { return }
+
+        var timers = load()
+        guard let index = timers.firstIndex(where: {
+            $0.durationSeconds == durationSeconds && $0.name == name
+        }) else { return }
+
+        timers[index].usageCount += 1
         save(timers)
     }
 

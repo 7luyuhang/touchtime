@@ -414,7 +414,24 @@ struct HomeView: View {
         }
 
         let remaining = homeTimerRemainingFromEndDate(at: Date())
-        homeTimerCompletionHandled = remaining == 0
+        if remaining == 0 {
+            // The timer ran out while this view was away: still count that run
+            if !homeTimerCompletionHandled {
+                recordHomeTimerCompletion()
+            }
+        } else {
+            homeTimerCompletionHandled = false
+        }
+    }
+
+    /// Marks the current run as finished, counting it once towards the
+    /// usage count of its Recents entry.
+    private func recordHomeTimerCompletion() {
+        RecentTimerStore.recordCompletion(
+            durationSeconds: homeTimerConfiguredSeconds,
+            name: RecentTimerStore.normalizedName(homeTimerName)
+        )
+        homeTimerCompletionHandled = true
     }
 
     private func refreshHomeTimerAlarm(
@@ -504,7 +521,7 @@ struct HomeView: View {
         let remaining = homeTimerRemainingSeconds(at: now)
         if remaining == 0 {
             guard !homeTimerCompletionHandled else { return }
-            homeTimerCompletionHandled = true
+            recordHomeTimerCompletion()
 
             if hapticEnabled {
                 let notificationFeedback = UINotificationFeedbackGenerator()

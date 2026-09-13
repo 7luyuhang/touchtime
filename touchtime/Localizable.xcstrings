@@ -13018,6 +13018,22 @@
         }
       }
     },
+    "Show Usage Count" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示使用次数"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示使用次數"
+          }
+        }
+      }
+    },
     "Sign-in was cancelled or returned no authorization code." : {
       "localizations" : {
         "zh-Hans" : {

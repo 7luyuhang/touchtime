@@ -15,17 +15,23 @@ struct SetTimerSheet: View {
     @AppStorage("homeTimerEndDateEpoch") private var homeTimerEndDateEpoch: Double = 0
     @AppStorage("homeTimerPaused") private var homeTimerPaused = false
     @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
+    // Flips to true when the home timer finishes a run, which is when a
+    // Recents entry's usage count changes
+    @AppStorage("homeTimerCompletionHandled") private var homeTimerCompletionHandled = false
+    // Shows how many times each Recents timer has run to completion
+    @AppStorage("showTimerUsageCount") private var showTimerUsageCount = true
 
     let onConfirm: (Int) -> Void
     // Toggles pause/resume of the running home timer, used by the active Recents row
     let onPlayPause: (() -> Void)?
-    private let requiresReplacementConfirmation: Bool
 
     // Remembers the last duration the user confirmed, used as the default for new timers
     private static let lastSetDurationKey = "lastSetTimerDurationSeconds"
 
     private static let maxDurationSeconds = 59 * 60 + 59
     private static let compactDetent = PresentationDetent.height(300)
+    // Stroke width of the countdown ring on a running Recents row's button
+    private static let progressRingLineWidth: CGFloat = 3
 
     @State private var selectedDuration: Int
     @State private var showReplaceTimerConfirmation = false
@@ -52,7 +58,6 @@ struct SetTimerSheet: View {
         let clampedDuration = min(max(effectiveDuration, 0), Self.maxDurationSeconds)
         self.onConfirm = onConfirm
         self.onPlayPause = onPlayPause
-        self.requiresReplacementConfirmation = initialDurationSeconds > 0
         _selectedDuration = State(initialValue: clampedDuration)
         _recentTimers = State(initialValue: RecentTimerStore.load())
     }
@@ -95,6 +100,27 @@ struct SetTimerSheet: View {
         activeDetent == .large
     }
 
+    /// Starting a timer while one is already configured asks before replacing
+    /// it. Read live because the sheet stays open after a start, so a timer
+    /// begun here counts as the current one for the next start.
+    private var requiresReplacementConfirmation: Bool {
+        homeTimerConfiguredSeconds > 0
+    }
+
+    private var showUsageCountBinding: Binding<Bool> {
+        Binding(
+            get: { showTimerUsageCount },
+            set: { newValue in
+                withAnimation(.smooth(duration: 0.25)) {
+                    showTimerUsageCount = newValue
+                }
+                if hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+            }
+        )
+    }
+
     private func startTimerFromPicker() {
         // A timer started from the picker is a fresh timer: clear any name
         // left over from the previously running timer
@@ -115,8 +141,8 @@ struct SetTimerSheet: View {
 
         UserDefaults.standard.set(totalSeconds, forKey: Self.lastSetDurationKey)
         recentTimers = RecentTimerStore.remember(durationSeconds: totalSeconds, name: recordedName)
+        // The sheet stays open: the started timer shows up live in Recents
         onConfirm(totalSeconds)
-        dismiss()
     }
 
     private func startRecentTimer(_ recent: RecentTimer) {
@@ -196,10 +222,13 @@ struct SetTimerSheet: View {
         let durationSeconds = recentTimers[index].durationSeconds
 
         recentTimers[index].name = updatedName
-        // Keep the same duration + name unique in the list, matching insert behaviour
-        recentTimers.removeAll {
+        // Keep the same duration + name unique in the list, matching insert
+        // behaviour. The replaced duplicate's completed runs carry over.
+        let isReplacedDuplicate: (RecentTimer) -> Bool = {
             $0.id != recentID && $0.durationSeconds == durationSeconds && $0.name == updatedName
         }
+        recentTimers[index].usageCount += recentTimers.filter(isReplacedDuplicate).reduce(0) { $0 + $1.usageCount }
+        recentTimers.removeAll(where: isReplacedDuplicate)
         RecentTimerStore.save(recentTimers)
 
         renameRecentNameInput = ""
@@ -225,6 +254,12 @@ struct SetTimerSheet: View {
             .onChange(of: activeDetent) { _, newValue in
                 if newValue == .large && hapticEnabled {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+            }
+            .onChange(of: homeTimerCompletionHandled) { _, isHandled in
+                // A run finished while the sheet was open: pick up its new usage count
+                if isHandled {
+                    recentTimers = RecentTimerStore.load()
                 }
             }
             .navigationTitle(isShowingRecents ? String(localized: "Recents") : String(localized: "New Timer"))
@@ -265,6 +300,12 @@ struct SetTimerSheet: View {
                 } else if !recentTimers.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {
                         Menu {
+                            Toggle(isOn: showUsageCountBinding) {
+                                Label(String(localized: "Show Usage Count"), systemImage: "number.circle")
+                            }
+
+                            Divider()
+
                             Menu {
                                 Button(role: .destructive) {
                                     deleteAllRecentTimers()
@@ -372,6 +413,10 @@ struct SetTimerSheet: View {
 
                             Spacer()
 
+                            if showTimerUsageCount {
+                                recentUsageCountBadge(for: recent)
+                            }
+
                             recentTimerControl(for: recent)
                         }
                         .padding(.vertical, 15)
@@ -439,62 +484,40 @@ struct SetTimerSheet: View {
         }
     }
 
-    /// Play button for a Recents row. When the row matches the running home
-    /// timer it becomes a pause/resume button with a countdown ring around
-    /// its border, like the timers in the system Clock app.
-    @ViewBuilder
-    private func recentTimerControl(for recent: RecentTimer) -> some View {
-        let isHomeTimerRow = matchesHomeTimer(recent)
+    /// How many times a Recents row's timer has run to completion, in a
+    /// circle the same size as the play button beside it.
+    private func recentUsageCountBadge(for recent: RecentTimer) -> some View {
+        Text("\(recent.usageCount)")
+            .font(.headline)
+            .fontDesign(.rounded)
+            .monospacedDigit()
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .foregroundStyle(.secondary)
+            .padding(.horizontal, 5)
+            .frame(width: 40, height: 40)
+            .background(Color(UIColor.tertiarySystemGroupedBackground), in: Circle())
+            .contentTransition(.numericText())
+            .animation(.smooth(duration: 0.25), value: recent.usageCount)
+            .transition(.blurReplace)
+    }
 
-        Button {
-            if isHomeTimerRow && homeTimerRemainingSeconds(at: Date()) > 0 {
-                onPlayPause?()
-            } else {
-                startRecentTimer(recent)
-            }
-        } label: {
-            if isHomeTimerRow {
+    /// Play button for a Recents row. When the row matches the running home
+    /// timer it becomes a pause/resume button: the white background gives
+    /// way to a countdown ring on the button's own edge, like the timers in
+    /// the system Clock app.
+    private func recentTimerControl(for recent: RecentTimer) -> some View {
+        Group {
+            if matchesHomeTimer(recent) {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
-                    let remaining = homeTimerRemainingSeconds(at: context.date)
-                    let symbol = (remaining > 0 && !homeTimerPaused) ? "pause.fill" : "play.fill"
-                    Image(systemName: symbol)
-                        .font(.title3.weight(.semibold))
-                        .foregroundStyle(.black)
-                        .contentTransition(.symbolEffect(.replace, options: .speed(2.0)))
-                        .animation(.spring(), value: symbol)
-                        .frame(width: 40, height: 40)
-                        .contentShape(Circle())
+                    recentTimerButton(
+                        for: recent,
+                        isHomeTimerRow: true,
+                        remainingSeconds: homeTimerRemainingSeconds(at: context.date)
+                    )
                 }
             } else {
-                Image(systemName: "play.fill")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.black)
-                    .frame(width: 40, height: 40)
-                    .contentShape(Circle())
-            }
-        }
-        .buttonStyle(.plain)
-        .glassEffect(.regular.tint(.white), in: Circle())
-        .overlay {
-            if isHomeTimerRow {
-                TimelineView(.periodic(from: .now, by: 1)) { context in
-                    let remaining = homeTimerRemainingSeconds(at: context.date)
-                    if remaining > 0 {
-                        let progress = min(max(Double(remaining) / Double(max(homeTimerConfiguredSeconds, 1)), 0), 1)
-                        ZStack {
-                            Circle()
-                                .stroke(.white.opacity(0.10), lineWidth: 3.0)
-                                .blendMode(.plusLighter)
-                            Circle()
-                                .trim(from: 0, to: progress)
-                                .stroke(.white, style: StrokeStyle(lineWidth: 3.0, lineCap: .round))
-                                .rotationEffect(.degrees(-90))
-                                .animation(.linear(duration: 1), value: progress)
-                        }
-                        .padding(-6)
-                    }
-                }
-                .allowsHitTesting(false)
+                recentTimerButton(for: recent, isHomeTimerRow: false, remainingSeconds: 0)
             }
         }
         .confirmationDialog(
@@ -516,5 +539,55 @@ struct SetTimerSheet: View {
                 pendingTimerName = nil
             }
         }
+    }
+
+    /// The 40pt control for a Recents row at a given moment. While its timer
+    /// is running (or paused mid-way) the white glass background is dropped,
+    /// the symbol turns white and the countdown ring is drawn inside the
+    /// same 40pt footprint.
+    private func recentTimerButton(
+        for recent: RecentTimer,
+        isHomeTimerRow: Bool,
+        remainingSeconds: Int
+    ) -> some View {
+        let isRunning = isHomeTimerRow && remainingSeconds > 0
+        let symbol = (isRunning && !homeTimerPaused) ? "pause.fill" : "play.fill"
+        let progress = min(max(Double(remainingSeconds) / Double(max(homeTimerConfiguredSeconds, 1)), 0), 1)
+
+        return Button {
+            if isHomeTimerRow && homeTimerRemainingSeconds(at: Date()) > 0 {
+                onPlayPause?()
+            } else {
+                startRecentTimer(recent)
+            }
+        } label: {
+            Image(systemName: symbol)
+                .font(.title3.weight(.semibold))
+                .foregroundStyle(isRunning ? Color.white : Color.black)
+                .contentTransition(.symbolEffect(.replace, options: .speed(2.0)))
+                .animation(.spring(), value: symbol)
+                .frame(width: 40, height: 40)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .glassEffect(isRunning ? .identity : .regular.tint(.white), in: Circle())
+        .overlay {
+            if isRunning {
+                ZStack {
+                    Circle()
+                        .stroke(.white.opacity(0.10), lineWidth: Self.progressRingLineWidth)
+                        .blendMode(.plusLighter)
+                    Circle()
+                        .trim(from: 0, to: progress)
+                        .stroke(.white, style: StrokeStyle(lineWidth: Self.progressRingLineWidth, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.linear(duration: 1), value: progress)
+                }
+                // Inset by half the stroke so the ring's outer edge sits on the 40pt button edge
+                .padding(Self.progressRingLineWidth / 2)
+                .allowsHitTesting(false)
+            }
+        }
+        .animation(.smooth(duration: 0.25), value: isRunning)
     }
 }
