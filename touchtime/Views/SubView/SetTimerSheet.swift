@@ -474,7 +474,7 @@ struct SetTimerSheet: View {
                     .foregroundStyle(.primary)
                     .monospacedDigit()
                     .contentTransition(.numericText(countsDown: true))
-                    .animation(.smooth(duration: 0.20), value: remaining)
+                    .animation(.smooth(duration: 0.25), value: remaining)
             }
         } else {
             Text(formattedDuration(recent.durationSeconds))
