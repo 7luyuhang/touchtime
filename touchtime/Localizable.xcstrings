@@ -5183,22 +5183,6 @@
         }
       }
     },
-    "Double-tap for quick actions" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "双击以打开可快速操作"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "雙擊以開啟快速操作"
-          }
-        }
-      }
-    },
     "Double-tap to focus on the selected time." : {
       "localizations" : {
         "zh-Hans" : {

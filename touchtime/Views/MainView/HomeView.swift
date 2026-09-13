@@ -189,7 +189,6 @@ struct HomeView: View {
     @AppStorage("showSolarCurve") private var showSolarCurve = false
     @AppStorage("solarCurveShowSun") private var solarCurveShowSun = false
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
-    @AppStorage("showDoubleTapMoreActionTip") private var showDoubleTapMoreActionTip = true
     @AppStorage("showShakeToResetTip") private var showShakeToResetTip = false
     @AppStorage("hasTriggeredShakeToResetTip") private var hasTriggeredShakeToResetTip = false
     @AppStorage("homeTimerConfiguredSeconds") private var homeTimerConfiguredSeconds = 0
@@ -1426,54 +1425,6 @@ struct HomeView: View {
                                 }
                             }
                         }
-
-                        if showDoubleTapMoreActionTip {
-                            Section {
-                                VStack(spacing: 16) {
-                                    // Button Group
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "alarm")
-                                            .font(.headline)
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 40)
-                                            .glassEffect(.regular, in: Capsule(style: .continuous))
-                                        Image(systemName: "timer")
-                                            .font(.headline)
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 40)
-                                            .glassEffect(.regular, in: Capsule(style: .continuous))
-                                        Image(systemName: "xmark")
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.secondary)
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 40)
-                                            .glassEffect(.regular, in: Capsule(style: .continuous))
-                                    }
-                                    .padding(.horizontal, 8)
-                                    
-                                    VStack(spacing: 10) {
-                                        Text(String(localized: "Double-tap for quick actions"))
-                                            .font(.subheadline.weight(.medium))
-                                            .shimmering(
-                                                animation: .easeInOut(duration: 2.0).repeatForever(autoreverses: false)
-                                            )
-                                        Image(systemName: "chevron.down")
-                                            .font(.subheadline.weight(.semibold))
-                                            .foregroundStyle(.tertiary)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity)
-                                .listRowBackground(
-                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .fill(Color(UIColor.secondarySystemGroupedBackground))
-                                )
-                                .listRowSeparator(.hidden)
-                            }
-                        }
                     }
                     .listSectionSpacing(12) // List Paddings
                     .scrollIndicators(.hidden)
@@ -1510,11 +1461,6 @@ struct HomeView: View {
                         },
                         onCountdownTap: {
                             showCountdownSheet = true
-                        },
-                        onExpandControlsByDoubleTap: {
-                            withAnimation(.spring()) {
-                                showDoubleTapMoreActionTip = false
-                            }
                         }
                     )
                         .padding(.horizontal)
