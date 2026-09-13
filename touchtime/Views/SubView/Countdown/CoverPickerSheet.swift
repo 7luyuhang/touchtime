@@ -54,6 +54,9 @@ struct CoverPickerSheet: View {
     // True while the photo is being dragged; the crosshair through the
     // circle shows only then, as a guide for centring the photo.
     @State private var isPanningPhoto = false
+    // True while the photo is being pinched; the title reads the zoom
+    // only then.
+    @State private var isZoomingPhoto = false
     /// Flips the Save arrow to a checkmark for a moment after the photo
     /// has been saved to the library.
     @State private var didSavePhoto = false
@@ -73,6 +76,13 @@ struct CoverPickerSheet: View {
         selectedPhotoData == nil ? String(localized: "Use Photo") : String(localized: "View Photo")
     }
 
+    /// While the photo is pinched, the zoom stands in for the Crop title
+    /// ("1.5×"), 1× being the photo just covering the circle; nil otherwise.
+    private var zoomTitle: String? {
+        guard isEditingPhoto, isZoomingPhoto, let scale = editingCrop?.scale else { return nil }
+        return Double(scale).formatted(.number.precision(.fractionLength(1))) + "×"
+    }
+
     var body: some View {
         NavigationStack {
             // Cover and Crop swap in place, without animation.
@@ -86,6 +96,15 @@ struct CoverPickerSheet: View {
             .navigationTitle(isEditingPhoto ? String(localized: "Crop") : String(localized: "Cover"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                // The title as a view so the zoom can roll its digits;
+                // only the zoom animates, Cover and Crop still swap in place.
+                ToolbarItem(placement: .principal) {
+                    Text(zoomTitle ?? (isEditingPhoto ? String(localized: "Crop") : String(localized: "Cover")))
+                        .font(.headline)
+                        .contentTransition(.numericText(value: Double(editingCrop?.scale ?? 1)))
+                        .animation(.spring(), value: zoomTitle)
+                }
+
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
                         triggerHaptic()
@@ -384,6 +403,7 @@ struct CoverPickerSheet: View {
     private func pinchGesture(in geometry: EditorGeometry) -> some Gesture {
         MagnifyGesture()
             .onChanged { value in
+                isZoomingPhoto = true
                 let delta = value.magnification / previousMagnification
                 previousMagnification = value.magnification
                 let framing = geometry.resolved(editingCrop)
@@ -405,6 +425,7 @@ struct CoverPickerSheet: View {
             }
             .onEnded { _ in
                 previousMagnification = 1
+                isZoomingPhoto = false
             }
     }
 
@@ -412,9 +433,10 @@ struct CoverPickerSheet: View {
     /// starts out just covering the circle.
     private func enterPhotoEditor() {
         editingCrop = selectedPhotoCrop
-        // A drag cut short by the system never reports its end; the
-        // crosshair must not come back on with the editor.
+        // A gesture cut short by the system never reports its end; the
+        // crosshair and the zoom title must not come back on with the editor.
         isPanningPhoto = false
+        isZoomingPhoto = false
         isEditingPhoto = true
     }
 
@@ -498,12 +520,6 @@ struct CoverPickerSheet: View {
             CGPoint(x: circleCenter.x + offset.width * diameter, y: circleCenter.y + offset.height * diameter)
         }
 
-        /// The smallest zoom at which the photo covers the whole sheet.
-        var coverScale: CGFloat {
-            let fillSize = photoSize(at: 1)
-            return max(viewportSize.width / fillSize.width, viewportSize.height / fillSize.height)
-        }
-
         /// Where a fresh photo starts: just covering the circle, centred on
         /// it, which is also how the badge shows a photo with no framing.
         static let circleFittingFraming = CountdownItem.PhotoCrop(scale: 1, offset: .zero)
@@ -516,10 +532,9 @@ struct CoverPickerSheet: View {
             return CountdownItem.PhotoCrop(scale: scale, offset: clampedOffset(framing.offset, at: scale))
         }
 
-        /// From the photo just covering the circle to three times the
-        /// zoom that fills the sheet.
+        /// From the photo just covering the circle (1×) to 5×.
         var scaleRange: ClosedRange<CGFloat> {
-            1...(coverScale * 3)
+            1...5
         }
 
         func clampedScale(_ scale: CGFloat) -> CGFloat {
