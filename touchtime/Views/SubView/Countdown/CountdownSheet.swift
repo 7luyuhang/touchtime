@@ -41,6 +41,9 @@ struct CountdownSheet: View {
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
     @AppStorage("countdownSortOrder") private var countdownSortOrderRawValue = CountdownSortOrder.newestFirst.rawValue
+    /// Show as Preview: each countdown as the editor's preview card
+    /// instead of the compact alarm-style row.
+    @AppStorage("countdownShowAsPreview") private var showAsPreview = false
 
     @State private var showEditorSheet = false
     @State private var showLifetimeStore = false
@@ -74,6 +77,20 @@ struct CountdownSheet: View {
             set: { newValue in
                 withAnimation(.spring()) {
                     countdownSortOrderRawValue = newValue.rawValue
+                }
+                triggerHaptic()
+            }
+        )
+    }
+
+    private var showAsPreviewBinding: Binding<Bool> {
+        Binding(
+            get: {
+                showAsPreview
+            },
+            set: { newValue in
+                withAnimation(.spring()) {
+                    showAsPreview = newValue
                 }
                 triggerHaptic()
             }
@@ -138,6 +155,12 @@ struct CountdownSheet: View {
                     if !countdowns.isEmpty {
                         ToolbarItem(placement: .topBarTrailing) {
                             Menu {
+                                Section {
+                                    Toggle(isOn: showAsPreviewBinding) {
+                                        Label(String(localized: "Show as Preview"), systemImage: "camera.macro")
+                                    }
+                                }
+
                                 Section(String(localized: "Filter")) {
                                     Button {
                                         triggerHaptic()
@@ -291,7 +314,9 @@ struct CountdownSheet: View {
                         .transition(.blurReplace)
                     } else {
                         countdownList(displayedItems, now: context.date)
-                            .id(filter)
+                            // Fresh identity per filter and layout, so
+                            // switching either plays the blur replace.
+                            .id(ListIdentity(filter: filter, showAsPreview: showAsPreview))
                             .transition(.blurReplace)
                     }
                 }
@@ -299,13 +324,18 @@ struct CountdownSheet: View {
         }
     }
 
+    /// Identity of the list view; changing it swaps the whole list with
+    /// the blur replace transition instead of morphing rows in place.
+    private struct ListIdentity: Hashable {
+        let filter: CountdownFilter?
+        let showAsPreview: Bool
+    }
+
     private func countdownList(_ items: [CountdownItem], now: Date) -> some View {
         List {
             ForEach(items) { item in
                 Section {
-                    CountdownRow(item: item, now: now, units: unitOptions)
-                        .padding(.vertical, 4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    countdownRow(for: item, now: now)
                         .contentShape(Rectangle())
                         .onTapGesture {
                             triggerHaptic()
@@ -392,6 +422,34 @@ struct CountdownSheet: View {
         }
         .listSectionSpacing(12) // List paddings
         .scrollIndicators(.hidden)
+    }
+
+    /// One countdown in the list: the compact alarm-style row, or with
+    /// Show as Preview on, the same preview card as the top of the editor
+    /// and the Home screen.
+    @ViewBuilder
+    private func countdownRow(for item: CountdownItem, now: Date) -> some View {
+        if showAsPreview {
+            CountdownPreviewCard(
+                title: item.title,
+                targetDate: item.effectiveTargetDate(at: now),
+                emoji: item.emoji,
+                photoData: item.photoData,
+                photoCrop: item.photoCrop,
+                now: now,
+                isRepeating: item.repeatFrequency != .never,
+                isPinned: item.isPinned
+            )
+            // The card brings its own glass background and corners, so
+            // the row chrome goes, as on the Home screen.
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } else {
+            CountdownRow(item: item, now: now, units: unitOptions)
+                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     /// Share submenu of a row's context menu, as on the Home cards: the

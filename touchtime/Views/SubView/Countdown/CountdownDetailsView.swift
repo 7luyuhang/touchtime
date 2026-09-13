@@ -826,6 +826,9 @@ struct CountdownPreviewCard: View {
     /// True for repeating countdowns; swaps the top-left arrow for a
     /// repeat symbol.
     var isRepeating: Bool = false
+    /// Shows a pin after the date, top-right, where the countdown sheet's
+    /// compact rows have theirs. Off on Home, where every card is pinned.
+    var isPinned: Bool = false
     /// Bumped by the editor whenever an emoji is picked in the cover
     /// sheet; each change spawns one particle burst in the card background.
     var emojiParticleBurst: Int = 0
@@ -900,11 +903,22 @@ struct CountdownPreviewCard: View {
 
                     Spacer()
 
-                    Text(targetDate, format: .dateTime.year().month().day())
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .blendMode(.plusLighter)
-                        .contentTransition(.numericText())
+                    // Date with the pin tucked close to it
+                    HStack(spacing: 4) {
+                        Text(targetDate, format: .dateTime.year().month().day())
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .blendMode(.plusLighter)
+                            .contentTransition(.numericText())
+
+                        if isPinned {
+                            Image(systemName: "pin.fill")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                                .transition(.blurReplace)
+                        }
+                    }
                 }
 
                 // Event title bottom-left, day count bottom-right
@@ -991,6 +1005,7 @@ struct CountdownPreviewCard: View {
         .animation(.spring(), value: bigText)
         .animation(.spring(), value: hasHappened)
         .animation(.spring(), value: isRepeating)
+        .animation(.spring(), value: isPinned)
         .animation(.spring(), value: emoji)
         .animation(.spring(), value: photoData)
         .animation(.spring(), value: photoCrop)

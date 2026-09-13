@@ -13034,6 +13034,22 @@
         }
       }
     },
+    "Show as Preview" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以预览显示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以預覽顯示"
+          }
+        }
+      }
+    },
     "Sign-in was cancelled or returned no authorization code." : {
       "localizations" : {
         "zh-Hans" : {
