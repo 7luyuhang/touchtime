@@ -148,6 +148,24 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         }
     }
 
+    /// The one contact linked to a countdown: a snapshot of what the
+    /// system contact picker handed over, so showing it again later needs
+    /// no Contacts permission either.
+    struct LinkedContact: Codable, Hashable {
+        /// `CNContact.identifier`, the contact's stable id in the address book.
+        let identifier: String
+        /// The name as Contacts shows it (the company for a business card);
+        /// empty when the contact has neither.
+        var name: String
+        /// Monogram for the avatar when the contact has no photo.
+        var initials: String
+        /// The number the Message and Call buttons use: the mobile one when
+        /// the contact has it, otherwise the first. Nil without a number.
+        var phoneNumber: String?
+        /// The contact's photo as a small thumbnail, when there is one.
+        var thumbnailImageData: Data?
+    }
+
     let id: UUID
     var title: String
     var targetDate: Date
@@ -172,8 +190,11 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     var reminderLeadDays: Int
     /// Whether the reminder arrives as a notification or as an alarm.
     var reminderKind: ReminderKind
+    /// The single contact linked to this countdown, for texting or calling
+    /// them from the editor. Nil when none is linked.
+    var contact: LinkedContact?
 
-    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0, reminderKind: ReminderKind = .notification) {
+    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0, reminderKind: ReminderKind = .notification, contact: LinkedContact? = nil) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
@@ -186,6 +207,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         self.reminderTime = reminderTime
         self.reminderLeadDays = reminderLeadDays
         self.reminderKind = reminderKind
+        self.contact = contact
     }
 
     // Items saved before pinning/repeat/emoji/photo existed are missing
@@ -220,6 +242,9 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         } else {
             reminderKind = .notification
         }
+        // Saves that predate linked contacts have no key; a contact that
+        // doesn't decode drops just the link, not the whole store.
+        contact = (try? container.decodeIfPresent(LinkedContact.self, forKey: .contact)) ?? nil
     }
 
     /// The stored date for one-off countdowns; for repeating ones, the

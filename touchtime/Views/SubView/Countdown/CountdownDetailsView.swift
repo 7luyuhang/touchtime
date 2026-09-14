@@ -14,6 +14,7 @@ import PhotosUI
 /// picker.
 struct CountdownDetailsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     // Time Display settings from the countdown sheet, used by the Share menu.
@@ -21,7 +22,7 @@ struct CountdownDetailsView: View {
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
 
-    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind) -> Void
+    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
@@ -36,8 +37,11 @@ struct CountdownDetailsView: View {
     @State private var reminderTime: Date
     @State private var reminderLeadDays: Int
     @State private var reminderKind: CountdownItem.ReminderKind
+    /// The one contact linked to this countdown; nil until one is picked.
+    @State private var contact: CountdownItem.LinkedContact?
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
+    @State private var showContactPicker = false
     @State private var showShareImageSheet = false
     @State private var showNotificationPermissionAlert = false
     @State private var showAlarmPermissionAlert = false
@@ -78,7 +82,7 @@ struct CountdownDetailsView: View {
         scrolledTab ?? .detail
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -105,6 +109,7 @@ struct CountdownDetailsView: View {
         _reminderTime = State(initialValue: countdown?.reminderTime ?? defaultReminderTime)
         _reminderLeadDays = State(initialValue: countdown?.reminderLeadDays ?? 0)
         _reminderKind = State(initialValue: countdown?.reminderKind ?? .notification)
+        _contact = State(initialValue: countdown?.contact)
     }
 
     private var trimmedTitle: String {
@@ -211,6 +216,7 @@ struct CountdownDetailsView: View {
             || draftReminderTime != original.reminderTime
             || draftReminderLeadDays != original.reminderLeadDays
             || draftReminderKind != original.reminderKind
+            || contact != original.contact
     }
 
     /// What the countdown counts to right now: the picked date, rolled
@@ -230,43 +236,13 @@ struct CountdownDetailsView: View {
         return lowerBound...upperBound
     }
 
-    /// The Detail page: the countdown form with the live preview card.
+    /// The Detail page: the countdown form with the live preview card
+    /// pinned above it.
     private var detailsForm: some View {
         Form {
-            // Live preview of this countdown, styled like the Settings preview card
-            Section {
-                VStack(alignment: .center, spacing: 10) {
-                    CountdownPreviewCard(
-                        title: trimmedTitle,
-                        targetDate: effectiveTargetDate,
-                        emoji: emoji,
-                        photoData: photoData,
-                        photoCrop: photoCrop,
-                        isRepeating: repeatFrequency != .never,
-                        emojiParticleBurst: emojiParticleBurst
-                    ) {
-                        triggerHaptic()
-                        // Drop the keyboard before the picker comes up
-                        isTitleFocused = false
-                        showCoverPicker = true
-                    }
-
-                    // Preview Text
-                    Text("Preview")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                        .multilineTextAlignment(.center)
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-            }
-
             Section {
                 HStack {
-                    TextField(String(localized: "Title"), text: $title)
+                    TextField(String(localized: "Event Name"), text: $title)
                         .focused($isTitleFocused)
 
                     if !title.isEmpty && isTitleFocused {
@@ -283,8 +259,6 @@ struct CountdownDetailsView: View {
                     }
                 }
                 .animation(.spring(), value: !title.isEmpty && isTitleFocused)
-            } header: {
-                Text(String(localized: "Event Name"))
             }
 
             Section {
@@ -422,6 +396,25 @@ struct CountdownDetailsView: View {
             }
             .animation(.spring(), value: reminderEnabled)
 
+            // Connect Contacts: one contact per countdown. The pick row
+            // becomes the contact row (avatar, name, Message / Call) once
+            // someone is linked.
+            Section {
+                if let contact {
+                    contactRow(contact)
+                } else {
+                    Button {
+                        presentContactPicker()
+                    } label: {
+                        Text(String(localized: "Select Contact..."))
+                            .foregroundStyle(.white)
+                    }
+                }
+            } footer: {
+                Text(String(localized: "Link a contact to message or call them from this countdown."))
+            }
+            .animation(.spring(), value: contact)
+
             Section {
                 TouchTimeToggle(isOn: $isPinned) {
                     Text(String(localized: "Pin Countdown"))
@@ -430,6 +423,124 @@ struct CountdownDetailsView: View {
                 Text(String(localized: "Pinned countdowns will also appear on the Home screen."))
             }
         }
+        // Live preview of this countdown, sticky above the form like the
+        // time card in DetailsSheet: the rows scroll under its glass. The
+        // spacing keeps the first section header off the card's edge.
+        .safeAreaInset(edge: .top, spacing: 8) {
+            CountdownPreviewCard(
+                title: trimmedTitle,
+                targetDate: effectiveTargetDate,
+                emoji: emoji,
+                photoData: photoData,
+                photoCrop: photoCrop,
+                isRepeating: repeatFrequency != .never,
+                emojiParticleBurst: emojiParticleBurst
+            ) {
+                triggerHaptic()
+                // Drop the keyboard before the picker comes up
+                isTitleFocused = false
+                showCoverPicker = true
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+        }
+    }
+
+    /// The linked contact: avatar and name, then Message and Call buttons
+    /// when the contact has a phone number. The whole row is a button
+    /// that opens the picker again to link someone else; the plain-styled
+    /// Message / Call buttons inside take their own taps. Swiping the row
+    /// unlinks the contact; a long press offers both in a context menu.
+    private func contactRow(_ contact: CountdownItem.LinkedContact) -> some View {
+        Button {
+            presentContactPicker()
+        } label: {
+            HStack(spacing: 12) {
+                // Avatar and name live in stable ZStack slots and take the
+                // contact as their identity, so linking someone else blurs
+                // the old one out and the new one in, in place. Without the
+                // slots the outgoing and incoming views would sit side by
+                // side for the length of the transition.
+                ZStack {
+                    ContactAvatar(contact: contact)
+                        .id(contact)
+                        .transition(.blurReplace)
+                }
+
+                ZStack(alignment: .leading) {
+                    Text(contact.name.isEmpty ? String(localized: "No Name") : contact.name)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .id(contact)
+                        .transition(.blurReplace)
+                }
+
+                Spacer()
+
+                if let phoneNumber = contact.phoneNumber {
+                    contactActionButton(String(localized: "Message"), systemImage: "message.fill") {
+                        openPhoneURL(scheme: "sms", number: phoneNumber)
+                    }
+
+                    contactActionButton(String(localized: "Call"), systemImage: "phone.fill") {
+                        openPhoneURL(scheme: "tel", number: phoneNumber)
+                    }
+                }
+            }
+        }
+        // The row button would tint the name; keep it in the text colour.
+        .foregroundStyle(.primary)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                removeContact()
+            } label: {
+                Label(String(localized: "Remove"), systemImage: "minus.circle.fill")
+            }
+        }
+        .contextMenu {
+            Button {
+                presentContactPicker()
+            } label: {
+                Label(String(localized: "Change Contact"), systemImage: "person.crop.circle.badge.plus")
+            }
+
+            Divider()
+
+            Menu {
+                Button(role: .destructive) {
+                    removeContact()
+                } label: {
+                    Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                }
+            } label: {
+                Label(String(localized: "Remove"), systemImage: "minus.circle")
+            }
+        }
+    }
+
+    /// Unlinks the contact; the row goes back to Select Contact.
+    private func removeContact() {
+        triggerHaptic()
+        contact = nil
+    }
+
+    /// Round Message / Call button; `title` is its accessibility label.
+    /// Blurs in and out as the linked contact gains or loses a phone number.
+    private func contactActionButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button {
+            triggerHaptic()
+            action()
+        } label: {
+            Image(systemName: systemImage)
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(Color(UIColor.tertiarySystemFill)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .transition(.blurReplace)
     }
 
     var body: some View {
@@ -487,6 +598,14 @@ struct CountdownDetailsView: View {
             .sheet(isPresented: $showAddNoteSheet) {
                 SpaceNoteEditor { text in
                     addSpaceAttachment(SpaceAttachment(kind: .text, text: text))
+                }
+            }
+            // The system contact picker presents itself modally from this
+            // invisible host (see ContactPicker) whenever the flag is set.
+            .background {
+                ContactPicker(isPresented: $showContactPicker) { picked in
+                    triggerHaptic()
+                    contact = picked
                 }
             }
             .fullScreenCover(isPresented: $showShareImageSheet) {
@@ -563,7 +682,7 @@ struct CountdownDetailsView: View {
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind)
+                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -791,9 +910,26 @@ struct CountdownDetailsView: View {
         }
     }
 
+    /// Opens the system contact picker to link (or replace) the contact.
+    private func presentContactPicker() {
+        triggerHaptic()
+        // Drop the keyboard before the sheet comes up
+        isTitleFocused = false
+        showContactPicker = true
+    }
+
+    /// Hands the number to Messages (`sms:`) or Phone (`tel:`). Contacts
+    /// stores numbers with spaces, dashes and brackets, so only the digits
+    /// (plus a leading +, and * / # for service codes) go into the URL.
+    private func openPhoneURL(scheme: String, number: String) {
+        let dialable = number.filter { $0.isNumber || "+*#".contains($0) }
+        guard !dialable.isEmpty, let url = URL(string: "\(scheme):\(dialable)") else { return }
+        openURL(url)
+    }
+
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind)
+        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact)
         dismiss()
     }
 
@@ -1078,17 +1214,43 @@ struct CountdownPreviewCard: View {
     }
 }
 
-#Preview {
-    CountdownDetailsView { _, _, _, _, _, _, _, _, _, _ in }
-}
+/// Round avatar for a linked contact: the photo thumbnail when the contact
+/// has one, otherwise their initials (or a person symbol when there are
+/// none) on a neutral fill, like the monograms in Contacts.
+private struct ContactAvatar: View {
+    let contact: CountdownItem.LinkedContact
+    var size: CGFloat = 40
 
-#Preview("Editing") {
-    CountdownDetailsView(
-        countdown: CountdownItem(
-            id: UUID(),
-            title: "Japan Trip",
-            targetDate: Date().addingTimeInterval(86_400 * 30),
-            createdAt: Date()
-        )
-    ) { _, _, _, _, _, _, _, _, _, _ in }
+    private var photo: UIImage? {
+        guard let data = contact.thumbnailImageData else { return nil }
+        return UIImage(data: data)
+    }
+
+    var body: some View {
+        ZStack {
+            if let photo {
+                Image(uiImage: photo)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Circle()
+                    .fill(Color(UIColor.tertiarySystemFill))
+
+                if contact.initials.isEmpty {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: size * 0.45, weight: .medium))
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(contact.initials)
+                        .font(.system(size: size * 0.45, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .padding(.horizontal, 4)
+                }
+            }
+        }
+        .frame(width: size, height: size)
+        .clipShape(Circle())
+    }
 }

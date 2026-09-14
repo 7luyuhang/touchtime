@@ -2949,6 +2949,22 @@
         }
       }
     },
+    "Call" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "呼叫"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "呼叫"
+          }
+        }
+      }
+    },
     "Cambridge Bay" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3263,6 +3279,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查戈斯"
+          }
+        }
+      }
+    },
+    "Change Contact" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更换联系人"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更換聯絡人"
           }
         }
       }
@@ -8394,6 +8426,22 @@
         }
       }
     },
+    "Link a contact to message or call them from this countdown." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关联一位联系人，即可在此倒计时中直接发信息或呼叫。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連結一位聯絡人，即可在此倒數計時中直接傳訊息或呼叫。"
+          }
+        }
+      }
+    },
     "Lisbon" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9237,6 +9285,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "梅里達"
+          }
+        }
+      }
+    },
+    "Message" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信息"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "訊息"
           }
         }
       }
@@ -10276,6 +10340,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暫無倒數計時"
+          }
+        }
+      }
+    },
+    "No Name" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无姓名"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無姓名"
           }
         }
       }
@@ -12708,6 +12788,22 @@
         }
       }
     },
+    "Select Contact..." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择联系人..."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇聯絡人..."
+          }
+        }
+      }
+    },
     "Selected: %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12954,6 +13050,22 @@
         }
       }
     },
+    "Show as Preview" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以预览显示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以預覽顯示"
+          }
+        }
+      }
+    },
     "Show Available Time" : {
       "localizations" : {
         "zh-Hans" : {
@@ -13030,22 +13142,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "顯示使用次數"
-          }
-        }
-      }
-    },
-    "Show as Preview" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "以预览显示"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "以預覽顯示"
           }
         }
       }
@@ -14711,6 +14807,7 @@
       }
     },
     "Title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
