@@ -64,6 +64,9 @@ struct ScrollTimeView: View {
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @AppStorage("addMeetLinkToEvents") private var addMeetLinkToEvents = false
     @AppStorage("hasRequestedReviewAfterFirstReset") private var hasRequestedReviewAfterFirstReset = false
+    // Set once the user has double-tapped the pill to open the expanded
+    // controls. Until then the idle label advertises the gesture.
+    @AppStorage("hasDiscoveredScrollTimeDoubleTap") private var hasDiscoveredScrollTimeDoubleTap = false
     @AppStorage("resetCount") private var resetCount: Int = 0
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @Environment(\.requestReview) private var requestReview
@@ -548,6 +551,22 @@ struct ScrollTimeView: View {
         }
     }
     
+    /// Whether the idle label should advertise the double-tap gesture instead
+    /// of "Slide to Adjust". Only while double-tap actually does something
+    /// here, and only until the user has performed it once.
+    private var showsDoubleTapHint: Bool {
+        enableDoubleTapExpandedControls && !hasDiscoveredScrollTimeDoubleTap
+    }
+
+    /// Shared styling for the centered idle label.
+    private func idleIndicatorLabel(_ text: Text) -> some View {
+        text
+            .foregroundStyle(.secondary)
+            .fontWeight(.medium)
+            .transition(.blurReplace().combined(with: .move(edge: .top)))
+            .blendMode(.plusLighter)
+    }
+
     /// Default "Slide to Adjust" indicator
     @ViewBuilder
     private var defaultSlideIndicator: some View {
@@ -560,11 +579,11 @@ struct ScrollTimeView: View {
         
         Spacer()
         
-        Text("Slide to Adjust")
-            .foregroundStyle(.secondary)
-            .fontWeight(.medium)
-            .transition(.blurReplace().combined(with: .move(edge: .top)))
-            .blendMode(.plusLighter)
+        if showsDoubleTapHint {
+            idleIndicatorLabel(Text("Double-tap for more features"))
+        } else {
+            idleIndicatorLabel(Text("Slide to Adjust"))
+        }
         
         Spacer()
         
@@ -590,6 +609,10 @@ struct ScrollTimeView: View {
             dragOffset = 0
             showButtons = true
         }
+        // The gesture has been discovered: from now on the idle label goes
+        // back to "Slide to Adjust". The pill is morphing into the expanded
+        // controls at this point, so the swap itself is not visible.
+        hasDiscoveredScrollTimeDoubleTap = true
         triggerControlHaptic(style: .rigid)
     }
 

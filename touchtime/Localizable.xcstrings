@@ -5215,6 +5215,22 @@
         }
       }
     },
+    "Double-tap for more features" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "双击查看更多功能"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雙擊查看更多功能"
+          }
+        }
+      }
+    },
     "Double-tap to focus on the selected time." : {
       "localizations" : {
         "zh-Hans" : {
