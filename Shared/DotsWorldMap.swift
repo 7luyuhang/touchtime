@@ -281,8 +281,8 @@ struct DotsWorldMapCanvas: View {
                         with: .linearGradient(
                             Gradient(stops: [
                                 .init(color: .white.opacity(0), location: 0),
-                                .init(color: .white.opacity(0.25), location: 0.15),
-                                .init(color: .white.opacity(0.25), location: 0.85),
+                                .init(color: .white.opacity(0.5), location: 0.15),
+                                .init(color: .white.opacity(0.5), location: 0.85),
                                 .init(color: .white.opacity(0), location: 1)
                             ]),
                             startPoint: .zero,
