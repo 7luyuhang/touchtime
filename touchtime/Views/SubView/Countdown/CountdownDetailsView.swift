@@ -226,6 +226,15 @@ struct CountdownDetailsView: View {
         CountdownItem.nextOccurrence(of: targetDate, frequency: repeatFrequency, after: Date())
     }
 
+    /// True once the event day is behind today, as the countdown sheet's
+    /// Happened filter and the preview card's left arrow read it. Repeating
+    /// countdowns roll forward, so they never count as happened. Follows
+    /// the form live: picking a past date hides the Reminder section,
+    /// since nothing is left to be reminded of.
+    private var hasHappened: Bool {
+        CountdownShare.dayDifference(from: Date(), to: effectiveTargetDate) < 0
+    }
+
     /// Selectable range: a century either side of today keeps the year
     /// picker within sensible bounds.
     private var targetDateRange: ClosedRange<Date> {
@@ -321,80 +330,87 @@ struct CountdownDetailsView: View {
                 }
             }
 
-            Section {
-                TouchTimeToggle(isOn: $reminderEnabled) {
-                    Text(String(localized: "Reminder"))
-                }
+            // Reminder: only while the event is still ahead. A past one-off
+            // countdown has nothing to remind of (the scheduler skips it
+            // anyway), so the section goes away; the settings stay in state
+            // so moving the date back to the future brings them back as
+            // they were.
+            if !hasHappened {
+                Section {
+                    TouchTimeToggle(isOn: $reminderEnabled) {
+                        Text(String(localized: "Reminder"))
+                    }
 
-                if reminderEnabled {
-                    HStack(spacing: 8) {
-                        Text(String(localized: "Time"))
+                    if reminderEnabled {
+                        HStack(spacing: 8) {
+                            Text(String(localized: "Time"))
 
-                        Spacer()
+                            Spacer()
 
-                        // Lead-day menu: remind 1/2/3/7 days before the
-                        // event; picking the current option again goes
-                        // back to the event day.
-                        Menu {
-                            Section(String(localized: "Before")) {
-                                ForEach(Self.reminderLeadDayOptions, id: \.self) { days in
-                                    Button {
-                                        triggerHaptic()
-                                        reminderLeadDays = reminderLeadDays == days ? 0 : days
-                                    } label: {
-                                        if reminderLeadDays == days {
-                                            Label(leadDaysLabel(days), systemImage: "checkmark.circle")
-                                        } else {
-                                            Text(leadDaysLabel(days))
+                            // Lead-day menu: remind 1/2/3/7 days before the
+                            // event; picking the current option again goes
+                            // back to the event day.
+                            Menu {
+                                Section(String(localized: "Before")) {
+                                    ForEach(Self.reminderLeadDayOptions, id: \.self) { days in
+                                        Button {
+                                            triggerHaptic()
+                                            reminderLeadDays = reminderLeadDays == days ? 0 : days
+                                        } label: {
+                                            if reminderLeadDays == days {
+                                                Label(leadDaysLabel(days), systemImage: "checkmark.circle")
+                                            } else {
+                                                Text(leadDaysLabel(days))
+                                            }
                                         }
                                     }
                                 }
+                            } label: {
+                                // Blue once a lead time is set, so the shift
+                                // away from the event day is visible at a glance.
+                                Image(systemName: "arrow.left")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(reminderLeadDays > 0 ? .blue : .white)
+                                    .frame(width: 34, height: 34)
+                                    .background(
+                                        Circle().fill(
+                                            reminderLeadDays > 0
+                                                ? Color.blue.opacity(0.15)
+                                                : Color(UIColor.tertiarySystemFill)
+                                        )
+                                    )
+                                    .contentShape(Circle())
+                            }
+
+                            DatePicker(
+                                "",
+                                selection: $reminderTime,
+                                displayedComponents: [.hourAndMinute]
+                            )
+                            .datePickerStyle(.compact)
+                            .labelsHidden()
+                        }
+
+                        // How the reminder arrives: a notification, or an
+                        // alarm scheduled through the app's Alarms (AlarmKit).
+                        Picker(selection: reminderKindBinding) {
+                            ForEach(CountdownItem.ReminderKind.allCases, id: \.self) { kind in
+                                Text(kind.displayName)
+                                    .tag(kind)
                             }
                         } label: {
-                            // Blue once a lead time is set, so the shift
-                            // away from the event day is visible at a glance.
-                            Image(systemName: "arrow.left")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(reminderLeadDays > 0 ? .blue : .white)
-                                .frame(width: 34, height: 34)
-                                .background(
-                                    Circle().fill(
-                                        reminderLeadDays > 0
-                                            ? Color.blue.opacity(0.15)
-                                            : Color(UIColor.tertiarySystemFill)
-                                    )
-                                )
-                                .contentShape(Circle())
+                            Text(String(localized: "Alert Type"))
                         }
-
-                        DatePicker(
-                            "",
-                            selection: $reminderTime,
-                            displayedComponents: [.hourAndMinute]
-                        )
-                        .datePickerStyle(.compact)
-                        .labelsHidden()
+                        .pickerStyle(.menu)
+                        .tint(.secondary)
                     }
-
-                    // How the reminder arrives: a notification, or an
-                    // alarm scheduled through the app's Alarms (AlarmKit).
-                    Picker(selection: reminderKindBinding) {
-                        ForEach(CountdownItem.ReminderKind.allCases, id: \.self) { kind in
-                            Text(kind.displayName)
-                                .tag(kind)
-                        }
-                    } label: {
-                        Text(String(localized: "Alert Type"))
+                } footer: {
+                    if reminderEnabled {
+                        reminderFooter
                     }
-                    .pickerStyle(.menu)
-                    .tint(.secondary)
                 }
-            } footer: {
-                if reminderEnabled {
-                    reminderFooter
-                }
+                .animation(.spring(), value: reminderEnabled)
             }
-            .animation(.spring(), value: reminderEnabled)
 
             // Connect Contacts: one contact per countdown. The pick row
             // becomes the contact row (avatar, name, Message / Call) once
@@ -423,6 +439,9 @@ struct CountdownDetailsView: View {
                 Text(String(localized: "Pinned countdowns will also appear on the Home screen."))
             }
         }
+        // The Reminder section slides in and out as the date picker
+        // crosses today, rather than snapping.
+        .animation(.spring(), value: hasHappened)
         // Live preview of this countdown, sticky above the form like the
         // time card in DetailsSheet: the rows scroll under its glass. The
         // spacing keeps the first section header off the card's edge.
