@@ -17,6 +17,9 @@ struct CountdownDetailsView: View {
     @Environment(\.openURL) private var openURL
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    /// Scheduled messages are a Lifetime feature: without it the row is
+    /// locked and opens the store.
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     // Time Display settings from the countdown sheet, used by the Share menu.
     @AppStorage("countdownShowYears") private var showYears = false
     @AppStorage("countdownShowMonths") private var showMonths = false
@@ -45,6 +48,7 @@ struct CountdownDetailsView: View {
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
     @State private var showContactPicker = false
+    @State private var showLifetimeStore = false
     @State private var showShareImageSheet = false
     @State private var showNotificationPermissionAlert = false
     @State private var showAlarmPermissionAlert = false
@@ -460,7 +464,7 @@ struct CountdownDetailsView: View {
                 }
             } footer: {
                 if canMessageContact {
-                    Text(String(localized: "Your scheduled message is filled in when you tap Message, ready to send."))
+                    Text(String(localized: "Tap Message to open your scheduled message, ready to send."))
                 } else {
                     Text(String(localized: "Link a contact to message or call them from this countdown."))
                 }
@@ -538,26 +542,46 @@ struct CountdownDetailsView: View {
     /// Under the contact row: the message to send them, typed right in
     /// the row. The field grows with the text so a longer message wraps
     /// instead of scrolling, and clears like the Event Name field.
+    /// Without Lifetime the row is a locked title that opens the store,
+    /// like the locked rows in Settings.
+    @ViewBuilder
     private var scheduledMessageRow: some View {
-        HStack {
-            TextField(String(localized: "Scheduled Message"), text: $scheduledMessage, axis: .vertical)
-                .lineLimit(1...5)
-                .focused($focusedField, equals: .scheduledMessage)
+        if hasLifetimeAccess {
+            HStack {
+                TextField(String(localized: "Scheduled Message"), text: $scheduledMessage, axis: .vertical)
+                    .lineLimit(1...5)
+                    .focused($focusedField, equals: .scheduledMessage)
 
-            if !scheduledMessage.isEmpty && focusedField == .scheduledMessage {
-                Button {
-                    triggerHaptic()
-                    scheduledMessage = ""
-                } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
+                if !scheduledMessage.isEmpty && focusedField == .scheduledMessage {
+                    Button {
+                        triggerHaptic()
+                        scheduledMessage = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.blurReplace)
                 }
-                .buttonStyle(.plain)
-                .transition(.blurReplace)
             }
+            .animation(.spring(), value: !scheduledMessage.isEmpty && focusedField == .scheduledMessage)
+        } else {
+            Button {
+                presentLifetimeStore()
+            } label: {
+                HStack {
+                    Text(String(localized: "Scheduled Message"))
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "lock.fill")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .foregroundStyle(.primary)
         }
-        .animation(.spring(), value: !scheduledMessage.isEmpty && focusedField == .scheduledMessage)
     }
 
     /// The linked contact: avatar and name, then Message and Call buttons
@@ -592,9 +616,10 @@ struct CountdownDetailsView: View {
                 Spacer()
 
                 if let phoneNumber = contact.phoneNumber {
-                    // Messages opens with the scheduled message already typed.
+                    // Messages opens with the scheduled message already typed
+                    // (a Lifetime feature; locked, the number goes over alone).
                     contactActionButton(String(localized: "Message"), systemImage: "message.fill") {
-                        openPhoneURL(scheme: "sms", number: phoneNumber, body: draftScheduledMessage)
+                        openPhoneURL(scheme: "sms", number: phoneNumber, body: hasLifetimeAccess ? draftScheduledMessage : nil)
                     }
 
                     contactActionButton(String(localized: "Call"), systemImage: "phone.fill") {
@@ -723,6 +748,11 @@ struct CountdownDetailsView: View {
                 ContactPicker(isPresented: $showContactPicker) { picked in
                     triggerHaptic()
                     contact = picked
+                }
+            }
+            .sheet(isPresented: $showLifetimeStore) {
+                NavigationStack {
+                    LifetimeStoreView()
                 }
             }
             .fullScreenCover(isPresented: $showShareImageSheet) {
@@ -1033,6 +1063,14 @@ struct CountdownDetailsView: View {
         // Drop the keyboard before the sheet comes up
         focusedField = nil
         showContactPicker = true
+    }
+
+    /// Opens the Lifetime store from the locked scheduled message row.
+    private func presentLifetimeStore() {
+        triggerHaptic()
+        // Drop the keyboard before the sheet comes up
+        focusedField = nil
+        showLifetimeStore = true
     }
 
     /// RFC 3986's unreserved characters. Everything else in a message body
