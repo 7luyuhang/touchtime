@@ -193,8 +193,12 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     /// The single contact linked to this countdown, for texting or calling
     /// them from the editor. Nil when none is linked.
     var contact: LinkedContact?
+    /// Message written ahead of time for the linked contact; the editor's
+    /// Message button opens Messages with it already typed. Nil when none
+    /// is written (or no contact is linked).
+    var scheduledMessage: String?
 
-    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0, reminderKind: ReminderKind = .notification, contact: LinkedContact? = nil) {
+    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0, reminderKind: ReminderKind = .notification, contact: LinkedContact? = nil, scheduledMessage: String? = nil) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
@@ -208,6 +212,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         self.reminderLeadDays = reminderLeadDays
         self.reminderKind = reminderKind
         self.contact = contact
+        self.scheduledMessage = scheduledMessage
     }
 
     // Items saved before pinning/repeat/emoji/photo existed are missing
@@ -245,6 +250,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         // Saves that predate linked contacts have no key; a contact that
         // doesn't decode drops just the link, not the whole store.
         contact = (try? container.decodeIfPresent(LinkedContact.self, forKey: .contact)) ?? nil
+        scheduledMessage = try container.decodeIfPresent(String.self, forKey: .scheduledMessage)
     }
 
     /// The stored date for one-off countdowns; for repeating ones, the

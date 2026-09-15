@@ -5114,6 +5114,22 @@
         }
       }
     },
+    "Dismiss Keyboard" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收起键盘"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收起鍵盤"
+          }
+        }
+      }
+    },
     "Display" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12719,6 +12735,22 @@
         }
       }
     },
+    "Scheduled Message" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定时信息"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定時訊息"
+          }
+        }
+      }
+    },
     "Scoresbysund" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16377,6 +16409,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "昨日"
+          }
+        }
+      }
+    },
+    "Your scheduled message is filled in when you tap Message, ready to send." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击“信息”时会自动填入定时信息，可直接发送。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點一下「訊息」時會自動填入定時訊息，可直接傳送。"
           }
         }
       }

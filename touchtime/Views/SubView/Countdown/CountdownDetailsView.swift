@@ -22,7 +22,7 @@ struct CountdownDetailsView: View {
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
 
-    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?) -> Void
+    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
@@ -39,6 +39,9 @@ struct CountdownDetailsView: View {
     @State private var reminderKind: CountdownItem.ReminderKind
     /// The one contact linked to this countdown; nil until one is picked.
     @State private var contact: CountdownItem.LinkedContact?
+    /// Message for the contact, typed in the row under theirs; the Message
+    /// button opens Messages with it filled in. Cleared with the contact.
+    @State private var scheduledMessage: String
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
     @State private var showContactPicker = false
@@ -53,7 +56,15 @@ struct CountdownDetailsView: View {
     /// Bumped on every emoji pick in the cover sheet; the preview card
     /// plays one particle burst per change.
     @State private var emojiParticleBurst = 0
-    @FocusState private var isTitleFocused: Bool
+    /// The text field holding the keyboard, if any. Set to nil to drop the
+    /// keyboard before a sheet or picker comes up.
+    @FocusState private var focusedField: FocusedField?
+
+    /// The editor's text fields.
+    private enum FocusedField {
+        case title
+        case scheduledMessage
+    }
 
     // Space page state: the page currently swiped to, plus the entry
     // sheets behind the Space add button.
@@ -82,7 +93,7 @@ struct CountdownDetailsView: View {
         scrolledTab ?? .detail
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -110,6 +121,7 @@ struct CountdownDetailsView: View {
         _reminderLeadDays = State(initialValue: countdown?.reminderLeadDays ?? 0)
         _reminderKind = State(initialValue: countdown?.reminderKind ?? .notification)
         _contact = State(initialValue: countdown?.contact)
+        _scheduledMessage = State(initialValue: countdown?.scheduledMessage ?? "")
     }
 
     private var trimmedTitle: String {
@@ -131,6 +143,14 @@ struct CountdownDetailsView: View {
     /// notification when the reminder is off.
     private var draftReminderKind: CountdownItem.ReminderKind {
         reminderEnabled ? reminderKind : .notification
+    }
+
+    /// The scheduled message as currently written, trimmed like the title;
+    /// nil when it is empty or there is no contact to send it to.
+    private var draftScheduledMessage: String? {
+        guard contact != nil else { return nil }
+        let trimmed = scheduledMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     /// Alert Type picker binding. Picking a type asks for that type's
@@ -217,6 +237,7 @@ struct CountdownDetailsView: View {
             || draftReminderLeadDays != original.reminderLeadDays
             || draftReminderKind != original.reminderKind
             || contact != original.contact
+            || draftScheduledMessage != original.scheduledMessage
     }
 
     /// What the countdown counts to right now: the picked date, rolled
@@ -252,9 +273,9 @@ struct CountdownDetailsView: View {
             Section {
                 HStack {
                     TextField(String(localized: "Event Name"), text: $title)
-                        .focused($isTitleFocused)
+                        .focused($focusedField, equals: .title)
 
-                    if !title.isEmpty && isTitleFocused {
+                    if !title.isEmpty && focusedField == .title {
                         Button {
                             triggerHaptic()
                             title = ""
@@ -267,7 +288,7 @@ struct CountdownDetailsView: View {
                         .transition(.blurReplace)
                     }
                 }
-                .animation(.spring(), value: !title.isEmpty && isTitleFocused)
+                .animation(.spring(), value: !title.isEmpty && focusedField == .title)
             }
 
             Section {
@@ -414,10 +435,11 @@ struct CountdownDetailsView: View {
 
             // Connect Contacts: one contact per countdown. The pick row
             // becomes the contact row (avatar, name, Message / Call) once
-            // someone is linked.
+            // someone is linked, with the scheduled message row under it.
             Section {
                 if let contact {
                     contactRow(contact)
+                    scheduledMessageRow
                 } else {
                     Button {
                         presentContactPicker()
@@ -427,7 +449,11 @@ struct CountdownDetailsView: View {
                     }
                 }
             } footer: {
-                Text(String(localized: "Link a contact to message or call them from this countdown."))
+                if contact == nil {
+                    Text(String(localized: "Link a contact to message or call them from this countdown."))
+                } else {
+                    Text(String(localized: "Your scheduled message is filled in when you tap Message, ready to send."))
+                }
             }
             .animation(.spring(), value: contact)
 
@@ -457,12 +483,71 @@ struct CountdownDetailsView: View {
             ) {
                 triggerHaptic()
                 // Drop the keyboard before the picker comes up
-                isTitleFocused = false
+                focusedField = nil
                 showCoverPicker = true
             }
             .padding(.horizontal, 16)
             .padding(.top, 8)
         }
+        // Dismiss-keyboard button floating above the keyboard while the
+        // scheduled message is being typed: its return key inserts a line
+        // break, so this is how the keyboard goes away without tapping
+        // elsewhere. (The event name field's return key dismisses on its
+        // own.) A safe area inset rather than a keyboard toolbar item: on
+        // iOS 26 the toolbar sets its glass flush against the keyboard and
+        // padding only enlarges the capsule, whereas here the gap is ours.
+        .safeAreaInset(edge: .bottom, alignment: .trailing, spacing: 0) {
+            if focusedField == .scheduledMessage {
+                dismissKeyboardButton
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 12)
+                    .transition(.blurReplace)
+            }
+        }
+        .animation(.spring(), value: focusedField == .scheduledMessage)
+    }
+
+    /// Round glass button that drops the keyboard, styled like the app's
+    /// other floating glass controls.
+    private var dismissKeyboardButton: some View {
+        Button {
+            triggerHaptic()
+            focusedField = nil
+        } label: {
+            Image(systemName: "keyboard.chevron.compact.down.fill")
+                .font(.headline)
+                .foregroundStyle(.primary)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive())
+        .accessibilityLabel(String(localized: "Dismiss Keyboard"))
+    }
+
+    /// Under the contact row: the message to send them, typed right in
+    /// the row. The field grows with the text so a longer message wraps
+    /// instead of scrolling, and clears like the Event Name field.
+    private var scheduledMessageRow: some View {
+        HStack {
+            TextField(String(localized: "Scheduled Message"), text: $scheduledMessage, axis: .vertical)
+                .lineLimit(1...5)
+                .focused($focusedField, equals: .scheduledMessage)
+
+            if !scheduledMessage.isEmpty && focusedField == .scheduledMessage {
+                Button {
+                    triggerHaptic()
+                    scheduledMessage = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain)
+                .transition(.blurReplace)
+            }
+        }
+        .animation(.spring(), value: !scheduledMessage.isEmpty && focusedField == .scheduledMessage)
     }
 
     /// The linked contact: avatar and name, then Message and Call buttons
@@ -497,8 +582,9 @@ struct CountdownDetailsView: View {
                 Spacer()
 
                 if let phoneNumber = contact.phoneNumber {
+                    // Messages opens with the scheduled message already typed.
                     contactActionButton(String(localized: "Message"), systemImage: "message.fill") {
-                        openPhoneURL(scheme: "sms", number: phoneNumber)
+                        openPhoneURL(scheme: "sms", number: phoneNumber, body: draftScheduledMessage)
                     }
 
                     contactActionButton(String(localized: "Call"), systemImage: "phone.fill") {
@@ -537,10 +623,12 @@ struct CountdownDetailsView: View {
         }
     }
 
-    /// Unlinks the contact; the row goes back to Select Contact.
+    /// Unlinks the contact; the row goes back to Select Contact and the
+    /// scheduled message, which had no one left to go to, goes with it.
     private func removeContact() {
         triggerHaptic()
         contact = nil
+        scheduledMessage = ""
     }
 
     /// Round Message / Call button; `title` is its accessibility label.
@@ -607,7 +695,7 @@ struct CountdownDetailsView: View {
             // doesn't linger over the space.
             .onChange(of: selectedTab) { _, _ in
                 triggerHaptic()
-                isTitleFocused = false
+                focusedField = nil
             }
             .sheet(isPresented: $showCoverPicker) {
                 CoverPickerSheet(selectedEmoji: $emoji, selectedPhotoData: $photoData, selectedPhotoCrop: $photoCrop) {
@@ -661,10 +749,10 @@ struct CountdownDetailsView: View {
             .onChange(of: spacePhotoItems) { _, items in
                 addSpacePhotos(items)
             }
-            // Background interaction keeps the title field tappable while
+            // Background interaction keeps the text fields tappable while
             // the picker is up: put the picker away when typing resumes.
-            .onChange(of: isTitleFocused) { _, focused in
-                if focused {
+            .onChange(of: focusedField) { _, field in
+                if field != nil {
                     showCoverPicker = false
                 }
             }
@@ -701,7 +789,7 @@ struct CountdownDetailsView: View {
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact)
+                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -890,7 +978,7 @@ struct CountdownDetailsView: View {
             Button {
                 triggerHaptic()
                 // Drop the keyboard before the sheet comes up
-                isTitleFocused = false
+                focusedField = nil
                 showShareImageSheet = true
             } label: {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
@@ -908,7 +996,7 @@ struct CountdownDetailsView: View {
         customRepeatInterval = period.count
         customRepeatUnit = period.unit
         // Drop the keyboard before the sheet comes up
-        isTitleFocused = false
+        focusedField = nil
         showCustomRepeatSheet = true
     }
 
@@ -933,22 +1021,37 @@ struct CountdownDetailsView: View {
     private func presentContactPicker() {
         triggerHaptic()
         // Drop the keyboard before the sheet comes up
-        isTitleFocused = false
+        focusedField = nil
         showContactPicker = true
     }
+
+    /// RFC 3986's unreserved characters. Everything else in a message body
+    /// is percent-encoded, so spaces, line breaks, `&`, `+` and non-ASCII
+    /// text all reach Messages intact.
+    private static let urlBodyAllowedCharacters = CharacterSet(
+        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+    )
 
     /// Hands the number to Messages (`sms:`) or Phone (`tel:`). Contacts
     /// stores numbers with spaces, dashes and brackets, so only the digits
     /// (plus a leading +, and * / # for service codes) go into the URL.
-    private func openPhoneURL(scheme: String, number: String) {
+    /// A `body` (Messages only) follows the number as `&body=`, which is
+    /// the separator iOS reads the prefilled text from rather than RFC
+    /// 5724's `?body=`; Messages then opens with it already typed.
+    private func openPhoneURL(scheme: String, number: String, body: String? = nil) {
         let dialable = number.filter { $0.isNumber || "+*#".contains($0) }
-        guard !dialable.isEmpty, let url = URL(string: "\(scheme):\(dialable)") else { return }
+        guard !dialable.isEmpty else { return }
+        var urlString = "\(scheme):\(dialable)"
+        if let body, let encodedBody = body.addingPercentEncoding(withAllowedCharacters: Self.urlBodyAllowedCharacters) {
+            urlString += "&body=\(encodedBody)"
+        }
+        guard let url = URL(string: urlString) else { return }
         openURL(url)
     }
 
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact)
+        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage)
         dismiss()
     }
 
