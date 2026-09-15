@@ -210,6 +210,12 @@ struct CityTimeAdjustmentSheet: View {
             .safeAreaPadding(.bottom, 8)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Button(action: {
+                    if hapticEnabled {
+                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                        impactFeedback.prepare()
+                        impactFeedback.impactOccurred()
+                    }
+                    
                     alarmEventTitleInput = ""
                     showAlarmTitleAlert = true
                 }) {
@@ -217,6 +223,7 @@ struct CityTimeAdjustmentSheet: View {
                             HStack (spacing: 8) {
                                 Image(systemName: showAlarmSuccessIcon ? "checkmark.circle.fill" : "alarm.fill")
                                     .font(.headline)
+                                    .frame(width: 20)
                                     .contentTransition(.symbolEffect(.replace))
                                     .animation(.snappy(duration: 0.15), value: showAlarmSuccessIcon)
                                 
