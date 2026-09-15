@@ -506,12 +506,12 @@ struct CountdownDetailsView: View {
         // own.) A safe area inset rather than a keyboard toolbar item: on
         // iOS 26 the toolbar sets its glass flush against the keyboard and
         // padding only enlarges the capsule, whereas here the gap is ours.
-        .safeAreaInset(edge: .bottom, alignment: .leading, spacing: 0) {
+        .safeAreaInset(edge: .bottom, alignment: .trailing, spacing: 0) {
             if focusedField == .scheduledMessage {
                 dismissKeyboardButton
-                    .padding(.leading, 16)
+                    .padding(.trailing, 16)
                     .padding(.bottom, 12)
-                    .transition(.blurReplace)
+                    .transition(.identity)
             }
         }
         .animation(.spring(), value: focusedField == .scheduledMessage)
