@@ -145,10 +145,17 @@ struct CountdownDetailsView: View {
         reminderEnabled ? reminderKind : .notification
     }
 
+    /// Whether the linked contact can be texted: they have a phone number,
+    /// so the Message button shows. The scheduled message row, which only
+    /// exists to feed that button, comes and goes with it.
+    private var canMessageContact: Bool {
+        contact?.phoneNumber != nil
+    }
+
     /// The scheduled message as currently written, trimmed like the title;
-    /// nil when it is empty or there is no contact to send it to.
+    /// nil when it is empty or there is no contact with a number to text.
     private var draftScheduledMessage: String? {
-        guard contact != nil else { return nil }
+        guard canMessageContact else { return nil }
         let trimmed = scheduledMessage.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
     }
@@ -435,11 +442,14 @@ struct CountdownDetailsView: View {
 
             // Connect Contacts: one contact per countdown. The pick row
             // becomes the contact row (avatar, name, Message / Call) once
-            // someone is linked, with the scheduled message row under it.
+            // someone is linked, with the scheduled message row under it
+            // when they have a number to text.
             Section {
                 if let contact {
                     contactRow(contact)
-                    scheduledMessageRow
+                    if canMessageContact {
+                        scheduledMessageRow
+                    }
                 } else {
                     Button {
                         presentContactPicker()
@@ -449,10 +459,10 @@ struct CountdownDetailsView: View {
                     }
                 }
             } footer: {
-                if contact == nil {
-                    Text(String(localized: "Link a contact to message or call them from this countdown."))
-                } else {
+                if canMessageContact {
                     Text(String(localized: "Your scheduled message is filled in when you tap Message, ready to send."))
+                } else {
+                    Text(String(localized: "Link a contact to message or call them from this countdown."))
                 }
             }
             .animation(.spring(), value: contact)
@@ -496,10 +506,10 @@ struct CountdownDetailsView: View {
         // own.) A safe area inset rather than a keyboard toolbar item: on
         // iOS 26 the toolbar sets its glass flush against the keyboard and
         // padding only enlarges the capsule, whereas here the gap is ours.
-        .safeAreaInset(edge: .bottom, alignment: .trailing, spacing: 0) {
+        .safeAreaInset(edge: .bottom, alignment: .leading, spacing: 0) {
             if focusedField == .scheduledMessage {
                 dismissKeyboardButton
-                    .padding(.trailing, 16)
+                    .padding(.leading, 16)
                     .padding(.bottom, 12)
                     .transition(.blurReplace)
             }
@@ -507,8 +517,8 @@ struct CountdownDetailsView: View {
         .animation(.spring(), value: focusedField == .scheduledMessage)
     }
 
-    /// Round glass button that drops the keyboard, styled like the app's
-    /// other floating glass controls.
+    /// Round blue glass button that drops the keyboard, tinted like the
+    /// Set Alarm capsule in CityTimeAdjustmentSheet.
     private var dismissKeyboardButton: some View {
         Button {
             triggerHaptic()
@@ -516,12 +526,12 @@ struct CountdownDetailsView: View {
         } label: {
             Image(systemName: "keyboard.chevron.compact.down.fill")
                 .font(.headline)
-                .foregroundStyle(.primary)
+                .foregroundStyle(.white)
                 .frame(width: 44, height: 44)
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive())
+        .glassEffect(.regular.tint(.blue).interactive())
         .accessibilityLabel(String(localized: "Dismiss Keyboard"))
     }
 
