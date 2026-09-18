@@ -24,10 +24,11 @@ struct DotsWorldMapGrid {
     private static let latitudeSpan: Double = 160
 
     /// The canvas extends the artwork's ±80° band to the full ±90°, so the
-    /// solar terminator (which reaches 90° − |declination|) is drawn in full
-    /// wherever it is shown. Canvas clips to its bounds, but the curve is
-    /// faded out before it gets within 2° of the poles (see
-    /// DotsWorldMapCanvas.terminatorOpacity), so its stroke never touches them.
+    /// solar terminator (which reaches 90° − |declination|) always turns
+    /// around inside the canvas rather than being cut at the artwork's edge.
+    /// Its stroke fades out through these polar bands (see
+    /// DotsWorldMapCanvas.terminatorLatitudeMask), which hides the runs along
+    /// the poles it degenerates into around the equinoxes.
     private static let canvasLatitudeMax: Double = 90
 
     let columns: Int
@@ -170,13 +171,15 @@ struct DotsWorldMapLayout {
 }
 
 /// Dotted world map where each highlighted city's dot is fully opaque and
-/// every other land dot is dimmed. A smooth Bézier curve traces the solar
+/// every other land dot is dimmed. A smooth curve traces the solar
 /// terminator (the sunrise/sunset line) for `date`, and dots on the night
 /// side of it are rendered darker than dots in daylight. The canvas spans
 /// the full ±90° of latitude (the artwork only covers ±80°) so the curve is
-/// never cut off where it turns around near the poles; around the equinoxes,
-/// when it would degenerate into a box hugging both poles, it fades out
-/// instead.
+/// never cut off where it turns around near the poles. It is drawn all year
+/// round, dissolving toward the poles beyond the artwork: around the
+/// equinoxes, when it is nearly two meridians joined by runs along the
+/// poles, only the meridians show, fading out at the top and bottom of the
+/// map instead of boxing it in.
 ///
 /// Drawing only, no interaction, so it renders the same in the app and in
 /// WidgetKit. The view composites additively (plus lighter) over whatever
@@ -204,13 +207,12 @@ struct DotsWorldMapCanvas: View {
     /// the map renders nothing.
     static let grid = DotsWorldMapGrid(imageName: "WorldMap", columns: 72)
 
-    /// Declination band (degrees) over which the terminator fades out toward
-    /// the equinox. The curve turns around at 90° − |declination|, so below
-    /// ~5° it is mostly two meridians joined by runs along the poles; it is
-    /// fully hidden within 2° (about ±5 days of each equinox). The fade keeps
-    /// the transition smooth while scrubbing time across an equinox.
-    private static let terminatorHiddenBelowDeclination: Double = 2
-    private static let terminatorFullyVisibleAboveDeclination: Double = 5
+    /// Latitude (degrees) at which the terminator has fully faded out
+    /// toward either pole. The fade starts at the artwork's edge (±80°), so
+    /// the curve looks the same as ever while it turns around on the map
+    /// itself (|declination| ≥ 10°); nearer the equinoxes it turns around in
+    /// the polar bands and dissolves there instead of running along the poles.
+    private static let terminatorFadeEndLatitude: Double = 86
 
     var body: some View {
         if let grid = Self.grid {
@@ -264,33 +266,35 @@ struct DotsWorldMapCanvas: View {
                     }
                 }
 
-                // Solar terminator on top of the dots, drawn in full: the
-                // canvas reaches ±90°, so the curve turns around inside the
-                // polar bands instead of being cut at the artwork's edge.
-                // Skipped entirely around the equinoxes (see terminatorOpacity).
-                let curveOpacity = Self.terminatorOpacity(declination: subsolar.latitude)
-                if curveOpacity > 0 {
-                    // A scoped copy keeps blend mode and opacity local to the curve.
-                    var curveContext = context
-                    curveContext.blendMode = .plusLighter
-                    curveContext.opacity = curveOpacity
-                    // Fade the curve out toward the left/right edges so it
-                    // doesn't end abruptly at the map bounds.
-                    curveContext.stroke(
-                        Self.terminatorPath(subsolar: subsolar, grid: grid, layout: layout),
-                        with: .linearGradient(
-                            Gradient(stops: [
-                                .init(color: .white.opacity(0), location: 0),
-                                .init(color: .white.opacity(0.5), location: 0.15),
-                                .init(color: .white.opacity(0.5), location: 0.85),
-                                .init(color: .white.opacity(0), location: 1)
-                            ]),
-                            startPoint: .zero,
-                            endPoint: CGPoint(x: size.width, y: 0)
-                        ),
-                        style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+                // Solar terminator on top of the dots. The canvas reaches
+                // ±90°, so the curve turns around inside the polar bands
+                // instead of being cut at the artwork's edge; a soft mask
+                // fades it out there so it never reaches the poles.
+                // A scoped copy keeps blend mode and mask local to the curve.
+                var curveContext = context
+                curveContext.blendMode = .plusLighter
+                curveContext.clipToLayer { mask in
+                    mask.fill(
+                        Path(CGRect(origin: .zero, size: size)),
+                        with: Self.terminatorLatitudeMask(grid: grid, layout: layout)
                     )
                 }
+                // Fade the curve out toward the left/right edges so it
+                // doesn't end abruptly at the map bounds.
+                curveContext.stroke(
+                    Self.terminatorPath(subsolar: subsolar, grid: grid, layout: layout),
+                    with: .linearGradient(
+                        Gradient(stops: [
+                            .init(color: .white.opacity(0), location: 0),
+                            .init(color: .white.opacity(0.25), location: 0.15),
+                            .init(color: .white.opacity(0.25), location: 0.85),
+                            .init(color: .white.opacity(0), location: 1)
+                        ]),
+                        startPoint: .zero,
+                        endPoint: CGPoint(x: size.width, y: 0)
+                    ),
+                    style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+                )
             }
             // View-level blend so the whole canvas layer composites
             // additively with the views behind it (e.g. the sky gradient in
@@ -318,66 +322,71 @@ struct DotsWorldMapCanvas: View {
         return cities
     }
 
-    /// Opacity of the terminator for the sun's declination (degrees): 0 within
-    /// `terminatorHiddenBelowDeclination` of the equinox, 1 beyond
-    /// `terminatorFullyVisibleAboveDeclination`, linear in between.
-    private static func terminatorOpacity(declination: Double) -> Double {
-        let fadeSpan = terminatorFullyVisibleAboveDeclination - terminatorHiddenBelowDeclination
-        let progress = (abs(declination) - terminatorHiddenBelowDeclination) / fadeSpan
-        return min(max(progress, 0), 1)
+    /// Soft mask for the terminator stroke: opaque across the artwork's
+    /// latitude band, fading to clear toward each pole so the curve dissolves
+    /// in the polar bands (fully gone by `terminatorFadeEndLatitude`).
+    private static func terminatorLatitudeMask(
+        grid: DotsWorldMapGrid,
+        layout: DotsWorldMapLayout
+    ) -> GraphicsContext.Shading {
+        let northPole = layout.point(unitX: 0, unitY: grid.unitY(latitude: 90))
+        let southPole = layout.point(unitX: 0, unitY: grid.unitY(latitude: -90))
+        // Gradient location of a latitude: 0 at the north pole, 1 at the south.
+        func location(latitude: Double) -> CGFloat {
+            let y = layout.point(unitX: 0, unitY: grid.unitY(latitude: latitude)).y
+            return (y - northPole.y) / (southPole.y - northPole.y)
+        }
+        // The artwork's top edge (80°): opaque from here down to its mirror.
+        let fadeStartLatitude = grid.latitude(atUnitY: 0)
+        let fadeEndLatitude = terminatorFadeEndLatitude
+
+        return .linearGradient(
+            Gradient(stops: [
+                .init(color: .white.opacity(0), location: location(latitude: fadeEndLatitude)),
+                .init(color: .white, location: location(latitude: fadeStartLatitude)),
+                .init(color: .white, location: location(latitude: -fadeStartLatitude)),
+                .init(color: .white.opacity(0), location: location(latitude: -fadeEndLatitude))
+            ]),
+            startPoint: northPole,
+            endPoint: southPole
+        )
     }
 
-    /// The day/night terminator across the artwork's longitude window as a
-    /// smooth Bézier path. For each longitude, the sun sits on the horizon
-    /// at latitude atan(-cos(hourAngle) / tan(declination)).
+    /// The day/night terminator across the artwork's longitude window. For
+    /// each longitude, the sun sits on the horizon at latitude
+    /// atan(-cos(hourAngle) / tan(declination)).
     private static func terminatorPath(
         subsolar: (latitude: Double, longitude: Double),
         grid: DotsWorldMapGrid,
         layout: DotsWorldMapLayout
     ) -> Path {
         var tanDeclination = tan(subsolar.latitude * .pi / 180)
-        // At the equinoxes the terminator is vertical. The curve isn't drawn
-        // that close to an equinox (see terminatorOpacity), but keep the
-        // division finite regardless so the path is always well-formed.
+        // At the equinoxes the terminator is vertical; keep the division
+        // finite so the path is always well-formed.
         if abs(tanDeclination) < 1e-4 {
             tanDeclination = tanDeclination.sign == .minus ? -1e-4 : 1e-4
         }
 
-        // One phantom sample beyond each edge: the curve repeats every 360°
-        // of longitude, so they give the spline correct tangents at the seam.
+        // Sampled every half degree of longitude and joined with straight
+        // segments: under a point apart on any map size, so the polyline
+        // reads as a smooth curve, and unlike a spline it cannot overshoot
+        // into bumps where the curve bends sharply around the equinoxes.
         // Latitudes are not clamped to the artwork's ±80°: the layout maps
         // them into the polar bands of the canvas, where the curve turns
         // around at 90° − |declination| exactly as it does on the globe.
-        let segments = 96
-        let points: [CGPoint] = (-1...(segments + 1)).map { index in
+        let segments = 720
+        var curve = Path()
+        for index in 0...segments {
             let unitX = Double(index) / Double(segments)
             let hourAngle = (grid.longitude(atUnitX: unitX) - subsolar.longitude) * .pi / 180
             let latitude = atan(-cos(hourAngle) / tanDeclination) * 180 / .pi
-            return layout.point(unitX: unitX, unitY: grid.unitY(latitude: latitude))
+            let point = layout.point(unitX: unitX, unitY: grid.unitY(latitude: latitude))
+            if index == 0 {
+                curve.move(to: point)
+            } else {
+                curve.addLine(to: point)
+            }
         }
-
-        // Catmull-Rom through the samples, emitted as cubic Béziers (same
-        // technique as SolarCurve) so the line stays smooth between samples.
-        var curve = Path()
-        curve.move(to: points[1])
-        for index in 1...segments {
-            let p0 = points[index - 1]
-            let p1 = points[index]
-            let p2 = points[index + 1]
-            let p3 = points[index + 2]
-
-            let control1 = CGPoint(
-                x: p1.x + (p2.x - p0.x) / 6,
-                y: p1.y + (p2.y - p0.y) / 6
-            )
-            let control2 = CGPoint(
-                x: p2.x - (p3.x - p1.x) / 6,
-                y: p2.y - (p3.y - p1.y) / 6
-            )
-
-            curve.addCurve(to: p2, control1: control1, control2: control2)
-        }
-
         return curve
     }
 }
