@@ -81,9 +81,10 @@ struct LifetimeStoreView: View {
             GeometryReader { geometry in
                 ScrollView {
                     VStack(spacing: 24) {
-                        // Centered in the space between the navigation bar and the showcase
+                        // Optically centered in the space between the navigation
+                        // bar and the showcase (see `Alignment.opticalCenter`)
                         appIconEmblem
-                            .frame(maxHeight: .infinity)
+                            .frame(maxHeight: .infinity, alignment: .opticalCenter)
 
                         VStack(spacing: 24) {
                             complicationShowcaseRow(cardWidth: geometry.size.width - 48)
@@ -640,6 +641,26 @@ struct LifetimeStoreView: View {
             return safe
         }
     }
+}
+
+// MARK: - Optical Center Alignment
+
+/// Vertical guide at 40% of a view's height. Aligning a view inside a taller
+/// frame on this guide leaves 40% of the free space above it and 60% below,
+/// so it reads as centered: the eye places the middle of a space a little
+/// above its geometric middle.
+private struct OpticalCenterAlignment: AlignmentID {
+    static func defaultValue(in context: ViewDimensions) -> CGFloat {
+        context.height * 0.4
+    }
+}
+
+private extension Alignment {
+    /// Horizontally centered, vertically on the `OpticalCenterAlignment` guide.
+    static let opticalCenter = Alignment(
+        horizontal: .center,
+        vertical: VerticalAlignment(OpticalCenterAlignment.self)
+    )
 }
 
 // MARK: - Centered Complication Scroll Behavior
