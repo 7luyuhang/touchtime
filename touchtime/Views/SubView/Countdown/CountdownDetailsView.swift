@@ -750,7 +750,7 @@ struct CountdownDetailsView: View {
                     contact = picked
                 }
             }
-            .sheet(isPresented: $showLifetimeStore) {
+            .fullScreenCover(isPresented: $showLifetimeStore) {
                 NavigationStack {
                     LifetimeStoreView()
                 }

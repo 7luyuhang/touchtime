@@ -1853,7 +1853,7 @@ struct HomeView: View {
                     }
                 }
             }
-            .sheet(isPresented: $showLifetimeStore) {
+            .fullScreenCover(isPresented: $showLifetimeStore) {
                 NavigationStack {
                     LifetimeStoreView()
                 }

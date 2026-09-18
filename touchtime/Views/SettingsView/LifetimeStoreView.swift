@@ -10,6 +10,8 @@ import StoreKit
 import UIKit
 import Shimmer
 import Combine
+import WeatherKit
+import VariableBlur
 
 struct LifetimeStoreView: View {
     private static let productID = "com.time.lifetime"
@@ -18,6 +20,7 @@ struct LifetimeStoreView: View {
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
+    @AppStorage("showWeather") private var showWeather = false
     @StateObject private var weatherManager = WeatherManager()
     @State private var product: Product?
     @State private var purchaseState: PurchaseState = .loading
@@ -77,12 +80,53 @@ struct LifetimeStoreView: View {
 
             GeometryReader { geometry in
                 ScrollView {
-                    complicationShowcaseRow(cardWidth: geometry.size.width - 48)
-                        .padding(.horizontal, 24)
-                        .frame(maxWidth: .infinity)
-                        .frame(minHeight: geometry.size.height, alignment: .center)
+                    VStack(spacing: 24) {
+                        // Centered in the space between the navigation bar and the showcase
+                        appIconEmblem
+                            .frame(maxHeight: .infinity)
+
+                        VStack(spacing: 24) {
+                            complicationShowcaseRow(cardWidth: geometry.size.width - 48)
+
+                            Text("And more features")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                                .multilineTextAlignment(.center)
+                                .frame(maxWidth: .infinity)
+                        }
+                    }
+                    .padding(24)
+                    .frame(maxWidth: .infinity)
+                    .frame(minHeight: geometry.size.height, alignment: .bottom)
                 }
             }
+
+            // Progressive blur behind the bottom actions
+            GeometryReader { geometry in
+                VariableBlurView(maxBlurRadius: 10, direction: .blurredBottomClearTop)
+                    .frame(height: geometry.safeAreaInsets.bottom)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+                    .ignoresSafeArea()
+                    .allowsHitTesting(false)
+            }
+        }
+        .background {
+            // Full-screen local-time sky, as in DetailsSheet's large detent
+            ZStack {
+                Color.black
+
+                SkyBackgroundView(
+                    date: skyBackgroundDate,
+                    timeZoneIdentifier: TimeZone.current.identifier,
+                    weatherCondition: showWeather
+                        ? weatherManager.weatherData[TimeZone.current.identifier]?.condition
+                        : nil,
+                    appliesCardChrome: false
+                )
+            }
+            .allowsHitTesting(false)
+            .ignoresSafeArea()
         }
         .onReceive(timer) { _ in
             currentDate = Date()
@@ -115,7 +159,6 @@ struct LifetimeStoreView: View {
                 dismiss()
             }
         }
-        .presentationDetents([.fraction(0.70)])
         .safeAreaInset(edge: .bottom) {
             bottomActions
         }
@@ -133,7 +176,40 @@ struct LifetimeStoreView: View {
                         .fontWeight(.semibold)
                 }
             }
+
+            // Redeem Code
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                    Task { @MainActor in
+                        await presentOfferCodeRedeemSheet()
+                    }
+                } label: {
+                    Image(systemName: "infinity")
+                        .fontWeight(.semibold)
+                }
+                .accessibilityLabel(Text("Redeem Code"))
+            }
         }
+    }
+
+    // MARK: - App Icon Emblem
+
+    /// Liquid Glass plate in the app icon's shape: the rounded square (same
+    /// 100 pt / 26 pt-corner metrics as the icon in `AboutView`) with the
+    /// icon's circle subtracted from it (~77% of the side: the 0.8125 circle
+    /// layer at 0.95 scale in `TouchTimeApp.icon`), so the sky glow shows
+    /// through the cut-out.
+    private var appIconEmblem: some View {
+        let plate = RoundedRectangle(cornerRadius: 26, style: .continuous)
+            .subtracting(Circle().scale(0.8125 * 0.95))
+
+        return plate
+            .fill(Color.white.opacity(0.05))
+            .glassEffect(.clear, in: plate)
+            .frame(width: 100, height: 100)
     }
 
     // MARK: - Complication Showcase
@@ -194,11 +270,7 @@ struct LifetimeStoreView: View {
         )
         .frame(height: showcaseHeight)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.black.opacity(0.25))
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .skyBackgroundCardChrome(cornerRadius: 20)
     }
 
     // MARK: - Available Time Showcase
@@ -209,8 +281,7 @@ struct LifetimeStoreView: View {
     // container's rounded rectangle masks the overflow, leaving a gray inset on
     // the leading edge.
     private func availableTimeShowcase(cardWidth: CGFloat) -> some View {
-        RoundedRectangle(cornerRadius: 20, style: .continuous)
-            .fill(Color.black.opacity(0.25))
+        Color.clear
             .frame(maxWidth: .infinity)
             .frame(height: showcaseHeight)
             .overlay(alignment: .leading) {
@@ -219,13 +290,20 @@ struct LifetimeStoreView: View {
                     .padding(.leading, 24)
                     .padding(.bottom, 56)
             }
-            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+            .skyBackgroundCardChrome(cornerRadius: 20)
     }
 
     // Fixed 09:00 local time for the time label and availability indicator, so
     // they stay stable while the sky gradient follows the real current time.
     private var previewDate: Date {
         Calendar.current.date(bySettingHour: 9, minute: 0, second: 0, of: currentDate) ?? currentDate
+    }
+
+    // Minute-quantized like HomeView's sky backgrounds, so the full-screen sky
+    // only re-renders when the displayed minute changes rather than every second.
+    private var skyBackgroundDate: Date {
+        let interval = currentDate.timeIntervalSinceReferenceDate
+        return Date(timeIntervalSinceReferenceDate: (interval / 60).rounded(.down) * 60)
     }
 
     private var complicationShowcase: some View {
@@ -252,14 +330,10 @@ struct LifetimeStoreView: View {
         }
         .frame(height: showcaseHeight)
         .frame(maxWidth: .infinity)
-        .background(
-            RoundedRectangle(cornerRadius: 20, style: .continuous)
-                .fill(Color.black.opacity(0.25))
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .skyBackgroundCardChrome(cornerRadius: 20)
     }
 
-    private var showcaseHeight: CGFloat { 100 }
+    private var showcaseHeight: CGFloat { 96 }
 
     // Rests the carousel on the 2nd complication (1st-half | 2nd-full | 3rd-half),
     // since each item spans half the viewport width.
@@ -388,7 +462,7 @@ struct LifetimeStoreView: View {
                         .frame(maxWidth: .infinity)
                         .padding(.vertical)
                         .contentShape(Capsule(style: .continuous))
-                        .glassEffect(.clear.tint(.white), in: Capsule(style: .continuous))
+                        .glassEffect(.clear.interactive().tint(.white), in: Capsule(style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .disabled(purchaseState == .purchasing)
@@ -509,6 +583,32 @@ struct LifetimeStoreView: View {
         }
 
         isRestoring = false
+    }
+
+    // MARK: - Offer Code Redemption
+
+    @MainActor
+    private var activeWindowScene: UIWindowScene? {
+        let scenes = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+
+        return scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
+    }
+
+    // Redeemed transactions arrive through `Transaction.updates`, which then
+    // refreshes the lifetime status and dismisses the store.
+    @MainActor
+    private func presentOfferCodeRedeemSheet() async {
+        guard let windowScene = activeWindowScene else {
+            print("Unable to find active window scene for offer code redemption.")
+            return
+        }
+
+        do {
+            try await AppStore.presentOfferCodeRedeemSheet(in: windowScene)
+        } catch {
+            print("Failed to present offer code redemption sheet: \(error)")
+        }
     }
 
     @MainActor

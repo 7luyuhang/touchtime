@@ -1356,7 +1356,7 @@ struct AnalogClockFullView: View {
                     ensureValidSelectedCity(in: displayedClocks)
                 }
             }
-            .sheet(isPresented: $showLifetimeStore) {
+            .fullScreenCover(isPresented: $showLifetimeStore) {
                 NavigationStack {
                     LifetimeStoreView()
                 }

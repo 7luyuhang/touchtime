@@ -279,7 +279,7 @@ struct CountdownSheet: View {
                 now: now
             )
         }
-        .sheet(isPresented: $showLifetimeStore) {
+        .fullScreenCover(isPresented: $showLifetimeStore) {
             NavigationStack {
                 LifetimeStoreView()
             }

@@ -1620,6 +1620,23 @@
         }
       }
     },
+    "And more features" : {
+      "comment" : "Lifetime store: caption below the feature showcase",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以及更多功能"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以及更多功能"
+          }
+        }
+      }
+    },
     "and much more..." : {
       "comment" : "Onboarding feature list ending",
       "localizations" : {

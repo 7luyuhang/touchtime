@@ -193,7 +193,7 @@ struct CalendarView: View {
         } message: {
             Text("Meet links will no longer be added to new events.")
         }
-        .sheet(isPresented: $showLifetimeStore) {
+        .fullScreenCover(isPresented: $showLifetimeStore) {
             NavigationStack {
                 LifetimeStoreView()
             }
