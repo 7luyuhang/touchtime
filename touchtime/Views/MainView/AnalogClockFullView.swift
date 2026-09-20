@@ -16,6 +16,9 @@ import AlarmKit
 import Photos
 
 struct AnalogClockFullView: View {
+    /// Keeps the dial at a familiar iPhone scale when a Duo is unfolded.
+    private static let maximumClockDiameter: CGFloat = 450
+
     private enum CameraPreviewFilter {
         case standard
         case blur
@@ -1110,7 +1113,11 @@ struct AnalogClockFullView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
-                let size = min(geometry.size.width, geometry.size.height)
+                let size = min(
+                    geometry.size.width,
+                    geometry.size.height,
+                    Self.maximumClockDiameter
+                )
                 let displayDate = currentDate.addingTimeInterval(timeOffset)
                 let skyGradient = SkyColorGradient(
                     date: displayDate,
