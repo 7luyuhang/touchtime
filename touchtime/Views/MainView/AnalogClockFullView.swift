@@ -47,8 +47,12 @@ struct AnalogClockFullView: View {
     @State private var selectedCollectionId: UUID? = nil
     @State private var showTimeInsteadOfCityName = false
     @State private var showTimeAdjustmentSheet = false
-    @State private var selectedDisplayPage: DigitalTimeDisplayView.DisplayPage =
-        UserDefaults.standard.integer(forKey: "homeTimerConfiguredSeconds") > 0 ? .timer : .time
+    @State private var selectedDisplayPage: DigitalTimeDisplayView.DisplayPage = {
+        if UserDefaults.standard.double(forKey: "homeStopwatchStartEpoch") > 0 {
+            return .stopwatch
+        }
+        return UserDefaults.standard.integer(forKey: "homeTimerConfiguredSeconds") > 0 ? .timer : .time
+    }()
     @State private var isCameraBackgroundEnabled = false
     @State private var isCameraPreparing = false
     @State private var activeCameraRequestId = UUID()
@@ -80,6 +84,9 @@ struct AnalogClockFullView: View {
     @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
     @AppStorage("homeTimerAlarmID") private var homeTimerAlarmIDRawValue = ""
     @AppStorage("homeTimerName") private var homeTimerName = ""
+    @AppStorage("homeStopwatchStartEpoch") private var homeStopwatchStartEpoch: Double = 0
+    @AppStorage("homeStopwatchAccumulatedSeconds") private var homeStopwatchAccumulatedSeconds: Double = 0
+    @AppStorage("homeStopwatchLapsData") private var homeStopwatchLapsData = Data()
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let alarmManager = AlarmManager.shared
@@ -616,11 +623,85 @@ struct AnalogClockFullView: View {
         impactFeedback.impactOccurred()
     }
 
+    // MARK: - Home Stopwatch
+
+    private var homeStopwatch: StopwatchSnapshot {
+        StopwatchSnapshot(
+            startEpoch: homeStopwatchStartEpoch,
+            accumulatedSeconds: homeStopwatchAccumulatedSeconds,
+            laps: StopwatchLapStore.decode(homeStopwatchLapsData)
+        )
+    }
+
+    private func startHomeStopwatch() {
+        guard !homeStopwatch.isRunning else { return }
+        homeStopwatchStartEpoch = Date().timeIntervalSince1970
+    }
+
+    private func stopHomeStopwatch() {
+        let stopwatch = homeStopwatch
+        guard stopwatch.isRunning else { return }
+        homeStopwatchAccumulatedSeconds = stopwatch.elapsed(at: Date())
+        homeStopwatchStartEpoch = 0
+    }
+
+    /// Start / Stop button and the tap on the stopwatch digits.
+    private func toggleHomeStopwatch() {
+        if homeStopwatch.isRunning {
+            stopHomeStopwatch()
+        } else {
+            startHomeStopwatch()
+        }
+    }
+
+    private func handleHomeStopwatchDigitsTap() {
+        toggleHomeStopwatch()
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func recordHomeStopwatchLap() {
+        let stopwatch = homeStopwatch
+        guard stopwatch.isRunning else { return }
+        let lapTime = stopwatch.currentLapElapsed(at: Date())
+        homeStopwatchLapsData = StopwatchLapStore.encode(stopwatch.laps + [lapTime])
+    }
+
+    private func resetHomeStopwatch() {
+        homeStopwatchStartEpoch = 0
+        homeStopwatchAccumulatedSeconds = 0
+        homeStopwatchLapsData = Data()
+    }
+
+    /// Lap while running, Reset once stopped.
+    private func handleHomeStopwatchLapResetTap() {
+        if homeStopwatch.isRunning {
+            recordHomeStopwatchLap()
+        } else {
+            resetHomeStopwatch()
+        }
+    }
+
+    private var scrollTimeExpandedControlsMode: ScrollTimeView.ExpandedControlsMode {
+        switch selectedDisplayPage {
+        case .time:
+            return .alarmTimerClose
+        case .timer:
+            return .timerControls
+        case .stopwatch:
+            return .stopwatchControls
+        }
+    }
+
     private var cityTimeSegmentSelection: Binding<Bool> {
         Binding(
             get: { showTimeInsteadOfCityName },
             set: { newValue in
-                guard newValue != showTimeInsteadOfCityName || selectedDisplayPage == .timer else { return }
+                guard newValue != showTimeInsteadOfCityName || selectedDisplayPage != .time else { return }
                 triggerMenuHaptic()
                 showTimeInsteadOfCityName = newValue
                 selectedDisplayPage = .time
@@ -630,11 +711,28 @@ struct AnalogClockFullView: View {
 
     @ViewBuilder
     private var principalToolbarTitle: some View {
-        if selectedDisplayPage == .timer {
+        switch selectedDisplayPage {
+        case .timer:
             timerToolbarTitle
-        } else if shouldShowToolbarTitle {
-            collectionTitleView
+        case .stopwatch:
+            stopwatchToolbarTitle
+        case .time:
+            if shouldShowToolbarTitle {
+                collectionTitleView
+            }
         }
+    }
+
+    // Stopwatch Tool Bar Title
+    private var stopwatchToolbarTitle: some View {
+        Text(String(localized: "Stopwatch"))
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+            .padding(.horizontal, 16)
+            .frame(height: 44)
+            .glassEffect(.regular, in: Capsule(style: .continuous))
+            .contentShape(Capsule())
     }
 
     // Timer Tool Bar Title
@@ -1044,7 +1142,12 @@ struct AnalogClockFullView: View {
                     } else {
                         // Analog Clock - always centered
                         TimelineView(.periodic(from: .now, by: 1)) { context in
-                            if selectedDisplayPage == .timer {
+                            if selectedDisplayPage == .stopwatch {
+                                StopwatchClockFaceView(
+                                    size: size,
+                                    stopwatch: homeStopwatch
+                                )
+                            } else if selectedDisplayPage == .timer {
                                 TimerClockFaceView(
                                     size: size,
                                     remainingSeconds: homeTimerRemainingSeconds(at: context.date),
@@ -1104,6 +1207,8 @@ struct AnalogClockFullView: View {
                                         triggerMenuHaptic()
                                         showSetTimerSheet = true
                                     },
+                                    stopwatch: homeStopwatch,
+                                    onStopwatchTap: handleHomeStopwatchDigitsTap,
                                     selectedPage: $selectedDisplayPage,
                                     onDisplayPageChange: { page in
                                         selectedDisplayPage = page
@@ -1126,59 +1231,65 @@ struct AnalogClockFullView: View {
                             
                             // Bottom section - Scroll controls
                             VStack {
-                                Spacer()
-                                // Local time display (hidden when continuous scroll reset button is showing)
-                                if selectedDisplayPage != .timer,
-                                   !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons),
-                                   selectedCityId != nil {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "location.fill")
-                                            .font(.footnote.weight(.medium))
-                                        Text({
-                                            if showTimeInsteadOfCityName {
-                                                // Show "Local" when hands show time
-                                                return String(localized: "Local")
-                                            } else {
-                                                // Show local time when hands show city names
-                                                let formatter = DateFormatter()
-                                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                formatter.timeZone = TimeZone.current
-                                                if use24HourFormat {
-                                                    formatter.dateFormat = "HH:mm"
+                                if selectedDisplayPage == .stopwatch {
+                                    // Lap history between the stopwatch face and its controls
+                                    StopwatchLapHistoryView(laps: homeStopwatch.laps)
+                                        .padding(.bottom, 4)
+                                } else {
+                                    Spacer()
+                                    // Local time display (hidden when continuous scroll reset button is showing)
+                                    if selectedDisplayPage == .time,
+                                       !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons),
+                                       selectedCityId != nil {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "location.fill")
+                                                .font(.footnote.weight(.medium))
+                                            Text({
+                                                if showTimeInsteadOfCityName {
+                                                    // Show "Local" when hands show time
+                                                    return String(localized: "Local")
                                                 } else {
-                                                    formatter.dateFormat = "h:mm"
+                                                    // Show local time when hands show city names
+                                                    let formatter = DateFormatter()
+                                                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                    formatter.timeZone = TimeZone.current
+                                                    if use24HourFormat {
+                                                        formatter.dateFormat = "HH:mm"
+                                                    } else {
+                                                        formatter.dateFormat = "h:mm"
+                                                    }
+                                                    return formatter.string(from: displayDate)
                                                 }
-                                                return formatter.string(from: displayDate)
-                                            }
-                                        }())
-                                        .font(.subheadline.weight(.medium))
+                                            }())
+                                            .font(.subheadline.weight(.medium))
 
-                                        let additionalText = selectedAdditionalTimeText
-                                        let shouldShowAdditionalText = showTimeInsteadOfCityName
-                                            ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
-                                            : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
-                                        if shouldShowAdditionalText {
-                                            Text("·")
-                                                .font(.subheadline.weight(.medium))
-                                            Text(additionalText)
-                                                .font(.subheadline.weight(.medium))
-                                                .contentTransition(.numericText())
-                                                .animation(.smooth(duration: 0.25), value: additionalText)
+                                            let additionalText = selectedAdditionalTimeText
+                                            let shouldShowAdditionalText = showTimeInsteadOfCityName
+                                                ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
+                                                : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
+                                            if shouldShowAdditionalText {
+                                                Text("·")
+                                                    .font(.subheadline.weight(.medium))
+                                                Text(additionalText)
+                                                    .font(.subheadline.weight(.medium))
+                                                    .contentTransition(.numericText())
+                                                    .animation(.smooth(duration: 0.25), value: additionalText)
+                                            }
                                         }
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                        .padding(.bottom, 16)
                                     }
-                                    .foregroundStyle(.secondary)
-                                    .blendMode(.plusLighter)
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText())
-                                    .padding(.bottom, 16)
+                                    Spacer()
                                 }
-                                Spacer()
                                 ScrollTimeView(
                                     timeOffset: $timeOffset,
                                     showButtons: $showScrollTimeButtons,
                                     worldClocks: $worldClocks,
                                     enableDoubleTapExpandedControls: true,
-                                    expandedControlsMode: selectedDisplayPage == .timer ? .timerControls : .alarmTimerClose,
+                                    expandedControlsMode: scrollTimeExpandedControlsMode,
                                     onAlarmTap: {
                                         showSetAlarmSheet = true
                                     },
@@ -1195,7 +1306,10 @@ struct AnalogClockFullView: View {
                                         handleHomeTimerTap()
                                     },
                                     timerPlayPauseSymbol: timerPlayPauseSymbol(at: Date()),
-                                    timerPlayPauseTitle: timerPlayPauseTitle(at: Date())
+                                    timerPlayPauseTitle: timerPlayPauseTitle(at: Date()),
+                                    stopwatchControlsState: homeStopwatch.controlsState,
+                                    onStopwatchStartStopTap: toggleHomeStopwatch,
+                                    onStopwatchLapResetTap: handleHomeStopwatchLapResetTap
                                 )
                                 .padding(.horizontal)
                                 .padding(.bottom, 8)
@@ -2759,7 +2873,10 @@ struct GoldenHourLineView: View {
 
 // MARK: - Digital Time Display
 struct DigitalTimeDisplayView: View {
+    /// Declaration order is the page (and dot) order: swipe right from Time
+    /// for the Stopwatch, swipe left for the Timer.
     enum DisplayPage: Int, CaseIterable {
+        case stopwatch
         case time
         case timer
     }
@@ -2781,6 +2898,8 @@ struct DigitalTimeDisplayView: View {
     let timerIsAdjusting: Bool
     let onTimerTap: () -> Void
     let onTimerConfigureTap: () -> Void
+    let stopwatch: StopwatchSnapshot
+    let onStopwatchTap: () -> Void
     @Binding var selectedPage: DisplayPage
     let onDisplayPageChange: (DisplayPage) -> Void
     let onTimeTap: () -> Void
@@ -2803,6 +2922,8 @@ struct DigitalTimeDisplayView: View {
         timerIsAdjusting: Bool,
         onTimerTap: @escaping () -> Void,
         onTimerConfigureTap: @escaping () -> Void,
+        stopwatch: StopwatchSnapshot,
+        onStopwatchTap: @escaping () -> Void,
         selectedPage: Binding<DisplayPage>,
         onDisplayPageChange: @escaping (DisplayPage) -> Void,
         onTimeTap: @escaping () -> Void
@@ -2822,6 +2943,8 @@ struct DigitalTimeDisplayView: View {
         self.timerIsAdjusting = timerIsAdjusting
         self.onTimerTap = onTimerTap
         self.onTimerConfigureTap = onTimerConfigureTap
+        self.stopwatch = stopwatch
+        self.onStopwatchTap = onStopwatchTap
         _selectedPage = selectedPage
         self.onDisplayPageChange = onDisplayPageChange
         self.onTimeTap = onTimeTap
@@ -2982,6 +3105,46 @@ struct DigitalTimeDisplayView: View {
             }
         }
     }
+
+    private func stopwatchSubtitle(at date: Date) -> String {
+        guard !stopwatch.laps.isEmpty else {
+            return String(localized: "Stopwatch")
+        }
+        let lapLabel = String.localizedStringWithFormat(
+            String(localized: "Lap %d"),
+            stopwatch.currentLapNumber
+        )
+        let lapTime = StopwatchTimeFormatter.string(from: stopwatch.currentLapElapsed(at: date))
+        return "\(lapLabel) · \(lapTime)"
+    }
+
+    @ViewBuilder
+    private var stopwatchPage: some View {
+        // Digits only redraw every frame while the stopwatch is running
+        TimelineView(.animation(paused: !stopwatch.isRunning)) { context in
+            VStack(spacing: 0) {
+                Button(action: onStopwatchTap) {
+                    Text(StopwatchTimeFormatter.string(from: stopwatch.elapsed(at: context.date)))
+                        .font(.system(size: 52))
+                        .fontWeight(.light)
+                        .fontDesign(.rounded)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .foregroundStyle(stopwatch.hasStarted ? .white : .primary)
+                        .blendMode(stopwatch.hasStarted ? .normal : .plusLighter)
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+
+                Text(stopwatchSubtitle(at: context.date))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .monospacedDigit()
+            }
+        }
+    }
     
     var body: some View {
         VStack(spacing: 8) {
@@ -2989,6 +3152,13 @@ struct DigitalTimeDisplayView: View {
                 let viewportMidX = tabGeometry.size.width / 2
 
                 TabView(selection: $selectedPage) {
+                    stopwatchPage
+                        .edgeChromaticSwipeEffect(
+                            viewportMidX: viewportMidX,
+                            coordinateSpaceName: Self.tabCoordinateSpaceName
+                        )
+                        .tag(DisplayPage.stopwatch)
+
                     timePage
                         .edgeChromaticSwipeEffect(
                             viewportMidX: viewportMidX,
