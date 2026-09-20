@@ -50,7 +50,7 @@ struct ContentView: View {
                 )
             }
             
-            Tab(value: MainTab.search, role: .search) {
+                Tab(value: MainTab.search, role: .search) {
                 SearchTabView(worldClocks: $worldClocks)
                     .onAppear {
                         if hapticEnabled {

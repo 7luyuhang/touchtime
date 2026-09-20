@@ -1112,7 +1112,7 @@ struct SettingsView: View {
             } message: {
                 Text("Allow notifications in Settings to get on-the-hour notifications.")
             }
-            .sheet(isPresented: $showLifetimeStore) {
+            .fullScreenCover(isPresented: $showLifetimeStore) {
                 NavigationStack {
                     LifetimeStoreView()
                 }

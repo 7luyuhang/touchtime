@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import MoonKit
 
 // MoonSnapshot and MoonAstronomy (the lightweight Duffett-Smith moon math
 // this sheet scrubs with) live in Shared/MoonAstronomy.swift, so the
@@ -82,17 +81,17 @@ struct MoonPhaseDetailsView: View {
     }
 
     // Phase for the displayed day: prefer the shared cache so the title
-    // always matches the calendar grid, fall back to the lightweight
+    // always matches the calendar grid, fall back to the same day-level
     // computation while the cache warms up.
     private var displayedDayPhase: MoonPhase {
         if let cached = MoonPhaseCache.shared.dayInfo(for: displayedDate, calendar: calendar) {
             return cached.phase
         }
-        return MoonPhase.ageOfTheMoonDegrees2MoonPhase(snapshot.ageDegrees)
+        return MoonDay(containing: displayedDate, calendar: calendar).phase
     }
 
     private var phaseTitle: String {
-        MoonPhaseView.phaseName(for: displayedDayPhase) ?? ""
+        displayedDayPhase.localizedName
     }
 
     /// Number of bundled moon_scrub frames: one per ~6 hours of moon age,

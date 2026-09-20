@@ -10,8 +10,6 @@
 import WidgetKit
 import SwiftUI
 import AppIntents
-import MoonKit
-import CoreLocation
 
 // MARK: - Intent
 
@@ -34,59 +32,23 @@ struct MoonPhaseWidgetEntry: TimelineEntry {
 
 struct MoonPhaseWidgetProvider: AppIntentTimelineProvider {
     // The moon's age (and therefore the image and phase name) is the same
-    // for every city at a given instant, so the widget simply uses the
-    // device time zone. Coordinates only feed MoonKit's internal math.
-    //
-    // One Moon instance is reused for the whole batch: MoonKit recomputes
-    // moonrise/moonset for every new instance and every day change, which
-    // is by far the most expensive part. Creating a fresh instance per
-    // entry could push the timeline past WidgetKit's budget on slow
-    // devices, and a killed extension is a widget that never updates.
+    // for every city at a given instant, so no location is involved and the
+    // device calendar picks the local day. MoonAstronomy.snapshot is a
+    // handful of trig calls per entry, far inside WidgetKit's timeline budget.
     private func makeEntries(for dates: [Date], showPhaseName: Bool) -> [MoonPhaseWidgetEntry] {
-        let timeZone = TimeZone.current
-        let coordinate = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier)
-        let location = CLLocation(
-            latitude: coordinate?.latitude ?? 51.5074,
-            longitude: coordinate?.longitude ?? -0.1278
-        )
-        
-        let moon = Moon(location: location, timeZone: timeZone)
+        let calendar = Calendar.current
         
         return dates.map { date in
-            moon.setDate(date)
-            
             // Age wraps at the end of the synodic cycle (~29.5 days) back to new moon
-            let imageIndex = Int(moon.ageOfTheMoonInDays.rounded()) % 30
+            let imageIndex = Int(MoonAstronomy.snapshot(for: date).ageDays.rounded()) % 30
             
             return MoonPhaseWidgetEntry(
                 date: date,
                 imageName: String(format: "moon_age_%02d", imageIndex),
-                phaseName: Self.phaseName(for: moon.currentMoonPhase),
+                // Day-level phase, matching the app's moon calendar
+                phaseName: MoonDay(containing: date, calendar: calendar).phase.localizedName,
                 showPhaseName: showPhaseName
             )
-        }
-    }
-    
-    private static func phaseName(for phase: MoonKit.MoonPhase) -> String {
-        switch phase {
-        case .newMoon:
-            return String(localized: "New Moon")
-        case .waxingCrescent:
-            return String(localized: "Waxing Crescent")
-        case .firstQuarter:
-            return String(localized: "First Quarter")
-        case .waxingGibbous:
-            return String(localized: "Waxing Gibbous")
-        case .fullMoon:
-            return String(localized: "Full Moon")
-        case .waningGibbous:
-            return String(localized: "Waning Gibbous")
-        case .lastQuarter:
-            return String(localized: "Last Quarter")
-        case .waningCrescent:
-            return String(localized: "Waning Crescent")
-        case .error:
-            return String(localized: "Moon Phase")
         }
     }
     

@@ -14,14 +14,18 @@ import PhotosUI
 /// picker.
 struct CountdownDetailsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.openURL) private var openURL
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    /// Scheduled messages are a Lifetime feature: without it the row is
+    /// locked and opens the store.
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     // Time Display settings from the countdown sheet, used by the Share menu.
     @AppStorage("countdownShowYears") private var showYears = false
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
 
-    let onSave: (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void
+    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
@@ -29,14 +33,25 @@ struct CountdownDetailsView: View {
     @State private var targetDate: Date
     @State private var emoji: String?
     @State private var photoData: Data?
+    @State private var photoCrop: CountdownItem.PhotoCrop?
     @State private var isPinned: Bool
     @State private var repeatFrequency: CountdownItem.RepeatFrequency
     @State private var reminderEnabled: Bool
     @State private var reminderTime: Date
     @State private var reminderLeadDays: Int
+    @State private var reminderKind: CountdownItem.ReminderKind
+    /// The one contact linked to this countdown; nil until one is picked.
+    @State private var contact: CountdownItem.LinkedContact?
+    /// Message for the contact, typed in the row under theirs; the Message
+    /// button opens Messages with it filled in. Cleared with the contact.
+    @State private var scheduledMessage: String
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
+    @State private var showContactPicker = false
+    @State private var showLifetimeStore = false
+    @State private var showShareImageSheet = false
     @State private var showNotificationPermissionAlert = false
+    @State private var showAlarmPermissionAlert = false
     // Custom repeat sheet: the wheels edit these and confirm applies them
     // to `repeatFrequency`, so cancelling leaves the frequency untouched.
     @State private var showCustomRepeatSheet = false
@@ -45,7 +60,15 @@ struct CountdownDetailsView: View {
     /// Bumped on every emoji pick in the cover sheet; the preview card
     /// plays one particle burst per change.
     @State private var emojiParticleBurst = 0
-    @FocusState private var isTitleFocused: Bool
+    /// The text field holding the keyboard, if any. Set to nil to drop the
+    /// keyboard before a sheet or picker comes up.
+    @FocusState private var focusedField: FocusedField?
+
+    /// The editor's text fields.
+    private enum FocusedField {
+        case title
+        case scheduledMessage
+    }
 
     // Space page state: the page currently swiped to, plus the entry
     // sheets behind the Space add button.
@@ -74,7 +97,7 @@ struct CountdownDetailsView: View {
         scrolledTab ?? .detail
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, Bool, CountdownItem.RepeatFrequency, Date?, Int) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -86,8 +109,12 @@ struct CountdownDetailsView: View {
         let defaultDate = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: tomorrow) ?? tomorrow
         _targetDate = State(initialValue: countdown?.targetDate ?? defaultDate)
 
-        _emoji = State(initialValue: countdown?.emoji)
+        // Every countdown has a cover: a new one starts with a random emoji
+        // from the picker's grid.
+        let hasCover = countdown?.emoji != nil || countdown?.photoData != nil
+        _emoji = State(initialValue: hasCover ? countdown?.emoji : CountdownCoverEmojis.random)
         _photoData = State(initialValue: countdown?.photoData)
+        _photoCrop = State(initialValue: countdown?.photoCrop)
         _isPinned = State(initialValue: countdown?.isPinned ?? false)
         _repeatFrequency = State(initialValue: countdown?.repeatFrequency ?? .never)
 
@@ -96,6 +123,9 @@ struct CountdownDetailsView: View {
         _reminderEnabled = State(initialValue: countdown?.reminderTime != nil)
         _reminderTime = State(initialValue: countdown?.reminderTime ?? defaultReminderTime)
         _reminderLeadDays = State(initialValue: countdown?.reminderLeadDays ?? 0)
+        _reminderKind = State(initialValue: countdown?.reminderKind ?? .notification)
+        _contact = State(initialValue: countdown?.contact)
+        _scheduledMessage = State(initialValue: countdown?.scheduledMessage ?? "")
     }
 
     private var trimmedTitle: String {
@@ -111,6 +141,50 @@ struct CountdownDetailsView: View {
     /// is off.
     private var draftReminderLeadDays: Int {
         reminderEnabled ? reminderLeadDays : 0
+    }
+
+    /// Notification or alarm as currently configured; back to the default
+    /// notification when the reminder is off.
+    private var draftReminderKind: CountdownItem.ReminderKind {
+        reminderEnabled ? reminderKind : .notification
+    }
+
+    /// Whether the linked contact can be texted: they have a phone number,
+    /// so the Message button shows. The scheduled message row, which only
+    /// exists to feed that button, comes and goes with it.
+    private var canMessageContact: Bool {
+        contact?.phoneNumber != nil
+    }
+
+    /// The scheduled message as currently written, trimmed like the title;
+    /// nil when it is empty or there is no contact with a number to text.
+    private var draftScheduledMessage: String? {
+        guard canMessageContact else { return nil }
+        let trimmed = scheduledMessage.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// Alert Type picker binding. Picking a type asks for that type's
+    /// permission and goes back to the previous type when it is denied.
+    /// The revert writes the state directly (not through this setter), so
+    /// it never asks again: with both permissions denied, an onChange-based
+    /// check would bounce between the two types forever.
+    private var reminderKindBinding: Binding<CountdownItem.ReminderKind> {
+        Binding(
+            get: {
+                reminderKind
+            },
+            set: { kind in
+                guard kind != reminderKind else { return }
+                let previousKind = reminderKind
+                reminderKind = kind
+                triggerHaptic()
+                guard reminderEnabled else { return }
+                ensureReminderAuthorization(for: kind) {
+                    reminderKind = previousKind
+                }
+            }
+        )
     }
 
     /// The selectable "remind me X days before" choices.
@@ -137,16 +211,44 @@ struct CountdownDetailsView: View {
         return formatter.string(from: reminderTime)
     }
 
+    /// Reminder section footer: what arrives (notification or alarm), at
+    /// what time, and on which day relative to the event.
+    @ViewBuilder
+    private var reminderFooter: some View {
+        switch reminderKind {
+        case .notification:
+            if reminderLeadDays == 0 {
+                Text("Get a notification at \(reminderTimeString) on the day of the event.")
+            } else if reminderLeadDays == 1 {
+                Text("Get a notification at \(reminderTimeString), 1 day before the event.")
+            } else {
+                Text("Get a notification at \(reminderTimeString), \(reminderLeadDays) days before the event.")
+            }
+        case .alarm:
+            if reminderLeadDays == 0 {
+                Text("Get an alarm at \(reminderTimeString) on the day of the event.")
+            } else if reminderLeadDays == 1 {
+                Text("Get an alarm at \(reminderTimeString), 1 day before the event.")
+            } else {
+                Text("Get an alarm at \(reminderTimeString), \(reminderLeadDays) days before the event.")
+            }
+        }
+    }
+
     private var hasChanges: Bool {
         guard let original else { return false }
         return trimmedTitle != original.title
             || targetDate != original.targetDate
             || emoji != original.emoji
             || photoData != original.photoData
+            || photoCrop != original.photoCrop
             || isPinned != original.isPinned
             || repeatFrequency != original.repeatFrequency
             || draftReminderTime != original.reminderTime
             || draftReminderLeadDays != original.reminderLeadDays
+            || draftReminderKind != original.reminderKind
+            || contact != original.contact
+            || draftScheduledMessage != original.scheduledMessage
     }
 
     /// What the countdown counts to right now: the picked date, rolled
@@ -154,6 +256,15 @@ struct CountdownDetailsView: View {
     /// card and the Share menu.
     private var effectiveTargetDate: Date {
         CountdownItem.nextOccurrence(of: targetDate, frequency: repeatFrequency, after: Date())
+    }
+
+    /// True once the event day is behind today, as the countdown sheet's
+    /// Happened filter and the preview card's left arrow read it. Repeating
+    /// countdowns roll forward, so they never count as happened. Follows
+    /// the form live: picking a past date hides the Reminder section,
+    /// since nothing is left to be reminded of.
+    private var hasHappened: Bool {
+        CountdownShare.dayDifference(from: Date(), to: effectiveTargetDate) < 0
     }
 
     /// Selectable range: a century either side of today keeps the year
@@ -166,45 +277,16 @@ struct CountdownDetailsView: View {
         return lowerBound...upperBound
     }
 
-    /// The Detail page: the countdown form with the live preview card.
+    /// The Detail page: the countdown form with the live preview card
+    /// pinned above it.
     private var detailsForm: some View {
         Form {
-            // Live preview of this countdown, styled like the Settings preview card
-            Section {
-                VStack(alignment: .center, spacing: 10) {
-                    CountdownPreviewCard(
-                        title: trimmedTitle,
-                        targetDate: effectiveTargetDate,
-                        emoji: emoji,
-                        photoData: photoData,
-                        isRepeating: repeatFrequency != .never,
-                        emojiParticleBurst: emojiParticleBurst
-                    ) {
-                        triggerHaptic()
-                        // Drop the keyboard before the picker comes up
-                        isTitleFocused = false
-                        showCoverPicker = true
-                    }
-
-                    // Preview Text
-                    Text("Preview")
-                        .font(.caption)
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.secondary)
-                        .textCase(.uppercase)
-                        .multilineTextAlignment(.center)
-                }
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
-                .listRowSeparator(.hidden)
-            }
-
             Section {
                 HStack {
-                    TextField(String(localized: "Title"), text: $title)
-                        .focused($isTitleFocused)
+                    TextField(String(localized: "Event Name"), text: $title)
+                        .focused($focusedField, equals: .title)
 
-                    if !title.isEmpty && isTitleFocused {
+                    if !title.isEmpty && focusedField == .title {
                         Button {
                             triggerHaptic()
                             title = ""
@@ -217,9 +299,7 @@ struct CountdownDetailsView: View {
                         .transition(.blurReplace)
                     }
                 }
-                .animation(.spring(), value: !title.isEmpty && isTitleFocused)
-            } header: {
-                Text(String(localized: "Event Name"))
+                .animation(.spring(), value: !title.isEmpty && focusedField == .title)
             }
 
             Section {
@@ -282,65 +362,114 @@ struct CountdownDetailsView: View {
                 }
             }
 
-            Section {
-                TouchTimeToggle(isOn: $reminderEnabled) {
-                    Text(String(localized: "Reminder"))
-                }
+            // Reminder: only while the event is still ahead. A past one-off
+            // countdown has nothing to remind of (the scheduler skips it
+            // anyway), so the section goes away; the settings stay in state
+            // so moving the date back to the future brings them back as
+            // they were.
+            if !hasHappened {
+                Section {
+                    TouchTimeToggle(isOn: $reminderEnabled) {
+                        Text(String(localized: "Reminder"))
+                    }
 
-                if reminderEnabled {
-                    HStack(spacing: 8) {
-                        Text(String(localized: "Time"))
+                    if reminderEnabled {
+                        HStack(spacing: 8) {
+                            Text(String(localized: "Time"))
 
-                        Spacer()
+                            Spacer()
 
-                        // Lead-day menu: remind 1/2/3/7 days before the
-                        // event; picking the current option again goes
-                        // back to the event day.
-                        Menu {
-                            Section(String(localized: "Before")) {
-                                ForEach(Self.reminderLeadDayOptions, id: \.self) { days in
-                                    Button {
-                                        triggerHaptic()
-                                        reminderLeadDays = reminderLeadDays == days ? 0 : days
-                                    } label: {
-                                        if reminderLeadDays == days {
-                                            Label(leadDaysLabel(days), systemImage: "checkmark.circle")
-                                        } else {
-                                            Text(leadDaysLabel(days))
+                            // Lead-day menu: remind 1/2/3/7 days before the
+                            // event; picking the current option again goes
+                            // back to the event day.
+                            Menu {
+                                Section(String(localized: "Before")) {
+                                    ForEach(Self.reminderLeadDayOptions, id: \.self) { days in
+                                        Button {
+                                            triggerHaptic()
+                                            reminderLeadDays = reminderLeadDays == days ? 0 : days
+                                        } label: {
+                                            if reminderLeadDays == days {
+                                                Label(leadDaysLabel(days), systemImage: "checkmark.circle")
+                                            } else {
+                                                Text(leadDaysLabel(days))
+                                            }
                                         }
                                     }
                                 }
+                            } label: {
+                                // Blue once a lead time is set, so the shift
+                                // away from the event day is visible at a glance.
+                                Image(systemName: "arrow.left")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(reminderLeadDays > 0 ? .blue : .white)
+                                    .frame(width: 34, height: 34)
+                                    .background(
+                                        Circle().fill(
+                                            reminderLeadDays > 0
+                                                ? Color.blue.opacity(0.15)
+                                                : Color(UIColor.tertiarySystemFill)
+                                        )
+                                    )
+                                    .contentShape(Circle())
                             }
-                        } label: {
-                            Image(systemName: "arrow.left")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.white)
-                                .frame(width: 34, height: 34)
-                                .background(Circle().fill(Color(UIColor.tertiarySystemFill)))
-                                .contentShape(Circle())
+
+                            DatePicker(
+                                "",
+                                selection: $reminderTime,
+                                displayedComponents: [.hourAndMinute]
+                            )
+                            .datePickerStyle(.compact)
+                            .labelsHidden()
                         }
 
-                        DatePicker(
-                            "",
-                            selection: $reminderTime,
-                            displayedComponents: [.hourAndMinute]
-                        )
-                        .datePickerStyle(.compact)
-                        .labelsHidden()
+                        // How the reminder arrives: a notification, or an
+                        // alarm scheduled through the app's Alarms (AlarmKit).
+                        Picker(selection: reminderKindBinding) {
+                            ForEach(CountdownItem.ReminderKind.allCases, id: \.self) { kind in
+                                Text(kind.displayName)
+                                    .tag(kind)
+                            }
+                        } label: {
+                            Text(String(localized: "Alert Type"))
+                        }
+                        .pickerStyle(.menu)
+                        .tint(.secondary)
+                    }
+                } footer: {
+                    if reminderEnabled {
+                        reminderFooter
+                    }
+                }
+                .animation(.spring(), value: reminderEnabled)
+            }
+
+            // Connect Contacts: one contact per countdown. The pick row
+            // becomes the contact row (avatar, name, Message / Call) once
+            // someone is linked, with the scheduled message row under it
+            // when they have a number to text.
+            Section {
+                if let contact {
+                    contactRow(contact)
+                    if canMessageContact {
+                        scheduledMessageRow
+                    }
+                } else {
+                    Button {
+                        presentContactPicker()
+                    } label: {
+                        Text(String(localized: "Select Contact..."))
+                            .foregroundStyle(.white)
                     }
                 }
             } footer: {
-                if reminderEnabled {
-                    if reminderLeadDays == 0 {
-                        Text("Get a notification at \(reminderTimeString) on the day of the event.")
-                    } else if reminderLeadDays == 1 {
-                        Text("Get a notification at \(reminderTimeString), 1 day before the event.")
-                    } else {
-                        Text("Get a notification at \(reminderTimeString), \(reminderLeadDays) days before the event.")
-                    }
+                if canMessageContact {
+                    Text(String(localized: "Tap Message to open your scheduled message, ready to send."))
+                } else {
+                    Text(String(localized: "Link a contact to message or call them from this countdown."))
                 }
             }
-            .animation(.spring(), value: reminderEnabled)
+            .animation(.spring(), value: contact)
 
             Section {
                 TouchTimeToggle(isOn: $isPinned) {
@@ -350,6 +479,210 @@ struct CountdownDetailsView: View {
                 Text(String(localized: "Pinned countdowns will also appear on the Home screen."))
             }
         }
+        // The Reminder section slides in and out as the date picker
+        // crosses today, rather than snapping.
+        .animation(.spring(), value: hasHappened)
+        // Live preview of this countdown, sticky above the form like the
+        // time card in DetailsSheet: the rows scroll under its glass. The
+        // spacing keeps the first section header off the card's edge.
+        .safeAreaInset(edge: .top, spacing: 8) {
+            CountdownPreviewCard(
+                title: trimmedTitle,
+                targetDate: effectiveTargetDate,
+                emoji: emoji,
+                photoData: photoData,
+                photoCrop: photoCrop,
+                isRepeating: repeatFrequency != .never,
+                emojiParticleBurst: emojiParticleBurst
+            ) {
+                triggerHaptic()
+                // Drop the keyboard before the picker comes up
+                focusedField = nil
+                showCoverPicker = true
+            }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+        }
+        // Dismiss-keyboard button floating above the keyboard while the
+        // scheduled message is being typed: its return key inserts a line
+        // break, so this is how the keyboard goes away without tapping
+        // elsewhere. (The event name field's return key dismisses on its
+        // own.) A safe area inset rather than a keyboard toolbar item: on
+        // iOS 26 the toolbar sets its glass flush against the keyboard and
+        // padding only enlarges the capsule, whereas here the gap is ours.
+        .safeAreaInset(edge: .bottom, alignment: .trailing, spacing: 0) {
+            if focusedField == .scheduledMessage {
+                dismissKeyboardButton
+                    .padding(.trailing, 16)
+                    .padding(.bottom, 12)
+                    .transition(.identity)
+            }
+        }
+        .animation(.spring(), value: focusedField == .scheduledMessage)
+    }
+
+    /// Round blue glass button that drops the keyboard, tinted like the
+    /// Set Alarm capsule in CityTimeAdjustmentSheet.
+    private var dismissKeyboardButton: some View {
+        Button {
+            triggerHaptic()
+            focusedField = nil
+        } label: {
+            Image(systemName: "keyboard.chevron.compact.down.fill")
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.tint(.blue).interactive())
+        .accessibilityLabel(String(localized: "Dismiss Keyboard"))
+    }
+
+    /// Under the contact row: the message to send them, typed right in
+    /// the row. The field grows with the text so a longer message wraps
+    /// instead of scrolling, and clears like the Event Name field.
+    /// Without Lifetime the row is a locked title that opens the store,
+    /// like the locked rows in Settings.
+    @ViewBuilder
+    private var scheduledMessageRow: some View {
+        if hasLifetimeAccess {
+            HStack {
+                TextField(String(localized: "Scheduled Message"), text: $scheduledMessage, axis: .vertical)
+                    .lineLimit(1...5)
+                    .focused($focusedField, equals: .scheduledMessage)
+
+                if !scheduledMessage.isEmpty && focusedField == .scheduledMessage {
+                    Button {
+                        triggerHaptic()
+                        scheduledMessage = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .fontWeight(.semibold)
+                            .foregroundStyle(.secondary)
+                    }
+                    .buttonStyle(.plain)
+                    .transition(.blurReplace)
+                }
+            }
+            .animation(.spring(), value: !scheduledMessage.isEmpty && focusedField == .scheduledMessage)
+        } else {
+            Button {
+                presentLifetimeStore()
+            } label: {
+                HStack {
+                    Text(String(localized: "Scheduled Message"))
+
+                    Spacer(minLength: 8)
+
+                    Image(systemName: "lock.fill")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                }
+            }
+            .foregroundStyle(.primary)
+        }
+    }
+
+    /// The linked contact: avatar and name, then Message and Call buttons
+    /// when the contact has a phone number. The whole row is a button
+    /// that opens the picker again to link someone else; the plain-styled
+    /// Message / Call buttons inside take their own taps. Swiping the row
+    /// unlinks the contact; a long press offers both in a context menu.
+    private func contactRow(_ contact: CountdownItem.LinkedContact) -> some View {
+        Button {
+            presentContactPicker()
+        } label: {
+            HStack(spacing: 12) {
+                // Avatar and name live in stable ZStack slots and take the
+                // contact as their identity, so linking someone else blurs
+                // the old one out and the new one in, in place. Without the
+                // slots the outgoing and incoming views would sit side by
+                // side for the length of the transition.
+                ZStack {
+                    ContactAvatar(contact: contact)
+                        .id(contact)
+                        .transition(.blurReplace)
+                }
+
+                ZStack(alignment: .leading) {
+                    Text(contact.name.isEmpty ? String(localized: "No Name") : contact.name)
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+                        .id(contact)
+                        .transition(.blurReplace)
+                }
+
+                Spacer()
+
+                if let phoneNumber = contact.phoneNumber {
+                    // Messages opens with the scheduled message already typed
+                    // (a Lifetime feature; locked, the number goes over alone).
+                    contactActionButton(String(localized: "Message"), systemImage: "message.fill") {
+                        openPhoneURL(scheme: "sms", number: phoneNumber, body: hasLifetimeAccess ? draftScheduledMessage : nil)
+                    }
+
+                    contactActionButton(String(localized: "Call"), systemImage: "phone.fill") {
+                        openPhoneURL(scheme: "tel", number: phoneNumber)
+                    }
+                }
+            }
+        }
+        // The row button would tint the name; keep it in the text colour.
+        .foregroundStyle(.primary)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                removeContact()
+            } label: {
+                Label(String(localized: "Remove"), systemImage: "minus.circle.fill")
+            }
+        }
+        .contextMenu {
+            Button {
+                presentContactPicker()
+            } label: {
+                Label(String(localized: "Change Contact"), systemImage: "person.crop.circle.badge.plus")
+            }
+
+            Divider()
+
+            Menu {
+                Button(role: .destructive) {
+                    removeContact()
+                } label: {
+                    Label(String(localized: "Confirm Remove"), systemImage: "checkmark.circle.badge.xmark")
+                }
+            } label: {
+                Label(String(localized: "Remove"), systemImage: "minus.circle")
+            }
+        }
+    }
+
+    /// Unlinks the contact; the row goes back to Select Contact and the
+    /// scheduled message, which had no one left to go to, goes with it.
+    private func removeContact() {
+        triggerHaptic()
+        contact = nil
+        scheduledMessage = ""
+    }
+
+    /// Round Message / Call button; `title` is its accessibility label.
+    /// Blurs in and out as the linked contact gains or loses a phone number.
+    private func contactActionButton(_ title: String, systemImage: String, action: @escaping () -> Void) -> some View {
+        Button {
+            triggerHaptic()
+            action()
+        } label: {
+            Image(systemName: systemImage)
+                .font(.headline)
+                .foregroundStyle(.white)
+                .frame(width: 40, height: 40)
+                .background(Circle().fill(Color(UIColor.tertiarySystemFill)))
+                .contentShape(Circle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .transition(.blurReplace)
     }
 
     var body: some View {
@@ -363,7 +696,12 @@ struct CountdownDetailsView: View {
                     // got clipped at the bars instead of scrolling under them.
                     GeometryReader { viewport in
                         ScrollView(.horizontal) {
-                            LazyHStack(alignment: .top, spacing: 0) {
+                            // Keep both pages alive in a regular HStack. A lazy
+                            // stack can cache the sheet's narrower source size
+                            // from the presentation transition, leaving every
+                            // Form row clipped to that stale width after the
+                            // sheet has expanded to fill the screen.
+                            HStack(alignment: .top, spacing: 0) {
                                 detailsForm
                                     .frame(width: viewport.size.width, height: viewport.size.height)
                                     .id(EditorTab.detail)
@@ -372,11 +710,12 @@ struct CountdownDetailsView: View {
                                     .frame(width: viewport.size.width, height: viewport.size.height)
                                     .id(EditorTab.space)
                             }
+                            .frame(
+                                width: viewport.size.width * CGFloat(EditorTab.allCases.count),
+                                height: viewport.size.height,
+                                alignment: .leading
+                            )
                             .scrollTargetLayout()
-                            // Page bounds must track the viewport immediately,
-                            // including during the sheet's presentation animation.
-                            // User-driven paging still animates when size is stable.
-                            .animation(nil, value: viewport.size)
                         }
                         .scrollTargetBehavior(.paging)
                         .scrollIndicators(.hidden)
@@ -391,10 +730,10 @@ struct CountdownDetailsView: View {
             // doesn't linger over the space.
             .onChange(of: selectedTab) { _, _ in
                 triggerHaptic()
-                isTitleFocused = false
+                focusedField = nil
             }
             .sheet(isPresented: $showCoverPicker) {
-                CoverPickerSheet(selectedEmoji: $emoji, selectedPhotoData: $photoData) {
+                CoverPickerSheet(selectedEmoji: $emoji, selectedPhotoData: $photoData, selectedPhotoCrop: $photoCrop) {
                     emojiParticleBurst += 1
                 }
             }
@@ -402,6 +741,29 @@ struct CountdownDetailsView: View {
                 SpaceNoteEditor { text in
                     addSpaceAttachment(SpaceAttachment(kind: .text, text: text))
                 }
+            }
+            // The system contact picker presents itself modally from this
+            // invisible host (see ContactPicker) whenever the flag is set.
+            .background {
+                ContactPicker(isPresented: $showContactPicker) { picked in
+                    triggerHaptic()
+                    contact = picked
+                }
+            }
+            .fullScreenCover(isPresented: $showLifetimeStore) {
+                NavigationStack {
+                    LifetimeStoreView()
+                }
+            }
+            .fullScreenCover(isPresented: $showShareImageSheet) {
+                CountdownShareAsImageView(
+                    title: shareTitle,
+                    targetDate: effectiveTargetDate,
+                    emoji: emoji,
+                    photoData: photoData,
+                    photoCrop: photoCrop,
+                    isRepeating: repeatFrequency != .never
+                )
             }
             .sheet(isPresented: $showCustomRepeatSheet) {
                 CustomRepeatSheet(
@@ -427,26 +789,21 @@ struct CountdownDetailsView: View {
             .onChange(of: spacePhotoItems) { _, items in
                 addSpacePhotos(items)
             }
-            // Background interaction keeps the title field tappable while
+            // Background interaction keeps the text fields tappable while
             // the picker is up: put the picker away when typing resumes.
-            .onChange(of: isTitleFocused) { _, focused in
-                if focused {
+            .onChange(of: focusedField) { _, field in
+                if field != nil {
                     showCoverPicker = false
                 }
             }
-            // Turning the reminder on needs notification permission; flip
-            // the toggle back off when it is denied.
+            // Turning the reminder on needs notification or alarm permission,
+            // whichever the alert type uses; flip the toggle back off when
+            // it is denied.
             .onChange(of: reminderEnabled) { _, enabled in
                 triggerHaptic()
                 guard enabled else { return }
-                Task {
-                    let granted = await CountdownReminderManager.shared.requestAuthorization()
-                    if !granted {
-                        await MainActor.run {
-                            reminderEnabled = false
-                            showNotificationPermissionAlert = true
-                        }
-                    }
+                ensureReminderAuthorization(for: reminderKind) {
+                    reminderEnabled = false
                 }
             }
             .alert("Notifications Disabled", isPresented: $showNotificationPermissionAlert) {
@@ -459,12 +816,20 @@ struct CountdownDetailsView: View {
             } message: {
                 Text("Allow notifications in Settings to get countdown reminders.")
             }
+            .alert(String(localized: "Alarm Permission Needed"), isPresented: $showAlarmPermissionAlert) {
+                Button(String(localized: "Go to Settings")) {
+                    AlarmSupport.openSystemSettings()
+                }
+                Button(String(localized: "Cancel"), role: .cancel) {}
+            } message: {
+                Text(String(localized: "Allow alarm access in Settings to get countdown reminders as alarms."))
+            }
             .navigationTitle(isEditing ? "" : String(localized: "New Countdown"))
             .navigationBarTitleDisplayMode(.inline)
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays)
+                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -628,24 +993,14 @@ struct CountdownDetailsView: View {
         }
     }
 
+    /// Title used when sharing; the placeholder stands in for an empty one.
+    private var shareTitle: String {
+        trimmedTitle.isEmpty ? String(localized: "Event Name") : trimmedTitle
+    }
+
     /// Share submenu at the top of the editor menu, sharing the countdown
     /// as it is currently edited (unsaved values included).
-    @ViewBuilder
     private var shareMenu: some View {
-        let shareTitle = trimmedTitle.isEmpty ? String(localized: "Event Name") : trimmedTitle
-        let lazyImage = LazyCardImage { [self] in
-            CountdownShare.renderCardImage(
-                title: shareTitle,
-                targetDate: effectiveTargetDate,
-                emoji: emoji,
-                photoData: photoData,
-                isRepeating: repeatFrequency != .never,
-                now: Date(),
-                showYears: showYears,
-                showMonths: showMonths,
-                showDays: showDays
-            )
-        }
         Menu {
             Button {
                 triggerHaptic()
@@ -660,7 +1015,12 @@ struct CountdownDetailsView: View {
             } label: {
                 Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
             }
-            ShareLink(item: lazyImage, preview: SharePreview(shareTitle)) {
+            Button {
+                triggerHaptic()
+                // Drop the keyboard before the sheet comes up
+                focusedField = nil
+                showShareImageSheet = true
+            } label: {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
         } label: {
@@ -676,13 +1036,70 @@ struct CountdownDetailsView: View {
         customRepeatInterval = period.count
         customRepeatUnit = period.unit
         // Drop the keyboard before the sheet comes up
-        isTitleFocused = false
+        focusedField = nil
         showCustomRepeatSheet = true
+    }
+
+    /// Asks for the permission a reminder of `kind` needs (notifications or
+    /// alarms). When it is denied, `onDenied` undoes the change that needed
+    /// it and the matching Settings alert comes up.
+    private func ensureReminderAuthorization(for kind: CountdownItem.ReminderKind, onDenied: @escaping () -> Void) {
+        Task {
+            let granted = await CountdownReminderManager.shared.requestAuthorization(for: kind)
+            guard !granted else { return }
+            onDenied()
+            switch kind {
+            case .notification:
+                showNotificationPermissionAlert = true
+            case .alarm:
+                showAlarmPermissionAlert = true
+            }
+        }
+    }
+
+    /// Opens the system contact picker to link (or replace) the contact.
+    private func presentContactPicker() {
+        triggerHaptic()
+        // Drop the keyboard before the sheet comes up
+        focusedField = nil
+        showContactPicker = true
+    }
+
+    /// Opens the Lifetime store from the locked scheduled message row.
+    private func presentLifetimeStore() {
+        triggerHaptic()
+        // Drop the keyboard before the sheet comes up
+        focusedField = nil
+        showLifetimeStore = true
+    }
+
+    /// RFC 3986's unreserved characters. Everything else in a message body
+    /// is percent-encoded, so spaces, line breaks, `&`, `+` and non-ASCII
+    /// text all reach Messages intact.
+    private static let urlBodyAllowedCharacters = CharacterSet(
+        charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~"
+    )
+
+    /// Hands the number to Messages (`sms:`) or Phone (`tel:`). Contacts
+    /// stores numbers with spaces, dashes and brackets, so only the digits
+    /// (plus a leading +, and * / # for service codes) go into the URL.
+    /// A `body` (Messages only) follows the number as `&body=`, which is
+    /// the separator iOS reads the prefilled text from rather than RFC
+    /// 5724's `?body=`; Messages then opens with it already typed.
+    private func openPhoneURL(scheme: String, number: String, body: String? = nil) {
+        let dialable = number.filter { $0.isNumber || "+*#".contains($0) }
+        guard !dialable.isEmpty else { return }
+        var urlString = "\(scheme):\(dialable)"
+        if let body, let encodedBody = body.addingPercentEncoding(withAllowedCharacters: Self.urlBodyAllowedCharacters) {
+            urlString += "&body=\(encodedBody)"
+        }
+        guard let url = URL(string: urlString) else { return }
+        openURL(url)
     }
 
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, photoData, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays)
+        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage)
         dismiss()
     }
 
@@ -707,12 +1124,17 @@ struct CountdownPreviewCard: View {
     /// Downsampled photo shown in the centre badge instead of the emoji,
     /// with a blurred copy as the card background.
     var photoData: Data? = nil
+    /// How the photo is framed in the badge; nil shows it centred.
+    var photoCrop: CountdownItem.PhotoCrop? = nil
     /// Reference "now" for the day count; the Home screen passes the
     /// scrubbed time so the number follows Slide to Adjust.
     var now: Date = Date()
     /// True for repeating countdowns; swaps the top-left arrow for a
     /// repeat symbol.
     var isRepeating: Bool = false
+    /// Shows a pin after the date, top-right, where the countdown sheet's
+    /// compact rows have theirs. Off on Home, where every card is pinned.
+    var isPinned: Bool = false
     /// Bumped by the editor whenever an emoji is picked in the cover
     /// sheet; each change spawns one particle burst in the card background.
     var emojiParticleBurst: Int = 0
@@ -729,7 +1151,7 @@ struct CountdownPreviewCard: View {
 
     private var photoImage: UIImage? {
         guard let photoData else { return nil }
-        return Self.cachedImage(from: photoData)
+        return Self.cachedImage(from: photoData, crop: photoCrop)
     }
 
     private var calendar: Calendar {
@@ -787,11 +1209,22 @@ struct CountdownPreviewCard: View {
 
                     Spacer()
 
-                    Text(targetDate, format: .dateTime.year().month().day())
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .blendMode(.plusLighter)
-                        .contentTransition(.numericText())
+                    // Date with the pin tucked close to it
+                    HStack(spacing: 4) {
+                        Text(targetDate, format: .dateTime.year().month().day())
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
+                            .blendMode(.plusLighter)
+                            .contentTransition(.numericText())
+
+                        if isPinned {
+                            Image(systemName: "pin.fill")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                                .transition(.blurReplace)
+                        }
+                    }
                 }
 
                 // Event title bottom-left, day count bottom-right
@@ -878,8 +1311,10 @@ struct CountdownPreviewCard: View {
         .animation(.spring(), value: bigText)
         .animation(.spring(), value: hasHappened)
         .animation(.spring(), value: isRepeating)
+        .animation(.spring(), value: isPinned)
         .animation(.spring(), value: emoji)
         .animation(.spring(), value: photoData)
+        .animation(.spring(), value: photoCrop)
     }
 
     // A ZStack (not a Group) so the frame and the glass effect belong to a
@@ -913,319 +1348,79 @@ struct CountdownPreviewCard: View {
         .frame(width: 64, height: 64)
     }
 
-    /// Decoded badge photos, memoised because the card re-renders every
-    /// second on the Home screen. Wiped when it grows past a handful of
-    /// entries so abandoned photos don't pile up in memory.
-    private static var imageCache: [Data: UIImage] = [:]
+    /// Decoded badge photos, cut to their framing, memoised because the
+    /// card re-renders every second on the Home screen. Wiped when it grows
+    /// past a handful of entries so abandoned photos don't pile up in
+    /// memory.
+    private static var imageCache: [ImageCacheKey: UIImage] = [:]
 
-    private static func cachedImage(from data: Data) -> UIImage? {
-        if let cached = imageCache[data] {
+    private struct ImageCacheKey: Hashable {
+        let data: Data
+        let crop: CountdownItem.PhotoCrop?
+    }
+
+    /// The photo as the badge shows it: decoded, and cut to `crop` when
+    /// there is one. Without a crop this is the full photo, which is also
+    /// what the cover sheet's editor starts from.
+    static func cachedImage(from data: Data, crop: CountdownItem.PhotoCrop? = nil) -> UIImage? {
+        let key = ImageCacheKey(data: data, crop: crop)
+        if let cached = imageCache[key] {
             return cached
         }
-        guard let image = UIImage(data: data) else { return nil }
+        guard let decoded = UIImage(data: data) else { return nil }
+        let image = crop.map { $0.croppedImage(from: decoded) } ?? decoded
         if imageCache.count > 12 {
             imageCache.removeAll()
         }
-        imageCache[data] = image
+        imageCache[key] = image
         return image
     }
 
-    /// The bitmap analysis is not free and the card re-renders every second
-    /// on the Home screen, so computed colours are memoised per emoji.
-    /// Main-thread only, like all SwiftUI body evaluation.
-    private static var dominantColorCache: [String: Color?] = [:]
-
+    /// The emoji's dominant vibrant colour, memoised per emoji. The analysis
+    /// itself lives in Shared/EmojiDominantColor.swift so the Countdown
+    /// widget paints the exact same colour behind the same emoji.
     static func cachedDominantColor(of emoji: String) -> Color? {
-        if let cached = dominantColorCache[emoji] {
-            return cached
-        }
-        let color = dominantColor(of: emoji)
-        dominantColorCache[emoji] = color
-        return color
-    }
-
-    /// Downsamples the emoji into a small bitmap and picks its dominant
-    /// vibrant colour: each pixel votes for a hue bucket, weighted by how
-    /// saturated and bright it is, so a colourful accent wins instead of
-    /// the muddy average of every pixel. Falls back to grey for
-    /// monochrome emojis.
-    private static func dominantColor(of emoji: String) -> Color? {
-        let font = UIFont.systemFont(ofSize: 64)
-        let attributes: [NSAttributedString.Key: Any] = [.font: font]
-        let string = emoji as NSString
-        let size = string.size(withAttributes: attributes)
-        guard size.width > 0, size.height > 0 else { return nil }
-
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        let image = UIGraphicsImageRenderer(size: size, format: format).image { _ in
-            string.draw(at: .zero, withAttributes: attributes)
-        }
-        guard let cgImage = image.cgImage else { return nil }
-
-        // Downsample to a small square; colour statistics don't need detail.
-        let dimension = 32
-        guard let context = CGContext(
-            data: nil,
-            width: dimension,
-            height: dimension,
-            bitsPerComponent: 8,
-            bytesPerRow: dimension * 4,
-            space: CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
-        ) else { return nil }
-        context.interpolationQuality = .medium
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: dimension, height: dimension))
-        guard let data = context.data else { return nil }
-
-        let pixels = data.bindMemory(to: UInt8.self, capacity: dimension * dimension * 4)
-
-        let bucketCount = 12
-        var bucketWeight = [CGFloat](repeating: 0, count: bucketCount)
-        var bucketHue = [CGFloat](repeating: 0, count: bucketCount)
-        var bucketSaturation = [CGFloat](repeating: 0, count: bucketCount)
-        var bucketBrightness = [CGFloat](repeating: 0, count: bucketCount)
-        var greyWeight: CGFloat = 0
-        var greyBrightness: CGFloat = 0
-
-        for index in stride(from: 0, to: dimension * dimension * 4, by: 4) {
-            let alpha = CGFloat(pixels[index + 3]) / 255
-            guard alpha > 0.3 else { continue }
-
-            // Un-premultiply
-            let red = min(CGFloat(pixels[index]) / 255 / alpha, 1)
-            let green = min(CGFloat(pixels[index + 1]) / 255 / alpha, 1)
-            let blue = min(CGFloat(pixels[index + 2]) / 255 / alpha, 1)
-
-            let maxChannel = max(red, green, blue)
-            let minChannel = min(red, green, blue)
-            let delta = maxChannel - minChannel
-
-            let brightness = maxChannel
-            let saturation = maxChannel == 0 ? 0 : delta / maxChannel
-
-            // Washed-out or very dark pixels only count towards the grey fallback.
-            guard saturation > 0.2, brightness > 0.2 else {
-                greyWeight += alpha
-                greyBrightness += brightness * alpha
-                continue
-            }
-
-            var hue: CGFloat
-            if maxChannel == red {
-                hue = ((green - blue) / delta).truncatingRemainder(dividingBy: 6)
-            } else if maxChannel == green {
-                hue = (blue - red) / delta + 2
-            } else {
-                hue = (red - green) / delta + 4
-            }
-            hue /= 6
-            if hue < 0 { hue += 1 }
-
-            // Vibrant pixels get a louder vote.
-            let weight = alpha * saturation * brightness
-            let bucket = min(bucketCount - 1, Int(hue * CGFloat(bucketCount)))
-            bucketWeight[bucket] += weight
-            bucketHue[bucket] += hue * weight
-            bucketSaturation[bucket] += saturation * weight
-            bucketBrightness[bucket] += brightness * weight
-        }
-
-        if let winner = bucketWeight.indices.max(by: { bucketWeight[$0] < bucketWeight[$1] }),
-           bucketWeight[winner] > 0 {
-            let weight = bucketWeight[winner]
-            let hue = bucketHue[winner] / weight
-            let saturation = bucketSaturation[winner] / weight
-            let brightness = bucketBrightness[winner] / weight
-            // Clamp into a range that stays vivid but keeps white text readable.
-            return Color(
-                hue: hue,
-                saturation: min(max(saturation * 1.15, 0.45), 0.9),
-                brightness: min(max(brightness, 0.45), 0.8)
-            )
-        }
-
-        guard greyWeight > 0 else { return nil }
-        return Color(white: min(max(greyBrightness / greyWeight, 0.3), 0.6))
+        EmojiDominantColor.cached(for: emoji)?.color
     }
 }
 
-/// Cover picker: a grid of common event emojis, the chosen one colouring
-/// the preview card, or alternatively a photo from the library that fills
-/// the centre badge with a blurred copy as the card background.
-private struct CoverPickerSheet: View {
-    @Environment(\.dismiss) private var dismiss
-    @AppStorage("hapticEnabled") private var hapticEnabled = true
+/// Round avatar for a linked contact: the photo thumbnail when the contact
+/// has one, otherwise their initials (or a person symbol when there are
+/// none) on a neutral fill, like the monograms in Contacts.
+private struct ContactAvatar: View {
+    let contact: CountdownItem.LinkedContact
+    var size: CGFloat = 40
 
-    @Binding var selectedEmoji: String?
-    @Binding var selectedPhotoData: Data?
-    /// Called on every emoji tap in the grid, after the selection is
-    /// applied; the editor uses it to fire the preview particle burst.
-    var onEmojiPick: (() -> Void)? = nil
-
-    @State private var showPhotoPicker = false
-    @State private var photoPickerItem: PhotosPickerItem?
-    @State private var showRemovePhotoDialog = false
-
-    private static let emojis: [String] = [
-        "🎂", "🎉", "🎈", "🎁", "🍰", "🥂", "🎊", "🪩",
-        "🥳", "🍾", "🧁", "🍻", "🪅", "🎟️", "🎪", "🎇",
-        "❤️", "💍", "💒", "👶", "🌹", "💌", "💘", "🫶",
-        "🎓", "📚", "✏️", "💼", "🏆", "🥇", "🎯", "🧳",
-        "✈️", "🏝️", "🗺️", "🚗", "⛺️", "🎡", "🛳️", "🚀",
-        "🛫", "🚄", "🏖️", "🏔️", "🗽", "🗼", "⛩️", "🏰",
-        "🎄", "🎃", "🧧", "🏮", "🐰", "🦃", "🌕", "🎆",
-        "🪔", "🕎", "☘️", "🎍", "🌅", "🕯️", "🎗️", "🛍️",
-        "☀️", "🌸", "🍂", "❄️", "⭐️", "🌈", "🔥", "💧",
-        "⚽️", "🏀", "🎾", "🏃", "🧘", "🎮", "🎵", "🎬",
-        "🏊", "🚴", "⛷️", "🏂", "⛳️", "🏓", "🥊", "🛹",
-        "🎤", "🎸", "🎹", "🎻", "🎭", "🎨", "🎧", "🎫",
-        "🍽️", "☕️", "🍕", "🍜", "🍣", "🍦", "🍷", "🧋",
-        "📦", "🤝", "📝", "💻", "🩺", "🐶", "🐱", "🧸",
-        "🏠", "🔑", "💰", "💎", "📅", "⏰", "🔔", "📌",
-        "⏳", "🚩", "📷", "🗳️", "💵", "🪴", "🌙", "🌊"
-    ]
-
-    private let columns = [GridItem(.adaptive(minimum: 52), spacing: 8)]
+    private var photo: UIImage? {
+        guard let data = contact.thumbnailImageData else { return nil }
+        return UIImage(data: data)
+    }
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(Self.emojis, id: \.self) { option in
-                        Button {
-                            triggerHaptic()
-                            selectedEmoji = option
-                            selectedPhotoData = nil
-                            onEmojiPick?()
-                        } label: {
-                            Text(option)
-                                .font(.system(size: 36))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .padding()
-            }
-            .scrollIndicators(.hidden)
-            .navigationTitle(String(localized: "Cover"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        triggerHaptic()
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                    }
-                }
+        ZStack {
+            if let photo {
+                Image(uiImage: photo)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Circle()
+                    .fill(Color(UIColor.tertiarySystemFill))
 
-                if selectedEmoji != nil || selectedPhotoData != nil {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(role: .destructive) {
-                            triggerHaptic()
-                            if selectedPhotoData != nil {
-                                showRemovePhotoDialog = true
-                            } else {
-                                selectedEmoji = nil
-                            }
-                        } label: {
-                            Image(systemName: "minus.circle")
-                        }
-                        .confirmationDialog(
-                            String(localized: "Are you sure you want to remove this photo?"),
-                            isPresented: $showRemovePhotoDialog,
-                            titleVisibility: .visible
-                        ) {
-                            Button(String(localized: "Remove"), role: .destructive) {
-                                triggerHaptic()
-                                selectedEmoji = nil
-                                selectedPhotoData = nil
-                            }
-                        }
-                    }
-                }
-
-                ToolbarSpacer(.flexible, placement: .bottomBar)
-
-                ToolbarItem(placement: .bottomBar) {
-                    Button {
-                        triggerHaptic()
-                        showPhotoPicker = true
-                    } label: {
-                        Text(selectedPhotoData == nil
-                            ? String(localized: "Add Photo")
-                            : String(localized: "Replace Photo"))
-                            .font(.headline)
-                            .foregroundStyle(.black)
-                            .frame(height: 40)
-                            .contentTransition(.numericText())
-                            .animation(.spring(), value: selectedPhotoData == nil)
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(.white)
+                if contact.initials.isEmpty {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: size * 0.45, weight: .medium))
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(contact.initials)
+                        .font(.system(size: size * 0.45, weight: .semibold, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
+                        .padding(.horizontal, 4)
                 }
             }
         }
-        .photosPicker(isPresented: $showPhotoPicker, selection: $photoPickerItem, matching: .images)
-        .onChange(of: photoPickerItem) { _, newItem in
-            guard let newItem else { return }
-            Task {
-                guard let data = try? await newItem.loadTransferable(type: Data.self),
-                      let processed = Self.downsampledJPEGData(from: data) else { return }
-                selectedPhotoData = processed
-                selectedEmoji = nil
-                triggerHaptic()
-                photoPickerItem = nil
-            }
-        }
-        .presentationDetents([.medium])
-        .presentationDragIndicator(.visible)
-        // Keep the countdown sheet visible and live behind the picker so
-        // the preview card recolours as emojis are tried out.
-        .presentationBackgroundInteraction(.enabled(upThrough: .medium))
+        .frame(width: size, height: size)
+        .clipShape(Circle())
     }
-
-    /// Shrinks the picked photo to a size that comfortably covers the badge
-    /// and the blurred card background, so the countdown store never holds
-    /// multi-megabyte originals. Redrawing also bakes in the orientation.
-    private static func downsampledJPEGData(from data: Data, maxDimension: CGFloat = 800) -> Data? {
-        guard let image = UIImage(data: data) else { return nil }
-        let largestSide = max(image.size.width, image.size.height)
-        guard largestSide > 0 else { return nil }
-
-        let scale = min(1, maxDimension / largestSide)
-        let targetSize = CGSize(width: image.size.width * scale, height: image.size.height * scale)
-
-        let format = UIGraphicsImageRendererFormat()
-        format.scale = 1
-        let resized = UIGraphicsImageRenderer(size: targetSize, format: format).image { _ in
-            image.draw(in: CGRect(origin: .zero, size: targetSize))
-        }
-        return resized.jpegData(compressionQuality: 0.75)
-    }
-
-    private func triggerHaptic() {
-        guard hapticEnabled else { return }
-        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-        impactFeedback.prepare()
-        impactFeedback.impactOccurred()
-    }
-}
-
-#Preview {
-    CountdownDetailsView { _, _, _, _, _, _, _, _ in }
-}
-
-#Preview("Editing") {
-    CountdownDetailsView(
-        countdown: CountdownItem(
-            id: UUID(),
-            title: "Japan Trip",
-            targetDate: Date().addingTimeInterval(86_400 * 30),
-            createdAt: Date()
-        )
-    ) { _, _, _, _, _, _, _, _ in }
 }

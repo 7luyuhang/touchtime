@@ -21,6 +21,9 @@ struct HomeCountdownSection: View {
     /// Called from the card's context menu; Home unpins the countdown,
     /// which removes its card since only pinned ones show here.
     let onUnpin: (CountdownItem) -> Void
+    /// Called from the card's context menu; Home opens the share-as-image
+    /// screen for the countdown.
+    let onShare: (CountdownItem) -> Void
 
     // Same Time Display settings as the countdown sheet rows, so shared
     // text breaks the interval into the units chosen there.
@@ -43,6 +46,7 @@ struct HomeCountdownSection: View {
                     targetDate: item.effectiveTargetDate(at: now),
                     emoji: item.emoji,
                     photoData: item.photoData,
+                    photoCrop: item.photoCrop,
                     now: now,
                     isRepeating: item.repeatFrequency != .never
                 )
@@ -70,19 +74,6 @@ struct HomeCountdownSection: View {
 
     @ViewBuilder
     private func shareMenu(for item: CountdownItem) -> some View {
-        let lazyImage = LazyCardImage {
-            CountdownShare.renderCardImage(
-                title: item.title,
-                targetDate: item.effectiveTargetDate(at: now),
-                emoji: item.emoji,
-                photoData: item.photoData,
-                isRepeating: item.repeatFrequency != .never,
-                now: now,
-                showYears: showYears,
-                showMonths: showMonths,
-                showDays: showDays
-            )
-        }
         Menu {
             Button {
                 UIPasteboard.general.string = CountdownShare.copyText(
@@ -101,7 +92,9 @@ struct HomeCountdownSection: View {
             } label: {
                 Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
             }
-            ShareLink(item: lazyImage, preview: SharePreview(item.title)) {
+            Button {
+                onShare(item)
+            } label: {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
         } label: {
@@ -114,8 +107,8 @@ struct HomeCountdownSection: View {
 
 /// Share helpers used by both the Home cards and the countdown editor:
 /// pasteboard text, the relative phrase under the shared card, and the
-/// 9:16 card image. The unit flags are the countdown sheet's Time Display
-/// settings.
+/// card image (9:16 unless another frame is picked). The unit flags are
+/// the countdown sheet's Time Display settings.
 enum CountdownShare {
     /// Whole calendar days from the reference date to the target date;
     /// negative once the event has happened.
@@ -142,28 +135,32 @@ enum CountdownShare {
         return String(format: String(localized: "%1$@ in %2$@"), title, interval)
     }
 
-    /// Renders the countdown card into a 9:16 share image, like the city
-    /// card share.
-    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, isRepeating: Bool, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool) -> UIImage {
+    /// Context line under the shared card, e.g. "in 1 year 4 days" /
+    /// "3 days ago" / "Today".
+    static func footerText(from now: Date, to targetDate: Date, showYears: Bool, showMonths: Bool, showDays: Bool) -> String {
         let difference = dayDifference(from: now, to: targetDate)
-        let footerText: String
         if difference == 0 {
-            footerText = String(localized: "Today")
-        } else {
-            let interval = intervalText(from: now, to: targetDate, showYears: showYears, showMonths: showMonths, showDays: showDays)
-            footerText = difference < 0
-                ? String(format: String(localized: "%@ ago"), interval)
-                : String(format: String(localized: "in %@"), interval)
+            return String(localized: "Today")
         }
+        let interval = intervalText(from: now, to: targetDate, showYears: showYears, showMonths: showMonths, showDays: showDays)
+        return difference < 0
+            ? String(format: String(localized: "%@ ago"), interval)
+            : String(format: String(localized: "in %@"), interval)
+    }
 
+    /// Renders the countdown card into a share image, like the city card
+    /// share: 9:16 by default, or the frame the share sheet picked.
+    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isRepeating: Bool, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool, aspectRatio: ShareAspectRatio = .nineBySixteen) -> UIImage {
         let snapshotView = CountdownCardSnapshotView(
             title: title,
             targetDate: targetDate,
             emoji: emoji,
             photoData: photoData,
+            photoCrop: photoCrop,
             isRepeating: isRepeating,
             now: now,
-            footerText: footerText
+            footerText: footerText(from: now, to: targetDate, showYears: showYears, showMonths: showMonths, showDays: showDays),
+            aspectRatio: aspectRatio
         )
         .environment(\.colorScheme, .dark)
 
@@ -221,7 +218,7 @@ enum CountdownShare {
 
 // MARK: - Countdown Card Snapshot View for Sharing
 
-/// 9:16 share image for a countdown, mirroring the city card share: the
+/// Share image for a countdown, mirroring the city card share: the
 /// pinned card replica centered on a backdrop that echoes its cover — the
 /// emoji's dominant colour as a flat fill, or the photo blurred; plain
 /// black without a cover. Glass effects don't render in ImageRenderer, so
@@ -231,6 +228,8 @@ struct CountdownCardSnapshotView: View {
     let targetDate: Date
     let emoji: String?
     let photoData: Data?
+    /// How the photo is framed in the badge; nil shows it centred.
+    let photoCrop: CountdownItem.PhotoCrop?
     /// True for repeating countdowns; swaps the top-left arrow for a
     /// repeat symbol.
     let isRepeating: Bool
@@ -238,10 +237,31 @@ struct CountdownCardSnapshotView: View {
     let now: Date
     /// Context line under the card, e.g. "in 1 year 4 days".
     let footerText: String
+    /// Frame of the image: a centred crop of the 9:16 layout, so the card
+    /// keeps its size and only the amount of backdrop around it changes.
+    var aspectRatio: ShareAspectRatio = .nineBySixteen
+    /// Corner radius of that frame. Square (0) for the exported file; the
+    /// share preview rounds it here so the crop is its only clip, rather
+    /// than a rounded clip wrapped around a square one.
+    var frameCornerRadius: CGFloat = 0
 
+    private var size: CGSize {
+        aspectRatio.size
+    }
+
+    /// Everything is laid out at the tallest frame and the shorter ratios
+    /// take a centred crop of it. The card sits in the middle of both
+    /// boxes, so the crop lands exactly where laying the card out in the
+    /// shorter frame would have put it, while the backdrop keeps its 9:16
+    /// framing instead of being re-cropped per ratio.
+    private static let layoutSize = ShareAspectRatio.nineBySixteen.size
+
+    /// Memoised: decoding here would hand `Image` a fresh `UIImage` on
+    /// every update, and the blurred backdrop layer gets rebuilt whenever
+    /// that identity changes.
     private var photoImage: UIImage? {
         guard let photoData else { return nil }
-        return UIImage(data: photoData)
+        return CountdownPreviewCard.cachedImage(from: photoData, crop: photoCrop)
     }
 
     private var emojiColor: Color? {
@@ -283,6 +303,10 @@ struct CountdownCardSnapshotView: View {
     }
 
     var body: some View {
+        // Read three times below; the cache is keyed on the photo blob,
+        // so looking it up once keeps that comparison off the hot path.
+        let photoImage = self.photoImage
+
         ZStack {
             // Full-bleed backdrop echoing the card cover
             Color.black
@@ -290,10 +314,16 @@ struct CountdownCardSnapshotView: View {
                 Image(uiImage: photoImage)
                     .resizable()
                     .scaledToFill()
-                    .frame(width: 360, height: 640)
+                    .frame(width: Self.layoutSize.width, height: Self.layoutSize.height)
                     .clipped()
                     .blur(radius: 60, opaque: true)
                     .overlay(Color.black.opacity(0.35))
+                    // Flattened into one bitmap. Left live, the blur is a
+                    // Core Animation filter re-rendered on every frame of
+                    // the ratio animation, and the bands where the moving
+                    // crop edge cut into it flickered; a bitmap is just
+                    // cropped.
+                    .drawingGroup()
             } else if let emojiColor {
                 // Slightly dimmed so the full-colour card reads on top.
                 emojiColor.opacity(0.75)
@@ -390,6 +420,13 @@ struct CountdownCardSnapshotView: View {
                     .padding(.horizontal, 24)
             }
         }
-        .frame(width: 360, height: 640) // 9:16 share frame ratio
+        // Pinned to 9:16 so nothing inside re-lays out when the ratio
+        // changes; the second frame only shrinks the window the content
+        // is seen through. That keeps the blurred backdrop, the card's
+        // own blur and the glass badge off the animation's hot path,
+        // where redrawing them every frame showed up as a flicker.
+        .frame(width: Self.layoutSize.width, height: Self.layoutSize.height)
+        .frame(width: size.width, height: size.height) // 9:16 unless another frame is picked
+        .clipShape(RoundedRectangle(cornerRadius: frameCornerRadius, style: .continuous))
     }
 }

@@ -7,7 +7,7 @@
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Allow alarm access to let you set local alarms.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Save city card images to your Photo Library.</string>
+	<string>Save card images to your Photo Library.</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>handstime</string>

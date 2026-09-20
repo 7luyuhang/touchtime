@@ -215,6 +215,38 @@
         }
       }
     },
+    "%d countdown pinned." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已置顶 %d 个倒计时。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已置頂 %d 個倒數計時。"
+          }
+        }
+      }
+    },
+    "%d countdowns pinned." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已置顶 %d 个倒计时。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已置頂 %d 個倒數計時。"
+          }
+        }
+      }
+    },
     "%d days" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1111,22 +1143,6 @@
         }
       }
     },
-    "Add Photo" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "添加照片"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "新增照片"
-          }
-        }
-      }
-    },
     "Add selected cities and times to event notes." : {
       "localizations" : {
         "zh-Hans" : {
@@ -1359,6 +1375,23 @@
         }
       }
     },
+    "Alert Type" : {
+      "comment" : "Countdown reminder row: whether the reminder arrives as a notification or as an alarm.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知类型"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知類型"
+          }
+        }
+      }
+    },
     "Algiers" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1392,6 +1425,22 @@
         }
       }
     },
+    "Allow alarm access in Settings to get countdown reminders as alarms." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在“设置”中允许闹钟权限，以闹钟形式接收倒计时提醒。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請在「設定」中允許鬧鐘權限，以鬧鐘形式接收倒數計時提醒。"
+          }
+        }
+      }
+    },
     "Allow notifications in Settings to get countdown reminders." : {
 
     },
@@ -1407,6 +1456,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "請在設定中允許通知，以接收準點通知。"
+          }
+        }
+      }
+    },
+    "Allow photo library access in Settings to save images." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "请在设置中允许照片访问，以保存图片。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "請在設定中允許照片存取，以儲存圖片。"
           }
         }
       }
@@ -1551,6 +1616,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "並請先新增城市以啟用。"
+          }
+        }
+      }
+    },
+    "And more features" : {
+      "comment" : "Lifetime store: caption below the feature showcase",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以及更多功能"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以及更多功能"
           }
         }
       }
@@ -1906,6 +1988,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "阿斯馬拉"
+          }
+        }
+      }
+    },
+    "Aspect Ratio" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比例"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "比例"
           }
         }
       }
@@ -2868,6 +2966,22 @@
         }
       }
     },
+    "Call" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "呼叫"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "呼叫"
+          }
+        }
+      }
+    },
     "Cambridge Bay" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -3182,6 +3296,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "查戈斯"
+          }
+        }
+      }
+    },
+    "Change Contact" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更换联系人"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "更換聯絡人"
           }
         }
       }
@@ -4051,6 +4181,22 @@
         }
       }
     },
+    "Countdowns" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "倒计时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "倒數計時"
+          }
+        }
+      }
+    },
     "Cover" : {
       "localizations" : {
         "zh-Hans" : {
@@ -4177,6 +4323,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "克雷斯頓"
+          }
+        }
+      }
+    },
+    "Crop" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "裁剪"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "裁切"
           }
         }
       }
@@ -4969,6 +5131,22 @@
         }
       }
     },
+    "Dismiss Keyboard" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收起键盘"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "收起鍵盤"
+          }
+        }
+      }
+    },
     "Display" : {
       "localizations" : {
         "zh-Hans" : {
@@ -5070,18 +5248,18 @@
         }
       }
     },
-    "Double-tap for quick actions" : {
+    "Double-tap for more features" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "双击以打开可快速操作"
+            "value" : "双击查看更多功能"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "雙擊以開啟快速操作"
+            "value" : "雙擊查看更多功能"
           }
         }
       }
@@ -6395,6 +6573,60 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "每小時收到準點通知。"
+          }
+        }
+      }
+    },
+    "Get an alarm at %@ on the day of the event." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闹钟将在事件当天 %@ 响起。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鬧鐘將在事件當天 %@ 響起。"
+          }
+        }
+      }
+    },
+    "Get an alarm at %@, %lld days before the event." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Get an alarm at %1$@, %2$lld days before the event."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闹钟将在事件前 %2$lld 天 %1$@ 响起。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鬧鐘將在事件前 %2$lld 天 %1$@ 響起。"
+          }
+        }
+      }
+    },
+    "Get an alarm at %@, 1 day before the event." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闹钟将在事件前 1 天 %@ 响起。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鬧鐘將在事件前 1 天 %@ 響起。"
           }
         }
       }
@@ -8126,6 +8358,54 @@
         }
       }
     },
+    "Lap" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计次"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "計次"
+          }
+        }
+      }
+    },
+    "Lap %d" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %d 圈"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %d 圈"
+          }
+        }
+      }
+    },
+    "Laps" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计次"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "計次"
+          }
+        }
+      }
+    },
     "Large Tip" : {
       "localizations" : {
         "zh-Hans" : {
@@ -8239,6 +8519,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "林德曼島"
+          }
+        }
+      }
+    },
+    "Link a contact to message or call them from this countdown." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关联一位联系人，即可在此倒计时中直接发信息或呼叫。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "連結一位聯絡人，即可在此倒數計時中直接傳訊息或呼叫。"
           }
         }
       }
@@ -9090,6 +9386,22 @@
         }
       }
     },
+    "Message" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "信息"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "訊息"
+          }
+        }
+      }
+    },
     "Metlakatla" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9480,10 +9792,6 @@
         }
       }
     },
-    "Moon" : {
-      "comment" : "A default name for the moon phase when the icon name is not recognized.",
-      "isCommentAutoGenerated" : true
-    },
     "Moon & Sun Azimuth" : {
       "localizations" : {
         "zh-Hans" : {
@@ -9566,9 +9874,6 @@
           }
         }
       }
-    },
-    "MoonKit" : {
-
     },
     "More Apps" : {
       "localizations" : {
@@ -10132,6 +10437,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暫無倒數計時"
+          }
+        }
+      }
+    },
+    "No Name" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无姓名"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無姓名"
           }
         }
       }
@@ -11081,6 +11402,22 @@
         }
       }
     },
+    "Pinned Countdowns" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置顶的倒计时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "置頂的倒數計時"
+          }
+        }
+      }
+    },
     "Pinned countdowns will also appear on the Home screen." : {
       "localizations" : {
         "zh-Hans" : {
@@ -11856,22 +12193,6 @@
         }
       }
     },
-    "Replace Photo" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "替换照片"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "取代照片"
-          }
-        }
-      }
-    },
     "Reset" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12431,6 +12752,22 @@
         }
       }
     },
+    "Saved" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已保存"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已儲存"
+          }
+        }
+      }
+    },
     "Scattered Thunderstorms" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12459,6 +12796,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "建立活動"
+          }
+        }
+      }
+    },
+    "Scheduled Message" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定时信息"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "定時訊息"
           }
         }
       }
@@ -12544,6 +12897,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "全選"
+          }
+        }
+      }
+    },
+    "Select Contact..." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择联系人..."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇聯絡人..."
           }
         }
       }
@@ -12794,6 +13163,22 @@
         }
       }
     },
+    "Show as Preview" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以预览显示"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "以預覽顯示"
+          }
+        }
+      }
+    },
     "Show Available Time" : {
       "localizations" : {
         "zh-Hans" : {
@@ -12854,6 +13239,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在備註中顯示時間"
+          }
+        }
+      }
+    },
+    "Show Usage Count" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "显示使用次数"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "顯示使用次數"
           }
         }
       }
@@ -13464,6 +13865,38 @@
         }
       }
     },
+    "Stop" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止"
+          }
+        }
+      }
+    },
+    "Stopwatch" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秒表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秒錶"
+          }
+        }
+      }
+    },
     "Strong Storms" : {
       "localizations" : {
         "zh-Hans" : {
@@ -13836,6 +14269,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "點擊"
+          }
+        }
+      }
+    },
+    "Tap Message to open your scheduled message, ready to send." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "点击“信息”即可打开定时信息，可直接发送。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "點一下「訊息」即可開啟定時訊息，可直接傳送。"
           }
         }
       }
@@ -14469,6 +14918,22 @@
         }
       }
     },
+    "Timers" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计时器"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "計時器"
+          }
+        }
+      }
+    },
     "Timers you start will appear here" : {
       "localizations" : {
         "zh-Hans" : {
@@ -14503,6 +14968,7 @@
       }
     },
     "Title" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -15011,6 +15477,22 @@
         }
       }
     },
+    "Use Photo" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用照片"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "使用照片"
+          }
+        }
+      }
+    },
     "Use your current location" : {
       "localizations" : {
         "zh-Hans" : {
@@ -15267,6 +15749,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "永珍"
+          }
+        }
+      }
+    },
+    "View Photo" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "查看照片"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "檢視照片"
           }
         }
       }

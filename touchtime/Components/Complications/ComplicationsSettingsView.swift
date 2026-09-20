@@ -214,7 +214,7 @@ struct ComplicationsSettingsView: View {
         .onChange(of: availableTimeEnabled) { _, _ in
             enforceComplicationAvailability()
         }
-        .sheet(isPresented: $showLifetimeStore) {
+        .fullScreenCover(isPresented: $showLifetimeStore) {
             NavigationStack {
                 LifetimeStoreView()
             }

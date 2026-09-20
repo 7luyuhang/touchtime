@@ -41,10 +41,15 @@ struct CountdownSheet: View {
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
     @AppStorage("countdownSortOrder") private var countdownSortOrderRawValue = CountdownSortOrder.newestFirst.rawValue
+    /// Show as Preview: each countdown as the editor's preview card
+    /// instead of the compact alarm-style row.
+    @AppStorage("countdownShowAsPreview") private var showAsPreview = false
 
     @State private var showEditorSheet = false
     @State private var showLifetimeStore = false
     @State private var editingCountdown: CountdownItem? = nil
+    /// Countdown being shared as an image from its row's context menu.
+    @State private var sharingCountdown: CountdownItem? = nil
     @State private var filter: CountdownFilter? = nil
 
     /// Read-only convenience over the shared store.
@@ -72,6 +77,20 @@ struct CountdownSheet: View {
             set: { newValue in
                 withAnimation(.spring()) {
                     countdownSortOrderRawValue = newValue.rawValue
+                }
+                triggerHaptic()
+            }
+        )
+    }
+
+    private var showAsPreviewBinding: Binding<Bool> {
+        Binding(
+            get: {
+                showAsPreview
+            },
+            set: { newValue in
+                withAnimation(.spring()) {
+                    showAsPreview = newValue
                 }
                 triggerHaptic()
             }
@@ -121,7 +140,7 @@ struct CountdownSheet: View {
     var body: some View {
         NavigationStack {
             countdownsPage
-                .navigationTitle(String(localized: "Countdown"))
+                .navigationTitle(String(localized: "Countdowns"))
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
@@ -136,6 +155,12 @@ struct CountdownSheet: View {
                     if !countdowns.isEmpty {
                         ToolbarItem(placement: .topBarTrailing) {
                             Menu {
+                                Section {
+                                    Toggle(isOn: showAsPreviewBinding) {
+                                        Label(String(localized: "Show as Preview"), systemImage: "camera.macro")
+                                    }
+                                }
+
                                 Section(String(localized: "Filter")) {
                                     Button {
                                         triggerHaptic()
@@ -226,21 +251,35 @@ struct CountdownSheet: View {
                 }
         }
         .sheet(isPresented: $showEditorSheet) {
-            CountdownDetailsView { title, targetDate, emoji, photoData, isPinned, repeatFrequency, reminderTime, reminderLeadDays in
-                addCountdown(title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays)
+            CountdownDetailsView { title, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, reminderTime, reminderLeadDays, reminderKind, contact, scheduledMessage in
+                addCountdown(title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, photoCrop: photoCrop, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind, contact: contact, scheduledMessage: scheduledMessage)
             }
         }
         .sheet(item: $editingCountdown) { item in
             CountdownDetailsView(countdown: item, onDelete: {
                 deleteCountdown(item)
-            }) { title, targetDate, emoji, photoData, isPinned, repeatFrequency, reminderTime, reminderLeadDays in
-                updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays)
+            }) { title, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, reminderTime, reminderLeadDays, reminderKind, contact, scheduledMessage in
+                updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, photoCrop: photoCrop, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind, contact: contact, scheduledMessage: scheduledMessage)
             }
             // Force a fresh view identity per item, otherwise SwiftUI reuses
             // the sheet content and @State keeps the previous item's values.
             .id(item.id)
         }
-        .sheet(isPresented: $showLifetimeStore) {
+        // Share as Image from a row: the same full-screen preview as the
+        // Home cards and the editor.
+        .fullScreenCover(item: $sharingCountdown) { item in
+            let now = Date()
+            CountdownShareAsImageView(
+                title: item.title,
+                targetDate: item.effectiveTargetDate(at: now),
+                emoji: item.emoji,
+                photoData: item.photoData,
+                photoCrop: item.photoCrop,
+                isRepeating: item.repeatFrequency != .never,
+                now: now
+            )
+        }
+        .fullScreenCover(isPresented: $showLifetimeStore) {
             NavigationStack {
                 LifetimeStoreView()
             }
@@ -275,7 +314,9 @@ struct CountdownSheet: View {
                         .transition(.blurReplace)
                     } else {
                         countdownList(displayedItems, now: context.date)
-                            .id(filter)
+                            // Fresh identity per filter and layout, so
+                            // switching either plays the blur replace.
+                            .id(ListIdentity(filter: filter, showAsPreview: showAsPreview))
                             .transition(.blurReplace)
                     }
                 }
@@ -283,13 +324,18 @@ struct CountdownSheet: View {
         }
     }
 
+    /// Identity of the list view; changing it swaps the whole list with
+    /// the blur replace transition instead of morphing rows in place.
+    private struct ListIdentity: Hashable {
+        let filter: CountdownFilter?
+        let showAsPreview: Bool
+    }
+
     private func countdownList(_ items: [CountdownItem], now: Date) -> some View {
         List {
             ForEach(items) { item in
                 Section {
-                    CountdownRow(item: item, now: now, units: unitOptions)
-                        .padding(.vertical, 4)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                    countdownRow(for: item, now: now)
                         .contentShape(Rectangle())
                         .onTapGesture {
                             triggerHaptic()
@@ -322,6 +368,8 @@ struct CountdownSheet: View {
                                     systemImage: item.isPinned ? "pin.slash" : "pin"
                                 )
                             }
+
+                            shareMenu(for: item, now: now)
 
                             Divider()
 
@@ -376,6 +424,63 @@ struct CountdownSheet: View {
         .scrollIndicators(.hidden)
     }
 
+    /// One countdown in the list: the compact alarm-style row, or with
+    /// Show as Preview on, the same preview card as the top of the editor
+    /// and the Home screen.
+    @ViewBuilder
+    private func countdownRow(for item: CountdownItem, now: Date) -> some View {
+        if showAsPreview {
+            CountdownPreviewCard(
+                title: item.title,
+                targetDate: item.effectiveTargetDate(at: now),
+                emoji: item.emoji,
+                photoData: item.photoData,
+                photoCrop: item.photoCrop,
+                now: now,
+                isRepeating: item.repeatFrequency != .never,
+                isPinned: item.isPinned
+            )
+            // The card brings its own glass background and corners, so
+            // the row chrome goes, as on the Home screen.
+            .listRowInsets(EdgeInsets())
+            .listRowBackground(Color.clear)
+            .listRowSeparator(.hidden)
+        } else {
+            CountdownRow(item: item, now: now, units: unitOptions)
+                .padding(.vertical, 4)
+                .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// Share submenu of a row's context menu, as on the Home cards: the
+    /// countdown as text on the pasteboard, or as an image. `now` is the
+    /// row's reference time, so the text matches what the row shows.
+    private func shareMenu(for item: CountdownItem, now: Date) -> some View {
+        Menu {
+            Button {
+                triggerHaptic()
+                UIPasteboard.general.string = CountdownShare.copyText(
+                    title: item.title,
+                    targetDate: item.effectiveTargetDate(at: now),
+                    now: now,
+                    showYears: showYears,
+                    showMonths: showMonths,
+                    showDays: showDays
+                )
+            } label: {
+                Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
+            }
+            Button {
+                triggerHaptic()
+                sharingCountdown = item
+            } label: {
+                Label(String(localized: "Share as Image"), systemImage: "camera.macro")
+            }
+        } label: {
+            Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // List Share
+        }
+    }
+
     /// Whether the countdown's target date has already passed (before
     /// today). Repeating countdowns roll forward, so they never count as
     /// past.
@@ -413,8 +518,8 @@ struct CountdownSheet: View {
         }
     }
 
-    private func addCountdown(title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int) {
-        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, repeatFrequency: repeatFrequency, emoji: emoji, photoData: photoData, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays)
+    private func addCountdown(title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int, reminderKind: CountdownItem.ReminderKind, contact: CountdownItem.LinkedContact?, scheduledMessage: String?) {
+        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, repeatFrequency: repeatFrequency, emoji: emoji, photoData: photoData, photoCrop: photoCrop, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind, contact: contact, scheduledMessage: scheduledMessage)
         withAnimation(.spring()) {
             countdownStore.countdowns.append(item)
         }
@@ -429,7 +534,7 @@ struct CountdownSheet: View {
         triggerHaptic()
     }
 
-    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int) {
+    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int, reminderKind: CountdownItem.ReminderKind, contact: CountdownItem.LinkedContact?, scheduledMessage: String?) {
         guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
         // Assemble the edited item first so the store (and UserDefaults)
         // sees a single mutation instead of one per field.
@@ -438,10 +543,14 @@ struct CountdownSheet: View {
         updated.targetDate = targetDate
         updated.emoji = emoji
         updated.photoData = photoData
+        updated.photoCrop = photoCrop
         updated.isPinned = isPinned
         updated.repeatFrequency = repeatFrequency
         updated.reminderTime = reminderTime
         updated.reminderLeadDays = reminderLeadDays
+        updated.reminderKind = reminderKind
+        updated.contact = contact
+        updated.scheduledMessage = scheduledMessage
         withAnimation(.spring()) {
             countdownStore.countdowns[index] = updated
         }

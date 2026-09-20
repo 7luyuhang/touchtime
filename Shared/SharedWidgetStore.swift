@@ -19,6 +19,11 @@ enum SharedWidgetStore {
     static let analogClockShowScaleKey = "analogClockShowScale"
     static let analogClockShowUTCHandKey = "analogClockShowUTCHand"
     static let solarCurveShowSunKey = "solarCurveShowSun"
+    // Same key the app's CountdownStore uses in standard defaults, mirrored
+    // into the App Group for the Countdown widget.
+    static let countdownsKey = "savedCountdowns"
+    // The Countdown widget's kind, for targeted timeline reloads from the app.
+    static let countdownWidgetKind = "CountdownWidget"
 
     // Conditions older than this are ignored by the widget: the app may not
     // have been opened for a long time, and stale "rain" is worse than none.
@@ -46,6 +51,21 @@ enum SharedWidgetStore {
 
     static func use24HourFormat() -> Bool {
         sharedDefaults?.bool(forKey: use24HourKey) ?? false
+    }
+
+    // Widget side: the user's saved countdowns; empty until the app has
+    // synced them (or when there are none).
+    static func loadCountdowns() -> [CountdownItem] {
+        guard let data = sharedDefaults?.data(forKey: countdownsKey),
+              let items = try? JSONDecoder().decode([CountdownItem].self, from: data) else {
+            return []
+        }
+        return items
+    }
+
+    // App side: mirror the encoded countdown list into the shared container.
+    static func saveCountdowns(_ data: Data) {
+        sharedDefaults?.set(data, forKey: countdownsKey)
     }
 
     // Widget side: complication customisations chosen in the app, so widgets
@@ -130,6 +150,9 @@ enum SharedWidgetStore {
         let standard = UserDefaults.standard
         if let data = standard.data(forKey: worldClocksKey) {
             shared.set(data, forKey: worldClocksKey)
+        }
+        if let data = standard.data(forKey: countdownsKey) {
+            shared.set(data, forKey: countdownsKey)
         }
         shared.set(standard.bool(forKey: use24HourKey), forKey: use24HourKey)
         shared.set(standard.bool(forKey: showWeatherKey), forKey: showWeatherKey)

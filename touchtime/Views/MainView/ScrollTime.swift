@@ -17,6 +17,13 @@ struct ScrollTimeView: View {
     enum ExpandedControlsMode {
         case alarmTimerClose
         case timerControls
+        case stopwatchControls
+
+        /// Timer and stopwatch keep their controls expanded permanently,
+        /// replacing the slide-to-adjust pill.
+        var isAlwaysExpanded: Bool {
+            self != .alarmTimerClose
+        }
     }
 
     private let minuteStep: TimeInterval = 60
@@ -29,11 +36,16 @@ struct ScrollTimeView: View {
     var expandedControlsMode: ExpandedControlsMode = .alarmTimerClose
     var onAlarmTap: (() -> Void)? = nil
     var onTimerTap: (() -> Void)? = nil
+    var onCountdownTap: (() -> Void)? = nil
     var onTimerResetTap: (() -> Void)? = nil
     var onTimerPlayPauseTap: (() -> Void)? = nil
     var timerPlayPauseSymbol: String = "play.fill"
     var timerPlayPauseTitle: String? = nil
-    var onExpandControlsByDoubleTap: (() -> Void)? = nil
+    var stopwatchControlsState: StopwatchControlsState = .idle
+    /// Start (idle / stopped) or Stop (running).
+    var onStopwatchStartStopTap: (() -> Void)? = nil
+    /// Lap (running) or Reset (stopped).
+    var onStopwatchLapResetTap: (() -> Void)? = nil
     @State private var dragOffset: CGFloat = 0
     @State private var accumulatedOffset: TimeInterval = 0
     @State private var eventStore = EKEventStore()
@@ -64,6 +76,9 @@ struct ScrollTimeView: View {
     @AppStorage("selectedCalendarIdentifier") private var selectedCalendarIdentifier: String = ""
     @AppStorage("addMeetLinkToEvents") private var addMeetLinkToEvents = false
     @AppStorage("hasRequestedReviewAfterFirstReset") private var hasRequestedReviewAfterFirstReset = false
+    // Set once the user has double-tapped the pill to open the expanded
+    // controls. Until then the idle label advertises the gesture.
+    @AppStorage("hasDiscoveredScrollTimeDoubleTap") private var hasDiscoveredScrollTimeDoubleTap = false
     @AppStorage("resetCount") private var resetCount: Int = 0
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @Environment(\.requestReview) private var requestReview
@@ -548,6 +563,22 @@ struct ScrollTimeView: View {
         }
     }
     
+    /// Whether the idle label should advertise the double-tap gesture instead
+    /// of "Slide to Adjust". Only while double-tap actually does something
+    /// here, and only until the user has performed it once.
+    private var showsDoubleTapHint: Bool {
+        enableDoubleTapExpandedControls && !hasDiscoveredScrollTimeDoubleTap
+    }
+
+    /// Shared styling for the centered idle label.
+    private func idleIndicatorLabel(_ text: Text) -> some View {
+        text
+            .foregroundStyle(.secondary)
+            .fontWeight(.medium)
+            .transition(.blurReplace().combined(with: .move(edge: .top)))
+            .blendMode(.plusLighter)
+    }
+
     /// Default "Slide to Adjust" indicator
     @ViewBuilder
     private var defaultSlideIndicator: some View {
@@ -560,11 +591,11 @@ struct ScrollTimeView: View {
         
         Spacer()
         
-        Text("Slide to Adjust")
-            .foregroundStyle(.secondary)
-            .fontWeight(.medium)
-            .transition(.blurReplace().combined(with: .move(edge: .top)))
-            .blendMode(.plusLighter)
+        if showsDoubleTapHint {
+            idleIndicatorLabel(Text("Double-tap for more features"))
+        } else {
+            idleIndicatorLabel(Text("Slide to Adjust"))
+        }
         
         Spacer()
         
@@ -590,6 +621,10 @@ struct ScrollTimeView: View {
             dragOffset = 0
             showButtons = true
         }
+        // The gesture has been discovered: from now on the idle label goes
+        // back to "Slide to Adjust". The pill is morphing into the expanded
+        // controls at this point, so the swap itself is not visible.
+        hasDiscoveredScrollTimeDoubleTap = true
         triggerControlHaptic(style: .rigid)
     }
 
@@ -612,6 +647,14 @@ struct ScrollTimeView: View {
             onTimerTap()
         } else {
             NotificationCenter.default.post(name: NSNotification.Name("ShowSetTimerSheet"), object: nil)
+        }
+    }
+
+    private func handleCountdownAction() {
+        if let onCountdownTap {
+            onCountdownTap()
+        } else {
+            NotificationCenter.default.post(name: NSNotification.Name("ShowCountdownSheet"), object: nil)
         }
     }
 
@@ -697,82 +740,61 @@ struct ScrollTimeView: View {
         .onTapGesture(count: 2) {
             guard enableDoubleTapExpandedControls, timeOffset == 0 else { return }
             expandActionButtons()
-            onExpandControlsByDoubleTap?()
         }
     }
 
-    // Double-tap Feature
+    // Double-tap Feature: icon-only capsules for Alarm, Timer and Countdown,
+    // then the close button. The visible titles are gone, so each action
+    // keeps its name as the accessibility label.
     @ViewBuilder
     private var alarmTimerCloseButtons: some View {
         HStack(spacing: 5) {
-            Button {
-                triggerControlHaptic(style: .soft)
+            expandedControlButton(systemImage: "alarm", glassID: "alarmControl") {
                 handleAlarmAction()
-                collapseActionButtons()
-            } label: {
-                HStack {
-                    Image(systemName: "alarm")
-                        .font(.headline)
-                    Text("Alarm")
-                }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            .frame(height: controlHeight)
-            .contentShape(Capsule(style: .continuous))
-            .glassEffect(.regular.interactive())
-            .glassEffectID("alarmControl", in: glassNamespace)
-            .glassEffectTransition(.matchedGeometry)
+            .accessibilityLabel(Text("Alarm"))
 
-            Button {
-                triggerControlHaptic(style: .soft)
+            expandedControlButton(systemImage: "timer", glassID: "timerControl") {
                 handleTimerAction()
-                collapseActionButtons()
-            } label: {
-                HStack {
-                    Image(systemName: "timer")
-                        .font(.headline)
-                    Text("Timer")
-                }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            .frame(height: controlHeight)
-            .contentShape(Capsule(style: .continuous))
-            .glassEffect(.regular.interactive())
-            .glassEffectID("timerControl", in: glassNamespace)
-            .glassEffectTransition(.matchedGeometry)
+            .accessibilityLabel(Text("Timer"))
 
-            Button {
-                triggerControlHaptic(style: .rigid)
-                collapseActionButtons()
-            } label: {
-                ZStack {
-                    Capsule(style: .continuous)
-                        .fill(.clear)
-
-                    Image(systemName: "xmark")
-                        .font(.headline)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Capsule(style: .continuous))
+            expandedControlButton(systemImage: "hourglass", glassID: "countdownControl") {
+                handleCountdownAction()
             }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            .frame(height: controlHeight)
-            .glassEffect(.regular.interactive())
-            .glassEffectID("closeControl", in: glassNamespace)
-            .glassEffectTransition(.matchedGeometry)
+            .accessibilityLabel(Text("Countdown"))
+
+            expandedControlButton(systemImage: "xmark", glassID: "closeControl", hapticStyle: .rigid) { }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    /// One capsule of the expanded controls: the action runs, then the
+    /// controls collapse. The glass ID pairs it with the collapsed pill
+    /// for the morph in and out.
+    private func expandedControlButton(
+        systemImage: String,
+        glassID: String,
+        hapticStyle: UIImpactFeedbackGenerator.FeedbackStyle = .soft,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            triggerControlHaptic(style: hapticStyle)
+            action()
+            collapseActionButtons()
+        } label: {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.medium))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .frame(height: controlHeight)
+        .contentShape(Capsule(style: .continuous))
+        .glassEffect(.regular.interactive())
+        .glassEffectID(glassID, in: glassNamespace)
+        .glassEffectTransition(.matchedGeometry)
     }
 
     // Timer Controls
@@ -851,6 +873,86 @@ struct ScrollTimeView: View {
         .frame(maxWidth: .infinity)
     }
 
+    // Stopwatch Controls: Start → Lap / Stop → Reset / Start → (at 99:59:59.99) Reset
+    @ViewBuilder
+    private var stopwatchControlButtons: some View {
+        let isRunning = stopwatchControlsState == .running
+        let isFinished = stopwatchControlsState == .finished
+
+        HStack(spacing: 8) {
+            if stopwatchControlsState != .idle {
+                stopwatchControlButton(
+                    systemImage: isRunning ? "stopwatch" : "arrow.counterclockwise",
+                    title: isRunning ? String(localized: "Lap") : String(localized: "Reset"),
+                    isProminent: false,
+                    glassID: "stopwatchLapResetControl",
+                    hapticStyle: isRunning ? .rigid : .soft
+                ) {
+                    onStopwatchLapResetTap?()
+                }
+            }
+
+            // Nothing left to start once the limit is reached
+            if !isFinished {
+                stopwatchControlButton(
+                    systemImage: isRunning ? "stop.fill" : "play.fill",
+                    title: isRunning ? String(localized: "Stop") : String(localized: "Start"),
+                    isProminent: true,
+                    glassID: "stopwatchStartStopControl",
+                    hapticStyle: .soft
+                ) {
+                    onStopwatchStartStopTap?()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .animation(.spring(duration: 0.25), value: stopwatchControlsState)
+    }
+
+    /// One stopwatch capsule. The label swaps with a blur when the state
+    /// changes (Lap ↔ Reset, Stop ↔ Start); the prominent style marks Start / Stop.
+    private func stopwatchControlButton(
+        systemImage: String,
+        title: String,
+        isProminent: Bool,
+        glassID: String,
+        hapticStyle: UIImpactFeedbackGenerator.FeedbackStyle,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button {
+            triggerControlHaptic(style: hapticStyle)
+            action()
+            collapseActionButtons()
+        } label: {
+            ZStack {
+                Capsule(style: .continuous)
+                    .fill(.clear)
+
+                HStack {
+                    Image(systemName: systemImage)
+                        .font(.headline)
+                    Text(title)
+                }
+                .id(title)
+                .transition(.blurReplace.combined(with: .opacity))
+            }
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(isProminent ? .black : .primary)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .frame(maxWidth: .infinity)
+        .frame(height: controlHeight)
+        .glassEffect(
+            isProminent
+                ? .regular.tint(.white).interactive()
+                : .regular.interactive()
+        )
+        .glassEffectID(glassID, in: glassNamespace)
+        .glassEffectTransition(.materialize)
+    }
+
     @ViewBuilder
     private var splitActionButtons: some View {
         switch expandedControlsMode {
@@ -858,6 +960,8 @@ struct ScrollTimeView: View {
             alarmTimerCloseButtons
         case .timerControls:
             timerControlButtons
+        case .stopwatchControls:
+            stopwatchControlButtons
         }
     }
 
@@ -969,8 +1073,8 @@ struct ScrollTimeView: View {
     // MARK: - Body
     
     var body: some View {
-        let isTimerControlsMode = expandedControlsMode == .timerControls
-        let isExpanded = enableDoubleTapExpandedControls && (isTimerControlsMode || showButtons)
+        let isExpanded = enableDoubleTapExpandedControls
+            && (expandedControlsMode.isAlwaysExpanded || showButtons)
 
         GlassEffectContainer(spacing: 5) {
             if isExpanded {
@@ -1037,7 +1141,7 @@ struct ScrollTimeView: View {
             }
         }
         .onChange(of: expandedControlsMode) { _, newMode in
-            if newMode == .timerControls {
+            if newMode.isAlwaysExpanded {
                 stopInertia()
                 dragOffset = 0
             }

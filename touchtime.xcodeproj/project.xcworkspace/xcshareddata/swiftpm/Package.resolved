@@ -1,15 +1,6 @@
 {
-  "originHash" : "c1b9809f00bd95ece46c19b94af623ccf095fc5e9bbd144393063c1e6f463a3a",
+  "originHash" : "4e8d464f22e2674958fe4cc0e78548da9238f409471881e2170f45d26130807b",
   "pins" : [
-    {
-      "identity" : "moonkit",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/davideilmito/MoonKit.git",
-      "state" : {
-        "revision" : "be220f375384b47f2b6eaeda54319ceaec0b5a59",
-        "version" : "2.1.1"
-      }
-    },
     {
       "identity" : "swiftui-shimmer",
       "kind" : "remoteSourceControl",

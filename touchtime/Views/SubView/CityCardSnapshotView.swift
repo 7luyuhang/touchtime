@@ -121,6 +121,21 @@ struct CityCardSnapshotView: View {
     let additionalTimeDisplay: String
     let showSkyDot: Bool
     let additionalTimeText: String
+    /// Frame of the image: a centred crop of the 9:16 layout, so the card
+    /// keeps its size and only the amount of backdrop around it changes.
+    var aspectRatio: ShareAspectRatio = .nineBySixteen
+    /// Corner radius of that frame. Square (0) for the exported file; the
+    /// share preview rounds it here so the crop is its only clip, rather
+    /// than a rounded clip wrapped around a square one.
+    var frameCornerRadius: CGFloat = 0
+    
+    /// Everything is laid out at the tallest frame and the shorter ratios
+    /// take a centred crop of it, as the countdown share card does: the
+    /// card sits in the middle of both boxes, so the crop lands exactly
+    /// where laying the card out in the shorter frame would have put it,
+    /// while the sky keeps its 9:16 framing instead of being re-cropped
+    /// per ratio.
+    private static let layoutSize = ShareAspectRatio.nineBySixteen.size
     
     private var hasComplication: Bool {
         complications.hasVisibleComplication
@@ -229,8 +244,10 @@ struct CityCardSnapshotView: View {
                         .blendMode(.plusLighter)
                         .allowsHitTesting(false)
                 }
-                Color.black.opacity(0.015)
-                    .blendMode(.plusDarker)
+                // Dimmed so the card reads on top: its sky is now the same
+                // colour as this backdrop, and only the dim keeps the
+                // card/backdrop contrast where it was.
+                Color.black.opacity(0.25)
             }
             
             VStack(spacing: 10) {
@@ -301,13 +318,20 @@ struct CityCardSnapshotView: View {
                 .padding(.vertical, 12)
                 .background {
                     if showSkyDot {
+                        // Over black, as the row sits on Home's black screen
+                        // background. The sky is 65% translucent, so left
+                        // directly on the backdrop (the same sky again) it
+                        // came out about a third brighter than on Home.
                         SkyBackgroundView(
                             date: date,
                             timeZoneIdentifier: timeZoneIdentifier,
                             weatherCondition: weatherCondition,
                             showRainEffect: true,
-                            staticRainElapsed: 30.0
+                            staticRainElapsed: 30.0,
+                            appliesCardChrome: false
                         )
+                        .background(Color.black)
+                        .skyBackgroundCardChrome()
                     } else {
                         RoundedRectangle(cornerRadius: 26, style: .continuous)
                             .fill(Color(UIColor.secondarySystemBackground))
@@ -331,6 +355,12 @@ struct CityCardSnapshotView: View {
                 .padding(.horizontal, 24)
             }
         }
-        .frame(width: 360, height: 640) // 9:16 share frame ratio
+        // Pinned to 9:16 so nothing inside re-lays out when the ratio
+        // changes; the second frame only shrinks the window the content
+        // is seen through, keeping the stars and the sky shader off the
+        // ratio animation's hot path.
+        .frame(width: Self.layoutSize.width, height: Self.layoutSize.height)
+        .frame(width: aspectRatio.size.width, height: aspectRatio.size.height) // 9:16 unless another frame is picked
+        .clipShape(RoundedRectangle(cornerRadius: frameCornerRadius, style: .continuous))
     }
 }

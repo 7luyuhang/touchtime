@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import MoonKit
 
 // MARK: - Global Moon Phase Cache using NSCache
 
@@ -34,10 +33,6 @@ final class MoonPhaseCache {
     
     private let cache = NSCache<NSString, MoonPhaseDayInfo>()
     
-    private static let synodicMonth = 29.53058867
-    // MoonKit's conversion factor from moon age in days to degrees (see Moon.ageOfTheMoonDegress)
-    private static let degreesPerAgeDay = 12.1907
-    
     private init() {
         cache.countLimit = 1500  // Cache up to ~4 years of daily data
     }
@@ -56,12 +51,10 @@ final class MoonPhaseCache {
     }
     
     /// Computes moon ages for all given dates and stores asset names (moon_age_00...moon_age_29)
-    /// along with full/new moon day flags.
-    /// Uses the lightweight MoonAstronomy math instead of MoonKit's Moon: setting a new
-    /// day on a Moon triggers its moonrise/moonset search (dozens of full coordinate
-    /// passes per day), while the age alone is location independent and just a handful
-    /// of trig calls. Months of days cost well under a millisecond, so callers can run
-    /// this synchronously and have the data ready for their first frame.
+    /// along with the day-level phase and flags (MoonDay).
+    /// The age alone is location independent and just a handful of trig calls
+    /// (MoonAstronomy.snapshot), so months of days cost well under a millisecond
+    /// and callers can run this synchronously and have the data ready for their first frame.
     func prefetch(dates: [Date], calendar: Calendar) {
         // Day-start ages memoized so consecutive days share their boundary computation
         var agesByDay: [NSString: Double] = [:]
@@ -79,51 +72,23 @@ final class MoonPhaseCache {
             let cacheKey = key(for: date, calendar: calendar)
             if cache.object(forKey: cacheKey) != nil { continue }
             
-            let ageAtDayStart = moonAge(atStartOf: date)
             let nextDayStart = calendar.date(byAdding: .day, value: 1, to: date) ?? date.addingTimeInterval(86400)
-            let ageAtDayEnd = moonAge(atStartOf: nextDayStart)
+            let day = MoonDay(
+                ageDaysAtStart: moonAge(atStartOf: date),
+                ageDaysAtEnd: moonAge(atStartOf: nextDayStart)
+            )
             
             // Age wraps at the end of the synodic cycle (~29.5 days) back to new moon
-            let imageIndex = Int(ageAtDayStart.rounded()) % 30
-            
-            // New moon day: the age wraps back to zero during the day.
-            // Full moon day: the age crosses half a synodic month during the day.
-            let halfCycle = Self.synodicMonth / 2
-            let isNewMoonDay = ageAtDayEnd < ageAtDayStart
-            let isFullMoonDay = ageAtDayStart <= halfCycle && ageAtDayEnd > halfCycle
-            
-            // Quarter days: the age crosses a quarter/three-quarter cycle during the day.
-            // Detected via crossings because MoonKit's own quarter windows span only ~4h,
-            // which a single midday sample would usually miss.
-            let quarterCycle = Self.synodicMonth / 4
-            let threeQuarterCycle = Self.synodicMonth * 3 / 4
-            let isFirstQuarterDay = ageAtDayStart <= quarterCycle && ageAtDayEnd > quarterCycle
-            let isLastQuarterDay = ageAtDayStart <= threeQuarterCycle && ageAtDayEnd > threeQuarterCycle
-            
-            let phase: MoonPhase
-            if isNewMoonDay {
-                phase = .newMoon
-            } else if isFullMoonDay {
-                phase = .fullMoon
-            } else if isFirstQuarterDay {
-                phase = .firstQuarter
-            } else if isLastQuarterDay {
-                phase = .lastQuarter
-            } else {
-                // Midday age gives a stable representative phase for the whole day
-                let middayDegrees = ((ageAtDayStart + ageAtDayEnd) / 2 * Self.degreesPerAgeDay)
-                    .truncatingRemainder(dividingBy: 360)
-                phase = MoonPhase.ageOfTheMoonDegrees2MoonPhase(middayDegrees)
-            }
+            let imageIndex = Int(day.ageDaysAtStart.rounded()) % 30
             
             cache.setObject(
                 MoonPhaseDayInfo(
                     imageName: String(format: "moon_age_%02d", imageIndex),
-                    isFullMoonDay: isFullMoonDay,
-                    isNewMoonDay: isNewMoonDay,
-                    isFirstQuarterDay: isFirstQuarterDay,
-                    isLastQuarterDay: isLastQuarterDay,
-                    phase: phase
+                    isFullMoonDay: day.isFullMoonDay,
+                    isNewMoonDay: day.isNewMoonDay,
+                    isFirstQuarterDay: day.isFirstQuarterDay,
+                    isLastQuarterDay: day.isLastQuarterDay,
+                    phase: day.phase
                 ),
                 forKey: cacheKey
             )
@@ -250,31 +215,7 @@ struct MoonPhaseView: View {
     // Phase name of the selected day (today by default), nil until prefetched
     private var selectedDayPhaseName: String? {
         let date = selectedDate ?? currentDate.addingTimeInterval(timeOffset)
-        guard let info = MoonPhaseCache.shared.dayInfo(for: date, calendar: calendar) else { return nil }
-        return Self.phaseName(for: info.phase)
-    }
-    
-    static func phaseName(for phase: MoonKit.MoonPhase) -> String? {
-        switch phase {
-        case .newMoon:
-            return String(localized: "New Moon")
-        case .waxingCrescent:
-            return String(localized: "Waxing Crescent")
-        case .firstQuarter:
-            return String(localized: "First Quarter")
-        case .waxingGibbous:
-            return String(localized: "Waxing Gibbous")
-        case .fullMoon:
-            return String(localized: "Full Moon")
-        case .waningGibbous:
-            return String(localized: "Waning Gibbous")
-        case .lastQuarter:
-            return String(localized: "Last Quarter")
-        case .waningCrescent:
-            return String(localized: "Waning Crescent")
-        case .error:
-            return nil
-        }
+        return MoonPhaseCache.shared.dayInfo(for: date, calendar: calendar)?.phase.localizedName
     }
     
     // Synchronously prepare month and day data (fast, no moon calculation)

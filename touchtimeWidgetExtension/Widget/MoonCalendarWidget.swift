@@ -24,10 +24,8 @@ struct MoonCalendarWidgetEntry: TimelineEntry {
 }
 
 struct MoonCalendarWidgetProvider: TimelineProvider {
-    // The whole month is computed with the lightweight MoonAstronomy math
-    // (a handful of trig calls per day) instead of MoonKit's Moon, whose
-    // per-day moonrise/moonset search across 31 days could push the
-    // timeline past WidgetKit's budget on slow devices.
+    // The whole month is a handful of trig calls per day (MoonAstronomy.snapshot),
+    // far inside WidgetKit's timeline budget even on slow devices.
     private func makeEntry(for date: Date) -> MoonCalendarWidgetEntry {
         let calendar = Calendar.current
         let monthStart = calendar.date(

@@ -11,8 +11,6 @@ import UIKit
 import AVFoundation
 import CoreHaptics
 import WeatherKit
-import MoonKit
-import CoreLocation
 import TipKit
 import AlarmKit
 import Photos
@@ -49,8 +47,12 @@ struct AnalogClockFullView: View {
     @State private var selectedCollectionId: UUID? = nil
     @State private var showTimeInsteadOfCityName = false
     @State private var showTimeAdjustmentSheet = false
-    @State private var selectedDisplayPage: DigitalTimeDisplayView.DisplayPage =
-        UserDefaults.standard.integer(forKey: "homeTimerConfiguredSeconds") > 0 ? .timer : .time
+    @State private var selectedDisplayPage: DigitalTimeDisplayView.DisplayPage = {
+        if UserDefaults.standard.double(forKey: "homeStopwatchStartEpoch") > 0 {
+            return .stopwatch
+        }
+        return UserDefaults.standard.integer(forKey: "homeTimerConfiguredSeconds") > 0 ? .timer : .time
+    }()
     @State private var isCameraBackgroundEnabled = false
     @State private var isCameraPreparing = false
     @State private var activeCameraRequestId = UUID()
@@ -82,6 +84,9 @@ struct AnalogClockFullView: View {
     @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
     @AppStorage("homeTimerAlarmID") private var homeTimerAlarmIDRawValue = ""
     @AppStorage("homeTimerName") private var homeTimerName = ""
+    @AppStorage("homeStopwatchStartEpoch") private var homeStopwatchStartEpoch: Double = 0
+    @AppStorage("homeStopwatchAccumulatedSeconds") private var homeStopwatchAccumulatedSeconds: Double = 0
+    @AppStorage("homeStopwatchLapsData") private var homeStopwatchLapsData = Data()
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let alarmManager = AlarmManager.shared
@@ -485,7 +490,24 @@ struct AnalogClockFullView: View {
         }
 
         let remaining = homeTimerRemainingFromEndDate(at: Date())
-        homeTimerCompletionHandled = remaining == 0
+        if remaining == 0 {
+            // The timer ran out while this view was away: still count that run
+            if !homeTimerCompletionHandled {
+                recordHomeTimerCompletion()
+            }
+        } else {
+            homeTimerCompletionHandled = false
+        }
+    }
+
+    /// Marks the current run as finished, counting it once towards the
+    /// usage count of its Recents entry.
+    private func recordHomeTimerCompletion() {
+        RecentTimerStore.recordCompletion(
+            durationSeconds: homeTimerConfiguredSeconds,
+            name: RecentTimerStore.normalizedName(homeTimerName)
+        )
+        homeTimerCompletionHandled = true
     }
 
     private func refreshHomeTimerAlarm(
@@ -575,7 +597,7 @@ struct AnalogClockFullView: View {
         let remaining = homeTimerRemainingSeconds(at: now)
         if remaining == 0 {
             guard !homeTimerCompletionHandled else { return }
-            homeTimerCompletionHandled = true
+            recordHomeTimerCompletion()
 
             if hapticEnabled {
                 let notificationFeedback = UINotificationFeedbackGenerator()
@@ -601,11 +623,95 @@ struct AnalogClockFullView: View {
         impactFeedback.impactOccurred()
     }
 
+    // MARK: - Home Stopwatch
+
+    private var homeStopwatch: StopwatchSnapshot {
+        StopwatchSnapshot(
+            startEpoch: homeStopwatchStartEpoch,
+            accumulatedSeconds: homeStopwatchAccumulatedSeconds,
+            laps: StopwatchLapStore.decode(homeStopwatchLapsData)
+        )
+    }
+
+    private func startHomeStopwatch() {
+        let stopwatch = homeStopwatch
+        guard !stopwatch.isRunning, !stopwatch.isFinished else { return }
+        homeStopwatchStartEpoch = Date().timeIntervalSince1970
+    }
+
+    /// Persist the stop once the running total hits 99:59:59.99. The display
+    /// is already clamped, so this only has to flip the controls over.
+    private func finalizeHomeStopwatchIfLimitReached(at now: Date) {
+        guard homeStopwatch.hasReachedLimit(at: now) else { return }
+        homeStopwatchAccumulatedSeconds = StopwatchSnapshot.maxElapsed
+        homeStopwatchStartEpoch = 0
+    }
+
+    private func stopHomeStopwatch() {
+        let stopwatch = homeStopwatch
+        guard stopwatch.isRunning else { return }
+        homeStopwatchAccumulatedSeconds = stopwatch.elapsed(at: Date())
+        homeStopwatchStartEpoch = 0
+    }
+
+    /// Start / Stop button and the tap on the stopwatch digits.
+    private func toggleHomeStopwatch() {
+        if homeStopwatch.isRunning {
+            stopHomeStopwatch()
+        } else {
+            startHomeStopwatch()
+        }
+    }
+
+    private func handleHomeStopwatchDigitsTap() {
+        guard !homeStopwatch.isFinished else { return }
+        toggleHomeStopwatch()
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    private func recordHomeStopwatchLap() {
+        let stopwatch = homeStopwatch
+        guard stopwatch.isRunning else { return }
+        let lapTime = stopwatch.currentLapElapsed(at: Date())
+        homeStopwatchLapsData = StopwatchLapStore.encode(stopwatch.laps + [lapTime])
+    }
+
+    private func resetHomeStopwatch() {
+        homeStopwatchStartEpoch = 0
+        homeStopwatchAccumulatedSeconds = 0
+        homeStopwatchLapsData = Data()
+    }
+
+    /// Lap while running, Reset once stopped.
+    private func handleHomeStopwatchLapResetTap() {
+        if homeStopwatch.isRunning {
+            recordHomeStopwatchLap()
+        } else {
+            resetHomeStopwatch()
+        }
+    }
+
+    private var scrollTimeExpandedControlsMode: ScrollTimeView.ExpandedControlsMode {
+        switch selectedDisplayPage {
+        case .time:
+            return .alarmTimerClose
+        case .timer:
+            return .timerControls
+        case .stopwatch:
+            return .stopwatchControls
+        }
+    }
+
     private var cityTimeSegmentSelection: Binding<Bool> {
         Binding(
             get: { showTimeInsteadOfCityName },
             set: { newValue in
-                guard newValue != showTimeInsteadOfCityName || selectedDisplayPage == .timer else { return }
+                guard newValue != showTimeInsteadOfCityName || selectedDisplayPage != .time else { return }
                 triggerMenuHaptic()
                 showTimeInsteadOfCityName = newValue
                 selectedDisplayPage = .time
@@ -615,11 +721,28 @@ struct AnalogClockFullView: View {
 
     @ViewBuilder
     private var principalToolbarTitle: some View {
-        if selectedDisplayPage == .timer {
+        switch selectedDisplayPage {
+        case .timer:
             timerToolbarTitle
-        } else if shouldShowToolbarTitle {
-            collectionTitleView
+        case .stopwatch:
+            stopwatchToolbarTitle
+        case .time:
+            if shouldShowToolbarTitle {
+                collectionTitleView
+            }
         }
+    }
+
+    // Stopwatch Tool Bar Title
+    private var stopwatchToolbarTitle: some View {
+        Text(String(localized: "Stopwatch"))
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.primary)
+            .lineLimit(1)
+            .padding(.horizontal, 16)
+            .frame(height: 44)
+            .glassEffect(.regular, in: Capsule(style: .continuous))
+            .contentShape(Capsule())
     }
 
     // Timer Tool Bar Title
@@ -747,14 +870,14 @@ struct AnalogClockFullView: View {
                 triggerMenuHaptic()
                 showSetTimerSheet = true
             }) {
-                Label(String(localized: "Timer"), systemImage: "timer")
+                Label(String(localized: "Timers"), systemImage: "timer")
             }
 
             Button(action: {
                 triggerMenuHaptic()
                 showCountdownSheet = true
             }) {
-                Label(String(localized: "Countdown"), systemImage: "hourglass")
+                Label(String(localized: "Countdowns"), systemImage: "hourglass")
             }
         }
 
@@ -1029,7 +1152,12 @@ struct AnalogClockFullView: View {
                     } else {
                         // Analog Clock - always centered
                         TimelineView(.periodic(from: .now, by: 1)) { context in
-                            if selectedDisplayPage == .timer {
+                            if selectedDisplayPage == .stopwatch {
+                                StopwatchClockFaceView(
+                                    size: size,
+                                    stopwatch: homeStopwatch
+                                )
+                            } else if selectedDisplayPage == .timer {
                                 TimerClockFaceView(
                                     size: size,
                                     remainingSeconds: homeTimerRemainingSeconds(at: context.date),
@@ -1089,6 +1217,8 @@ struct AnalogClockFullView: View {
                                         triggerMenuHaptic()
                                         showSetTimerSheet = true
                                     },
+                                    stopwatch: homeStopwatch,
+                                    onStopwatchTap: handleHomeStopwatchDigitsTap,
                                     selectedPage: $selectedDisplayPage,
                                     onDisplayPageChange: { page in
                                         selectedDisplayPage = page
@@ -1111,64 +1241,73 @@ struct AnalogClockFullView: View {
                             
                             // Bottom section - Scroll controls
                             VStack {
-                                Spacer()
-                                // Local time display (hidden when continuous scroll reset button is showing)
-                                if selectedDisplayPage != .timer,
-                                   !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons),
-                                   selectedCityId != nil {
-                                    HStack(spacing: 4) {
-                                        Image(systemName: "location.fill")
-                                            .font(.footnote.weight(.medium))
-                                        Text({
-                                            if showTimeInsteadOfCityName {
-                                                // Show "Local" when hands show time
-                                                return String(localized: "Local")
-                                            } else {
-                                                // Show local time when hands show city names
-                                                let formatter = DateFormatter()
-                                                formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                formatter.timeZone = TimeZone.current
-                                                if use24HourFormat {
-                                                    formatter.dateFormat = "HH:mm"
+                                if selectedDisplayPage == .stopwatch {
+                                    // Lap history between the stopwatch face and its controls
+                                    StopwatchLapHistoryView(laps: homeStopwatch.laps)
+                                        .padding(.bottom, 4)
+                                } else {
+                                    Spacer()
+                                    // Local time display (hidden when continuous scroll reset button is showing)
+                                    if selectedDisplayPage == .time,
+                                       !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons),
+                                       selectedCityId != nil {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "location.fill")
+                                                .font(.footnote.weight(.medium))
+                                            Text({
+                                                if showTimeInsteadOfCityName {
+                                                    // Show "Local" when hands show time
+                                                    return String(localized: "Local")
                                                 } else {
-                                                    formatter.dateFormat = "h:mm"
+                                                    // Show local time when hands show city names
+                                                    let formatter = DateFormatter()
+                                                    formatter.locale = Locale(identifier: "en_US_POSIX")
+                                                    formatter.timeZone = TimeZone.current
+                                                    if use24HourFormat {
+                                                        formatter.dateFormat = "HH:mm"
+                                                    } else {
+                                                        formatter.dateFormat = "h:mm"
+                                                    }
+                                                    return formatter.string(from: displayDate)
                                                 }
-                                                return formatter.string(from: displayDate)
-                                            }
-                                        }())
-                                        .font(.subheadline.weight(.medium))
+                                            }())
+                                            .font(.subheadline.weight(.medium))
 
-                                        let additionalText = selectedAdditionalTimeText
-                                        let shouldShowAdditionalText = showTimeInsteadOfCityName
-                                            ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
-                                            : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
-                                        if shouldShowAdditionalText {
-                                            Text("·")
-                                                .font(.subheadline.weight(.medium))
-                                            Text(additionalText)
-                                                .font(.subheadline.weight(.medium))
-                                                .contentTransition(.numericText())
-                                                .animation(.smooth(duration: 0.25), value: additionalText)
+                                            let additionalText = selectedAdditionalTimeText
+                                            let shouldShowAdditionalText = showTimeInsteadOfCityName
+                                                ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
+                                                : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
+                                            if shouldShowAdditionalText {
+                                                Text("·")
+                                                    .font(.subheadline.weight(.medium))
+                                                Text(additionalText)
+                                                    .font(.subheadline.weight(.medium))
+                                                    .contentTransition(.numericText())
+                                                    .animation(.smooth(duration: 0.25), value: additionalText)
+                                            }
                                         }
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .monospacedDigit()
+                                        .contentTransition(.numericText())
+                                        .padding(.bottom, 16)
                                     }
-                                    .foregroundStyle(.secondary)
-                                    .blendMode(.plusLighter)
-                                    .monospacedDigit()
-                                    .contentTransition(.numericText())
-                                    .padding(.bottom, 16)
+                                    Spacer()
                                 }
-                                Spacer()
                                 ScrollTimeView(
                                     timeOffset: $timeOffset,
                                     showButtons: $showScrollTimeButtons,
                                     worldClocks: $worldClocks,
                                     enableDoubleTapExpandedControls: true,
-                                    expandedControlsMode: selectedDisplayPage == .timer ? .timerControls : .alarmTimerClose,
+                                    expandedControlsMode: scrollTimeExpandedControlsMode,
                                     onAlarmTap: {
                                         showSetAlarmSheet = true
                                     },
                                     onTimerTap: {
                                         showSetTimerSheet = true
+                                    },
+                                    onCountdownTap: {
+                                        showCountdownSheet = true
                                     },
                                     onTimerResetTap: {
                                         resetHomeTimer()
@@ -1177,7 +1316,10 @@ struct AnalogClockFullView: View {
                                         handleHomeTimerTap()
                                     },
                                     timerPlayPauseSymbol: timerPlayPauseSymbol(at: Date()),
-                                    timerPlayPauseTitle: timerPlayPauseTitle(at: Date())
+                                    timerPlayPauseTitle: timerPlayPauseTitle(at: Date()),
+                                    stopwatchControlsState: homeStopwatch.controlsState,
+                                    onStopwatchStartStopTap: toggleHomeStopwatch,
+                                    onStopwatchLapResetTap: handleHomeStopwatchLapResetTap
                                 )
                                 .padding(.horizontal)
                                 .padding(.bottom, 8)
@@ -1227,11 +1369,14 @@ struct AnalogClockFullView: View {
                             onFlipCamera: handleCameraFlip,
                             onEnableCamera: handleCameraToggle
                         )
+                        // The camera background belongs to the Time page only
+                        .disabled(selectedDisplayPage != .time)
                     }
                 }
             }
             .onReceive(timer) { now in
                 handleHomeTimerTick(at: now)
+                finalizeHomeStopwatchIfLimitReached(at: now)
 
                 let calendar = Calendar.current
                 if calendar.component(.minute, from: now) != calendar.component(.minute, from: currentDate) {
@@ -1249,6 +1394,9 @@ struct AnalogClockFullView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowSetTimerSheet"))) { _ in
                 showSetTimerSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowCountdownSheet"))) { _ in
+                showCountdownSheet = true
             }
             .sheet(isPresented: $showDetailsSheet) {
                 if let cityId = selectedCityId,
@@ -1335,7 +1483,7 @@ struct AnalogClockFullView: View {
                     ensureValidSelectedCity(in: displayedClocks)
                 }
             }
-            .sheet(isPresented: $showLifetimeStore) {
+            .fullScreenCover(isPresented: $showLifetimeStore) {
                 NavigationStack {
                     LifetimeStoreView()
                 }
@@ -1380,6 +1528,7 @@ struct AnalogClockFullView: View {
                 loadCollections()
                 ensureValidSelectedCity(in: displayedClocks)
                 restoreHomeTimerStateIfNeeded()
+                finalizeHomeStopwatchIfLimitReached(at: Date())
 
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = Task {
@@ -1425,6 +1574,14 @@ struct AnalogClockFullView: View {
                 } else {
                     cameraSessionController.stopRunning()
                 }
+            }
+            .onChange(of: selectedDisplayPage) { _, newValue in
+                // The camera background belongs to the Time page only; leaving it
+                // (by swipe or the auto-switch to a freshly set timer) shuts the
+                // camera down, including a toggle that is still preparing.
+                guard newValue != .time,
+                      isCameraBackgroundEnabled || isCameraPreparing else { return }
+                disableCameraBackground()
             }
             .onChange(of: showLocalTime) { oldValue, newValue in
                 ensureValidSelectedCity(in: displayedClocks)
@@ -1712,18 +1869,6 @@ struct AnalogClockFaceView: View {
         return cache
     }()
     
-    // MARK: - Moon Phase Cache
-    private class MoonPhaseWrapper {
-        let icon: String
-        init(_ icon: String) { self.icon = icon }
-    }
-    
-    private static let moonPhaseCache: NSCache<NSString, MoonPhaseWrapper> = {
-        let cache = NSCache<NSString, MoonPhaseWrapper>()
-        cache.countLimit = 30
-        return cache
-    }()
-    
     // Calculate sunrise and sunset times (with caching)
     private var sunTimes: SunTimesData? {
         guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
@@ -1916,82 +2061,22 @@ struct AnalogClockFaceView: View {
         date.addingTimeInterval(-timeOffset)
     }
     
-    // Get SF Symbol for current moon phase (with caching)
-    private var moonPhaseIcon: String {
-        // Get coordinates for the timezone
-        guard let coordinates = TimeZoneCoordinates.getCoordinate(for: selectedTimeZone.identifier) else {
-            return "moon.fill"
-        }
-        
-        // Create cache key based on day-level precision and timezone
+    // Moon phase for the displayed day in the selected city, the same
+    // day-level rule as the moon calendar (MoonDay). The moon's age is the
+    // same everywhere on Earth and MoonAstronomy.snapshot costs
+    // microseconds, so there is nothing to cache.
+    private var moonPhase: MoonPhase {
         var calendar = Calendar.current
         calendar.timeZone = selectedTimeZone
-        let components = calendar.dateComponents([.year, .month, .day], from: date)
-        let cacheKey = "\(selectedTimeZone.identifier)_moon_\(components.year ?? 0)_\(components.month ?? 0)_\(components.day ?? 0)" as NSString
-        
-        // Lock-free read from NSCache (thread-safe without blocking)
-        if let cached = Self.moonPhaseCache.object(forKey: cacheKey) {
-            return cached.icon
-        }
-        
-        let moon = Moon(
-            location: CLLocation(latitude: coordinates.latitude, longitude: coordinates.longitude),
-            timeZone: selectedTimeZone
-        )
-        moon.setDate(date)
-        
-        let phaseString = String(describing: moon.currentMoonPhase)
-            .replacingOccurrences(of: "MoonPhase.", with: "")
-            .replacingOccurrences(of: "_", with: " ")
-            .lowercased()
-        
-        let icon: String
-        switch phaseString {
-        case "newmoon", "new moon":
-            icon = "moonphase.new.moon"
-        case "waxingcrescent", "waxing crescent":
-            icon = "moonphase.waxing.crescent"
-        case "firstquarter", "first quarter":
-            icon = "moonphase.first.quarter"
-        case "waxinggibbous", "waxing gibbous":
-            icon = "moonphase.waxing.gibbous"
-        case "fullmoon", "full moon":
-            icon = "moonphase.full.moon"
-        case "waninggibbous", "waning gibbous":
-            icon = "moonphase.waning.gibbous"
-        case "lastquarter", "last quarter", "thirdquarter", "third quarter":
-            icon = "moonphase.last.quarter"
-        case "waningcrescent", "waning crescent":
-            icon = "moonphase.waning.crescent"
-        default:
-            icon = "moon.fill"
-        }
-        
-        Self.moonPhaseCache.setObject(MoonPhaseWrapper(icon), forKey: cacheKey)
-        return icon
+        return MoonDay(containing: date, calendar: calendar).phase
+    }
+
+    private var moonPhaseIcon: String {
+        moonPhase.symbolName
     }
 
     private var moonPhaseName: String {
-        switch moonPhaseIcon {
-        case "moonphase.new.moon":
-            return String(localized: "New Moon")
-        case "moonphase.waxing.crescent":
-            return String(localized: "Waxing Crescent")
-        case "moonphase.first.quarter":
-            return String(localized: "First Quarter")
-        case "moonphase.waxing.gibbous":
-            return String(localized: "Waxing Gibbous")
-        case "moonphase.full.moon":
-            return String(localized: "Full Moon")
-        case "moonphase.waning.gibbous":
-            return String(localized: "Waning Gibbous")
-        case "moonphase.last.quarter":
-            return String(localized: "Last Quarter")
-        case "moonphase.waning.crescent":
-            return String(localized: "Waning Crescent")
-        default:
-            return String(localized: "Moon")
-        }
+        moonPhase.localizedName
     }
 
     private func collapseScrollButtonsIfNeeded() {
@@ -2810,7 +2895,10 @@ struct GoldenHourLineView: View {
 
 // MARK: - Digital Time Display
 struct DigitalTimeDisplayView: View {
+    /// Declaration order is the page (and dot) order: swipe right from Time
+    /// for the Stopwatch, swipe left for the Timer.
     enum DisplayPage: Int, CaseIterable {
+        case stopwatch
         case time
         case timer
     }
@@ -2832,6 +2920,8 @@ struct DigitalTimeDisplayView: View {
     let timerIsAdjusting: Bool
     let onTimerTap: () -> Void
     let onTimerConfigureTap: () -> Void
+    let stopwatch: StopwatchSnapshot
+    let onStopwatchTap: () -> Void
     @Binding var selectedPage: DisplayPage
     let onDisplayPageChange: (DisplayPage) -> Void
     let onTimeTap: () -> Void
@@ -2854,6 +2944,8 @@ struct DigitalTimeDisplayView: View {
         timerIsAdjusting: Bool,
         onTimerTap: @escaping () -> Void,
         onTimerConfigureTap: @escaping () -> Void,
+        stopwatch: StopwatchSnapshot,
+        onStopwatchTap: @escaping () -> Void,
         selectedPage: Binding<DisplayPage>,
         onDisplayPageChange: @escaping (DisplayPage) -> Void,
         onTimeTap: @escaping () -> Void
@@ -2873,6 +2965,8 @@ struct DigitalTimeDisplayView: View {
         self.timerIsAdjusting = timerIsAdjusting
         self.onTimerTap = onTimerTap
         self.onTimerConfigureTap = onTimerConfigureTap
+        self.stopwatch = stopwatch
+        self.onStopwatchTap = onStopwatchTap
         _selectedPage = selectedPage
         self.onDisplayPageChange = onDisplayPageChange
         self.onTimeTap = onTimeTap
@@ -3033,6 +3127,54 @@ struct DigitalTimeDisplayView: View {
             }
         }
     }
+
+    private func stopwatchSubtitle(at date: Date) -> String {
+        guard !stopwatch.laps.isEmpty else {
+            return String(localized: "Stopwatch")
+        }
+        let lapLabel = String.localizedStringWithFormat(
+            String(localized: "Lap %d"),
+            stopwatch.currentLapNumber
+        )
+        let lapTime = StopwatchTimeFormatter.string(from: stopwatch.currentLapElapsed(at: date))
+        return "\(lapLabel) · \(lapTime)"
+    }
+
+    @ViewBuilder
+    private var stopwatchPage: some View {
+        // Digits only redraw every frame while the stopwatch is running
+        TimelineView(.animation(paused: !stopwatch.isRunning)) { context in
+            VStack(spacing: 0) {
+                Button(action: onStopwatchTap) {
+                    Text(StopwatchTimeFormatter.string(from: stopwatch.elapsed(at: context.date)))
+                        .font(.system(size: 52))
+                        .fontWeight(.light)
+                        .fontDesign(.rounded)
+                        .monospacedDigit()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .foregroundStyle(stopwatch.hasStarted ? .white : .primary)
+                        .blendMode(stopwatch.hasStarted ? .normal : .plusLighter)
+                        // Roll the digits back to zero on Reset only. `hasStarted`
+                        // also flips on Start, so the animation is nil for that
+                        // direction; per-frame TimelineView updates never animate.
+                        .contentTransition(.numericText(countsDown: true))
+                        .animation(
+                            stopwatch.hasStarted ? nil : .spring(duration: 0.25),
+                            value: stopwatch.hasStarted
+                        )
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+
+                Text(stopwatchSubtitle(at: context.date))
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .monospacedDigit()
+            }
+        }
+    }
     
     var body: some View {
         VStack(spacing: 8) {
@@ -3040,6 +3182,13 @@ struct DigitalTimeDisplayView: View {
                 let viewportMidX = tabGeometry.size.width / 2
 
                 TabView(selection: $selectedPage) {
+                    stopwatchPage
+                        .edgeChromaticSwipeEffect(
+                            viewportMidX: viewportMidX,
+                            coordinateSpaceName: Self.tabCoordinateSpaceName
+                        )
+                        .tag(DisplayPage.stopwatch)
+
                     timePage
                         .edgeChromaticSwipeEffect(
                             viewportMidX: viewportMidX,
