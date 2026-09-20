@@ -259,12 +259,12 @@ struct StopwatchLapHistoryView: View {
     private func lapRow(index: Int, lap: TimeInterval) -> some View {
         HStack {
             Text(String.localizedStringWithFormat(String(localized: "Lap %d"), index + 1))
-                .foregroundStyle(.primary)
+                .foregroundStyle(.secondary)
 
             if let symbolName = lapExtremes.symbolName(for: index) {
                 Image(systemName: symbolName)
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(.secondary)
             }
 
             Spacer(minLength: 12)
@@ -272,7 +272,7 @@ struct StopwatchLapHistoryView: View {
             Text(StopwatchTimeFormatter.string(from: lap))
                 .foregroundStyle(.primary)
         }
-        .font(.footnote.weight(.medium))
+        .font(.subheadline.weight(.medium))
         .padding(.horizontal, 40)
         .monospacedDigit()
     }
@@ -285,7 +285,6 @@ struct StopwatchLapHistoryView: View {
                         VStack(spacing: 8) {
                             lapRow(index: index, lap: lap)
 
-                            // Rows are listed newest first, so Lap 1 is the last row
                             if index != 0 {
                                 Divider()
                                     .overlay(.white.opacity(0.05))
@@ -343,6 +342,7 @@ struct StopwatchLapListSheet: View {
                 ForEach(Array(laps.enumerated().reversed()), id: \.offset) { index, lap in
                     LabeledContent {
                         Text(StopwatchTimeFormatter.string(from: lap))
+                            .foregroundStyle(.primary)
                     } label: {
                         HStack {
                             Text(String.localizedStringWithFormat(String(localized: "Lap %d"), index + 1))
@@ -352,6 +352,7 @@ struct StopwatchLapListSheet: View {
                                     .font(.caption2.weight(.bold))
                             }
                         }
+                        .foregroundStyle(.secondary)
                     }
                     .monospacedDigit()
                 }
