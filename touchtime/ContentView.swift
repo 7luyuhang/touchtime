@@ -28,6 +28,15 @@ struct ContentView: View {
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
+
+    private var addTabRole: TabRole {
+        if #available(iOS 27.0, *) {
+            return .prominent
+        }
+
+        // iOS 26 only separates the search role from the other tabs.
+        return .search
+    }
     
     var body: some View {
         if hasCompletedOnboarding {
@@ -50,7 +59,7 @@ struct ContentView: View {
                 )
             }
             
-                Tab(value: MainTab.search, role: .search) {
+                Tab(value: MainTab.search, role: addTabRole) {
                 SearchTabView(worldClocks: $worldClocks)
                     .onAppear {
                         if hapticEnabled {
