@@ -28,6 +28,8 @@ struct ScrollTimeView: View {
 
     private let minuteStep: TimeInterval = 60
     private let controlHeight: CGFloat = 52
+    /// Matches the visual span of the system tab toolbar on wider iPhones.
+    private let maximumControlWidth: CGFloat = 400
 
     @Binding var timeOffset: TimeInterval
     @Binding var showButtons: Bool
@@ -1083,6 +1085,7 @@ struct ScrollTimeView: View {
                 mainContent
             }
         }
+        .frame(maxWidth: maximumControlWidth)
         .padding(.horizontal, 5)
         .overlay(alignment: .top) {
             if !isExpanded && timeOffset != 0 {
