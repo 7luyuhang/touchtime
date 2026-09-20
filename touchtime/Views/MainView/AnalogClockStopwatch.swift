@@ -252,7 +252,7 @@ struct StopwatchLapHistoryView: View {
                         .transition(.blurReplace.combined(with: .opacity))
                     }
                 }
-                .padding(.vertical, 8)
+                .padding(.top, 8)
                 .padding(.horizontal)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: proxy.size.height, alignment: .center)

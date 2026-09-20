@@ -3133,6 +3133,14 @@ struct DigitalTimeDisplayView: View {
                         .minimumScaleFactor(0.7)
                         .foregroundStyle(stopwatch.hasStarted ? .white : .primary)
                         .blendMode(stopwatch.hasStarted ? .normal : .plusLighter)
+                        // Roll the digits back to zero on Reset only. `hasStarted`
+                        // also flips on Start, so the animation is nil for that
+                        // direction; per-frame TimelineView updates never animate.
+                        .contentTransition(.numericText(countsDown: true))
+                        .animation(
+                            stopwatch.hasStarted ? nil : .spring(duration: 0.25),
+                            value: stopwatch.hasStarted
+                        )
                 }
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())
