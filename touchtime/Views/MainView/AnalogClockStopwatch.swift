@@ -9,11 +9,13 @@ import SwiftUI
 
 // MARK: - Stopwatch Controls State
 /// Which pair of buttons the bottom controls should offer.
-/// idle: Start · running: Lap / Stop · stopped: Reset / Start
+/// idle: Start · running: Lap / Stop · stopped: Reset / Start · finished: Reset
 enum StopwatchControlsState: Equatable {
     case idle
     case running
     case stopped
+    /// Stopped at `StopwatchSnapshot.maxElapsed`; only Reset is left.
+    case finished
 }
 
 // MARK: - Stopwatch Snapshot
@@ -21,6 +23,9 @@ enum StopwatchControlsState: Equatable {
 /// from the wall clock so the stopwatch keeps counting while the app is
 /// backgrounded or relaunched.
 struct StopwatchSnapshot: Equatable {
+    /// The stopwatch stops at 99:59:59.99, like the iOS Stopwatch.
+    static let maxElapsed: TimeInterval = 99 * 3600 + 59 * 60 + 59.99
+
     /// Unix epoch of the moment the current run started; 0 while stopped.
     var startEpoch: Double
     /// Time collected by previous runs (before the current start).
@@ -36,15 +41,33 @@ struct StopwatchSnapshot: Equatable {
         isRunning || accumulatedSeconds > 0 || !laps.isEmpty
     }
 
+    /// Stopped at `maxElapsed`; only Reset can move it on.
+    var isFinished: Bool {
+        !isRunning && accumulatedSeconds >= Self.maxElapsed
+    }
+
     var controlsState: StopwatchControlsState {
         if isRunning { return .running }
+        if isFinished { return .finished }
         return hasStarted ? .stopped : .idle
     }
 
+    /// Total elapsed time, never past `maxElapsed`.
     func elapsed(at date: Date) -> TimeInterval {
-        guard isRunning else { return max(accumulatedSeconds, 0) }
-        let currentRun = date.timeIntervalSince1970 - startEpoch
-        return max(accumulatedSeconds + max(currentRun, 0), 0)
+        let total: TimeInterval
+        if isRunning {
+            let currentRun = date.timeIntervalSince1970 - startEpoch
+            total = accumulatedSeconds + max(currentRun, 0)
+        } else {
+            total = accumulatedSeconds
+        }
+        return min(max(total, 0), Self.maxElapsed)
+    }
+
+    /// True while running once the total has hit `maxElapsed`; the run should
+    /// then be persisted as stopped.
+    func hasReachedLimit(at date: Date) -> Bool {
+        isRunning && elapsed(at: date) >= Self.maxElapsed
     }
 
     /// Time counted since the last recorded lap (or since the start).

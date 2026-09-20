@@ -873,10 +873,11 @@ struct ScrollTimeView: View {
         .frame(maxWidth: .infinity)
     }
 
-    // Stopwatch Controls: Start → Lap / Stop → Reset / Start
+    // Stopwatch Controls: Start → Lap / Stop → Reset / Start → (at 99:59:59.99) Reset
     @ViewBuilder
     private var stopwatchControlButtons: some View {
         let isRunning = stopwatchControlsState == .running
+        let isFinished = stopwatchControlsState == .finished
 
         HStack(spacing: 8) {
             if stopwatchControlsState != .idle {
@@ -891,14 +892,17 @@ struct ScrollTimeView: View {
                 }
             }
 
-            stopwatchControlButton(
-                systemImage: isRunning ? "stop.fill" : "play.fill",
-                title: isRunning ? String(localized: "Stop") : String(localized: "Start"),
-                isProminent: true,
-                glassID: "stopwatchStartStopControl",
-                hapticStyle: .soft
-            ) {
-                onStopwatchStartStopTap?()
+            // Nothing left to start once the limit is reached
+            if !isFinished {
+                stopwatchControlButton(
+                    systemImage: isRunning ? "stop.fill" : "play.fill",
+                    title: isRunning ? String(localized: "Stop") : String(localized: "Start"),
+                    isProminent: true,
+                    glassID: "stopwatchStartStopControl",
+                    hapticStyle: .soft
+                ) {
+                    onStopwatchStartStopTap?()
+                }
             }
         }
         .frame(maxWidth: .infinity)

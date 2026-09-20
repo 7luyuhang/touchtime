@@ -634,8 +634,17 @@ struct AnalogClockFullView: View {
     }
 
     private func startHomeStopwatch() {
-        guard !homeStopwatch.isRunning else { return }
+        let stopwatch = homeStopwatch
+        guard !stopwatch.isRunning, !stopwatch.isFinished else { return }
         homeStopwatchStartEpoch = Date().timeIntervalSince1970
+    }
+
+    /// Persist the stop once the running total hits 99:59:59.99. The display
+    /// is already clamped, so this only has to flip the controls over.
+    private func finalizeHomeStopwatchIfLimitReached(at now: Date) {
+        guard homeStopwatch.hasReachedLimit(at: now) else { return }
+        homeStopwatchAccumulatedSeconds = StopwatchSnapshot.maxElapsed
+        homeStopwatchStartEpoch = 0
     }
 
     private func stopHomeStopwatch() {
@@ -655,6 +664,7 @@ struct AnalogClockFullView: View {
     }
 
     private func handleHomeStopwatchDigitsTap() {
+        guard !homeStopwatch.isFinished else { return }
         toggleHomeStopwatch()
 
         if hapticEnabled {
@@ -1364,6 +1374,7 @@ struct AnalogClockFullView: View {
             }
             .onReceive(timer) { now in
                 handleHomeTimerTick(at: now)
+                finalizeHomeStopwatchIfLimitReached(at: now)
 
                 let calendar = Calendar.current
                 if calendar.component(.minute, from: now) != calendar.component(.minute, from: currentDate) {
@@ -1515,6 +1526,7 @@ struct AnalogClockFullView: View {
                 loadCollections()
                 ensureValidSelectedCity(in: displayedClocks)
                 restoreHomeTimerStateIfNeeded()
+                finalizeHomeStopwatchIfLimitReached(at: Date())
 
                 cameraWarmupTask?.cancel()
                 cameraWarmupTask = Task {
