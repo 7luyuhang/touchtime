@@ -18,6 +18,9 @@ import Photos
 struct AnalogClockFullView: View {
     /// Keeps the dial at a familiar iPhone scale when a Duo is unfolded.
     private static let maximumClockDiameter: CGFloat = 450
+    /// Gives the dial breathing room on narrower displays while meeting the
+    /// maximum diameter continuously at a 500-point content width.
+    private static let compactClockWidthRatio: CGFloat = 0.95
 
     private enum CameraPreviewFilter {
         case standard
@@ -1114,7 +1117,7 @@ struct AnalogClockFullView: View {
         NavigationStack {
             GeometryReader { geometry in
                 let size = min(
-                    geometry.size.width,
+                    geometry.size.width * Self.compactClockWidthRatio,
                     geometry.size.height,
                     Self.maximumClockDiameter
                 )
@@ -1203,43 +1206,40 @@ struct AnalogClockFullView: View {
                         // Digital time and scroll controls overlay
                         VStack(spacing: 0) {
                             // Top section - Digital time centered between nav bar and clock
-                            VStack {
-                                Spacer()
-                                DigitalTimeDisplayView(
-                                    currentDate: currentDate,
-                                    timeOffset: timeOffset,
-                                    selectedTimeZone: selectedTimeZone,
-                                    use24HourFormat: use24HourFormat,
-                                    weather: weatherManager.weatherData[selectedTimeZone.identifier],
-                                    showWeather: showWeather,
-                                    useCelsius: useCelsius,
-                                    hapticEnabled: hapticEnabled,
-                                    timerConfiguredSeconds: homeTimerConfiguredSeconds,
-                                    timerEndDateEpoch: homeTimerEndDateEpoch,
-                                    timerIsPaused: homeTimerPaused,
-                                    timerPausedRemainingSeconds: homeTimerPausedRemainingSeconds,
-                                    timerIsAdjusting: isTimerCircleAdjusting,
-                                    onTimerTap: handleHomeTimerTap,
-                                    onTimerConfigureTap: {
-                                        triggerMenuHaptic()
-                                        showSetTimerSheet = true
-                                    },
-                                    stopwatch: homeStopwatch,
-                                    onStopwatchTap: handleHomeStopwatchDigitsTap,
-                                    selectedPage: $selectedDisplayPage,
-                                    onDisplayPageChange: { page in
-                                        selectedDisplayPage = page
-                                    }
-                                ) {
-                                    if hapticEnabled {
-                                        let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
-                                        impactFeedback.impactOccurred()
-                                    }
-                                    showTimeAdjustmentSheet = true
+                            DigitalTimeDisplayView(
+                                currentDate: currentDate,
+                                timeOffset: timeOffset,
+                                selectedTimeZone: selectedTimeZone,
+                                use24HourFormat: use24HourFormat,
+                                weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                                showWeather: showWeather,
+                                useCelsius: useCelsius,
+                                hapticEnabled: hapticEnabled,
+                                timerConfiguredSeconds: homeTimerConfiguredSeconds,
+                                timerEndDateEpoch: homeTimerEndDateEpoch,
+                                timerIsPaused: homeTimerPaused,
+                                timerPausedRemainingSeconds: homeTimerPausedRemainingSeconds,
+                                timerIsAdjusting: isTimerCircleAdjusting,
+                                onTimerTap: handleHomeTimerTap,
+                                onTimerConfigureTap: {
+                                    triggerMenuHaptic()
+                                    showSetTimerSheet = true
+                                },
+                                stopwatch: homeStopwatch,
+                                onStopwatchTap: handleHomeStopwatchDigitsTap,
+                                primaryContentScale: size / Self.maximumClockDiameter,
+                                selectedPage: $selectedDisplayPage,
+                                onDisplayPageChange: { page in
+                                    selectedDisplayPage = page
                                 }
-                                .animation(.spring(), value: selectedTimeZone.identifier)
-                                Spacer()
+                            ) {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
+                                    impactFeedback.impactOccurred()
+                                }
+                                showTimeAdjustmentSheet = true
                             }
+                            .animation(.spring(), value: selectedTimeZone.identifier)
                             .frame(height: (geometry.size.height - size) / 2)
                             
                             // Middle - clock area (transparent placeholder)
@@ -2929,6 +2929,7 @@ struct DigitalTimeDisplayView: View {
     let onTimerConfigureTap: () -> Void
     let stopwatch: StopwatchSnapshot
     let onStopwatchTap: () -> Void
+    let primaryContentScale: CGFloat
     @Binding var selectedPage: DisplayPage
     let onDisplayPageChange: (DisplayPage) -> Void
     let onTimeTap: () -> Void
@@ -2953,6 +2954,7 @@ struct DigitalTimeDisplayView: View {
         onTimerConfigureTap: @escaping () -> Void,
         stopwatch: StopwatchSnapshot,
         onStopwatchTap: @escaping () -> Void,
+        primaryContentScale: CGFloat,
         selectedPage: Binding<DisplayPage>,
         onDisplayPageChange: @escaping (DisplayPage) -> Void,
         onTimeTap: @escaping () -> Void
@@ -2974,6 +2976,7 @@ struct DigitalTimeDisplayView: View {
         self.onTimerConfigureTap = onTimerConfigureTap
         self.stopwatch = stopwatch
         self.onStopwatchTap = onStopwatchTap
+        self.primaryContentScale = primaryContentScale
         _selectedPage = selectedPage
         self.onDisplayPageChange = onDisplayPageChange
         self.onTimeTap = onTimeTap
@@ -2993,7 +2996,11 @@ struct DigitalTimeDisplayView: View {
     }
 
     private var tabHeight: CGFloat {
-        110
+        primaryTimeFontSize + 32
+    }
+
+    private var primaryTimeFontSize: CGFloat {
+        52 * min(primaryContentScale, 1)
     }
 
     private func formattedCurrentTime() -> String {
@@ -3059,7 +3066,7 @@ struct DigitalTimeDisplayView: View {
         VStack(spacing: 0) {
             Button(action: onTimeTap) {
                 Text(formattedCurrentTime())
-                    .font(.system(size: 52))
+                    .font(.system(size: primaryTimeFontSize))
                     .fontWeight(.light)
                     .fontDesign(.rounded)
                     .monospacedDigit()
@@ -3093,7 +3100,7 @@ struct DigitalTimeDisplayView: View {
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     let remaining = timerRemainingSeconds(at: context.date)
                     Text(formattedTimer(seconds: remaining))
-                        .font(.system(size: 52))
+                        .font(.system(size: primaryTimeFontSize))
                         .fontWeight(.light)
                         .fontDesign(.rounded)
                         .monospacedDigit()
@@ -3117,7 +3124,7 @@ struct DigitalTimeDisplayView: View {
                 // No timer yet
                 Button(action: onTimerConfigureTap) {
                     Text("00:00")
-                        .font(.system(size: 52))
+                        .font(.system(size: primaryTimeFontSize))
                         .fontWeight(.light)
                         .fontDesign(.rounded)
                         .monospacedDigit()
@@ -3154,7 +3161,7 @@ struct DigitalTimeDisplayView: View {
             VStack(spacing: 0) {
                 Button(action: onStopwatchTap) {
                     Text(StopwatchTimeFormatter.string(from: stopwatch.elapsed(at: context.date)))
-                        .font(.system(size: 52))
+                        .font(.system(size: primaryTimeFontSize))
                         .fontWeight(.light)
                         .fontDesign(.rounded)
                         .monospacedDigit()
@@ -3184,7 +3191,9 @@ struct DigitalTimeDisplayView: View {
     }
     
     var body: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 0) {
+            Spacer(minLength: 0)
+
             GeometryReader { tabGeometry in
                 let viewportMidX = tabGeometry.size.width / 2
 
@@ -3216,7 +3225,10 @@ struct DigitalTimeDisplayView: View {
             .frame(height: tabHeight)
             .coordinateSpace(name: Self.tabCoordinateSpaceName)
 
-            // Top Dots
+            Spacer(minLength: 0)
+
+            // Keep the page indicator midway between the lower label and the
+            // clock face, regardless of the available height or digit scale.
             HStack(spacing: 8) {
                 ForEach(DisplayPage.allCases, id: \.self) { page in
                     Circle()
@@ -3224,9 +3236,10 @@ struct DigitalTimeDisplayView: View {
                         .frame(width: 6, height: 6)
                 }
             }
-            .padding(.bottom)
             .blendMode(.plusLighter)
             .animation(.spring(duration: 0.25), value: selectedPage)
+
+            Spacer(minLength: 0)
         }
         .onChange(of: hasConfiguredTimer) { oldValue, newValue in
             if !oldValue && newValue {
