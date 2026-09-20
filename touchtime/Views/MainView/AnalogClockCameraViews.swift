@@ -141,6 +141,13 @@ struct AnalogClockCameraToolbarControls: View {
     let onFlipCamera: () -> Void
     let onEnableCamera: () -> Void
 
+    @Environment(\.isEnabled) private var isEnabled
+
+    /// `.plain` buttons don't dim on their own, so fade the symbol when disabled
+    private var symbolStyle: HierarchicalShapeStyle {
+        isEnabled ? .primary : .tertiary
+    }
+
     var body: some View {
         if isCameraBackgroundEnabled {
             Menu {
@@ -174,13 +181,13 @@ struct AnalogClockCameraToolbarControls: View {
                 }
             } label: {
                 Image(systemName: "camera.filters")
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(symbolStyle)
             }
             .buttonStyle(.plain)
         } else {
             Button(action: onEnableCamera) {
                 Image(systemName: "camera.aperture")
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(symbolStyle)
             }
             .buttonStyle(.plain)
         }

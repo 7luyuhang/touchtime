@@ -1369,6 +1369,8 @@ struct AnalogClockFullView: View {
                             onFlipCamera: handleCameraFlip,
                             onEnableCamera: handleCameraToggle
                         )
+                        // The camera background belongs to the Time page only
+                        .disabled(selectedDisplayPage != .time)
                     }
                 }
             }
@@ -1572,6 +1574,14 @@ struct AnalogClockFullView: View {
                 } else {
                     cameraSessionController.stopRunning()
                 }
+            }
+            .onChange(of: selectedDisplayPage) { _, newValue in
+                // The camera background belongs to the Time page only; leaving it
+                // (by swipe or the auto-switch to a freshly set timer) shuts the
+                // camera down, including a toggle that is still preparing.
+                guard newValue != .time,
+                      isCameraBackgroundEnabled || isCameraPreparing else { return }
+                disableCameraBackground()
             }
             .onChange(of: showLocalTime) { oldValue, newValue in
                 ensureValidSelectedCity(in: displayedClocks)
