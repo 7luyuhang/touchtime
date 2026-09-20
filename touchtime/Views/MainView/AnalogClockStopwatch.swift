@@ -131,25 +131,45 @@ struct StopwatchClockFaceView: View {
             )
             .allowsHitTesting(false)
 
-            // Hand redraws every frame only while the stopwatch is running
+            // Hands redraw every frame only while the stopwatch is running
             TimelineView(.animation(paused: !stopwatch.isRunning)) { context in
                 let elapsed = stopwatch.elapsed(at: context.date)
-                let secondsAngle = Self.secondsAngle(for: elapsed)
+                let totalAngle = Self.secondsAngle(for: elapsed)
+
+                // Like the iOS Stopwatch: the first Lap adds a second hand that
+                // tracks the current lap and snaps back to 60 on every Lap. The
+                // sweep trail follows that hand; the total hand keeps running
+                // without one. There are never more than two hands.
+                let hasLapHand = !stopwatch.laps.isEmpty
+                let lapElapsed = stopwatch.currentLapElapsed(at: context.date)
+                let lapAngle = Self.secondsAngle(for: lapElapsed)
+                let trailElapsed = hasLapHand ? lapElapsed : elapsed
+                let trailAngle = hasLapHand ? lapAngle : totalAngle
 
                 ZStack {
-                    if elapsed > 0 {
+                    if trailElapsed > 0 {
                         TimerRangeFillView(
                             startAngle: 0,
-                            endAngle: secondsAngle,
+                            endAngle: trailAngle,
                             size: size
                         )
                     }
 
+                    // Total elapsed
                     TimerAnimatedHandView(
-                        angle: secondsAngle,
+                        angle: totalAngle,
                         size: size,
                         color: .white
                     )
+
+                    // Current lap
+                    if hasLapHand {
+                        TimerAnimatedHandView(
+                            angle: lapAngle,
+                            size: size,
+                            color: .white
+                        )
+                    }
                 }
                 .frame(width: size, height: size)
             }
