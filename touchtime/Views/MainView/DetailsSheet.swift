@@ -1201,12 +1201,14 @@ struct SunriseSunsetSheet: View {
                     }
                 }
                 
-                if getCoordinatesForTimeZone(timeZoneIdentifier) != nil && dstInfo != nil {
+                if !isEmbedded && getCoordinatesForTimeZone(timeZoneIdentifier) != nil && dstInfo != nil {
                     ToolbarSpacer(.fixed, placement: .bottomBar)
                 }
                 
-                // DST information in bottom bar
-                if let dst = dstInfo, let transitionDate = dst.transitionDate {
+                // DST information in bottom bar. Skipped when embedded beside
+                // the list: the bottom bar then belongs to the whole
+                // navigation stack, so the pill would straddle both columns.
+                if !isEmbedded, let dst = dstInfo, let transitionDate = dst.transitionDate {
                     ToolbarItem(placement: .bottomBar) {
                         HStack(spacing: 5) {
                             Text("DST")
