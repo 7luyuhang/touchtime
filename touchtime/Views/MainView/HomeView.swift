@@ -55,6 +55,8 @@ struct LazyCardImage: Transferable {
 }
 
 struct HomeView: View {
+    private static let maximumLandscapeListWidth: CGFloat = 400
+
     private struct DeletedCitySnapshot {
         struct CollectionPosition {
             let collectionId: UUID
@@ -122,6 +124,7 @@ struct HomeView: View {
     // store is observed, so pins toggled inside the countdown sheet update
     // the cards immediately.
     @Environment(CountdownStore.self) private var countdownStore
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     // Countdown being edited after tapping its pinned card on Home.
     @State private var editingHomeCountdown: CountdownItem? = nil
     // Pinned countdown being shared as an image from its card's context menu.
@@ -1150,8 +1153,12 @@ struct HomeView: View {
                     .transition(.identity) // Collection Animation
                     
                 } else {
-                    // Main List Content
-                    List {
+                    GeometryReader { listGeometry in
+                        let isDuoLandscape = listGeometry.size.width > listGeometry.size.height
+                            && horizontalSizeClass == .regular
+
+                        // Main List Content
+                        List {
                         
                         // Shake to Reset Tip (shown after first city deletion)
                         if showShakeToResetTip {
@@ -1428,21 +1435,28 @@ struct HomeView: View {
                             }
                         }
                     }
-                    .listSectionSpacing(12) // List Paddings
-                    .scrollIndicators(.hidden)
-                    .listStyle(.insetGrouped)
-                    .scrollContentBackground(.hidden)
-                    .safeAreaPadding(.bottom, 52)
-                    .id(selectedCollectionId?.uuidString ?? "default")
-                    .transition(.identity) // Collection Animation
-                    // Centralized batch weather prefetch for all displayed cities
-                    .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(effectiveShowWeatherCondition)_\(effectiveShowTemperatureIndicator)_\(effectiveShowUVIndex)_\(effectiveShowWindDirection)_\(showSkyDot)") {
-                        if showWeather || effectiveShowWeatherCondition || effectiveShowTemperatureIndicator || effectiveShowUVIndex || effectiveShowWindDirection {
-                            var identifiers = displayedClocks.map(\.timeZoneIdentifier)
-                            if showLocalTime {
-                                identifiers.insert(TimeZone.current.identifier, at: 0)
+                        .listSectionSpacing(12) // List Paddings
+                        .scrollIndicators(.hidden)
+                        .listStyle(.insetGrouped)
+                        .scrollContentBackground(.hidden)
+                        .safeAreaPadding(.bottom, 52)
+                        .id(selectedCollectionId?.uuidString ?? "default")
+                        .transition(.identity) // Collection Animation
+                        .frame(
+                            maxWidth: isDuoLandscape
+                                ? Self.maximumLandscapeListWidth
+                                : .infinity
+                        )
+                        .frame(maxWidth: .infinity)
+                        // Centralized batch weather prefetch for all displayed cities
+                        .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(effectiveShowWeatherCondition)_\(effectiveShowTemperatureIndicator)_\(effectiveShowUVIndex)_\(effectiveShowWindDirection)_\(showSkyDot)") {
+                            if showWeather || effectiveShowWeatherCondition || effectiveShowTemperatureIndicator || effectiveShowUVIndex || effectiveShowWindDirection {
+                                var identifiers = displayedClocks.map(\.timeZoneIdentifier)
+                                if showLocalTime {
+                                    identifiers.insert(TimeZone.current.identifier, at: 0)
+                                }
+                                await weatherManager.getWeatherForCities(identifiers)
                             }
-                            await weatherManager.getWeatherForCities(identifiers)
                         }
                     }
                 }

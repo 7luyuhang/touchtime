@@ -18,6 +18,8 @@ import Photos
 struct AnalogClockFullView: View {
     /// Keeps the dial at a familiar iPhone scale when a Duo is unfolded.
     private static let maximumClockDiameter: CGFloat = 450
+    /// Leaves more vertical breathing room on large landscape displays.
+    private static let maximumLandscapeClockDiameter: CGFloat = 400
     /// Gives the dial breathing room on narrower displays while meeting the
     /// maximum diameter continuously at a 500-point content width.
     private static let compactClockWidthRatio: CGFloat = 0.95
@@ -1116,10 +1118,13 @@ struct AnalogClockFullView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
+                let maximumDiameter = geometry.size.width > geometry.size.height
+                    ? Self.maximumLandscapeClockDiameter
+                    : Self.maximumClockDiameter
                 let size = min(
                     geometry.size.width * Self.compactClockWidthRatio,
                     geometry.size.height,
-                    Self.maximumClockDiameter
+                    maximumDiameter
                 )
                 let displayDate = currentDate.addingTimeInterval(timeOffset)
                 let skyGradient = SkyColorGradient(
@@ -1227,7 +1232,7 @@ struct AnalogClockFullView: View {
                                 },
                                 stopwatch: homeStopwatch,
                                 onStopwatchTap: handleHomeStopwatchDigitsTap,
-                                primaryContentScale: size / Self.maximumClockDiameter,
+                                primaryContentHeight: max((geometry.size.height - size) / 2, 0),
                                 selectedPage: $selectedDisplayPage,
                                 onDisplayPageChange: { page in
                                     selectedDisplayPage = page
@@ -2912,6 +2917,13 @@ struct DigitalTimeDisplayView: View {
 
     nonisolated private static let tabCoordinateSpaceName = "digital-time-display-tabs"
 
+    private enum Layout {
+        static let minimumPrimaryTimeFontSize: CGFloat = 42
+        static let maximumPrimaryTimeFontSize: CGFloat = 52
+        static let minimumContentHeight: CGFloat = 112
+        static let comfortableContentHeight: CGFloat = 152
+    }
+
     let currentDate: Date
     let timeOffset: TimeInterval
     let selectedTimeZone: TimeZone
@@ -2929,7 +2941,7 @@ struct DigitalTimeDisplayView: View {
     let onTimerConfigureTap: () -> Void
     let stopwatch: StopwatchSnapshot
     let onStopwatchTap: () -> Void
-    let primaryContentScale: CGFloat
+    let primaryContentHeight: CGFloat
     @Binding var selectedPage: DisplayPage
     let onDisplayPageChange: (DisplayPage) -> Void
     let onTimeTap: () -> Void
@@ -2954,7 +2966,7 @@ struct DigitalTimeDisplayView: View {
         onTimerConfigureTap: @escaping () -> Void,
         stopwatch: StopwatchSnapshot,
         onStopwatchTap: @escaping () -> Void,
-        primaryContentScale: CGFloat,
+        primaryContentHeight: CGFloat,
         selectedPage: Binding<DisplayPage>,
         onDisplayPageChange: @escaping (DisplayPage) -> Void,
         onTimeTap: @escaping () -> Void
@@ -2976,7 +2988,7 @@ struct DigitalTimeDisplayView: View {
         self.onTimerConfigureTap = onTimerConfigureTap
         self.stopwatch = stopwatch
         self.onStopwatchTap = onStopwatchTap
-        self.primaryContentScale = primaryContentScale
+        self.primaryContentHeight = primaryContentHeight
         _selectedPage = selectedPage
         self.onDisplayPageChange = onDisplayPageChange
         self.onTimeTap = onTimeTap
@@ -3000,7 +3012,16 @@ struct DigitalTimeDisplayView: View {
     }
 
     private var primaryTimeFontSize: CGFloat {
-        52 * min(primaryContentScale, 1)
+        let heightProgress = (
+            primaryContentHeight - Layout.minimumContentHeight
+        ) / (
+            Layout.comfortableContentHeight - Layout.minimumContentHeight
+        )
+        let clampedProgress = min(max(heightProgress, 0), 1)
+
+        return Layout.minimumPrimaryTimeFontSize
+            + (Layout.maximumPrimaryTimeFontSize - Layout.minimumPrimaryTimeFontSize)
+            * clampedProgress
     }
 
     private func formattedCurrentTime() -> String {
