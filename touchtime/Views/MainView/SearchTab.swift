@@ -38,10 +38,13 @@ struct CollectionMenuItem: Identifiable {
 
 // Wrapper to adapt TimeZonePickerView for tab usage
 struct TimeZonePickerViewWrapper: View {
+    private static let maximumListWidth: CGFloat = 400
+
     @Binding var worldClocks: [WorldClock]
     @State private var searchText = ""
     @State private var currentDate = Date()
     @State private var collections: [CityCollection] = []
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("showWhatsNewLongpressCity") private var showWhatsNewLongpressCity = true
@@ -280,9 +283,14 @@ struct TimeZonePickerViewWrapper: View {
                         }
                     }
 //                    .listStyle(.plain)
-                    .listSectionIndexVisibility(searchText.isEmpty ? .visible : .hidden)
+                    .listSectionIndexVisibility(
+                        searchText.isEmpty && horizontalSizeClass != .regular
+                            ? .visible
+                            : .hidden
+                    )
                     .safeAreaPadding(.bottom, searchText.isEmpty ? 0 : 48)
                     .tint(.primary) // A-Z Colour
+                    .frame(maxWidth: Self.maximumListWidth)
                 }
             }
             .searchable(text: $searchText, prompt: String(localized: "Cities & Countries"))
