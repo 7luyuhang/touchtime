@@ -22,6 +22,7 @@ struct SunriseSunsetSheet: View {
     let timeZoneIdentifier: String
     let initialDate: Date
     let timeOffset: TimeInterval
+    var isEmbedded = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -69,6 +70,10 @@ struct SunriseSunsetSheet: View {
     private var weatherConditionForSky: WeatherCondition? {
         guard showWeather else { return nil }
         return currentWeather?.condition
+    }
+
+    private var showsExpandedContent: Bool {
+        isEmbedded || currentDetent == .large
     }
     
     // Timer to update the current date
@@ -353,7 +358,7 @@ struct SunriseSunsetSheet: View {
         
         return formatter.string(from: date)
     }
-    
+
     private func openCityInMap() {
         guard let coords = getCoordinatesForTimeZone(timeZoneIdentifier) else { return }
         let encodedCity = cityName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cityName
@@ -381,7 +386,7 @@ struct SunriseSunsetSheet: View {
 
     @ViewBuilder
     private var sheetSkyBackground: some View {
-        if showSkyDot && currentDetent == .large {
+        if !isEmbedded && showSkyDot && showsExpandedContent {
             SkyBackgroundView(
                 date: currentDate.addingTimeInterval(timeOffset),
                 timeZoneIdentifier: timeZoneIdentifier,
@@ -760,7 +765,7 @@ struct SunriseSunsetSheet: View {
                                     .blendMode(.plusLighter)
                                     .padding(.horizontal, 32)
                                     .padding(.bottom, 4)
-                                    .padding(.top, (showWeather && (currentWeather != nil || weatherLoadAttempted)) || currentDetent == .large ? 24 : 8)
+                                    .padding(.top, (showWeather && (currentWeather != nil || weatherLoadAttempted)) || showsExpandedContent ? 24 : 8)
 
                                 HStack(spacing: 8) {
                                     // Sunrise Section
@@ -1104,10 +1109,10 @@ struct SunriseSunsetSheet: View {
                 .scrollIndicators(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 Group {
-                    if currentDetent == .large {
+                    if showsExpandedContent {
                         stickyTimeSection
                             .padding(.horizontal, 16)
-                            .padding(.top, 8)
+                            .padding(.top, isEmbedded ? 35 : 8)
                             .transition(.blurReplace())
                     }
                 }
@@ -1144,36 +1149,40 @@ struct SunriseSunsetSheet: View {
                 refreshAstronomyData(referenceDate: currentDate)
             }
             .onChange(of: currentDetent) { oldValue, newValue in
-                if newValue == .large && hapticEnabled {
+                if !isEmbedded, newValue == .large && hapticEnabled {
                     UIImpactFeedbackGenerator(style: .rigid).impactOccurred()
                 }
             }
             .toolbar {
                 
-                ToolbarItem(placement: .principal) {
-                    VStack(spacing: 2) {
-                        Text(cityName)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        
-                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                        Text(adjustedDate.formattedDate(
-                            style: dateStyle,
-                            timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-                        ))
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
+                if !isEmbedded {
+                    ToolbarItem(placement: .principal) {
+                        VStack(spacing: 2) {
+                            Text(cityName)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+
+                            let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                            Text(adjustedDate.formattedDate(
+                                style: dateStyle,
+                                timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+                            ))
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(.secondary)
+                        }
                     }
                 }
                 
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: {
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                if !isEmbedded {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            dismiss()
+                        }) {
+                            Image(systemName: "xmark")
                         }
-                        dismiss()
-                    }) {
-                        Image(systemName: "xmark")
                     }
                 }
                 
@@ -1225,7 +1234,7 @@ struct SunriseSunsetSheet: View {
                     }
                 }
                 
-                if timeOffset != 0 {
+                if !isEmbedded && timeOffset != 0 {
                     // DST pill already expands to fill the middle; without it,
                     // a flexible spacer pushes the reset button to the far right.
                     if dstInfo != nil {

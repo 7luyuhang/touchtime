@@ -56,6 +56,8 @@ struct LazyCardImage: Transferable {
 
 struct HomeView: View {
     private static let maximumLandscapeListWidth: CGFloat = 400
+    private static let landscapeSkyFadeLeadIn: CGFloat = 200
+    private static let landscapeSkyFadeWidth: CGFloat = 400
 
     private struct DeletedCitySnapshot {
         struct CollectionPosition {
@@ -116,6 +118,7 @@ struct HomeView: View {
     @State private var showSunriseSunsetSheet = false
     @State private var selectedTimeZone: String = ""
     @State private var selectedCityName: String = ""
+    @State private var usesLandscapeDetailLayout = false
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
@@ -1110,6 +1113,48 @@ struct HomeView: View {
         renderer.scale = 3
         return renderer.uiImage ?? UIImage(systemName: "photo") ?? UIImage()
     }
+
+    private func prepareLandscapeDetailsSelection() {
+        guard selectedTimeZone.isEmpty else { return }
+
+        if showLocalTime {
+            selectedTimeZone = TimeZone.current.identifier
+            selectedCityName = String(localized: "Local")
+        } else if let clock = displayedClocks.first {
+            selectedTimeZone = clock.timeZoneIdentifier
+            selectedCityName = getLocalizedCityName(for: clock)
+        }
+    }
+
+    private func updateLandscapeDetailLayout(isActive: Bool) {
+        guard usesLandscapeDetailLayout != isActive else { return }
+        usesLandscapeDetailLayout = isActive
+
+        if isActive {
+            showSunriseSunsetSheet = false
+            prepareLandscapeDetailsSelection()
+        }
+    }
+
+    @ViewBuilder
+    private var landscapeDetailsPanel: some View {
+        if selectedTimeZone.isEmpty {
+            ContentUnavailableView(
+                String(localized: "Select a City"),
+                systemImage: "clock"
+            )
+        } else {
+            SunriseSunsetSheet(
+                cityName: selectedCityName,
+                timeZoneIdentifier: selectedTimeZone,
+                initialDate: currentDate,
+                timeOffset: timeOffset,
+                isEmbedded: true
+            )
+            .environmentObject(weatherManager)
+            .id(selectedTimeZone)
+        }
+    }
     
     var body: some View {
         NavigationStack {
@@ -1156,9 +1201,14 @@ struct HomeView: View {
                     GeometryReader { listGeometry in
                         let isDuoLandscape = listGeometry.size.width > listGeometry.size.height
                             && horizontalSizeClass == .regular
+                        let landscapeListWidth = min(
+                            Self.maximumLandscapeListWidth,
+                            listGeometry.size.width / 2
+                        )
 
-                        // Main List Content
-                        List {
+                        HStack(spacing: 0) {
+                            // Main List Content
+                            List {
                         
                         // Shake to Reset Tip (shown after first city deletion)
                         if showShakeToResetTip {
@@ -1302,7 +1352,7 @@ struct HomeView: View {
                                 .onTapGesture {
                                     selectedTimeZone = TimeZone.current.identifier
                                     selectedCityName = String(localized: "Local")
-                                    showSunriseSunsetSheet = true
+                                    showSunriseSunsetSheet = !isDuoLandscape
                                     
                                     // Provide haptic feedback if enabled
                                     if hapticEnabled {
@@ -1389,7 +1439,7 @@ struct HomeView: View {
                                 .onTapGesture {
                                     selectedTimeZone = clock.timeZoneIdentifier
                                     selectedCityName = getLocalizedCityName(for: clock)
-                                    showSunriseSunsetSheet = true
+                                    showSunriseSunsetSheet = !isDuoLandscape
                                     
                                     // Provide haptic feedback if enabled
                                     if hapticEnabled {
@@ -1443,11 +1493,10 @@ struct HomeView: View {
                         .id(selectedCollectionId?.uuidString ?? "default")
                         .transition(.identity) // Collection Animation
                         .frame(
-                            maxWidth: isDuoLandscape
-                                ? Self.maximumLandscapeListWidth
-                                : .infinity
+                            width: isDuoLandscape
+                                ? landscapeListWidth
+                                : listGeometry.size.width
                         )
-                        .frame(maxWidth: .infinity)
                         // Centralized batch weather prefetch for all displayed cities
                         .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(effectiveShowWeatherCondition)_\(effectiveShowTemperatureIndicator)_\(effectiveShowUVIndex)_\(effectiveShowWindDirection)_\(showSkyDot)") {
                             if showWeather || effectiveShowWeatherCondition || effectiveShowTemperatureIndicator || effectiveShowUVIndex || effectiveShowWindDirection {
@@ -1458,30 +1507,55 @@ struct HomeView: View {
                                 await weatherManager.getWeatherForCities(identifiers)
                             }
                         }
+                            if isDuoLandscape {
+                                landscapeDetailsPanel
+                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            }
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .onAppear {
+                            updateLandscapeDetailLayout(isActive: isDuoLandscape)
+                        }
+                        .onChange(of: isDuoLandscape) { _, isActive in
+                            updateLandscapeDetailLayout(isActive: isActive)
+                        }
                     }
                 }
                 
                 
                 // Scroll Time View - Hide when renaming or when there's no content to display
                 if !showingRenameAlert && !(displayedClocks.isEmpty && !showLocalTime) {
-                    ScrollTimeView(
-                        timeOffset: $timeOffset,
-                        showButtons: $showScrollTimeButtons,
-                        worldClocks: $worldClocks,
-                        enableDoubleTapExpandedControls: true,
-                        onAlarmTap: {
-                            showSetAlarmSheet = true
-                        },
-                        onTimerTap: {
-                            showSetTimerSheet = true
-                        },
-                        onCountdownTap: {
-                            showCountdownSheet = true
-                        }
-                    )
+                    HStack(spacing: 0) {
+                        ScrollTimeView(
+                            timeOffset: $timeOffset,
+                            showButtons: $showScrollTimeButtons,
+                            worldClocks: $worldClocks,
+                            enableDoubleTapExpandedControls: true,
+                            onAlarmTap: {
+                                showSetAlarmSheet = true
+                            },
+                            onTimerTap: {
+                                showSetTimerSheet = true
+                            },
+                            onCountdownTap: {
+                                showCountdownSheet = true
+                            }
+                        )
                         .padding(.horizontal)
                         .padding(.bottom, 8)
+                        .frame(
+                            width: usesLandscapeDetailLayout
+                                ? Self.maximumLandscapeListWidth
+                                : nil
+                        )
                         .transition(.blurReplace())
+
+                        if usesLandscapeDetailLayout {
+                            Spacer(minLength: 0)
+                                .allowsHitTesting(false)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
             .background(
@@ -1490,8 +1564,60 @@ struct HomeView: View {
                     Color(UIColor.systemGroupedBackground)
                         .ignoresSafeArea()
                     
-                    // Sky Background Effect for System Time
-                    if showLocalTime && showSkyDot {
+                    if usesLandscapeDetailLayout && !selectedTimeZone.isEmpty {
+                        // One shared landscape background, driven by the
+                        // currently selected city shown in the details pane.
+                        SkyBackgroundView(
+                            date: currentDate.addingTimeInterval(timeOffset),
+                            timeZoneIdentifier: selectedTimeZone,
+                            weatherCondition: showWeather
+                                ? weatherManager.weatherData[selectedTimeZone]?.condition
+                                : nil,
+                            appliesCardChrome: false
+                        )
+                        .mask {
+                            GeometryReader { maskGeometry in
+                                let width = max(maskGeometry.size.width, 1)
+                                let listWidth = min(
+                                    Self.maximumLandscapeListWidth,
+                                    width / 2
+                                )
+                                let fadeStart = max(
+                                    listWidth - Self.landscapeSkyFadeLeadIn,
+                                    0
+                                )
+                                let fadeEnd = min(
+                                    listWidth + Self.landscapeSkyFadeWidth,
+                                    width
+                                )
+                                let fadeLength = max(fadeEnd - fadeStart, 1)
+                                let startLocation = fadeStart / width
+                                let twentyPercentLocation = min((fadeStart + fadeLength * 0.2) / width, 1)
+                                let fortyPercentLocation = min((fadeStart + fadeLength * 0.4) / width, 1)
+                                let sixtyPercentLocation = min((fadeStart + fadeLength * 0.6) / width, 1)
+                                let eightyPercentLocation = min((fadeStart + fadeLength * 0.8) / width, 1)
+                                let endLocation = fadeEnd / width
+
+                                LinearGradient(
+                                    stops: [
+                                        .init(color: .clear, location: 0),
+                                        .init(color: .clear, location: startLocation),
+                                        .init(color: .black.opacity(0.10), location: twentyPercentLocation),
+                                        .init(color: .black.opacity(0.35), location: fortyPercentLocation),
+                                        .init(color: .black.opacity(0.65), location: sixtyPercentLocation),
+                                        .init(color: .black.opacity(0.90), location: eightyPercentLocation),
+                                        .init(color: .black, location: endLocation),
+                                        .init(color: .black, location: 1)
+                                    ],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            }
+                        }
+                        .allowsHitTesting(false)
+                        .ignoresSafeArea()
+                    } else if showLocalTime && showSkyDot {
+                        // Sky Background Effect for System Time
                         VStack {
                             LocalSkyGlowBackground(
                                 currentDate: $currentDate,
