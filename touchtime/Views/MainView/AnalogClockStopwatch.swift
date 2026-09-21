@@ -234,6 +234,8 @@ struct StopwatchLapExtremes {
 /// Completed laps, newest first, shown between the clock face and the controls.
 /// Tapping the area opens `StopwatchLapListSheet` with the full list.
 struct StopwatchLapHistoryView: View {
+    private static let maximumContentWidth: CGFloat = 500
+
     let laps: [TimeInterval]
 
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -302,6 +304,7 @@ struct StopwatchLapHistoryView: View {
             .scrollIndicators(.hidden)
             .mask(edgeFadeMask)
         }
+        .frame(maxWidth: Self.maximumContentWidth)
         .blendMode(.plusLighter)
         .animation(.spring(duration: 0.25), value: laps.count)
         .contentShape(Rectangle())
