@@ -55,6 +55,8 @@ struct LazyCardImage: Transferable {
 }
 
 struct HomeView: View {
+    // Cap for the list column next to the details. Not applied on displays
+    // that can fold (iPhone Duo), where the column runs to the hinge instead.
     private static let maximumLandscapeListWidth: CGFloat = 400
     private static let landscapeSkyFadeLeadIn: CGFloat = 200
     private static let landscapeSkyFadeWidth: CGFloat = 400
@@ -118,7 +120,11 @@ struct HomeView: View {
     @State private var showSunriseSunsetSheet = false
     @State private var selectedTimeZone: String = ""
     @State private var selectedCityName: String = ""
-    @State private var usesLandscapeDetailLayout = false
+    // Reported by the list/details container, so the bottom controls and the
+    // shared sky background can line up with the list column wherever the
+    // system puts it (on iPhone Duo: at the fold).
+    @State private var listDetailLayout = ListDetailLayout()
+    private var usesLandscapeDetailLayout: Bool { listDetailLayout.showsSecondary }
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
@@ -128,6 +134,7 @@ struct HomeView: View {
     // the cards immediately.
     @Environment(CountdownStore.self) private var countdownStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.layoutDirection) private var layoutDirection
     // Countdown being edited after tapping its pinned card on Home.
     @State private var editingHomeCountdown: CountdownItem? = nil
     // Pinned countdown being shared as an image from its card's context menu.
@@ -1126,14 +1133,13 @@ struct HomeView: View {
         }
     }
 
-    private func updateLandscapeDetailLayout(isActive: Bool) {
-        guard usesLandscapeDetailLayout != isActive else { return }
-        usesLandscapeDetailLayout = isActive
-
-        if isActive {
-            showSunriseSunsetSheet = false
-            prepareLandscapeDetailsSelection()
-        }
+    /// Called when the list/details container starts or stops showing the
+    /// details column. Entering the side-by-side layout replaces the details
+    /// sheet with the embedded panel and makes sure it has a city to show.
+    private func landscapeDetailLayoutDidChange(isActive: Bool) {
+        guard isActive else { return }
+        showSunriseSunsetSheet = false
+        prepareLandscapeDetailsSelection()
     }
 
     @ViewBuilder
@@ -1198,15 +1204,14 @@ struct HomeView: View {
                     .transition(.identity) // Collection Animation
                     
                 } else {
-                    GeometryReader { listGeometry in
-                        let isDuoLandscape = listGeometry.size.width > listGeometry.size.height
-                            && horizontalSizeClass == .regular
-                        let landscapeListWidth = min(
-                            Self.maximumLandscapeListWidth,
-                            listGeometry.size.width / 2
-                        )
-
-                        HStack(spacing: 0) {
+                    // List on its own in compact width or a taller-than-wide
+                    // window; list and details side by side otherwise. On
+                    // iPhone Duo the split follows the fold.
+                    ListDetailArrangement(
+                        allowsSecondary: horizontalSizeClass == .regular,
+                        maximumPrimaryWidth: Self.maximumLandscapeListWidth,
+                        layout: $listDetailLayout
+                    ) {
                             // Main List Content
                             List {
                         
@@ -1352,7 +1357,7 @@ struct HomeView: View {
                                 .onTapGesture {
                                     selectedTimeZone = TimeZone.current.identifier
                                     selectedCityName = String(localized: "Local")
-                                    showSunriseSunsetSheet = !isDuoLandscape
+                                    showSunriseSunsetSheet = !usesLandscapeDetailLayout
                                     
                                     // Provide haptic feedback if enabled
                                     if hapticEnabled {
@@ -1439,7 +1444,7 @@ struct HomeView: View {
                                 .onTapGesture {
                                     selectedTimeZone = clock.timeZoneIdentifier
                                     selectedCityName = getLocalizedCityName(for: clock)
-                                    showSunriseSunsetSheet = !isDuoLandscape
+                                    showSunriseSunsetSheet = !usesLandscapeDetailLayout
                                     
                                     // Provide haptic feedback if enabled
                                     if hapticEnabled {
@@ -1492,11 +1497,6 @@ struct HomeView: View {
                         .safeAreaPadding(.bottom, 52)
                         .id(selectedCollectionId?.uuidString ?? "default")
                         .transition(.identity) // Collection Animation
-                        .frame(
-                            width: isDuoLandscape
-                                ? landscapeListWidth
-                                : listGeometry.size.width
-                        )
                         // Centralized batch weather prefetch for all displayed cities
                         .task(id: "\(displayedClocks.map(\.timeZoneIdentifier))_\(showWeather)_\(effectiveShowWeatherCondition)_\(effectiveShowTemperatureIndicator)_\(effectiveShowUVIndex)_\(effectiveShowWindDirection)_\(showSkyDot)") {
                             if showWeather || effectiveShowWeatherCondition || effectiveShowTemperatureIndicator || effectiveShowUVIndex || effectiveShowWindDirection {
@@ -1507,18 +1507,12 @@ struct HomeView: View {
                                 await weatherManager.getWeatherForCities(identifiers)
                             }
                         }
-                            if isDuoLandscape {
-                                landscapeDetailsPanel
-                                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            }
-                        }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                        .onAppear {
-                            updateLandscapeDetailLayout(isActive: isDuoLandscape)
-                        }
-                        .onChange(of: isDuoLandscape) { _, isActive in
-                            updateLandscapeDetailLayout(isActive: isActive)
-                        }
+                    } secondary: {
+                        landscapeDetailsPanel
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    }
+                    .onChange(of: listDetailLayout.showsSecondary) { _, isActive in
+                        landscapeDetailLayoutDidChange(isActive: isActive)
                     }
                 }
                 
@@ -1543,9 +1537,10 @@ struct HomeView: View {
                         )
                         .padding(.horizontal)
                         .padding(.bottom, 8)
+                        // Under the list column when the details are beside it.
                         .frame(
                             width: usesLandscapeDetailLayout
-                                ? Self.maximumLandscapeListWidth
+                                ? listDetailLayout.primaryFrame.width
                                 : nil
                         )
                         .transition(.blurReplace())
@@ -1578,16 +1573,22 @@ struct HomeView: View {
                         .mask {
                             GeometryReader { maskGeometry in
                                 let width = max(maskGeometry.size.width, 1)
-                                let listWidth = min(
-                                    Self.maximumLandscapeListWidth,
-                                    width / 2
-                                )
-                                let fadeStart = max(
-                                    listWidth - Self.landscapeSkyFadeLeadIn,
-                                    0
+                                // Trailing edge of the list column, measured
+                                // from the mask's leading edge. Both frames are
+                                // global, so the fade follows the column wherever
+                                // the arrangement puts it, and the (asymmetric)
+                                // safe area the mask ignores drops out.
+                                let maskFrame = maskGeometry.frame(in: .global)
+                                let listFrame = listDetailLayout.primaryFrame
+                                let listTrailingEdge = layoutDirection == .rightToLeft
+                                    ? maskFrame.maxX - listFrame.minX
+                                    : listFrame.maxX - maskFrame.minX
+                                let fadeStart = min(
+                                    max(listTrailingEdge - Self.landscapeSkyFadeLeadIn, 0),
+                                    width
                                 )
                                 let fadeEnd = min(
-                                    listWidth + Self.landscapeSkyFadeWidth,
+                                    listTrailingEdge + Self.landscapeSkyFadeWidth,
                                     width
                                 )
                                 let fadeLength = max(fadeEnd - fadeStart, 1)
