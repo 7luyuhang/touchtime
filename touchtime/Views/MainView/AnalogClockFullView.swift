@@ -1111,6 +1111,10 @@ struct AnalogClockFullView: View {
         NavigationStack {
             GeometryReader { geometry in
                 let size = min(geometry.size.width, geometry.size.height)
+                // The face circle is drawn `size - 24` wide, so the 12pt band
+                // around it is empty and reads as part of the gap above the clock.
+                let clockFaceInset: CGFloat = 12
+                let sectionHeight = (geometry.size.height - size) / 2
                 let displayDate = currentDate.addingTimeInterval(timeOffset)
                 let skyGradient = SkyColorGradient(
                     date: displayDate,
@@ -1195,10 +1199,11 @@ struct AnalogClockFullView: View {
                         
                         // Digital time and scroll controls overlay
                         VStack(spacing: 0) {
-                            // Top section - Digital time centered between nav bar and clock.
-                            // The section height is proposed directly so the digits pager
-                            // can shrink (and scale its type) instead of overflowing under
-                            // the navigation bar on shorter screens.
+                            // Top section - Digital time between the nav bar and the face
+                            // circle. The section height is proposed directly so the digits
+                            // pager can shrink (and scale its type) instead of overflowing
+                            // under the navigation bar on shorter screens; it runs down to
+                            // the circle itself so the dots are centered on what is visible.
                             DigitalTimeDisplayView(
                                 currentDate: currentDate,
                                 timeOffset: timeOffset,
@@ -1232,11 +1237,11 @@ struct AnalogClockFullView: View {
                                 showTimeAdjustmentSheet = true
                             }
                             .animation(.spring(), value: selectedTimeZone.identifier)
-                            .frame(height: (geometry.size.height - size) / 2)
+                            .frame(height: sectionHeight + clockFaceInset)
                             
                             // Middle - clock area (transparent placeholder)
                             Color.clear
-                                .frame(height: size)
+                                .frame(height: size - clockFaceInset)
                             
                             // Bottom section - Scroll controls
                             VStack {
@@ -1335,7 +1340,7 @@ struct AnalogClockFullView: View {
                                     )
                                 }
                             }
-                            .frame(height: (geometry.size.height - size) / 2)
+                            .frame(height: sectionHeight)
                         }
                     }
                 }
@@ -2984,19 +2989,29 @@ struct DigitalTimeDisplayView: View {
         return Date(timeIntervalSince1970: timerEndDateEpoch)
     }
 
-    /// Pager height the design was drawn at. The pager takes this much room when
-    /// the top section has it and shrinks below it otherwise, so the view never
-    /// grows taller than the height it is proposed.
-    private static let preferredTabHeight: CGFloat = 110
+    /// Height of the top section (navigation bar to the face circle) the design
+    /// was drawn for. The digits are full size from here up and scale down with
+    /// the section below it.
+    private static let designHeight: CGFloat = 140
 
-    /// Digit size that goes with `preferredTabHeight`.
+    /// Digit size that goes with `designHeight`.
     private static let preferredDigitFontSize: CGFloat = 52
 
-    /// Scales the digits with the pager so they keep the design's proportions
-    /// when the pager is shorter than `preferredTabHeight`.
-    private static func digitFontSize(forTabHeight tabHeight: CGFloat) -> CGFloat {
-        let scale = min(max(tabHeight / preferredTabHeight, 0), 1)
+    /// Scales the digits with the section so they keep the design's proportions
+    /// on screens where the section is shorter than `designHeight`.
+    private static func digitFontSize(forAvailableHeight height: CGFloat) -> CGFloat {
+        let scale = min(max(height / designHeight, 0), 1)
         return preferredDigitFontSize * scale
+    }
+
+    /// Height of a page's content: one line of digits over one subheadline
+    /// subtitle. Font metrics rather than a measurement so the pager can be
+    /// sized in the same layout pass; they match the rendered text to within
+    /// a third of a point.
+    private static func digitsBlockHeight(digitFontSize: CGFloat) -> CGFloat {
+        let digitFont = UIFont.systemFont(ofSize: digitFontSize, weight: .light)
+        let subtitleFont = UIFont.preferredFont(forTextStyle: .subheadline)
+        return digitFont.lineHeight + subtitleFont.lineHeight
     }
 
     private func formattedCurrentTime() -> String {
@@ -3187,12 +3202,16 @@ struct DigitalTimeDisplayView: View {
     }
     
     var body: some View {
-        VStack(spacing: 8) {
-            // The pager fills whatever height is left after the dots, capped at
-            // the design height, and the digits scale with it.
-            GeometryReader { tabGeometry in
-                let viewportMidX = tabGeometry.size.width / 2
-                let digitFontSize = Self.digitFontSize(forTabHeight: tabGeometry.size.height)
+        // The section is shared out dynamically: the pager hugs its digits and
+        // the three spacers split what is left equally, so the dots sit halfway
+        // between the subtitle and the clock face, and the digits halfway
+        // between the navigation bar and the dots.
+        GeometryReader { geometry in
+            let viewportMidX = geometry.size.width / 2
+            let digitFontSize = Self.digitFontSize(forAvailableHeight: geometry.size.height)
+
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
 
                 TabView(selection: $selectedPage) {
                     stopwatchPage(digitFontSize: digitFontSize)
@@ -3217,22 +3236,27 @@ struct DigitalTimeDisplayView: View {
                         .tag(DisplayPage.timer)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(width: tabGeometry.size.width, height: tabGeometry.size.height)
-            }
-            .frame(maxHeight: Self.preferredTabHeight)
-            .coordinateSpace(name: Self.tabCoordinateSpaceName)
+                // A paged TabView takes all the height it is offered and has no
+                // ideal height of its own, so size it to its digits explicitly.
+                .frame(height: Self.digitsBlockHeight(digitFontSize: digitFontSize))
 
-            // Top Dots
-            HStack(spacing: 8) {
-                ForEach(DisplayPage.allCases, id: \.self) { page in
-                    Circle()
-                        .fill(Color.white.opacity(page == selectedPage ? 1.0 : 0.25))
-                        .frame(width: 6, height: 6)
+                Spacer(minLength: 0)
+
+                // Top Dots
+                HStack(spacing: 8) {
+                    ForEach(DisplayPage.allCases, id: \.self) { page in
+                        Circle()
+                            .fill(Color.white.opacity(page == selectedPage ? 1.0 : 0.25))
+                            .frame(width: 6, height: 6)
+                    }
                 }
+                .blendMode(.plusLighter)
+                .animation(.spring(duration: 0.25), value: selectedPage)
+
+                Spacer(minLength: 0)
             }
-            .padding(.bottom)
-            .blendMode(.plusLighter)
-            .animation(.spring(duration: 0.25), value: selectedPage)
+            .frame(width: geometry.size.width, height: geometry.size.height)
+            .coordinateSpace(name: Self.tabCoordinateSpaceName)
         }
         .onChange(of: hasConfiguredTimer) { oldValue, newValue in
             if !oldValue && newValue {

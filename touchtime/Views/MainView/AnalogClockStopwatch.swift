@@ -261,13 +261,13 @@ struct StopwatchLapHistoryView: View {
             Text(String.localizedStringWithFormat(String(localized: "Lap %d"), index + 1))
                 .foregroundStyle(.secondary)
 
+            Spacer(minLength: 12)
+
             if let symbolName = lapExtremes.symbolName(for: index) {
                 Image(systemName: symbolName)
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(.secondary)
             }
-
-            Spacer(minLength: 12)
 
             Text(StopwatchTimeFormatter.string(from: lap))
                 .foregroundStyle(.primary)
@@ -341,18 +341,19 @@ struct StopwatchLapListSheet: View {
             List {
                 ForEach(Array(laps.enumerated().reversed()), id: \.offset) { index, lap in
                     LabeledContent {
-                        Text(StopwatchTimeFormatter.string(from: lap))
-                            .foregroundStyle(.primary)
-                    } label: {
                         HStack {
-                            Text(String.localizedStringWithFormat(String(localized: "Lap %d"), index + 1))
-
                             if let symbolName = lapExtremes.symbolName(for: index) {
                                 Image(systemName: symbolName)
                                     .font(.caption2.weight(.bold))
+                                    .foregroundStyle(.secondary)
                             }
+
+                            Text(StopwatchTimeFormatter.string(from: lap))
+                                .foregroundStyle(.primary)
                         }
-                        .foregroundStyle(.secondary)
+                    } label: {
+                        Text(String.localizedStringWithFormat(String(localized: "Lap %d"), index + 1))
+                            .foregroundStyle(.secondary)
                     }
                     .monospacedDigit()
                 }
