@@ -28,6 +28,17 @@ struct ContentView: View {
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
+
+    private var searchTab: some View {
+        SearchTabView(worldClocks: $worldClocks)
+            .onAppear {
+                if hapticEnabled {
+                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                    impactFeedback.prepare()
+                    impactFeedback.impactOccurred()
+                }
+            }
+    }
     
     var body: some View {
         if hasCompletedOnboarding {
@@ -50,17 +61,14 @@ struct ContentView: View {
                 )
             }
             
-                Tab(value: MainTab.search, role: .search) {
-                SearchTabView(worldClocks: $worldClocks)
-                    .onAppear {
-                        if hapticEnabled {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                            impactFeedback.prepare()
-                            impactFeedback.impactOccurred()
-                        }
-                    }
-            } label: {
-                Label(String(localized: "Search"), systemImage: "plus")
+            if #available(iOS 27.0, *) {
+                Tab(String(localized: "Search"), systemImage: "plus", value: MainTab.search, role: .prominent) {
+                    searchTab
+                }
+            } else {
+                Tab(String(localized: "Search"), systemImage: "plus", value: MainTab.search, role: .search) {
+                    searchTab
+                }
             }
             }
             .tabViewStyle(.automatic)
