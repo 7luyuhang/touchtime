@@ -1331,6 +1331,9 @@ struct AnalogClockFullView: View {
                                     onCountdownTap: {
                                         showCountdownSheet = true
                                     },
+                                    onStopwatchTap: {
+                                        showStopwatchRecordsSheet = true
+                                    },
                                     onTimerResetTap: {
                                         resetHomeTimer()
                                     },
@@ -1419,6 +1422,9 @@ struct AnalogClockFullView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowCountdownSheet"))) { _ in
                 showCountdownSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowStopwatchSheet"))) { _ in
+                showStopwatchRecordsSheet = true
             }
             .sheet(isPresented: $showDetailsSheet) {
                 if let cityId = selectedCityId,

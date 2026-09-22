@@ -1464,6 +1464,9 @@ struct HomeView: View {
                         },
                         onCountdownTap: {
                             showCountdownSheet = true
+                        },
+                        onStopwatchTap: {
+                            showStopwatchRecordsSheet = true
                         }
                     )
                         .padding(.horizontal)
@@ -1749,6 +1752,9 @@ struct HomeView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowCountdownSheet"))) { _ in
                 showCountdownSheet = true
+            }
+            .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ShowStopwatchSheet"))) { _ in
+                showStopwatchRecordsSheet = true
             }
 
             // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)

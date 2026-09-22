@@ -28,6 +28,9 @@ struct ScrollTimeView: View {
 
     private let minuteStep: TimeInterval = 60
     private let controlHeight: CGFloat = 52
+    /// Glass ID of the collapsed pill. One of the expanded quick-action
+    /// capsules shares it so the pill morphs into (and back from) it.
+    private let collapsedControlGlassID = "scrollTimeControl"
 
     @Binding var timeOffset: TimeInterval
     @Binding var showButtons: Bool
@@ -37,6 +40,7 @@ struct ScrollTimeView: View {
     var onAlarmTap: (() -> Void)? = nil
     var onTimerTap: (() -> Void)? = nil
     var onCountdownTap: (() -> Void)? = nil
+    var onStopwatchTap: (() -> Void)? = nil
     var onTimerResetTap: (() -> Void)? = nil
     var onTimerPlayPauseTap: (() -> Void)? = nil
     var timerPlayPauseSymbol: String = "play.fill"
@@ -79,6 +83,8 @@ struct ScrollTimeView: View {
     // Set once the user has double-tapped the pill to open the expanded
     // controls. Until then the idle label advertises the gesture.
     @AppStorage("hasDiscoveredScrollTimeDoubleTap") private var hasDiscoveredScrollTimeDoubleTap = false
+    // Which tools the double-tap reveals, chosen in Settings → Custom Quick Actions
+    @AppStorage(ScrollTimeQuickAction.storageKey) private var quickActionsStorage = ""
     @AppStorage("resetCount") private var resetCount: Int = 0
     @AppStorage("continuousScrollMode") private var continuousScrollMode = true
     @Environment(\.requestReview) private var requestReview
@@ -658,6 +664,27 @@ struct ScrollTimeView: View {
         }
     }
 
+    private func handleStopwatchAction() {
+        if let onStopwatchTap {
+            onStopwatchTap()
+        } else {
+            NotificationCenter.default.post(name: NSNotification.Name("ShowStopwatchSheet"), object: nil)
+        }
+    }
+
+    private func handleQuickAction(_ action: ScrollTimeQuickAction) {
+        switch action {
+        case .alarm:
+            handleAlarmAction()
+        case .timer:
+            handleTimerAction()
+        case .stopwatch:
+            handleStopwatchAction()
+        case .countdown:
+            handleCountdownAction()
+        }
+    }
+
     private func handleTimerResetAction() {
         onTimerResetTap?()
     }
@@ -734,7 +761,7 @@ struct ScrollTimeView: View {
         .frame(height: controlHeight)
         .contentShape(Rectangle())
         .glassEffect(.regular.interactive())
-        .glassEffectID("timerControl", in: glassNamespace)
+        .glassEffectID(collapsedControlGlassID, in: glassNamespace)
         .glassEffectTransition(.matchedGeometry)
         .gesture(scrollDragGesture)
         .onTapGesture(count: 2) {
@@ -743,26 +770,35 @@ struct ScrollTimeView: View {
         }
     }
 
-    // Double-tap Feature: icon-only capsules for Alarm, Timer and Countdown,
-    // then the close button. The visible titles are gone, so each action
-    // keeps its name as the accessibility label.
+    /// The user's quick actions (Settings → Custom Quick Actions), in their chosen order.
+    private var quickActions: [ScrollTimeQuickAction] {
+        ScrollTimeQuickAction.selection(from: quickActionsStorage)
+    }
+
+    /// The quick action whose capsule the collapsed pill morphs into: the
+    /// second one when there are several (keeps the morph centered), otherwise
+    /// the only one.
+    private var morphAnchorAction: ScrollTimeQuickAction? {
+        let actions = quickActions
+        return actions.count > 1 ? actions[1] : actions.first
+    }
+
+    // Double-tap Feature: icon-only capsules for the user's quick actions
+    // (1–3 of Alarm, Timer, Stopwatch, Countdown), then the close button.
+    // The visible titles are gone, so each action keeps its name as the
+    // accessibility label.
     @ViewBuilder
-    private var alarmTimerCloseButtons: some View {
+    private var quickActionButtons: some View {
         HStack(spacing: 5) {
-            expandedControlButton(systemImage: "alarm", glassID: "alarmControl") {
-                handleAlarmAction()
+            ForEach(quickActions) { action in
+                expandedControlButton(
+                    systemImage: action.systemImage,
+                    glassID: action == morphAnchorAction ? collapsedControlGlassID : "\(action.rawValue)Control"
+                ) {
+                    handleQuickAction(action)
+                }
+                .accessibilityLabel(Text(action.localizedName))
             }
-            .accessibilityLabel(Text("Alarm"))
-
-            expandedControlButton(systemImage: "timer", glassID: "timerControl") {
-                handleTimerAction()
-            }
-            .accessibilityLabel(Text("Timer"))
-
-            expandedControlButton(systemImage: "hourglass", glassID: "countdownControl") {
-                handleCountdownAction()
-            }
-            .accessibilityLabel(Text("Countdown"))
 
             expandedControlButton(systemImage: "xmark", glassID: "closeControl", hapticStyle: .rigid) { }
         }
@@ -957,7 +993,7 @@ struct ScrollTimeView: View {
     private var splitActionButtons: some View {
         switch expandedControlsMode {
         case .alarmTimerClose:
-            alarmTimerCloseButtons
+            quickActionButtons
         case .timerControls:
             timerControlButtons
         case .stopwatchControls:
@@ -1145,6 +1181,11 @@ struct ScrollTimeView: View {
                 stopInertia()
                 dragOffset = 0
             }
+            showButtons = false
+        }
+        .onChange(of: quickActionsStorage) { _, _ in
+            // The capsules are rebuilt from the new selection; collapse so the
+            // pill morphs into the updated set on the next double-tap.
             showButtons = false
         }
         .onChange(of: timeOffset) { _, newValue in

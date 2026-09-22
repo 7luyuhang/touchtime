@@ -4466,6 +4466,22 @@
         }
       }
     },
+    "Custom Quick Actions" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自定义快速操作"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "自訂快速動作"
+          }
+        }
+      }
+    },
     "Custom Repeat" : {
       "comment" : "Title of the custom countdown repeat sheet.",
       "localizations" : {
@@ -12301,6 +12317,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重置秒錶後，用時和計次會保存在這裡"
+          }
+        }
+      }
+    },
+    "Reset to Default" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置为默认"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置為預設"
           }
         }
       }

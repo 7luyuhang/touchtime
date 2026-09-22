@@ -908,6 +908,14 @@ struct SettingsView: View {
                             Text("Calendar")
                         }
                     }
+
+                    // Custom Quick Actions (double-tap on the time slider)
+                    NavigationLink(destination: ScrollTimeQuickActionsPicker(weatherCondition: weatherConditionForSky)) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "hand.tap.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Custom Quick Actions")
+                        }
+                    }
                 }
                 
                 
