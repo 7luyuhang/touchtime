@@ -1195,44 +1195,43 @@ struct AnalogClockFullView: View {
                         
                         // Digital time and scroll controls overlay
                         VStack(spacing: 0) {
-                            // Top section - Digital time centered between nav bar and clock
-                            VStack {
-                                Spacer()
-                                DigitalTimeDisplayView(
-                                    currentDate: currentDate,
-                                    timeOffset: timeOffset,
-                                    selectedTimeZone: selectedTimeZone,
-                                    use24HourFormat: use24HourFormat,
-                                    weather: weatherManager.weatherData[selectedTimeZone.identifier],
-                                    showWeather: showWeather,
-                                    useCelsius: useCelsius,
-                                    hapticEnabled: hapticEnabled,
-                                    timerConfiguredSeconds: homeTimerConfiguredSeconds,
-                                    timerEndDateEpoch: homeTimerEndDateEpoch,
-                                    timerIsPaused: homeTimerPaused,
-                                    timerPausedRemainingSeconds: homeTimerPausedRemainingSeconds,
-                                    timerIsAdjusting: isTimerCircleAdjusting,
-                                    onTimerTap: handleHomeTimerTap,
-                                    onTimerConfigureTap: {
-                                        triggerMenuHaptic()
-                                        showSetTimerSheet = true
-                                    },
-                                    stopwatch: homeStopwatch,
-                                    onStopwatchTap: handleHomeStopwatchDigitsTap,
-                                    selectedPage: $selectedDisplayPage,
-                                    onDisplayPageChange: { page in
-                                        selectedDisplayPage = page
-                                    }
-                                ) {
-                                    if hapticEnabled {
-                                        let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
-                                        impactFeedback.impactOccurred()
-                                    }
-                                    showTimeAdjustmentSheet = true
+                            // Top section - Digital time centered between nav bar and clock.
+                            // The section height is proposed directly so the digits pager
+                            // can shrink (and scale its type) instead of overflowing under
+                            // the navigation bar on shorter screens.
+                            DigitalTimeDisplayView(
+                                currentDate: currentDate,
+                                timeOffset: timeOffset,
+                                selectedTimeZone: selectedTimeZone,
+                                use24HourFormat: use24HourFormat,
+                                weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                                showWeather: showWeather,
+                                useCelsius: useCelsius,
+                                hapticEnabled: hapticEnabled,
+                                timerConfiguredSeconds: homeTimerConfiguredSeconds,
+                                timerEndDateEpoch: homeTimerEndDateEpoch,
+                                timerIsPaused: homeTimerPaused,
+                                timerPausedRemainingSeconds: homeTimerPausedRemainingSeconds,
+                                timerIsAdjusting: isTimerCircleAdjusting,
+                                onTimerTap: handleHomeTimerTap,
+                                onTimerConfigureTap: {
+                                    triggerMenuHaptic()
+                                    showSetTimerSheet = true
+                                },
+                                stopwatch: homeStopwatch,
+                                onStopwatchTap: handleHomeStopwatchDigitsTap,
+                                selectedPage: $selectedDisplayPage,
+                                onDisplayPageChange: { page in
+                                    selectedDisplayPage = page
                                 }
-                                .animation(.spring(), value: selectedTimeZone.identifier)
-                                Spacer()
+                            ) {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
+                                    impactFeedback.impactOccurred()
+                                }
+                                showTimeAdjustmentSheet = true
                             }
+                            .animation(.spring(), value: selectedTimeZone.identifier)
                             .frame(height: (geometry.size.height - size) / 2)
                             
                             // Middle - clock area (transparent placeholder)
@@ -2985,8 +2984,19 @@ struct DigitalTimeDisplayView: View {
         return Date(timeIntervalSince1970: timerEndDateEpoch)
     }
 
-    private var tabHeight: CGFloat {
-        110
+    /// Pager height the design was drawn at. The pager takes this much room when
+    /// the top section has it and shrinks below it otherwise, so the view never
+    /// grows taller than the height it is proposed.
+    private static let preferredTabHeight: CGFloat = 110
+
+    /// Digit size that goes with `preferredTabHeight`.
+    private static let preferredDigitFontSize: CGFloat = 52
+
+    /// Scales the digits with the pager so they keep the design's proportions
+    /// when the pager is shorter than `preferredTabHeight`.
+    private static func digitFontSize(forTabHeight tabHeight: CGFloat) -> CGFloat {
+        let scale = min(max(tabHeight / preferredTabHeight, 0), 1)
+        return preferredDigitFontSize * scale
     }
 
     private func formattedCurrentTime() -> String {
@@ -3048,11 +3058,11 @@ struct DigitalTimeDisplayView: View {
     }
 
     @ViewBuilder
-    private var timePage: some View {
+    private func timePage(digitFontSize: CGFloat) -> some View {
         VStack(spacing: 0) {
             Button(action: onTimeTap) {
                 Text(formattedCurrentTime())
-                    .font(.system(size: 52))
+                    .font(.system(size: digitFontSize))
                     .fontWeight(.light)
                     .fontDesign(.rounded)
                     .monospacedDigit()
@@ -3079,14 +3089,14 @@ struct DigitalTimeDisplayView: View {
     }
 
     @ViewBuilder
-    private var timerPage: some View {
+    private func timerPage(digitFontSize: CGFloat) -> some View {
         VStack(spacing: 0) {
             if hasConfiguredTimer {
                 // Timer Set
                 TimelineView(.periodic(from: .now, by: 1)) { context in
                     let remaining = timerRemainingSeconds(at: context.date)
                     Text(formattedTimer(seconds: remaining))
-                        .font(.system(size: 52))
+                        .font(.system(size: digitFontSize))
                         .fontWeight(.light)
                         .fontDesign(.rounded)
                         .monospacedDigit()
@@ -3110,7 +3120,7 @@ struct DigitalTimeDisplayView: View {
                 // No timer yet
                 Button(action: onTimerConfigureTap) {
                     Text("00:00")
-                        .font(.system(size: 52))
+                        .font(.system(size: digitFontSize))
                         .fontWeight(.light)
                         .fontDesign(.rounded)
                         .monospacedDigit()
@@ -3141,13 +3151,13 @@ struct DigitalTimeDisplayView: View {
     }
 
     @ViewBuilder
-    private var stopwatchPage: some View {
+    private func stopwatchPage(digitFontSize: CGFloat) -> some View {
         // Digits only redraw every frame while the stopwatch is running
         TimelineView(.animation(paused: !stopwatch.isRunning)) { context in
             VStack(spacing: 0) {
                 Button(action: onStopwatchTap) {
                     Text(StopwatchTimeFormatter.string(from: stopwatch.elapsed(at: context.date)))
-                        .font(.system(size: 52))
+                        .font(.system(size: digitFontSize))
                         .fontWeight(.light)
                         .fontDesign(.rounded)
                         .monospacedDigit()
@@ -3178,25 +3188,28 @@ struct DigitalTimeDisplayView: View {
     
     var body: some View {
         VStack(spacing: 8) {
+            // The pager fills whatever height is left after the dots, capped at
+            // the design height, and the digits scale with it.
             GeometryReader { tabGeometry in
                 let viewportMidX = tabGeometry.size.width / 2
+                let digitFontSize = Self.digitFontSize(forTabHeight: tabGeometry.size.height)
 
                 TabView(selection: $selectedPage) {
-                    stopwatchPage
+                    stopwatchPage(digitFontSize: digitFontSize)
                         .edgeChromaticSwipeEffect(
                             viewportMidX: viewportMidX,
                             coordinateSpaceName: Self.tabCoordinateSpaceName
                         )
                         .tag(DisplayPage.stopwatch)
 
-                    timePage
+                    timePage(digitFontSize: digitFontSize)
                         .edgeChromaticSwipeEffect(
                             viewportMidX: viewportMidX,
                             coordinateSpaceName: Self.tabCoordinateSpaceName
                         )
                         .tag(DisplayPage.time)
 
-                    timerPage
+                    timerPage(digitFontSize: digitFontSize)
                         .edgeChromaticSwipeEffect(
                             viewportMidX: viewportMidX,
                             coordinateSpaceName: Self.tabCoordinateSpaceName
@@ -3204,9 +3217,9 @@ struct DigitalTimeDisplayView: View {
                         .tag(DisplayPage.timer)
                 }
                 .tabViewStyle(.page(indexDisplayMode: .never))
-                .frame(width: tabGeometry.size.width, height: tabHeight)
+                .frame(width: tabGeometry.size.width, height: tabGeometry.size.height)
             }
-            .frame(height: tabHeight)
+            .frame(maxHeight: Self.preferredTabHeight)
             .coordinateSpace(name: Self.tabCoordinateSpaceName)
 
             // Top Dots
