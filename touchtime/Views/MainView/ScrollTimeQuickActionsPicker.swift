@@ -101,30 +101,30 @@ struct ScrollTimeQuickActionsPicker: View {
                     .disabled(isLocked)
                 }
             }
-
-            Section {
-                Button(action: {
+        }
+        .scrollIndicators(.hidden)
+        .navigationTitle("Custom Quick Actions")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
                     withAnimation {
                         // Empty storage means "not customised" and decodes to the default set
                         quickActionsStorage = ""
                     }
 
                     if hapticEnabled {
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        let feedback = UINotificationFeedbackGenerator()
+                        feedback.prepare()
+                        feedback.notificationOccurred(.success)
                     }
-                }) {
-                    HStack(spacing: 12) {
-                        SystemIconImage(systemName: "arrow.counterclockwise", topColor: .gray, bottomColor: .gray, style: .plain)
-                        Text("Reset to Default")
-                    }
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
                 }
-                .foregroundStyle(.primary)
+                .accessibilityLabel(Text("Reset to Default"))
                 .disabled(isDefaultSelection)
             }
         }
-        .scrollIndicators(.hidden)
-        .navigationTitle("Custom Quick Actions")
-        .navigationBarTitleDisplayMode(.inline)
     }
 
     /// The capsule row as ScrollTimeView shows it after a double-tap:
