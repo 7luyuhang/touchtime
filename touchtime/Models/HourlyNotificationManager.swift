@@ -28,6 +28,10 @@ final class HourlyNotificationManager: NSObject {
     private let identifierPrefix = "hourlyNotification-"
     private let hoursToSchedule = 24
 
+    /// The reschedule in flight, if any; the next one waits for it so two
+    /// quick selection changes can't interleave their remove/add steps.
+    private var rescheduleTask: Task<Void, Never>?
+
     private override init() {
         super.init()
         // Present our notifications as banners even while the app is in the foreground
@@ -131,42 +135,52 @@ final class HourlyNotificationManager: NSObject {
     // MARK: - Scheduling
 
     /// Re-reads settings and reschedules the next 24 on-the-hour notifications.
+    /// Nothing is scheduled while no city (or Local) is selected.
     /// Call after any related setting changes or when the app becomes active.
     func reschedule() {
-        Task {
-            let center = UNUserNotificationCenter.current()
+        let previousTask = rescheduleTask
+        rescheduleTask = Task {
+            await previousTask?.value
+            await rescheduleNotifications()
+        }
+    }
 
-            // Remove previously scheduled hourly notifications
-            let pending = await center.pendingNotificationRequests()
-            let staleIds = pending.map(\.identifier).filter { $0.hasPrefix(identifierPrefix) }
-            if !staleIds.isEmpty {
-                center.removePendingNotificationRequests(withIdentifiers: staleIds)
-            }
+    private func rescheduleNotifications() async {
+        let center = UNUserNotificationCenter.current()
 
-            let defaults = UserDefaults.standard
-            guard defaults.bool(forKey: Self.enabledKey) else { return }
+        // Remove previously scheduled hourly notifications
+        let pending = await center.pendingNotificationRequests()
+        let staleIds = pending.map(\.identifier).filter { $0.hasPrefix(identifierPrefix) }
+        if !staleIds.isEmpty {
+            center.removePendingNotificationRequests(withIdentifiers: staleIds)
+        }
 
-            let authorization = await center.notificationSettings().authorizationStatus
-            guard authorization == .authorized || authorization == .provisional else { return }
+        let defaults = UserDefaults.standard
+        guard defaults.bool(forKey: Self.enabledKey) else { return }
 
-            let calendar = Calendar.current
-            guard let firstHour = calendar.nextDate(
-                after: Date(),
-                matching: DateComponents(minute: 0, second: 0),
-                matchingPolicy: .nextTime
-            ) else { return }
+        let clocks = loadSelectedClocks()
+        guard !clocks.isEmpty else { return }
 
-            for hourOffset in 0..<hoursToSchedule {
-                guard let fireDate = calendar.date(byAdding: .hour, value: hourOffset, to: firstHour) else { continue }
-                guard Self.isWithinTimeWindow(fireDate) else { continue }
+        let authorization = await center.notificationSettings().authorizationStatus
+        guard authorization == .authorized || authorization == .provisional else { return }
 
-                let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
-                let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
-                let identifier = identifierPrefix + String(Int(fireDate.timeIntervalSince1970))
+        let calendar = Calendar.current
+        guard let firstHour = calendar.nextDate(
+            after: Date(),
+            matching: DateComponents(minute: 0, second: 0),
+            matchingPolicy: .nextTime
+        ) else { return }
 
-                let request = UNNotificationRequest(identifier: identifier, content: makeContent(for: fireDate), trigger: trigger)
-                try? await center.add(request)
-            }
+        for hourOffset in 0..<hoursToSchedule {
+            guard let fireDate = calendar.date(byAdding: .hour, value: hourOffset, to: firstHour) else { continue }
+            guard Self.isWithinTimeWindow(fireDate) else { continue }
+
+            let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+            let identifier = identifierPrefix + String(Int(fireDate.timeIntervalSince1970))
+
+            let request = UNNotificationRequest(identifier: identifier, content: makeContent(for: fireDate, clocks: clocks), trigger: trigger)
+            try? await center.add(request)
         }
     }
 
@@ -184,12 +198,12 @@ final class HourlyNotificationManager: NSObject {
 
     // MARK: - Helpers
 
-    private func makeContent(for date: Date) -> UNMutableNotificationContent {
+    private func makeContent(for date: Date, clocks: [WorldClock]) -> UNMutableNotificationContent {
         let use24Hour = UserDefaults.standard.bool(forKey: "use24HourFormat")
 
         let content = UNMutableNotificationContent()
         content.title = String(localized: "On the Hour")
-        let body = loadSelectedClocks()
+        let body = clocks
             .compactMap { clock -> String? in
                 guard let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) else { return nil }
                 return "\(clock.localizedCityName) \(timeString(for: date, in: timeZone, use24Hour: use24Hour))"
