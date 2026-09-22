@@ -301,7 +301,11 @@ struct SettingsView: View {
     }
 
     private var hourlyNotificationCitySummary: String {
-        let selected = worldClocks.filter { hourlyNotificationCityIds.contains($0.id) }
+        let selected = HourlyNotificationManager.selectedClocks(
+            for: hourlyNotificationCityIds,
+            in: worldClocks,
+            showLocalTime: showLocalTime
+        )
         switch selected.count {
         case 0:
             return String(localized: "None")
@@ -1108,6 +1112,9 @@ struct SettingsView: View {
                 }
             }
             .onChange(of: use24HourFormat) {
+                HourlyNotificationManager.shared.reschedule()
+            }
+            .onChange(of: showLocalTime) {
                 HourlyNotificationManager.shared.reschedule()
             }
             .alert("Notifications Disabled", isPresented: $showNotificationPermissionAlert) {

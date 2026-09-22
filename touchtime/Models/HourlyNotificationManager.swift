@@ -36,6 +36,10 @@ final class HourlyNotificationManager: NSObject {
 
     // MARK: - Selected cities persistence
 
+    /// Reserved id for the "Local" entry (system time zone), stored with the city ids
+    /// so it keeps its place in the selection order.
+    static let localCityId = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+
     /// Selection order is preserved (first selected city comes first).
     static func loadSelectedCityIds() -> [UUID] {
         guard let raw = UserDefaults.standard.string(forKey: selectedCityIdsKey), !raw.isEmpty else {
@@ -47,6 +51,19 @@ final class HourlyNotificationManager: NSObject {
     static func saveSelectedCityIds(_ ids: [UUID]) {
         let raw = ids.map(\.uuidString).joined(separator: ",")
         UserDefaults.standard.set(raw, forKey: selectedCityIdsKey)
+    }
+
+    /// Resolves selected ids to clocks, in selection order.
+    /// Local resolves to the current time zone and is skipped while System Time is hidden;
+    /// ids of removed cities are skipped too.
+    static func selectedClocks(for ids: [UUID], in worldClocks: [WorldClock], showLocalTime: Bool) -> [WorldClock] {
+        ids.compactMap { id -> WorldClock? in
+            if id == localCityId {
+                guard showLocalTime else { return nil }
+                return WorldClock(cityName: String(localized: "Local"), timeZoneIdentifier: TimeZone.current.identifier)
+            }
+            return worldClocks.first { $0.id == id }
+        }
     }
 
     // MARK: - Time window
@@ -190,11 +207,12 @@ final class HourlyNotificationManager: NSObject {
         let selectedIds = Self.loadSelectedCityIds()
         guard !selectedIds.isEmpty else { return [] }
 
-        guard let data = UserDefaults.standard.data(forKey: "savedWorldClocks"),
-              let clocks = try? JSONDecoder().decode([WorldClock].self, from: data) else {
-            return []
-        }
-        return selectedIds.compactMap { id in clocks.first { $0.id == id } }
+        let defaults = UserDefaults.standard
+        let clocks = defaults.data(forKey: "savedWorldClocks")
+            .flatMap { try? JSONDecoder().decode([WorldClock].self, from: $0) } ?? []
+        // System Time defaults to on (see @AppStorage("showLocalTime")), so a missing value means shown
+        let showLocalTime = defaults.object(forKey: "showLocalTime") as? Bool ?? true
+        return Self.selectedClocks(for: selectedIds, in: clocks, showLocalTime: showLocalTime)
     }
 
     fileprivate func isHourlyNotification(_ notification: UNNotification) -> Bool {

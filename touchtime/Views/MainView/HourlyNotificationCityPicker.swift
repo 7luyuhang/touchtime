@@ -15,6 +15,7 @@ struct HourlyNotificationCityPicker: View {
     var weatherCondition: WeatherCondition? = nil
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("use24HourFormat") private var use24HourFormat = false
+    @AppStorage("showLocalTime") private var showLocalTime = true
     @AppStorage(HourlyNotificationManager.timeWindowEnabledKey) private var timeWindowEnabled = false
     @AppStorage(HourlyNotificationManager.startTimeKey) private var chimeStartTime = HourlyNotificationManager.defaultStartTime
     @AppStorage(HourlyNotificationManager.endTimeKey) private var chimeEndTime = HourlyNotificationManager.defaultEndTime
@@ -58,10 +59,9 @@ struct HourlyNotificationCityPicker: View {
     /// "Shanghai 17:00 · New York 05:00"
     private var previewBodyText: String {
         let fireDate = previewFireDate
-        return selectedCityIds
-            .compactMap { id -> String? in
-                guard let clock = worldClocks.first(where: { $0.id == id }),
-                      let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) else { return nil }
+        return HourlyNotificationManager.selectedClocks(for: selectedCityIds, in: worldClocks, showLocalTime: showLocalTime)
+            .compactMap { clock -> String? in
+                guard let timeZone = TimeZone(identifier: clock.timeZoneIdentifier) else { return nil }
                 return "\(clock.localizedCityName) \(timeString(for: fireDate, in: timeZone))"
             }
             .joined(separator: " · ")
@@ -138,35 +138,12 @@ struct HourlyNotificationCityPicker: View {
             }
 
             Section {
+                if showLocalTime {
+                    cityRow(id: HourlyNotificationManager.localCityId, name: String(localized: "Local"))
+                }
+
                 ForEach(worldClocks) { clock in
-                    let selectionIndex = selectedCityIds.firstIndex(of: clock.id)
-                    let isSelected = selectionIndex != nil
-
-                    Button(action: {
-                        withAnimation {
-                            toggleSelection(for: clock.id)
-                        }
-
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        }
-                    }) {
-                        HStack {
-                            Text(clock.localizedCityName)
-
-                            Spacer()
-
-                            Image(systemName: selectionIndex.map { "\($0 + 1).circle.fill" } ?? "circle")
-                                .font(.title3.weight(.medium))
-                                .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.25))
-                                .contentTransition(.symbolEffect(.replace))
-                                .opacity(!isSelected && isSelectionFull ? 0 : 1)
-                                .animation(nil, value: isSelectionFull)
-                        }
-                        .contentShape(Rectangle())
-                    }
-                    .buttonStyle(.plain)
-                    .disabled(!isSelected && isSelectionFull)
+                    cityRow(id: clock.id, name: clock.localizedCityName)
                 }
             }
 
@@ -175,9 +152,12 @@ struct HourlyNotificationCityPicker: View {
         .navigationTitle("City Selection")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
-            // Drop ids of cities that no longer exist (e.g. deleted or reset),
-            // otherwise they still count towards the selection limit
-            let validIds = Set(worldClocks.map(\.id))
+            // Drop ids of cities that no longer exist (e.g. deleted or reset, or Local
+            // while System Time is hidden), otherwise they still count towards the selection limit
+            var validIds = Set(worldClocks.map(\.id))
+            if showLocalTime {
+                validIds.insert(HourlyNotificationManager.localCityId)
+            }
             let pruned = selectedCityIds.filter { validIds.contains($0) }
             if pruned != selectedCityIds {
                 selectedCityIds = pruned
@@ -228,6 +208,38 @@ struct HourlyNotificationCityPicker: View {
             .regular.interactive(),in: RoundedRectangle(cornerRadius: 24, style: .continuous)
         )
         .animation(.spring(), value: previewBodyText)
+    }
+
+    @ViewBuilder
+    private func cityRow(id: UUID, name: String) -> some View {
+        let selectionIndex = selectedCityIds.firstIndex(of: id)
+        let isSelected = selectionIndex != nil
+
+        Button(action: {
+            withAnimation {
+                toggleSelection(for: id)
+            }
+
+            if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+        }) {
+            HStack {
+                Text(name)
+
+                Spacer()
+
+                Image(systemName: selectionIndex.map { "\($0 + 1).circle.fill" } ?? "circle")
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(isSelected ? Color.white : Color.white.opacity(0.25))
+                    .contentTransition(.symbolEffect(.replace))
+                    .opacity(!isSelected && isSelectionFull ? 0 : 1)
+                    .animation(nil, value: isSelectionFull)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isSelected && isSelectionFull)
     }
 
     // Convert stored "HH:mm" string to a Date for the DatePicker (same as AvailableTimePicker)
