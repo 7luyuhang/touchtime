@@ -695,6 +695,16 @@ struct CountdownDetailsView: View {
                     // pager pins its pages inside the safe area, so the form
                     // got clipped at the bars instead of scrolling under them.
                     GeometryReader { viewport in
+                        // `viewport` sits inside the bars (and the keyboard), so
+                        // its insets are what the pager below, which spans them,
+                        // hands each page back as safe area. A page's background
+                        // then runs under the bars while its rows clear them, as
+                        // the form does when it is the root. Left to itself the
+                        // horizontal scroll view keeps its content inside the
+                        // safe area, so every page started at the bar's edge and
+                        // drew a hard seam against the sheet background behind it.
+                        let insets = viewport.safeAreaInsets
+                        let pageHeight = viewport.size.height + insets.top + insets.bottom
                         ScrollView(.horizontal) {
                             // Keep both pages alive in a regular HStack. A lazy
                             // stack can cache the sheet's narrower source size
@@ -703,24 +713,40 @@ struct CountdownDetailsView: View {
                             // sheet has expanded to fill the screen.
                             HStack(alignment: .top, spacing: 0) {
                                 detailsForm
-                                    .frame(width: viewport.size.width, height: viewport.size.height)
+                                    .safeAreaPadding(.top, insets.top)
+                                    .safeAreaPadding(.bottom, insets.bottom)
+                                    .frame(width: viewport.size.width, height: pageHeight)
                                     .id(EditorTab.detail)
 
                                 CountdownSpaceView(countdownID: original.id)
-                                    .frame(width: viewport.size.width, height: viewport.size.height)
+                                    .safeAreaPadding(.top, insets.top)
+                                    .safeAreaPadding(.bottom, insets.bottom)
+                                    .frame(width: viewport.size.width, height: pageHeight)
                                     .id(EditorTab.space)
                             }
                             .frame(
                                 width: viewport.size.width * CGFloat(EditorTab.allCases.count),
-                                height: viewport.size.height,
+                                height: pageHeight,
                                 alignment: .leading
                             )
                             .scrollTargetLayout()
+                            .scrollEdgeEffectHidden(false)
                         }
                         .scrollTargetBehavior(.paging)
                         .scrollIndicators(.hidden)
                         .defaultScrollAnchor(.topLeading)
                         .scrollPosition(id: $scrolledTab, anchor: .topLeading)
+                        // Under the bars and the keyboard alike: with the keyboard
+                        // in the bottom inset, the form keeps the focused field
+                        // above it the same way it does as the root.
+                        .ignoresSafeArea()
+                        // The pager has no vertical content of its own, yet with
+                        // its pages spanning the bar it painted its own top edge
+                        // effect: a lighter band ending in a hard line at the
+                        // bar's edge. Each page keeps its own edge effects (the
+                        // HStack turns them back on) so rows still blur under
+                        // the bar and the preview card.
+                        .scrollEdgeEffectHidden(true, for: .vertical)
                     }
                 } else {
                     detailsForm
