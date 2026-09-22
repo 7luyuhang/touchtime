@@ -407,6 +407,8 @@ struct TimerRangeFillView: View {
     let startAngle: Double
     let endAngle: Double
     let size: CGFloat
+    /// Tint of the sweep; it fades out from the center in this color.
+    var color: Color = .white
 
     var body: some View {
         let center = CGPoint(x: size / 2, y: size / 2)
@@ -428,8 +430,8 @@ struct TimerRangeFillView: View {
         .fill(
             RadialGradient(
                 colors: [
-                    Color.white.opacity(0.10),
-                    Color.white.opacity(0)
+                    color.opacity(0.10),
+                    color.opacity(0)
                 ],
                 center: .center,
                 startRadius: 0,

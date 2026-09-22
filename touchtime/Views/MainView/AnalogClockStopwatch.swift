@@ -122,6 +122,9 @@ struct StopwatchClockFaceView: View {
         size / 2 - 36
     }
 
+    /// The lap hand and the sweep that follows it.
+    private static let lapHandColor: Color = .yellow
+
     private static func secondsAngle(for elapsed: TimeInterval) -> Double {
         elapsed.truncatingRemainder(dividingBy: 60) * 6.0
     }
@@ -161,20 +164,22 @@ struct StopwatchClockFaceView: View {
 
                 // Like the iOS Stopwatch: the first Lap adds a second hand that
                 // tracks the current lap and snaps back to 60 on every Lap. The
-                // sweep trail follows that hand; the total hand keeps running
-                // without one. There are never more than two hands.
+                // sweep trail follows that hand, in its yellow; the total hand
+                // keeps running without one. There are never more than two hands.
                 let hasLapHand = !stopwatch.laps.isEmpty
                 let lapElapsed = stopwatch.currentLapElapsed(at: context.date)
                 let lapAngle = Self.secondsAngle(for: lapElapsed)
                 let trailElapsed = hasLapHand ? lapElapsed : elapsed
                 let trailAngle = hasLapHand ? lapAngle : totalAngle
+                let trailColor: Color = hasLapHand ? Self.lapHandColor : .white
 
                 ZStack {
                     if trailElapsed > 0 {
                         TimerRangeFillView(
                             startAngle: 0,
                             endAngle: trailAngle,
-                            size: size
+                            size: size,
+                            color: trailColor
                         )
                     }
 
@@ -190,7 +195,7 @@ struct StopwatchClockFaceView: View {
                         TimerAnimatedHandView(
                             angle: lapAngle,
                             size: size,
-                            color: .white
+                            color: Self.lapHandColor
                         )
                     }
                 }
