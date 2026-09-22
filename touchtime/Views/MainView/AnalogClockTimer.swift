@@ -293,25 +293,9 @@ struct TimerClockFaceView: View {
                 )
 
             if clampedConfiguredSeconds > 0 {
-                TimerRangeFillView(
+                TimerRangeSweepView(
                     startAngle: 0,
                     endAngle: configuredAngle,
-                    size: size
-                )
-
-                TimerRangeArcView(
-                    startAngle: 0,
-                    endAngle: configuredAngle,
-                    size: size
-                )
-
-                TimerBoundaryLineView(
-                    angle: 0,
-                    size: size
-                )
-
-                TimerBoundaryLineView(
-                    angle: configuredAngle,
                     size: size
                 )
             }
@@ -381,6 +365,7 @@ struct TimerRangeArcView: View {
     let startAngle: Double
     let endAngle: Double
     let size: CGFloat
+    var color: Color = .white
 
     var body: some View {
         let center = CGPoint(x: size / 2, y: size / 2)
@@ -397,8 +382,49 @@ struct TimerRangeArcView: View {
                 clockwise: false
             )
         }
-        .stroke(Color.white, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+        .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
         .drawingGroup()
+    }
+}
+
+// MARK: - Timer Range Sweep View
+/// A filled range on the dial: the tinted sector, the arc along the rim and the
+/// two edge lines fading out from the center. The timer draws its set duration
+/// with it, and the stopwatch its lap sweep, so the two always look the same.
+struct TimerRangeSweepView: View {
+    let startAngle: Double
+    let endAngle: Double
+    let size: CGFloat
+    var color: Color = .white
+
+    var body: some View {
+        ZStack {
+            TimerRangeFillView(
+                startAngle: startAngle,
+                endAngle: endAngle,
+                size: size,
+                color: color
+            )
+
+            TimerRangeArcView(
+                startAngle: startAngle,
+                endAngle: endAngle,
+                size: size,
+                color: color
+            )
+
+            TimerBoundaryLineView(
+                angle: startAngle,
+                size: size,
+                color: color
+            )
+
+            TimerBoundaryLineView(
+                angle: endAngle,
+                size: size,
+                color: color
+            )
+        }
     }
 }
 
@@ -447,6 +473,7 @@ struct TimerRangeFillView: View {
 struct TimerBoundaryLineView: View {
     let angle: Double
     let size: CGFloat
+    var color: Color = .white
 
     var body: some View {
         let center = CGPoint(x: size / 2, y: size / 2)
@@ -463,7 +490,7 @@ struct TimerBoundaryLineView: View {
         }
         .stroke(
             LinearGradient(
-                colors: [Color.white.opacity(0.25), Color.white.opacity(0)],
+                colors: [color.opacity(0.25), color.opacity(0)],
                 startPoint: UnitPoint(x: 0.5, y: 0.5),
                 endPoint: UnitPoint(
                     x: 0.5 + (radius / size) * CGFloat(cos(angleRadians)),

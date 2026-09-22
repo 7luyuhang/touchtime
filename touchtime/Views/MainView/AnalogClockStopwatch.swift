@@ -164,8 +164,9 @@ struct StopwatchClockFaceView: View {
 
                 // Like the iOS Stopwatch: the first Lap adds a second hand that
                 // tracks the current lap and snaps back to 60 on every Lap. The
-                // sweep trail follows that hand, in its yellow; the total hand
-                // keeps running without one. There are never more than two hands.
+                // sweep, drawn like the timer's set range, follows that hand in
+                // its yellow; the total hand keeps running without one. There
+                // are never more than two hands.
                 let hasLapHand = !stopwatch.laps.isEmpty
                 let lapElapsed = stopwatch.currentLapElapsed(at: context.date)
                 let lapAngle = Self.secondsAngle(for: lapElapsed)
@@ -175,7 +176,7 @@ struct StopwatchClockFaceView: View {
 
                 ZStack {
                     if trailElapsed > 0 {
-                        TimerRangeFillView(
+                        TimerRangeSweepView(
                             startAngle: 0,
                             endAngle: trailAngle,
                             size: size,
