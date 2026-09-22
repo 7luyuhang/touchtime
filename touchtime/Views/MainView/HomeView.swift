@@ -1214,7 +1214,7 @@ struct HomeView: View {
                     ) {
                             // Main List Content
                             List {
-                        
+                        Group {
                         // Shake to Reset Tip (shown after first city deletion)
                         if showShakeToResetTip {
                             Section {
@@ -1489,6 +1489,13 @@ struct HomeView: View {
                                 }
                             }
                         }
+                        }
+                        // Beside the details the system drops the trailing
+                        // section margin (the vertical bar's safe area is
+                        // taken to be the inset), so the cards run to the
+                        // column edge. Pin both margins so the cards line up
+                        // with the scroll-time bar underneath.
+                        .listSectionMargins(.horizontal, usesLandscapeDetailLayout ? 20 : nil)
                     }
                         .listSectionSpacing(12) // List Paddings
                         .scrollIndicators(.hidden)
