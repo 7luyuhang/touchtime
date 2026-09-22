@@ -266,7 +266,7 @@ struct StopwatchLapHistoryView: View {
             if let symbolName = lapExtremes.symbolName(for: index) {
                 Image(systemName: symbolName)
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(.primary)
             }
 
             Text(StopwatchTimeFormatter.string(from: lap))
@@ -345,7 +345,7 @@ struct StopwatchLapListSheet: View {
                             if let symbolName = lapExtremes.symbolName(for: index) {
                                 Image(systemName: symbolName)
                                     .font(.caption2.weight(.bold))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(.primary)
                             }
 
                             Text(StopwatchTimeFormatter.string(from: lap))
