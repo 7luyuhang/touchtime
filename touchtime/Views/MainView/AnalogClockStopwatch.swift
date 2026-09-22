@@ -330,52 +330,65 @@ struct StopwatchLapHistoryView: View {
     }
 }
 
-// MARK: - Stopwatch Lap List Sheet
-/// Plain list of every recorded lap, newest first.
-struct StopwatchLapListSheet: View {
+// MARK: - Stopwatch Lap List
+/// Plain list of every recorded lap, newest first. Shown in place of the
+/// records in the Stopwatch sheet, or on its own by `StopwatchLapListSheet`;
+/// the container supplies the navigation title.
+struct StopwatchLapListView: View {
     let laps: [TimeInterval]
-
-    @Environment(\.dismiss) private var dismiss
-    @AppStorage("hapticEnabled") private var hapticEnabled = true
 
     private var lapExtremes: StopwatchLapExtremes {
         StopwatchLapExtremes(laps: laps)
     }
 
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(Array(laps.enumerated().reversed()), id: \.offset) { index, lap in
-                    LabeledContent {
-                        HStack {
-                            if let symbolName = lapExtremes.symbolName(for: index) {
-                                Image(systemName: symbolName)
-                                    .font(.caption2.weight(.bold))
-                                    .foregroundStyle(.primary)
-                            }
-
-                            Text(StopwatchTimeFormatter.string(from: lap))
+        List {
+            ForEach(Array(laps.enumerated().reversed()), id: \.offset) { index, lap in
+                LabeledContent {
+                    HStack {
+                        if let symbolName = lapExtremes.symbolName(for: index) {
+                            Image(systemName: symbolName)
+                                .font(.caption2.weight(.bold))
                                 .foregroundStyle(.primary)
                         }
-                    } label: {
-                        Text(String.localizedStringWithFormat(String(localized: "Lap %d"), index + 1))
-                            .foregroundStyle(.secondary)
+
+                        Text(StopwatchTimeFormatter.string(from: lap))
+                            .foregroundStyle(.primary)
                     }
-                    .monospacedDigit()
+                } label: {
+                    Text(String.localizedStringWithFormat(String(localized: "Lap %d"), index + 1))
+                        .foregroundStyle(.secondary)
                 }
+                .monospacedDigit()
             }
-            .navigationTitle(String(localized: "Laps"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button {
-                        triggerHaptic()
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
+        }
+    }
+}
+
+// MARK: - Stopwatch Lap List Sheet
+/// The lap list as a sheet of its own, opened from the lap history under the
+/// stopwatch face.
+struct StopwatchLapListSheet: View {
+    let laps: [TimeInterval]
+
+    @Environment(\.dismiss) private var dismiss
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
+
+    var body: some View {
+        NavigationStack {
+            StopwatchLapListView(laps: laps)
+                .navigationTitle(String(localized: "Laps"))
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button {
+                            triggerHaptic()
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark")
+                        }
                     }
                 }
-            }
         }
         .presentationDetents([.medium])
     }

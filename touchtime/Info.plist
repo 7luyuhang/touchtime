@@ -2,26 +2,22 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSCameraUsageDescription</key>
-	<string>Allow camera access to show live camera background.</string>
-	<key>NSAlarmKitUsageDescription</key>
-	<string>Allow alarm access to let you set local alarms.</string>
-	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>Save card images to your Photo Library.</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>handstime</string>
 		<string>googlegmail</string>
 	</array>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>Allow alarm access to let you set local alarms.</string>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>
-			<key>UIApplicationShortcutItemType</key>
-			<string>com.time.touchtime.setTimer</string>
-			<key>UIApplicationShortcutItemTitle</key>
-			<string>Set Timer</string>
 			<key>UIApplicationShortcutItemIconSymbolName</key>
 			<string>timer</string>
+			<key>UIApplicationShortcutItemTitle</key>
+			<string>Set Timer</string>
+			<key>UIApplicationShortcutItemType</key>
+			<string>com.time.touchtime.setTimer</string>
 		</dict>
 	</array>
 </dict>

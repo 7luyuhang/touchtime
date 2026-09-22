@@ -39,6 +39,7 @@ struct AnalogClockFullView: View {
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
+    @State private var showStopwatchRecordsSheet = false
     @State private var showCountdownSheet = false
     @State private var showWidgetIntroSheet = false
     @State private var showSettingsSheet = false
@@ -681,7 +682,17 @@ struct AnalogClockFullView: View {
         homeStopwatchLapsData = StopwatchLapStore.encode(stopwatch.laps + [lapTime])
     }
 
+    /// Reset ends the session: its time and laps go to the Stopwatch records
+    /// (see `StopwatchRecordsSheet`) before the stopwatch is cleared.
     private func resetHomeStopwatch() {
+        let stopwatch = homeStopwatch
+        if stopwatch.hasStarted {
+            StopwatchRecordStore.remember(
+                totalSeconds: stopwatch.elapsed(at: Date()),
+                laps: stopwatch.laps
+            )
+        }
+
         homeStopwatchStartEpoch = 0
         homeStopwatchAccumulatedSeconds = 0
         homeStopwatchLapsData = Data()
@@ -871,6 +882,13 @@ struct AnalogClockFullView: View {
                 showSetTimerSheet = true
             }) {
                 Label(String(localized: "Timers"), systemImage: "timer")
+            }
+
+            Button(action: {
+                triggerMenuHaptic()
+                showStopwatchRecordsSheet = true
+            }) {
+                Label(String(localized: "Stopwatch"), systemImage: "stopwatch")
             }
 
             Button(action: {
@@ -1468,6 +1486,9 @@ struct AnalogClockFullView: View {
                     },
                     onPlayPause: handleHomeTimerTap
                 )
+            }
+            .sheet(isPresented: $showStopwatchRecordsSheet) {
+                StopwatchRecordsSheet()
             }
             .sheet(isPresented: $showCountdownSheet) {
                 CountdownSheet()

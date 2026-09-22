@@ -117,6 +117,7 @@ struct HomeView: View {
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
+    @State private var showStopwatchRecordsSheet = false
     @State private var showCountdownSheet = false
     // Pinned countdowns show their preview below the home timer; the shared
     // store is observed, so pins toggled inside the countdown sheet update
@@ -1641,6 +1642,17 @@ struct HomeView: View {
                                     impactFeedback.prepare()
                                     impactFeedback.impactOccurred()
                                 }
+                                showStopwatchRecordsSheet = true
+                            }) {
+                                Label(String(localized: "Stopwatch"), systemImage: "stopwatch")
+                            }
+
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
                                 showCountdownSheet = true
                             }) {
                                 Label(String(localized: "Countdowns"), systemImage: "hourglass")
@@ -1909,6 +1921,11 @@ struct HomeView: View {
                     },
                     onPlayPause: handleHomeTimerTap
                 )
+            }
+
+            // Stopwatch Records Sheet
+            .sheet(isPresented: $showStopwatchRecordsSheet) {
+                StopwatchRecordsSheet()
             }
 
             // Countdown Sheet
