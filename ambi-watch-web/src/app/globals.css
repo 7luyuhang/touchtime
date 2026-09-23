@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "../styles/tokens.css";
+@import "../styles/watch.css";
 
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 

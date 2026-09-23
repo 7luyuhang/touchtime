@@ -1,4 +1,4 @@
-export type FontFamilyToken = "sans" | "mono";
+export type FontFamilyToken = "sans" | "mono" | "watch" | "watch-serif";
 
 export interface TypeStyle {
   fontFamily: FontFamilyToken;
@@ -9,15 +9,21 @@ export interface TypeStyle {
 }
 
 /**
- * `placeholder` tokens borrow a Vercel base value until the matching Figma
- * variable is pulled; `figma` tokens carry the value read from the file.
+ * `sampled` values were measured from the reference images (pixel positions,
+ * colours, curve fits); `assumed` values are inferences the images cannot
+ * confirm (font families, blur, motion).
  */
-export type AmbiTokenStatus = "placeholder" | "figma";
+export type AmbiTokenStatus = "sampled" | "assumed";
 
 export interface AmbiToken {
   value: string;
   status: AmbiTokenStatus;
-  aliasOf?: string;
-  figmaVariable?: string;
+  source: string;
+  note?: string;
+}
+
+export interface AmbiTypeToken extends TypeStyle {
+  status: AmbiTokenStatus;
+  source: string;
   note?: string;
 }

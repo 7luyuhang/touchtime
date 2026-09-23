@@ -1,6 +1,17 @@
-import { ambiColors, ambiMotion, watchFace } from "./ambi";
+import {
+  ambiColors,
+  ambiFontStacks,
+  ambiGradients,
+  ambiMaterials,
+  ambiMotion,
+  ambiRadii,
+  ambiSizes,
+  ambiTypography,
+  watchScreen,
+} from "./ambi";
 import { duration, easing } from "./motion";
 import { darkColorOverrides, darkHairlineRing } from "./themes";
+import type { AmbiToken, TypeStyle } from "./types";
 import {
   breakpoints,
   colors,
@@ -15,6 +26,8 @@ import {
   typography,
   type ElevationName,
 } from "./vercel";
+
+type Entry = [string, string];
 
 const px = (value: number) => (value === 0 ? "0" : `${value}px`);
 
@@ -45,56 +58,76 @@ function elevationValue(name: ElevationName, ring: string): string {
   return level.light ? `${level.light}, ${ring}` : ring;
 }
 
-function declarations(entries: [string, string][], indent = "  "): string[] {
+function declarations(entries: Entry[], indent = "  "): string[] {
   return entries.map(([name, value]) => `${indent}--${name}: ${value};`);
 }
 
+function typeEntries(styles: Record<string, TypeStyle>): Entry[] {
+  return Object.entries(styles).flatMap(([name, style]): Entry[] => [
+    [`text-${name}`, px(style.fontSize)],
+    [`text-${name}--line-height`, px(style.lineHeight)],
+    [`text-${name}--letter-spacing`, px(style.letterSpacing)],
+    [`text-${name}--font-weight`, String(style.fontWeight)],
+  ]);
+}
+
+function tokenEntries(prefix: string, tokens: Record<string, AmbiToken>): Entry[] {
+  return Object.entries(tokens).map(([name, token]): Entry => [`${prefix}${name}`, token.value]);
+}
+
 export function buildTokensCss(): string {
-  const theme: [string, string][] = [
-    ...resetNamespaces.map((ns): [string, string] => [`${ns}-*`, "initial"]),
+  const theme: Entry[] = [
+    ...resetNamespaces.map((ns): Entry => [`${ns}-*`, "initial"]),
     ["font-sans", fontStacks.sans],
     ["font-mono", fontStacks.mono],
-    ...Object.entries(fontWeights).map(([name, value]): [string, string] => [`font-weight-${name}`, String(value)]),
-    ...Object.entries(colors).map(([name, value]): [string, string] => [`color-${name}`, value]),
-    ...Object.entries(ambiColors).map(([name, token]): [string, string] => [`color-${name}`, token.value]),
-    ...Object.entries(typography).flatMap(([name, style]): [string, string][] => [
-      [`text-${name}`, px(style.fontSize)],
-      [`text-${name}--line-height`, px(style.lineHeight)],
-      [`text-${name}--letter-spacing`, px(style.letterSpacing)],
-      [`text-${name}--font-weight`, String(style.fontWeight)],
-    ]),
-    ...Object.entries(radius).map(([name, value]): [string, string] => [`radius-${name}`, px(value)]),
+    ...tokenEntries("font-", ambiFontStacks),
+    ...Object.entries(fontWeights).map(([name, value]): Entry => [`font-weight-${name}`, String(value)]),
+    ...Object.entries(colors).map(([name, value]): Entry => [`color-${name}`, value]),
+    ...tokenEntries("color-", ambiColors),
+    ...typeEntries(typography),
+    ...typeEntries(ambiTypography),
+    ...Object.entries(radius).map(([name, value]): Entry => [`radius-${name}`, px(value)]),
+    ...tokenEntries("radius-watch-", ambiRadii),
     ["spacing", "4px"],
-    ...Object.entries(spacing).map(([name, value]): [string, string] => [`spacing-${name}`, px(value)]),
-    ...Object.entries(controlHeights).map(([name, value]): [string, string] => [`spacing-control-${name}`, px(value)]),
-    ...Object.entries(breakpoints).map(([name, value]): [string, string] => [`breakpoint-${name}`, px(value)]),
-    ...Object.entries(containers).map(([name, value]): [string, string] => [`container-${name}`, px(value)]),
-    ...Object.entries(easing).map(([name, value]): [string, string] => [`ease-${name}`, value]),
+    ...Object.entries(spacing).map(([name, value]): Entry => [`spacing-${name}`, px(value)]),
+    ...Object.entries(controlHeights).map(([name, value]): Entry => [`spacing-control-${name}`, px(value)]),
+    ...tokenEntries("spacing-watch-", ambiSizes),
+    ...Object.entries(breakpoints).map(([name, value]): Entry => [`breakpoint-${name}`, px(value)]),
+    ...Object.entries(containers).map(([name, value]): Entry => [`container-${name}`, px(value)]),
+    ...Object.entries(easing).map(([name, value]): Entry => [`ease-${name}`, value]),
+    ["ease-watch", ambiMotion.easing.value],
     ["default-transition-duration", duration.fast],
     ["default-transition-timing-function", easing.standard],
   ];
 
-  const root: [string, string][] = [
-    ...Object.entries(duration).map(([name, value]): [string, string] => [`duration-${name}`, value]),
-    ...(Object.keys(elevation) as ElevationName[]).map((name): [string, string] => [
+  const root: Entry[] = [
+    ...Object.entries(duration).map(([name, value]): Entry => [`duration-${name}`, value]),
+    ...(Object.keys(elevation) as ElevationName[]).map((name): Entry => [
       `elevation-${name}`,
       elevationValue(name, hairlineRing),
     ]),
-    ...Object.entries(watchFace).map(([name, token]): [string, string] => [`watch-face-${name}`, token.value]),
-    ...Object.entries(ambiMotion).map(([name, token]): [string, string] => [`watch-motion-${name}`, token.value]),
+    ...tokenEntries("watch-screen-", watchScreen),
+    ...tokenEntries("gradient-watch-", ambiGradients),
+    ...tokenEntries("watch-", ambiMaterials),
+    ...tokenEntries("watch-motion-", ambiMotion),
   ];
 
-  const dark: [string, string][] = [
-    ...Object.entries(darkColorOverrides).map(([name, value]): [string, string] => [`color-${name}`, value]),
-    ...(Object.keys(elevation) as ElevationName[]).map((name): [string, string] => [
+  const dark: Entry[] = [
+    ...Object.entries(darkColorOverrides).map(([name, value]): Entry => [`color-${name}`, value]),
+    ...(Object.keys(elevation) as ElevationName[]).map((name): Entry => [
       `elevation-${name}`,
       elevationValue(name, darkHairlineRing),
     ]),
   ];
 
-  const utilities = (Object.keys(elevation) as ElevationName[]).map(
-    (name) => `@utility elevation-${name.replace("level-", "")} {\n  box-shadow: var(--elevation-${name});\n}`,
-  );
+  const utilities = [
+    ...(Object.keys(elevation) as ElevationName[]).map(
+      (name) => `@utility elevation-${name.replace("level-", "")} {\n  box-shadow: var(--elevation-${name});\n}`,
+    ),
+    ...Object.keys(ambiGradients).map(
+      (name) => `@utility watch-gradient-${name} {\n  background: var(--gradient-watch-${name});\n}`,
+    ),
+  ];
 
   return [
     "/* Generated by scripts/build-tokens.ts from src/tokens. Do not edit by hand. */",

@@ -17,6 +17,8 @@
   --ease-*: initial;
   --font-sans: var(--font-geist-sans), Inter, system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, monospace;
+  --font-watch: var(--font-inter), -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --font-watch-serif: var(--font-marcellus), Optima, serif;
   --font-weight-regular: 400;
   --font-weight-medium: 500;
   --font-weight-semibold: 600;
@@ -56,10 +58,24 @@
   --color-gradient-ship-end: #f9cb28;
   --color-selection-bg: #171717;
   --color-selection-fg: #f2f2f2;
-  --color-watch-case: #4d4d4d;
-  --color-watch-face: #171717;
-  --color-watch-face-fg: #ffffff;
-  --color-watch-accent: #0070f3;
+  --color-watch-black: #000000;
+  --color-watch-white: #ffffff;
+  --color-watch-label-secondary: rgba(255, 255, 255, 0.55);
+  --color-watch-label-dim: rgba(255, 255, 255, 0.3);
+  --color-watch-mint: #55aa8c;
+  --color-watch-mint-rim: #5db493;
+  --color-watch-mint-deep: #2d5a4a;
+  --color-watch-red: #ff383c;
+  --color-watch-power: #ef4437;
+  --color-watch-power-muted: #bc3b31;
+  --color-watch-power-rim: #fb7760;
+  --color-watch-card-light: #f2f3f3;
+  --color-watch-card-light-label: #000000;
+  --color-watch-card-light-secondary: #797979;
+  --color-watch-waveform: #98a9a3;
+  --color-watch-home-indicator: rgba(255, 255, 255, 0.27);
+  --color-watch-dot-inactive: #404040;
+  --color-watch-scroll-track: #333333;
   --text-display-xl: 48px;
   --text-display-xl--line-height: 48px;
   --text-display-xl--letter-spacing: -2.4px;
@@ -116,6 +132,26 @@
   --text-button-lg--line-height: 24px;
   --text-button-lg--letter-spacing: 0;
   --text-button-lg--font-weight: 500;
+  --text-watch-time: 32px;
+  --text-watch-time--line-height: 40px;
+  --text-watch-time--letter-spacing: 1px;
+  --text-watch-time--font-weight: 500;
+  --text-watch-title: 32px;
+  --text-watch-title--line-height: 40px;
+  --text-watch-title--letter-spacing: 1px;
+  --text-watch-title--font-weight: 400;
+  --text-watch-title-strong: 32px;
+  --text-watch-title-strong--line-height: 46px;
+  --text-watch-title-strong--letter-spacing: 0.9px;
+  --text-watch-title-strong--font-weight: 600;
+  --text-watch-body: 28px;
+  --text-watch-body--line-height: 40px;
+  --text-watch-body--letter-spacing: 1.1px;
+  --text-watch-body--font-weight: 400;
+  --text-watch-header: 33px;
+  --text-watch-header--line-height: 40px;
+  --text-watch-header--letter-spacing: 0;
+  --text-watch-header--font-weight: 400;
   --radius-none: 0;
   --radius-xs: 4px;
   --radius-sm: 6px;
@@ -125,6 +161,13 @@
   --radius-pill-sm: 64px;
   --radius-pill: 100px;
   --radius-full: 9999px;
+  --radius-watch-screen: 100px;
+  --radius-watch-sheet: 96px;
+  --radius-watch-card: 40px;
+  --radius-watch-photo: 26px;
+  --radius-watch-art: 16px;
+  --radius-watch-app-icon: 12px;
+  --radius-watch-glyph: 10px;
   --spacing: 4px;
   --spacing-xxs: 4px;
   --spacing-xs: 8px;
@@ -142,6 +185,17 @@
   --spacing-control-sm: 32px;
   --spacing-control-md: 40px;
   --spacing-control-lg: 48px;
+  --spacing-watch-button-sm: 80px;
+  --spacing-watch-button-lg: 102px;
+  --spacing-watch-knob: 160px;
+  --spacing-watch-ring: 190px;
+  --spacing-watch-list-card: 110px;
+  --spacing-watch-app-icon: 48px;
+  --spacing-watch-app-icon-lg: 56px;
+  --spacing-watch-glyph: 40px;
+  --spacing-watch-glyph-lg: 48px;
+  --spacing-watch-home-indicator-w: 72px;
+  --spacing-watch-home-indicator-h: 8px;
   --breakpoint-tablet: 600px;
   --breakpoint-desktop: 960px;
   --breakpoint-wide: 1200px;
@@ -151,6 +205,7 @@
   --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-out: cubic-bezier(0, 0, 0.2, 1);
   --ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --ease-watch: cubic-bezier(0.32, 0.72, 0, 1);
   --default-transition-duration: 150ms;
   --default-transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -166,12 +221,30 @@
   --elevation-level-3: 0px 2px 2px #0000000a, 0px 8px 8px -8px #0000000a, inset 0 0 0 1px #00000014;
   --elevation-level-4: 0px 2px 2px #0000000a, 0px 8px 16px -4px #0000000a, inset 0 0 0 1px #00000014;
   --elevation-level-5: 0px 1px 1px #00000005, 0px 8px 16px -4px #0000000a, 0px 24px 32px -8px #0000000f, inset 0 0 0 1px #00000014;
-  --watch-face-width: 200px;
-  --watch-face-height: 240px;
-  --watch-face-radius: 48px;
-  --watch-face-bezel: 10px;
-  --watch-motion-duration: 200ms;
-  --watch-motion-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --watch-screen-width: 410px;
+  --watch-screen-height: 502px;
+  --watch-screen-radius: 100px;
+  --watch-screen-status-bar: 92px;
+  --watch-screen-inset: 8px;
+  --watch-screen-gutter: 32px;
+  --gradient-watch-ambient: linear-gradient(180deg, #000000 0%, #020403 20%, #070f0c 40%, #0b1612 50%, #12231d 60%, #223730 70%, #28443a 80%, #305246 90%, #33594b 100%);
+  --gradient-watch-capture: linear-gradient(180deg, #264a3d 0%, #23463a 10%, #1c382e 20%, #182e26 30%, #11201b 40%, #0c1713 50%, #09100e 60%, #0e1210 70%, #111211 80%, #0d0d0d 90%, #0a0a0a 100%);
+  --gradient-watch-aurora: radial-gradient(90% 34% at 50% 60%, rgba(76, 96, 128, 0.95) 0%, rgba(60, 82, 104, 0.6) 45%, rgba(40, 60, 70, 0) 100%), linear-gradient(180deg, #1a362c 0%, #1e3e33 22%, #23443c 34%, #30505a 46%, #34465c 58%, #242a3a 70%, #191a23 80%, #0d0d0f 90%, #08080a 100%);
+  --gradient-watch-photo: linear-gradient(180deg, #333c47 0%, #313a45 10%, #282f37 20%, #1e232a 30%, #16191f 40%, #111417 50%, #0b0d0f 60%, #09090a 70%, #050606 80%, #030303 90%, #000000 100%);
+  --gradient-watch-power: linear-gradient(180deg, #000000 0%, #080404 20%, #0e0605 30%, #160807 40%, #210b0a 50%, #2e0f0c 60%, #3d1310 70%, #4e1713 80%, #631d18 90%, #6e211b 95%, #7e2822 100%);
+  --gradient-watch-sheet: linear-gradient(180deg, #161e1b 0%, #1d2c26 25%, #253e35 50%, #2c4b40 70%, #345a4c 100%);
+  --gradient-watch-sheet-header: linear-gradient(180deg, #181a1a 0%, #141816 100%);
+  --watch-glass-fill: rgba(255, 255, 255, 0.08);
+  --watch-glass-fill-thin: rgba(255, 255, 255, 0.05);
+  --watch-glass-fill-dark: rgba(0, 0, 0, 0.28);
+  --watch-glass-stroke: linear-gradient(180deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.12) 100%);
+  --watch-glass-stroke-mint: linear-gradient(180deg, rgba(102, 177, 150, 0.9) 0%, rgba(93, 180, 147, 0.35) 55%, rgba(93, 180, 147, 0.6) 100%);
+  --watch-glass-stroke-red: linear-gradient(180deg, rgba(251, 119, 96, 0.9) 0%, rgba(218, 82, 72, 0.35) 55%, rgba(218, 82, 72, 0.8) 100%);
+  --watch-glass-blur: 16px;
+  --watch-motion-duration: 320ms;
+  --watch-motion-easing: cubic-bezier(0.32, 0.72, 0, 1);
+  --watch-motion-press-scale: 0.96;
+  --watch-motion-hold-duration: 900ms;
 }
 
 [data-theme="dark"] {
@@ -218,4 +291,32 @@
 
 @utility elevation-5 {
   box-shadow: var(--elevation-level-5);
+}
+
+@utility watch-gradient-ambient {
+  background: var(--gradient-watch-ambient);
+}
+
+@utility watch-gradient-capture {
+  background: var(--gradient-watch-capture);
+}
+
+@utility watch-gradient-aurora {
+  background: var(--gradient-watch-aurora);
+}
+
+@utility watch-gradient-photo {
+  background: var(--gradient-watch-photo);
+}
+
+@utility watch-gradient-power {
+  background: var(--gradient-watch-power);
+}
+
+@utility watch-gradient-sheet {
+  background: var(--gradient-watch-sheet);
+}
+
+@utility watch-gradient-sheet-header {
+  background: var(--gradient-watch-sheet-header);
 }
