@@ -90,7 +90,7 @@ export function WatchMaterialSection() {
       title="Materials."
       description="Glass is a translucent white fill over the scene plus a hairline that is brightest on top. Tinted rims (mint, red) mark the primary action of a screen."
     >
-      <div className="grid gap-lg tablet:grid-cols-2 desktop:grid-cols-4">
+      <div className="grid gap-lg tablet:grid-cols-3 desktop:grid-cols-5">
         {[
           { label: "glass · round buttons, control bar", fill: "glass", stroke: "glass", bg: "capture" },
           { label: "glass-thin · list cards", fill: "thin", stroke: "glass", bg: "ambient" },

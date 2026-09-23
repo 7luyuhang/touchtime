@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { DocSection, ScreenStage } from "@/components/docs/docs";
+import { DarkStage, DocSection, ScreenStage } from "@/components/docs/docs";
 import { Code, Text } from "@/components/primitives";
 import {
   AuroraWave,
@@ -55,7 +55,11 @@ function Panel({ background = "ambient", children, width = 410, height = 180 }: 
   return (
     <div
       className="relative flex items-center justify-center overflow-hidden rounded-lg font-watch text-watch-white"
-      style={{ width, height, background: `var(--gradient-watch-${background})` }}
+      style={{
+        width,
+        height,
+        background: background === "black" ? "var(--color-watch-black)" : `var(--gradient-watch-${background})`,
+      }}
     >
       {children}
     </div>
@@ -262,8 +266,8 @@ export function WatchComponentsSection() {
       </Spec>
 
       <Spec name="Glyphs" file="watch-icons.tsx" description="Drawn at their measured sizes in currentColor.">
-        <Panel background="black" width={620} height={140}>
-          <div className="flex items-center gap-lg">
+        <DarkStage>
+          <div className="flex flex-wrap items-center gap-xl">
             <CloseGlyph />
             <CameraGlyph />
             <PlusGlyph />
@@ -275,7 +279,7 @@ export function WatchComponentsSection() {
             <TodoGlyph />
             <GmailIcon size={48} radius={12} />
           </div>
-        </Panel>
+        </DarkStage>
       </Spec>
     </DocSection>
   );
