@@ -70,8 +70,8 @@ export default async function ScreenPage({ params }: PageProps<"/screens/[slug]"
         </nav>
       )}
 
-      <div data-compare className="flex flex-wrap items-start gap-2xl rounded-lg bg-canvas p-xl elevation-1">
-        <div className="flex flex-col items-center gap-sm">
+      <div data-compare className="flex flex-wrap items-start gap-2xl rounded-lg bg-canvas p-md elevation-1 tablet:p-xl">
+        <div className="flex flex-col items-center gap-sm max-tablet:[zoom:0.64]">
           <Badge variant="inverted" mono>
             BUILD · 410×502
           </Badge>
@@ -79,7 +79,7 @@ export default async function ScreenPage({ params }: PageProps<"/screens/[slug]"
             <screen.component />
           </WatchFrame>
         </div>
-        <div className="flex flex-col items-center gap-sm">
+        <div className="flex flex-col items-center gap-sm max-tablet:[zoom:0.64]">
           <Badge mono>REFERENCE</Badge>
           <WatchFrame priority>
             <WatchScreen label="Reference image">
@@ -107,7 +107,7 @@ export default async function ScreenPage({ params }: PageProps<"/screens/[slug]"
         </aside>
       </div>
 
-      <nav aria-label="Screens" className="flex justify-between gap-md">
+      <nav aria-label="Screens" className="flex flex-wrap justify-between gap-md">
         {prev ? (
           <Link href={`/screens/${prev.slug}`} className={buttonStyles({ variant: "secondary", size: "md", shape: "rounded" })}>
             ← {prev.title}
