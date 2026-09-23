@@ -1,0 +1,69 @@
+/* Watch material recipes built on the generated --watch-* tokens. */
+
+@utility watch-glass {
+  background: var(--watch-glass-fill);
+  backdrop-filter: blur(var(--watch-glass-blur));
+}
+
+@utility watch-glass-thin {
+  background: var(--watch-glass-fill-thin);
+  backdrop-filter: blur(var(--watch-glass-blur));
+}
+
+@utility watch-glass-dark {
+  background: var(--watch-glass-fill-dark);
+}
+
+/*
+ * Gradient hairline drawn on a masked pseudo-element so translucent fills stay
+ * clean. The element must be positioned (relative or absolute).
+ */
+@utility watch-stroke {
+  --watch-stroke-image: var(--watch-glass-stroke);
+  --watch-stroke-width: 1.5px;
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    padding: var(--watch-stroke-width);
+    border-radius: inherit;
+    background: var(--watch-stroke-image);
+    mask:
+      linear-gradient(#000 0 0) content-box exclude,
+      linear-gradient(#000 0 0);
+    pointer-events: none;
+  }
+}
+
+@utility watch-stroke-mint {
+  --watch-stroke-image: var(--watch-glass-stroke-mint);
+  --watch-stroke-width: 2px;
+}
+
+@utility watch-stroke-red {
+  --watch-stroke-image: var(--watch-glass-stroke-red);
+  --watch-stroke-width: 2px;
+}
+
+@utility watch-press {
+  transition: transform var(--watch-motion-duration) var(--watch-motion-easing);
+
+  &:active {
+    transform: scale(var(--watch-motion-press-scale));
+  }
+}
+
+@keyframes watch-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}

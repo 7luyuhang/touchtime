@@ -1,0 +1,28 @@
+@import "tailwindcss";
+@import "../styles/tokens.css";
+@import "../styles/watch.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@layer base {
+  html {
+    background: var(--color-canvas-soft);
+    color: var(--color-ink);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-size: var(--text-body-md);
+    line-height: var(--text-body-md--line-height);
+  }
+
+  ::selection {
+    background: var(--color-selection-bg);
+    color: var(--color-selection-fg);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-link);
+    outline-offset: 2px;
+  }
+}
