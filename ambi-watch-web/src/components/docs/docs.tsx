@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Badge } from "@/components/primitives/badge";
+import { Badge, type BadgeVariant } from "@/components/primitives/badge";
 import { Eyebrow, Heading, Text } from "@/components/primitives/text";
 import type { AmbiTokenStatus } from "@/tokens/types";
 
@@ -48,29 +48,42 @@ export function DemoRow({ label, children }: { label?: string; children: ReactNo
   );
 }
 
+const statusBadges: Record<AmbiTokenStatus | "vercel" | "provisional", { variant: BadgeVariant; label: string }> = {
+  sampled: { variant: "cyan", label: "SAMPLED" },
+  assumed: { variant: "warning", label: "ASSUMED" },
+  provisional: { variant: "violet", label: "PROVISIONAL" },
+  vercel: { variant: "secondary", label: "VERCEL" },
+};
+
 export function StatusBadge({ status }: { status: AmbiTokenStatus | "vercel" | "provisional" }) {
-  if (status === "placeholder")
-    return (
-      <Badge variant="warning" mono>
-        PLACEHOLDER
-      </Badge>
-    );
-  if (status === "provisional")
-    return (
-      <Badge variant="violet" mono>
-        PROVISIONAL
-      </Badge>
-    );
-  if (status === "figma")
-    return (
-      <Badge variant="cyan" mono>
-        FIGMA
-      </Badge>
-    );
+  const { variant, label } = statusBadges[status];
   return (
-    <Badge variant="secondary" mono>
-      VERCEL
+    <Badge variant={variant} mono>
+      {label}
     </Badge>
+  );
+}
+
+/** Scales a 410×502 watch screen for inline documentation. */
+export function ScreenStage({ scale = 0.6, children, caption }: { scale?: number; children: ReactNode; caption?: string }) {
+  return (
+    <figure className="flex flex-col gap-xs">
+      <div className="relative shrink-0" style={{ width: 410 * scale, height: 502 * scale }}>
+        <div className="absolute left-0 top-0 origin-top-left" style={{ transform: `scale(${scale})` }}>
+          {children}
+        </div>
+      </div>
+      {caption && <figcaption className="font-mono text-caption-mono text-mute">{caption}</figcaption>}
+    </figure>
+  );
+}
+
+/** Near-black panel for showing watch components at 1:1 outside a screen. */
+export function DarkStage({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={`flex flex-wrap items-center gap-lg rounded-lg bg-watch-black p-xl font-watch text-watch-white ${className ?? ""}`}>
+      {children}
+    </div>
   );
 }
 

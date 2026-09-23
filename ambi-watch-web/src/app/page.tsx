@@ -1,58 +1,83 @@
 import Link from "next/link";
 import { buttonStyles, Card, Eyebrow, Heading, Icon, Text } from "@/components/primitives";
-import { screens } from "@/screens/registry";
+import { WatchFrame } from "@/components/watch";
+import { getScreen, screens } from "@/screens/registry";
+
+const featured = ["watch-face", "quick-actions", "capture-now-playing", "power-off-3", "recaps"];
+
+const sections = [
+  {
+    href: "/design-system",
+    eyebrow: "Foundations",
+    title: "Color, type, materials.",
+    body: "Screen, color, gradients, glass, type scale, radius, sizes and motion sampled from the references, plus the Vercel base.",
+  },
+  {
+    href: "/design-system/controls",
+    eyebrow: "Base controls",
+    title: "Vercel DESIGN.md.",
+    body: "Button, IconButton, Tabs, Input, Badge, Banner, Card, Text, Link and Code.",
+  },
+  {
+    href: "/design-system/watch",
+    eyebrow: "Watch components",
+    title: "Built for 410×502.",
+    body: "Round buttons, control bars, list cards, sheets, pills, indicators, power slider, clock and waveform.",
+  },
+];
 
 export default function Home() {
-  const implemented = screens.filter((screen) => screen.status === "implemented").length;
-
   return (
-    <main className="mx-auto flex max-w-page flex-col gap-3xl px-md py-5xl tablet:px-lg">
+    <main className="mx-auto flex max-w-page flex-col gap-3xl px-md py-4xl tablet:px-lg">
       <section className="flex max-w-[760px] flex-col gap-md">
-        <Eyebrow>ambi watch · web</Eyebrow>
+        <Eyebrow>ambi watch · design system</Eyebrow>
         <Heading as="h1" size="xl">
-          Design system and screens for ambi watch.
+          The ambi watch interface, as a system.
         </Heading>
         <Text size="lg">
-          Tokens, base controls and watch components built on the Vercel DESIGN.md, with the ambi watch layer extracted
-          from Figma.
+          Foundations, base controls and watch components, with all {screens.length} screens and states rebuilt at
+          410×502 inside the device.
         </Text>
         <div className="flex flex-wrap gap-sm pt-xs">
           <Link href="/design-system" className={buttonStyles({ size: "lg" })}>
-            Open design system <Icon name="arrow-right" />
+            Browse the design system <Icon name="arrow-right" />
           </Link>
           <Link href="/screens" className={buttonStyles({ size: "lg", variant: "secondary" })}>
             View screens
           </Link>
         </div>
       </section>
+
+      <section aria-label="Featured screens" className="flex flex-wrap gap-lg">
+        {featured.map((slug) => {
+          const screen = getScreen(slug);
+          if (!screen) return null;
+          return (
+            <Link key={slug} href={`/screens/${slug}`}>
+              <div inert>
+                <WatchFrame scale={0.4} caption={screen.title}>
+                  <screen.component />
+                </WatchFrame>
+              </div>
+            </Link>
+          );
+        })}
+      </section>
+
       <section className="grid gap-lg tablet:grid-cols-3">
-        <Card>
-          <Eyebrow>Tokens</Eyebrow>
-          <Heading as="h2" size="sm" className="mt-xs">
-            Vercel base + ambi layer.
-          </Heading>
-          <Text size="sm" className="mt-xs">
-            Generated to CSS variables and Tailwind utilities from typed sources in <code>src/tokens</code>.
-          </Text>
-        </Card>
-        <Card>
-          <Eyebrow>Primitives</Eyebrow>
-          <Heading as="h2" size="sm" className="mt-xs">
-            Base controls.
-          </Heading>
-          <Text size="sm" className="mt-xs">
-            Button, IconButton, Tabs, Input, Badge, Banner, Card, Text, Link and Code.
-          </Text>
-        </Card>
-        <Card>
-          <Eyebrow>Screens</Eyebrow>
-          <Heading as="h2" size="sm" className="mt-xs">
-            {implemented} of {screens.length} implemented.
-          </Heading>
-          <Text size="sm" className="mt-xs">
-            Each Figma frame has a route. Frames stay blocked until the Figma file is readable.
-          </Text>
-        </Card>
+        {sections.map((section) => (
+          <Link key={section.href} href={section.href} className="rounded-md transition-shadow hover:elevation-4">
+            <Card className="h-full">
+              <Eyebrow>{section.eyebrow}</Eyebrow>
+              <Heading as="h2" size="sm" className="mt-xs">
+                {section.title}
+              </Heading>
+              <Text size="sm" className="mt-xs">
+                {section.body}
+              </Text>
+            </Card>
+          </Link>
+        ))}
       </section>
     </main>
   );

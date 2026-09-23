@@ -6,58 +6,49 @@ import {
   SpacingRadiusSection,
   TypographySection,
 } from "./_sections/foundations";
-import { PrimitivesSection } from "./_sections/primitives";
-import { WatchLayerSection } from "./_sections/watch-layer";
+import {
+  WatchColorSection,
+  WatchMaterialSection,
+  WatchScreenSection,
+  WatchShapeSection,
+  WatchTypeSection,
+} from "./_sections/watch-foundations";
 
 export const metadata: Metadata = {
-  title: "Design system",
+  title: "Foundations",
 };
 
-const toc = [
-  { id: "color", label: "Color" },
-  { id: "typography", label: "Typography" },
-  { id: "spacing", label: "Spacing & radius" },
-  { id: "elevation", label: "Elevation & motion" },
-  { id: "primitives", label: "Base controls" },
-  { id: "watch", label: "ambi watch layer" },
-];
-
-export default function DesignSystemPage() {
+export default function FoundationsPage() {
   return (
-    <main className="mx-auto max-w-page px-md pb-5xl pt-4xl tablet:px-lg">
+    <>
       <header className="flex max-w-[760px] flex-col gap-md pb-2xl">
-        <Eyebrow>Design system</Eyebrow>
+        <Eyebrow>Design system · Foundations</Eyebrow>
         <Heading as="h1" size="xl">
-          ambi watch design system.
+          ambi watch foundations.
         </Heading>
         <Text size="lg">
-          Vercel DESIGN.md foundations and base controls, with an ambi watch layer on top. Watch tokens are placeholders
-          until the Figma file is readable.
+          Watch tokens sampled from the reference images, layered on the Vercel DESIGN.md foundations that drive the
+          base controls and this site.
         </Text>
         <div className="flex flex-wrap gap-xs">
-          <Badge mono>BASE · VERCEL DESIGN.MD</Badge>
-          <Badge variant="warning" mono>
-            FIGMA LAYER · PENDING
+          <Badge variant="cyan" mono>
+            SAMPLED · FROM PIXELS
           </Badge>
+          <Badge variant="warning" mono>
+            ASSUMED · INFERRED
+          </Badge>
+          <Badge mono>VERCEL · DESIGN.MD</Badge>
         </div>
       </header>
-      <nav aria-label="Sections" className="flex flex-wrap gap-xs pb-2xl">
-        {toc.map((item) => (
-          <a
-            key={item.id}
-            href={`#${item.id}`}
-            className="rounded-pill-sm bg-canvas px-md py-xs text-body-sm text-body elevation-1 transition-colors hover:text-ink"
-          >
-            {item.label}
-          </a>
-        ))}
-      </nav>
+      <WatchScreenSection />
+      <WatchColorSection />
+      <WatchMaterialSection />
+      <WatchTypeSection />
+      <WatchShapeSection />
       <ColorSection />
       <TypographySection />
       <SpacingRadiusSection />
       <ElevationMotionSection />
-      <PrimitivesSection />
-      <WatchLayerSection />
-    </main>
+    </>
   );
 }
