@@ -833,36 +833,38 @@ struct ScrollTimeView: View {
         .glassEffectTransition(.matchedGeometry)
     }
 
-    // Timer Controls
+    // Timer Controls: Start → Reset / Pause → Reset / Resume
     @ViewBuilder
     private var timerControlButtons: some View {
         HStack(spacing: 8) {
-            Button {
-                triggerControlHaptic(style: .soft)
-                handleTimerResetAction()
-                collapseActionButtons()
-            } label: {
-                ZStack {
-                    Capsule(style: .continuous)
-                        .fill(.clear)
+            if !isStartTimerPlayPauseAction {
+                Button {
+                    triggerControlHaptic(style: .soft)
+                    handleTimerResetAction()
+                    collapseActionButtons()
+                } label: {
+                    ZStack {
+                        Capsule(style: .continuous)
+                            .fill(.clear)
 
-                    HStack {
-                        Image(systemName: "arrow.counterclockwise")
-                            .font(.headline)
-                        Text("Reset")
+                        HStack {
+                            Image(systemName: "arrow.counterclockwise")
+                                .font(.headline)
+                            Text("Reset")
+                        }
                     }
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .contentShape(Capsule(style: .continuous))
                 }
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary)
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .contentShape(Capsule(style: .continuous))
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity)
+                .frame(height: controlHeight)
+                .glassEffect(.regular.interactive())
+                .glassEffectID("timerResetControl", in: glassNamespace)
+                .glassEffectTransition(.materialize)
             }
-            .buttonStyle(.plain)
-            .frame(maxWidth: .infinity)
-            .frame(height: controlHeight)
-            .glassEffect(.regular.interactive())
-            .glassEffectID("timerResetControl", in: glassNamespace)
-            .glassEffectTransition(.matchedGeometry)
 
             Button {
                 triggerControlHaptic(style: .soft)
@@ -890,7 +892,7 @@ struct ScrollTimeView: View {
                     }
                 }
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isStartTimerPlayPauseAction ? .black : .primary)
+                .foregroundStyle(.black)
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .contentShape(Capsule(style: .continuous))
                 .animation(.spring(duration: 0.25), value: timerPlayPauseSymbol)
@@ -898,15 +900,12 @@ struct ScrollTimeView: View {
             .buttonStyle(.plain)
             .frame(maxWidth: .infinity)
             .frame(height: controlHeight)
-            .glassEffect(
-                isStartTimerPlayPauseAction
-                    ? .regular.tint(.white).interactive()
-                    : .regular.interactive()
-            )
+            .glassEffect(.regular.tint(.white).interactive())
             .glassEffectID("timerPlayPauseControl", in: glassNamespace)
             .glassEffectTransition(.materialize)
         }
         .frame(maxWidth: .infinity)
+        .animation(.spring(duration: 0.25), value: resolvedTimerPlayPauseTitle)
     }
 
     // Stopwatch Controls: Start → Lap / Stop → Reset / Start → (at 99:59:59.99) Reset
