@@ -14,6 +14,8 @@ import WeatherKit
 // Container for multiple stars
 struct StarsView: View {
     var starCount: Int = 25  // Number of stars (configurable)
+    // x and y are normalized (0...1): the size seen in onAppear can be a transient
+    // one, so positions are scaled by the current size when drawn.
     @State private var stars: [(id: Int, x: CGFloat, y: CGFloat, size: CGFloat)] = []
     
     var body: some View {
@@ -21,25 +23,20 @@ struct StarsView: View {
             ZStack {
                 ForEach(stars, id: \.id) { star in
                     StarParticle(size: star.size)
-                        .position(x: star.x, y: star.y)
+                        .position(
+                            x: star.x * geometry.size.width,
+                            y: star.y * geometry.size.height
+                        )
                 }
             }
             .drawingGroup()
             .onAppear {
-                if geometry.size.width > 0 && geometry.size.height > 0 {
-                    generateStars(in: geometry.size)
-                }
-            }
-            .onChange(of: geometry.size) { oldSize, newSize in
-                // Regenerate stars when size changes from zero to valid size
-                if stars.isEmpty && newSize.width > 0 && newSize.height > 0 {
-                    generateStars(in: newSize)
-                }
+                generateStars()
             }
         }
     }
     
-    private func generateStars(in size: CGSize) {
+    private func generateStars() {
         var newStars: [(id: Int, x: CGFloat, y: CGFloat, size: CGFloat)] = []
         
         for i in 0..<starCount {
@@ -57,8 +54,8 @@ struct StarsView: View {
             
             newStars.append((
                 id: i,
-                x: CGFloat.random(in: 0...size.width),
-                y: CGFloat.random(in: 0...size.height),
+                x: CGFloat.random(in: 0...1),
+                y: CGFloat.random(in: 0...1),
                 size: starSize
             ))
         }
