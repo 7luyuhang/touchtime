@@ -19,6 +19,13 @@ struct AnalogClockCameraBackgroundLayer: View {
     let showSkyDot: Bool
     let skyGradient: SkyColorGradient
     let selectedTimeZoneIdentifier: String
+    let timeOffset: TimeInterval
+
+    private var starsMotion: StarsView.Motion {
+        let coordinate = TimeZoneCoordinates.getCoordinate(for: selectedTimeZoneIdentifier)
+            ?? (latitude: 51.5074, longitude: -0.1278)
+        return StarsView.Motion(timeOffset: timeOffset, turnsClockwise: coordinate.latitude < 0)
+    }
 
     var body: some View {
         Group {
@@ -48,15 +55,13 @@ struct AnalogClockCameraBackgroundLayer: View {
                             .opacity(0.65)
                             .animation(.spring(), value: selectedTimeZoneIdentifier)
 
-                        // Stars overlay for nighttime.
-                        if skyGradient.starOpacity > 0 {
-                            StarsView(starCount: 150)
-                                .ignoresSafeArea()
-                                .opacity(skyGradient.starOpacity)
-                                .blendMode(.plusLighter)
-                                .animation(.spring(), value: skyGradient.starOpacity)
-                                .allowsHitTesting(false)
-                        }
+                        // Stars overlay for nighttime. Kept in place while hidden so
+                        // the stars keep turning as they fade in and out.
+                        StarsView(starCount: 150, motion: starsMotion)
+                            .ignoresSafeArea()
+                            .animation(.spring()) { $0.opacity(skyGradient.starOpacity) }
+                            .blendMode(.plusLighter)
+                            .allowsHitTesting(false)
                     }
                 } else {
                     Color(UIColor.systemBackground)

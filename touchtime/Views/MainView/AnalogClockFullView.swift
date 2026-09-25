@@ -1155,7 +1155,8 @@ struct AnalogClockFullView: View {
                         isBlurFilterEnabled: cameraPreviewFilter == .blur,
                         showSkyDot: showSkyDot,
                         skyGradient: skyGradient,
-                        selectedTimeZoneIdentifier: selectedTimeZone.identifier
+                        selectedTimeZoneIdentifier: selectedTimeZone.identifier,
+                        timeOffset: timeOffset
                     )
 
                     // Empty state when no local time and no cities
