@@ -159,7 +159,7 @@ struct TipJarView: View {
                             if let largeTip = iapManager.products.first(where: { $0.id == "com.time.tip.large" }) {
                                 HStack {
                                     HStack(spacing: 12) {
-                                        CircularTipIcon(systemName: "heart.fill", fill: .pink.opacity(0.5))
+                                        CircularTipIcon(systemName: "heart.fill", fill: .pink.opacity(1.0))
                                         Text(String(localized: "Large Tip"))
                                             .foregroundStyle(.primary)
                                     }
@@ -206,7 +206,7 @@ struct TipJarView: View {
                                 .background(
                                     Capsule(style: .continuous)
                                         .fill(Color.pink.opacity(0.5))
-                                        .glassEffect(.clear, in: Capsule(style: .continuous))
+                                        .glassEffect(.regular, in: Capsule(style: .continuous))
                                 )
                                 .transition(.blurReplace.combined(with: .move(edge: .top)).combined(with: .scale))
                                 
