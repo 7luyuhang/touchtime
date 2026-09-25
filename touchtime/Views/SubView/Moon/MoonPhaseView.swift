@@ -284,7 +284,7 @@ struct MoonPhaseView: View {
                     ForEach(Self.weekdayKeys, id: \.self) { key in
                         Text(LocalizedStringKey(key))
                             .font(.footnote.weight(.semibold))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(.primary)
                             .frame(maxWidth: .infinity)
                     }
                 }

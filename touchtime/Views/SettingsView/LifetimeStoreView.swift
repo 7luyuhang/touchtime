@@ -103,6 +103,20 @@ struct LifetimeStoreView: View {
                 }
             }
 
+            // Square darkening gradient at the top of the screen
+            GeometryReader { geometry in
+                LinearGradient(
+                    colors: [.black.opacity(0.10), .black.opacity(0)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .blendMode(.plusDarker)
+                .frame(height: geometry.size.width)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+            }
+
             // Progressive blur behind the bottom actions
             GeometryReader { geometry in
                 VariableBlurView(maxBlurRadius: 10, direction: .blurredBottomClearTop)
