@@ -6181,6 +6181,22 @@
         }
       }
     },
+    "First Day of Week" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每周的第一天"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每週的第一天"
+          }
+        }
+      }
+    },
     "First Quarter" : {
       "localizations" : {
         "zh-Hans" : {

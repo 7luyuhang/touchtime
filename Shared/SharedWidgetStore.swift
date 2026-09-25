@@ -19,6 +19,10 @@ enum SharedWidgetStore {
     static let analogClockShowScaleKey = "analogClockShowScale"
     static let analogClockShowUTCHandKey = "analogClockShowUTCHand"
     static let solarCurveShowSunKey = "solarCurveShowSun"
+    // Calendar weekday numbering (1 = Sunday, 2 = Monday, ...), chosen in the
+    // app's Calendar settings; Monday until the user picks another day.
+    static let firstWeekdayKey = "firstWeekday"
+    static let defaultFirstWeekday = 2
     // Same key the app's CountdownStore uses in standard defaults, mirrored
     // into the App Group for the Countdown widget.
     static let countdownsKey = "savedCountdowns"
@@ -80,6 +84,14 @@ enum SharedWidgetStore {
 
     static func solarCurveShowSun() -> Bool {
         sharedDefaults?.bool(forKey: solarCurveShowSunKey) ?? false
+    }
+
+    // Widget side: first day of the week, so the Moon Calendar widget lays
+    // out its weeks like the app's moon calendar. Falls back to Monday until
+    // the app has synced a value.
+    static func firstWeekday() -> Int {
+        let weekday = sharedDefaults?.integer(forKey: firstWeekdayKey) ?? 0
+        return (1...7).contains(weekday) ? weekday : defaultFirstWeekday
     }
 
     // Widget side: which city drives the medium widget's sky background.
@@ -159,5 +171,6 @@ enum SharedWidgetStore {
         shared.set(standard.bool(forKey: analogClockShowScaleKey), forKey: analogClockShowScaleKey)
         shared.set(standard.bool(forKey: analogClockShowUTCHandKey), forKey: analogClockShowUTCHandKey)
         shared.set(standard.bool(forKey: solarCurveShowSunKey), forKey: solarCurveShowSunKey)
+        shared.set(standard.object(forKey: firstWeekdayKey) as? Int ?? defaultFirstWeekday, forKey: firstWeekdayKey)
     }
 }

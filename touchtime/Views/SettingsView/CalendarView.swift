@@ -11,6 +11,7 @@ import UIKit
 
 struct CalendarView: View {
     let worldClocks: [WorldClock]
+    @AppStorage("firstWeekday") private var firstWeekday = 2 // Calendar weekday: 1 = Sunday, 2 = Monday, ...
     @AppStorage("defaultEventDuration") private var defaultEventDuration: Double = 3600 // Default 1 hour in seconds
     @AppStorage("showCitiesInNotes") private var showCitiesInNotes = false
     @AppStorage("selectedCitiesForNotes") private var selectedCitiesForNotes: String = ""
@@ -24,6 +25,9 @@ struct CalendarView: View {
     @State private var showDisconnectConfirmation = false
     @State private var showLifetimeStore = false
     @ObservedObject private var googleMeet = GoogleMeetManager.shared
+    
+    // Calendar weekday numbers, listed Monday to Sunday
+    private static let weekdayOptions = [2, 3, 4, 5, 6, 7, 1]
     
     // Get city count text for Notes setting
     func getCityCountText() -> String {
@@ -85,6 +89,22 @@ struct CalendarView: View {
     
     var body: some View {
         List {
+            // First Day of Week
+            Section {
+                Picker(selection: $firstWeekday) {
+                    ForEach(Self.weekdayOptions, id: \.self) { weekday in
+                        Text(Calendar.current.standaloneWeekdaySymbols[weekday - 1]).tag(weekday)
+                    }
+                } label: {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "1.calendar", topColor: .gray, bottomColor: .gray, style: .plain)
+                        Text("First Day of Week")
+                    }
+                }
+                .pickerStyle(.menu)
+                .tint(.secondary)
+            }
+            
             if hasCalendarPermission {
                 // Default Calendar Selection
                 if !availableCalendars.isEmpty {

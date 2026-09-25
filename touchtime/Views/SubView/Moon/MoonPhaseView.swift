@@ -113,6 +113,7 @@ struct MoonPhaseView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.scenePhase) private var scenePhase
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("firstWeekday") private var firstWeekday = 2 // Set in Calendar settings; 1 = Sunday, 2 = Monday, ...
     @State private var currentDate: Date = Date()
     @State private var selectedMonthIndex: Int = 1
     
@@ -133,7 +134,7 @@ struct MoonPhaseView: View {
     private var calendar: Calendar {
         var cal = Calendar.current
         cal.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-        cal.firstWeekday = 2 // Monday
+        cal.firstWeekday = firstWeekday
         return cal
     }
     
@@ -238,10 +239,8 @@ struct MoonPhaseView: View {
             let range = cal.range(of: .day, in: .month, for: monthDate)!
             let firstDayOfMonth = cal.date(from: cal.dateComponents([.year, .month], from: monthDate))!
             
-            var firstWeekday = cal.component(.weekday, from: firstDayOfMonth)
-            firstWeekday = firstWeekday == 1 ? 7 : firstWeekday - 1
-            
-            var days: [Date?] = Array(repeating: nil, count: firstWeekday - 1)
+            let leadingBlankCount = (cal.component(.weekday, from: firstDayOfMonth) - cal.firstWeekday + 7) % 7
+            var days: [Date?] = Array(repeating: nil, count: leadingBlankCount)
             
             for day in range {
                 if let date = cal.date(byAdding: .day, value: day - 1, to: firstDayOfMonth) {
@@ -273,7 +272,14 @@ struct MoonPhaseView: View {
         phaseCacheVersion += 1
     }
     
-    private static let weekdayKeys = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    // In Calendar weekday order (index 0 = Sunday), matching `firstWeekday`
+    private static let weekdayKeys = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    
+    // Header keys starting from the first day of the week chosen in settings
+    private var orderedWeekdayKeys: [String] {
+        let firstIndex = firstWeekday - 1
+        return Array(Self.weekdayKeys[firstIndex...] + Self.weekdayKeys[..<firstIndex])
+    }
     
     var body: some View {
         NavigationStack {
@@ -281,7 +287,7 @@ struct MoonPhaseView: View {
                 
                 // Weekday Headers
                 HStack(spacing: 0) {
-                    ForEach(Self.weekdayKeys, id: \.self) { key in
+                    ForEach(orderedWeekdayKeys, id: \.self) { key in
                         Text(LocalizedStringKey(key))
                             .font(.footnote.weight(.semibold))
                             .foregroundStyle(.primary)

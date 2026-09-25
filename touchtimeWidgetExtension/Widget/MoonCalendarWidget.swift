@@ -3,9 +3,10 @@
 //  touchtimeWidgetExtension
 //
 //  Small widget: the current month as a grid of moon phases in the same
-//  Monday-first weekday-aligned layout as the app's Moon Phase calendar —
-//  just the moons, no weekday headers or day numbers — with a small dot
-//  under today's moon. Same grayscale disc treatment as the app.
+//  weekday-aligned layout as the app's Moon Phase calendar, weeks starting
+//  on the first day chosen in Calendar settings — just the moons, no weekday
+//  headers or day numbers — with a small dot under today's moon. Same
+//  grayscale disc treatment as the app.
 //
 
 import WidgetKit
@@ -15,7 +16,7 @@ import SwiftUI
 
 struct MoonCalendarWidgetEntry: TimelineEntry {
     let date: Date
-    /// One cell per grid slot in the app calendar's Monday-first layout:
+    /// One cell per grid slot in the app calendar's layout:
     /// nil for the blank slots before the 1st, then one image name
     /// (moon_age_00...29) per day of the month.
     let cells: [String?]
@@ -27,16 +28,18 @@ struct MoonCalendarWidgetProvider: TimelineProvider {
     // The whole month is a handful of trig calls per day (MoonAstronomy.snapshot),
     // far inside WidgetKit's timeline budget even on slow devices.
     private func makeEntry(for date: Date) -> MoonCalendarWidgetEntry {
-        let calendar = Calendar.current
+        var calendar = Calendar.current
+        calendar.firstWeekday = SharedWidgetStore.firstWeekday()
         let monthStart = calendar.date(
             from: calendar.dateComponents([.year, .month], from: date)
         ) ?? date
         let dayCount = calendar.range(of: .day, in: .month, for: date)?.count ?? 30
 
-        // Blank slots align day 1 to its weekday column, Monday-first,
-        // mirroring the app's moon phase calendar (MoonPhaseView).
+        // Blank slots align day 1 to its weekday column, counted from the
+        // first day of the week, mirroring the app's moon phase calendar
+        // (MoonPhaseView).
         let weekdayOfFirst = calendar.component(.weekday, from: monthStart) // 1 = Sunday
-        let leadingBlanks = (weekdayOfFirst + 5) % 7
+        let leadingBlanks = (weekdayOfFirst - calendar.firstWeekday + 7) % 7
 
         var cells: [String?] = Array(repeating: nil, count: leadingBlanks)
         for offset in 0..<dayCount {
