@@ -78,29 +78,7 @@ struct TipJarView: View {
                                 
                                 Spacer()
                                 
-                                if iapManager.purchaseState == .purchasing {
-                                    ProgressView()
-                                        .padding(.vertical, 8)
-                                        .blendMode(.plusLighter)
-                                } else {
-                                    Button(action: {
-                                        if hapticEnabled {
-                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                            impactFeedback.impactOccurred()
-                                        }
-                                        Task {
-                                            await iapManager.purchase(smallTip)
-                                        }
-                                    }) {
-                                        Text(iapManager.formattedPrice(for: smallTip))
-                                            .font(.headline)
-                                            .foregroundStyle(.white)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 8)
-                                            .glassEffect(.clear.interactive())
-                                    }
-                                    .disabled(iapManager.purchaseState == .purchasing)
-                                }
+                                priceButton(for: smallTip)
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 16)
@@ -122,29 +100,7 @@ struct TipJarView: View {
                                 
                                 Spacer()
                                 
-                                if iapManager.purchaseState == .purchasing {
-                                    ProgressView()
-                                        .padding(.vertical, 8)
-                                        .blendMode(.plusLighter)
-                                } else {
-                                    Button(action: {
-                                        if hapticEnabled {
-                                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                            impactFeedback.impactOccurred()
-                                        }
-                                        Task {
-                                            await iapManager.purchase(mediumTip)
-                                        }
-                                    }) {
-                                        Text(iapManager.formattedPrice(for: mediumTip))
-                                            .font(.headline)
-                                            .foregroundStyle(.white)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 8)
-                                            .glassEffect(.clear.interactive())
-                                    }
-                                    .disabled(iapManager.purchaseState == .purchasing)
-                                }
+                                priceButton(for: mediumTip)
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 16)
@@ -167,29 +123,7 @@ struct TipJarView: View {
                                     
                                     Spacer()
                                     
-                                    if iapManager.purchaseState == .purchasing {
-                                        ProgressView()
-                                            .padding(.vertical, 8)
-                                            .blendMode(.plusLighter)
-                                    } else {
-                                        Button(action: {
-                                            if hapticEnabled {
-                                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                                impactFeedback.impactOccurred()
-                                            }
-                                            Task {
-                                                await iapManager.purchase(largeTip)
-                                            }
-                                        }) {
-                                            Text(iapManager.formattedPrice(for: largeTip))
-                                                .font(.headline)
-                                                .foregroundStyle(.white)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                                .glassEffect(.clear.interactive())
-                                        }
-                                        .disabled(iapManager.purchaseState == .purchasing)
-                                    }
+                                    priceButton(for: largeTip)
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 16)
@@ -294,6 +228,40 @@ struct TipJarView: View {
         .onChange(of: showExpandedFeatures) { _, isExpanded in
             if isExpanded {
                 heartBurst += 1
+            }
+        }
+    }
+
+    // MARK: - Price Button
+
+    /// The tip's price as a glass button that starts the purchase. While any
+    /// purchase is in flight it's hidden behind a spinner but keeps its space,
+    /// so the rows don't change height.
+    private func priceButton(for product: Product) -> some View {
+        let isPurchasing = iapManager.purchaseState == .purchasing
+
+        return Button(action: {
+            if hapticEnabled {
+                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                impactFeedback.impactOccurred()
+            }
+            Task {
+                await iapManager.purchase(product)
+            }
+        }) {
+            Text(iapManager.formattedPrice(for: product))
+                .font(.headline)
+                .foregroundStyle(.white)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .glassEffect(.clear.interactive())
+        }
+        .disabled(isPurchasing)
+        .opacity(isPurchasing ? 0 : 1)
+        .overlay(alignment: .trailing) {
+            if isPurchasing {
+                ProgressView()
+                    .blendMode(.plusLighter)
             }
         }
     }
