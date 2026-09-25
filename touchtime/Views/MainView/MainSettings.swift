@@ -493,10 +493,10 @@ struct SettingsView: View {
                             Spacer()
                             
                             Image(systemName: "arrow.right")
-                                .font(.subheadline.weight(.bold))
+                                .font(.headline.weight(.bold))
                                 .foregroundStyle(.white)
-                                .padding(.vertical, 8)
-                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .padding(.horizontal, 16)
                                 .glassEffect(.regular.interactive().tint(.pink), in: .capsule(style: .continuous))
                         }
                     }
