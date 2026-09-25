@@ -165,6 +165,7 @@ struct LifetimeStoreView: View {
         }
         .navigationTitle("Lifetime")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {

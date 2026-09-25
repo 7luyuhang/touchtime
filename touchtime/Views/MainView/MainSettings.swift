@@ -1138,6 +1138,7 @@ struct SettingsView: View {
                 NavigationStack {
                     TipJarView()
                 }
+                .scrollEdgeEffectStyle(.soft, for: .top)
             }
             // Complications Sheet
             .sheet(isPresented: $showComplicationsSheet) {
@@ -1161,14 +1162,18 @@ struct SettingsView: View {
                         weatherManager: weatherManager
                     )
                 }
+                .scrollEdgeEffectStyle(.soft, for: .top)
                 .presentationDetents([.medium]) // Complication Sheet Height
                 .presentationDragIndicator(.visible)
             }
             // Widget Sheet
             .sheet(isPresented: $showWidgetSheet) {
                 WidgetIntroSheet()
+                    .scrollEdgeEffectStyle(.soft, for: .top)
             }
         }
+        // On the stack so the pages pushed from Settings get it too
+        .scrollEdgeEffectStyle(.soft, for: .top)
     }
 
     @MainActor
