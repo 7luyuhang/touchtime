@@ -56,6 +56,7 @@ struct TipJarView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                         .padding(.bottom, 16)
+                        .padding(.top, 8)
                     
                     
                     if iapManager.purchaseState == .loading {
@@ -192,12 +193,11 @@ struct TipJarView: View {
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 16)
-                                // Hearts rise out of the row and blur out over the tip
-                                // above, fully dissolved before the top of their frame
                                 .background(alignment: .bottom) {
                                     EmojiParticlesView(
                                         emojis: Self.heartEmojis,
                                         burst: heartBurst,
+                                        riseDuration: 1.25...2.25,
                                         dissolveDistance: 72
                                     )
                                     .frame(height: 180)

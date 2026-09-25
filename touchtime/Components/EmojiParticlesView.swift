@@ -18,6 +18,9 @@ struct EmojiParticlesView: View {
     let emojis: [String]
     /// Bumped by the parent; each change is one burst.
     let burst: Int
+    /// Seconds a particle takes to rise through the view, picked per
+    /// particle from this range; lower is faster.
+    let riseDuration: ClosedRange<TimeInterval>
     /// For use without a clipping card: when set, particles keep clear of the
     /// view's sides and blur out to nothing over this distance below the top
     /// edge, gone before they reach it. Otherwise they fade over the last
@@ -33,9 +36,15 @@ struct EmojiParticlesView: View {
     }
 
     /// Each particle shows one of `emojis`, picked at random.
-    init(emojis: [String], burst: Int, dissolveDistance: CGFloat? = nil) {
+    init(
+        emojis: [String],
+        burst: Int,
+        riseDuration: ClosedRange<TimeInterval> = 1.0...2.0,
+        dissolveDistance: CGFloat? = nil
+    ) {
         self.emojis = emojis
         self.burst = burst
+        self.riseDuration = riseDuration
         self.dissolveDistance = dissolveDistance
     }
 
@@ -130,7 +139,7 @@ struct EmojiParticlesView: View {
                 drift: .random(in: -24...24),
                 size: .random(in: 12...36),
                 blur: .random(in: 0...1.0),
-                duration: .random(in: 1.0...2.0),
+                duration: .random(in: riseDuration),
                 delay: .random(in: 0...0.25)
             )
         }
