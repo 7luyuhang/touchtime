@@ -8,16 +8,36 @@
 import SwiftUI
 
 /// Emoji particles floating up a card background: every bump of `burst`
-/// spawns a handful of copies of the emoji that rise from the bottom edge
-/// with random size, blur and sideways drift, dissolving before they reach
-/// the top. Used behind the countdown editor's preview card whenever an
-/// emoji cover is picked; place it behind content and clip it to the card.
+/// spawns a handful of emojis that rise from the bottom edge with random
+/// size, blur and sideways drift, dissolving before they reach the top.
+/// Used behind the countdown editor's preview card whenever an emoji cover
+/// is picked; place it behind content and clip it to the card.
 struct EmojiParticlesView: View {
-    /// The current cover emoji; snapshotted into each particle so
-    /// in-flight bursts keep their glyph when the cover changes.
-    let emoji: String?
-    /// Bumped by the parent on every emoji pick; each change is one burst.
+    /// Emojis each particle picks from at random; snapshotted into each
+    /// particle so in-flight bursts keep their glyph when these change.
+    let emojis: [String]
+    /// Bumped by the parent; each change is one burst.
     let burst: Int
+    /// For use without a clipping card: when set, particles keep clear of the
+    /// view's sides and blur out to nothing over this distance below the top
+    /// edge, gone before they reach it. Otherwise they fade over the last
+    /// stretch of the rise and the card's clip trims them at its edges.
+    let dissolveDistance: CGFloat?
+
+    /// Blur a fully dissolved particle reaches, as a share of its glyph size.
+    private static let dissolveBlurScale: CGFloat = 0.25
+
+    /// Every particle shows `emoji`; nil spawns nothing.
+    init(emoji: String?, burst: Int) {
+        self.init(emojis: emoji.map { [$0] } ?? [], burst: burst)
+    }
+
+    /// Each particle shows one of `emojis`, picked at random.
+    init(emojis: [String], burst: Int, dissolveDistance: CGFloat? = nil) {
+        self.emojis = emojis
+        self.burst = burst
+        self.dissolveDistance = dissolveDistance
+    }
 
     private struct Particle: Identifiable {
         let id = UUID()
@@ -54,19 +74,37 @@ struct EmojiParticlesView: View {
                     // just past the top one.
                     let eased = 1 - pow(1 - progress, 2)
                     let travel = size.height + particle.size * 2
+                    var x = particle.xFraction * size.width + particle.drift * eased
+                    if dissolveDistance != nil {
+                        // No card clip to hide the sides, so the glyph and its
+                        // fullest blur stay inside them instead of being cut
+                        let inset = particle.size / 2 + particle.blur + particle.size * Self.dissolveBlurScale
+                        x = min(max(x, inset), size.width - inset)
+                    }
                     let position = CGPoint(
-                        x: particle.xFraction * size.width + particle.drift * eased,
+                        x: x,
                         y: size.height + particle.size - travel * eased
                     )
 
-                    // Quick fade in, cruise, dissolve over the last stretch.
+                    // Quick fade in and cruise, then either blur out on the
+                    // way to the top edge or fade over the last stretch.
                     let fadeIn = min(progress / 0.15, 1)
-                    let fadeOut = progress < 0.6 ? 1 : (1 - progress) / 0.4
+                    var fadeOut = progress < 0.6 ? 1 : (1 - progress) / 0.4
+                    var blur = particle.blur
+                    if let dissolveDistance {
+                        let distanceToTop = position.y - particle.size / 2
+                        let remaining = min(max(distanceToTop / dissolveDistance, 0), 1)
+                        fadeOut = remaining
+                        blur += (1 - remaining) * particle.size * Self.dissolveBlurScale
+                    }
+
+                    let opacity = fadeIn * fadeOut
+                    guard opacity > 0 else { continue }
 
                     var layer = context
-                    layer.opacity = fadeIn * fadeOut
-                    if particle.blur > 0.1 {
-                        layer.addFilter(.blur(radius: particle.blur))
+                    layer.opacity = opacity
+                    if blur > 0.1 {
+                        layer.addFilter(.blur(radius: blur))
                     }
                     layer.draw(
                         Text(particle.emoji).font(.system(size: particle.size)),
@@ -82,11 +120,11 @@ struct EmojiParticlesView: View {
     }
 
     private func spawnBurst() {
-        guard let emoji else { return }
+        guard !emojis.isEmpty else { return }
         let now = Date().timeIntervalSinceReferenceDate
         let newParticles = (0..<Int.random(in: 10...15)).map { _ in
             Particle(
-                emoji: emoji,
+                emoji: emojis.randomElement()!,
                 birth: now,
                 xFraction: .random(in: 0.05...0.95),
                 drift: .random(in: -24...24),

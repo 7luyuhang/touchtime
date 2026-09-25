@@ -3349,6 +3349,7 @@
       }
     },
     "Chat with me" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -11063,6 +11064,7 @@
       }
     },
     "Open to any thoughts or feedback :)" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
