@@ -142,6 +142,7 @@ struct CountdownSheet: View {
             countdownsPage
                 .navigationTitle(String(localized: "Countdowns"))
                 .navigationBarTitleDisplayMode(.inline)
+                .scrollEdgeEffectStyle(.soft, for: .top)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {
                         Button {

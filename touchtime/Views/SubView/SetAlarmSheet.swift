@@ -78,6 +78,7 @@ struct SetAlarmSheet: View {
             alarmsPage
             .navigationTitle(String(localized: "Alarms"))
             .navigationBarTitleDisplayMode(.inline)
+            .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {

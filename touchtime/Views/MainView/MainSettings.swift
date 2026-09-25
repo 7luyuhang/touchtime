@@ -1162,7 +1162,6 @@ struct SettingsView: View {
                         weatherManager: weatherManager
                     )
                 }
-                .scrollEdgeEffectStyle(.soft, for: .top)
                 .presentationDetents([.medium]) // Complication Sheet Height
                 .presentationDragIndicator(.visible)
             }

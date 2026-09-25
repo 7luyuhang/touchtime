@@ -729,6 +729,7 @@ struct ArrangeListView: View {
             .listStyle(.insetGrouped)
             .navigationTitle("Arrange")
             .navigationBarTitleDisplayMode(.inline)
+            .scrollEdgeEffectStyle(.soft, for: .top)
             .onAppear {
                 loadCollections()
             }

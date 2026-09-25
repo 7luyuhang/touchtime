@@ -459,6 +459,7 @@ struct ShareCitiesSheet: View {
             .safeAreaPadding(.bottom, 8)
             .navigationTitle(String(localized: "Share Cities"))
             .navigationBarTitleDisplayMode(.inline)
+            .scrollEdgeEffectStyle(.soft, for: .top)
             .scrollIndicators(.hidden)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 Button(action: toggleSelectAll) {

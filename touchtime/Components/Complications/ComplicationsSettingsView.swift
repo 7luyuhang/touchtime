@@ -125,6 +125,7 @@ struct ComplicationsSettingsView: View {
         .scrollIndicators(.hidden)
         .navigationTitle("Complications")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollEdgeEffectStyle(.soft, for: .top)
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button {

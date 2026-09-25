@@ -41,6 +41,7 @@ struct StopwatchRecordsSheet: View {
             .animation(.smooth(duration: 0.30), value: openedRecord)
             .navigationTitle(isShowingLaps ? String(localized: "Laps") : String(localized: "Stopwatch"))
             .navigationBarTitleDisplayMode(.inline)
+            .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if isShowingLaps {

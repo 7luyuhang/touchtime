@@ -264,6 +264,7 @@ struct SetTimerSheet: View {
             }
             .navigationTitle(isShowingRecents ? String(localized: "Recents") : String(localized: "New Timer"))
             .navigationBarTitleDisplayMode(.inline)
+            .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {

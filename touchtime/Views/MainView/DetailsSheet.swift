@@ -1118,6 +1118,7 @@ struct SunriseSunsetSheet: View {
                     .animation(.bouncy(), value: currentDetent)
             }
             .navigationBarTitleDisplayMode(.inline)
+            .scrollEdgeEffectStyle(.soft, for: .top)
             .onAppear {
                 currentDate = initialDate
                 isWeatherExpanded = storedWeatherExpanded
