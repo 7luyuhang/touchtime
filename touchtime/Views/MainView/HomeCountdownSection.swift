@@ -9,7 +9,8 @@ import SwiftUI
 import UIKit
 
 /// Pinned countdowns shown below the home timer: one preview card per
-/// pinned countdown, ordered by target date. Day counts follow the
+/// pinned countdown, in the order passed in (arranged in Arrange, see
+/// `CountdownStore.pinnedCountdowns(at:)`). Day counts follow the
 /// scrubbed time passed in as `now`.
 struct HomeCountdownSection: View {
     let countdowns: [CountdownItem]
@@ -33,9 +34,7 @@ struct HomeCountdownSection: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
     private var pinnedCountdowns: [CountdownItem] {
-        countdowns
-            .filter(\.isPinned)
-            .sorted { $0.effectiveTargetDate(at: now) < $1.effectiveTargetDate(at: now) }
+        countdowns.filter(\.isPinned)
     }
 
     var body: some View {

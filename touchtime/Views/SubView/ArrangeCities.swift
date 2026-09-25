@@ -194,11 +194,10 @@ struct ArrangeListView: View {
         currentDate.addingTimeInterval(timeOffset)
     }
     
-    // Pinned countdowns in the order Home shows them (by target date)
+    // Pinned countdowns in the order Home shows them, as dragged in the
+    // Pinned Countdowns section
     var pinnedCountdowns: [CountdownItem] {
-        countdownStore.countdowns
-            .filter(\.isPinned)
-            .sorted { $0.effectiveTargetDate(at: adjustedNow) < $1.effectiveTargetDate(at: adjustedNow) }
+        countdownStore.pinnedCountdowns(at: adjustedNow)
     }
     
     // Pinned countdowns that were added to the collection
@@ -408,7 +407,8 @@ struct ArrangeListView: View {
                                     }
                                 )
                             ) {
-                                // Pinned Countdowns in Collection (always above the cities, not reorderable)
+                                // Pinned Countdowns in Collection (always above the cities, in the
+                                // Pinned Countdowns section's order, not reorderable on their own)
                                 ForEach(pinnedCountdowns(in: collection)) { countdown in
                                     HStack {
                                         Text(countdown.title)
@@ -510,8 +510,8 @@ struct ArrangeListView: View {
                     }
                 }
                 
-                // Pinned Countdowns Section: same row design as All Cities,
-                // but countdowns keep Home's date order and can't be dragged
+                // Pinned Countdowns Section: same row design as All Cities;
+                // dragging sets the order of the countdown cards on Home
                 if !pinnedCountdowns.isEmpty {
                     Section {
                         ForEach(pinnedCountdowns) { countdown in
@@ -554,9 +554,23 @@ struct ArrangeListView: View {
                                 countdownDateText(for: countdown)
                                     .monospacedDigit()
                                     .foregroundStyle(.secondary)
+                                
+                                // Drag hint
+                                Image(systemName: "line.3.horizontal")
+                                    .font(.title3)
+                                    .foregroundStyle(.tertiary)
                             }
                             .deleteDisabled(true)
-                            .moveDisabled(true)
+                        }
+                        .onMove { source, destination in
+                            var reordered = pinnedCountdowns
+                            reordered.move(fromOffsets: source, toOffset: destination)
+                            countdownStore.pinnedOrder = reordered.map(\.id)
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
                         }
                     } header: {
                         Text("Pinned Countdowns")

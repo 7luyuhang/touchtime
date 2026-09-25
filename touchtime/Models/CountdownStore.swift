@@ -18,6 +18,7 @@ import WidgetKit
 @Observable
 final class CountdownStore {
     private static let storageKey = SharedWidgetStore.countdownsKey
+    private static let pinnedOrderKey = "pinnedCountdownOrder"
 
     var countdowns: [CountdownItem] {
         didSet {
@@ -28,11 +29,42 @@ final class CountdownStore {
             CountdownSpaceStore.shared.prune(keeping: countdowns.map(\.id))
             // ...and leave the collections they were added to.
             CollectionsStore.pruneCountdowns(keeping: countdowns.map(\.id))
+            // Unpinned and deleted countdowns give up their arranged spot,
+            // so pinning one again lines it up after the arranged ones.
+            let pinnedIds = Set(countdowns.filter(\.isPinned).map(\.id))
+            let keptOrder = pinnedOrder.filter { pinnedIds.contains($0) }
+            if keptOrder != pinnedOrder {
+                pinnedOrder = keptOrder
+            }
+        }
+    }
+
+    /// Pinned countdown IDs in the order they were dragged into in Arrange,
+    /// which Home lays its countdown cards out in (see `pinnedCountdowns(at:)`).
+    var pinnedOrder: [UUID] {
+        didSet {
+            UserDefaults.standard.set(pinnedOrder.map(\.uuidString), forKey: Self.pinnedOrderKey)
         }
     }
 
     init() {
         countdowns = Self.load()
+        pinnedOrder = (UserDefaults.standard.stringArray(forKey: Self.pinnedOrderKey) ?? [])
+            .compactMap(UUID.init(uuidString:))
+    }
+
+    /// Pinned countdowns in Home's card order: the arranged ones first, then
+    /// any not arranged yet (pinned since the last drag, or all of them
+    /// before the first) by their next target date.
+    func pinnedCountdowns(at now: Date) -> [CountdownItem] {
+        let pinned = countdowns.filter(\.isPinned)
+        let arranged = pinnedOrder.compactMap { id in
+            pinned.first { $0.id == id }
+        }
+        let unarranged = pinned
+            .filter { !pinnedOrder.contains($0.id) }
+            .sorted { $0.effectiveTargetDate(at: now) < $1.effectiveTargetDate(at: now) }
+        return arranged + unarranged
     }
 
     private static func load() -> [CountdownItem] {

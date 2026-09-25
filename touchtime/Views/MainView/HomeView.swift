@@ -685,9 +685,9 @@ struct HomeView: View {
     
     // Get displayed pinned countdowns based on selected collection: every
     // pinned countdown on All Cities, only the ones added to the collection
-    // otherwise (see ArrangeListView)
+    // otherwise, both in the order arranged in ArrangeListView
     var displayedCountdowns: [CountdownItem] {
-        let pinned = countdownStore.countdowns.filter(\.isPinned)
+        let pinned = countdownStore.pinnedCountdowns(at: currentDate.addingTimeInterval(timeOffset))
         if let collectionId = selectedCollectionId,
            let collection = collections.first(where: { $0.id == collectionId }) {
             return pinned.filter { collection.contains(countdownId: $0.id) }
