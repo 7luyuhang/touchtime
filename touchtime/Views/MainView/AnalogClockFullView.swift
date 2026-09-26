@@ -27,6 +27,11 @@ struct AnalogClockFullView: View {
         static let blackAndWhiteContrast = 1.25
     }
 
+    // iPhone Duo landscape: the clock, and Slide to Adjust under it, stop at
+    // about a phone's width, leaving the rest of the height to the digital
+    // time above and the controls below
+    private static let maximumLandscapeClockWidth: CGFloat = 400
+
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
     @Binding var showScrollTimeButtons: Bool
@@ -1128,7 +1133,8 @@ struct AnalogClockFullView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
-                let size = min(geometry.size.width, geometry.size.height)
+                let isLandscape = geometry.size.width > geometry.size.height
+                let size = min(geometry.size.width, geometry.size.height, isLandscape ? Self.maximumLandscapeClockWidth : .infinity)
                 // The face circle is drawn `size - 24` wide, so the 12pt band
                 // around it is empty and reads as part of the gap above the clock.
                 let clockFaceInset: CGFloat = 12
@@ -1347,6 +1353,8 @@ struct AnalogClockFullView: View {
                                     onStopwatchStartStopTap: toggleHomeStopwatch,
                                     onStopwatchLapResetTap: handleHomeStopwatchLapResetTap
                                 )
+                                // No wider than the clock above it
+                                .frame(maxWidth: isLandscape ? Self.maximumLandscapeClockWidth : nil)
                                 .padding(.horizontal)
                                 .padding(.bottom, 8)
                                 .overlay(alignment: .topTrailing) { // Capture Button
