@@ -22,6 +22,10 @@ struct SunriseSunsetSheet: View {
     let timeZoneIdentifier: String
     let initialDate: Date
     let timeOffset: TimeInterval
+    /// Shown inline as the landscape detail pane on iPhone Duo instead of
+    /// as a sheet: always expanded, without a title or close button, and
+    /// without its own sky, as HomeView draws one behind both panes.
+    var isEmbedded = false
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -48,6 +52,11 @@ struct SunriseSunsetSheet: View {
     @State private var upcomingMoonPhases: [UpcomingMoonPhase] = []
     @State private var isMoonPhasesExpanded = false // Track upcoming phases expansion
     @State private var astronomyDayCacheKey: String = ""
+
+    // Large detent layout: sticky time section and full-sheet sky
+    private var isExpanded: Bool {
+        isEmbedded || currentDetent == .large
+    }
     
     // Computed properties to get weather data directly from weatherManager
     private var currentWeather: CurrentWeather? {
@@ -595,6 +604,30 @@ struct SunriseSunsetSheet: View {
         .detailsSheetCard()
     }
 
+    // Next DST transition, e.g. "DST Ends Oct 25 -1 hours"
+    private func dstLabel(isStart: Bool, transitionDate: Date, offsetHours: Int) -> some View {
+        HStack(spacing: 5) {
+            Text("DST")
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.secondary)
+            
+            Text(isStart ? String(localized: "Starts") : String(localized: "Ends"))
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.secondary)
+            
+            Text(formatDSTDate(transitionDate))
+                .font(.footnote.weight(.medium))
+                .foregroundStyle(.primary)
+            
+            if offsetHours != 0 {
+                Text(offsetHours > 0 ? String(format: String(localized: "+%d hours"), offsetHours) : String(format: String(localized: "%d hours"), offsetHours))
+                    .font(.footnote.weight(.medium))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .blendMode(.plusLighter)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -764,7 +797,7 @@ struct SunriseSunsetSheet: View {
                                     .blendMode(.plusLighter)
                                     .padding(.horizontal, 32)
                                     .padding(.bottom, 4)
-                                    .padding(.top, (showWeather && (currentWeather != nil || weatherLoadAttempted)) || currentDetent == .large ? 24 : 8)
+                                    .padding(.top, (showWeather && (currentWeather != nil || weatherLoadAttempted)) || isExpanded ? 24 : 8)
 
                                 HStack(spacing: 8) {
                                     // Sunrise Section
@@ -1108,19 +1141,34 @@ struct SunriseSunsetSheet: View {
                 .scrollIndicators(.hidden)
             .safeAreaInset(edge: .top, spacing: 0) {
                 Group {
-                    if currentDetent == .large {
+                    if isExpanded {
                         stickyTimeSection
                             .padding(.horizontal, 16)
-                            .padding(.top, 8)
+                            // Beside the list, level with its first card
+                            // (the list starts 24pt down)
+                            .padding(.top, isEmbedded ? 24 : 8)
                             .transition(.blurReplace())
                     }
                 }
                 .animation(.bouncy(), value: currentDetent)
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // Beside the list the bottom bar moves into the vertical bar,
+                // which has no room for the DST pill
+                if isEmbedded, let dst = dstInfo, let transitionDate = dst.transitionDate {
+                    dstLabel(isStart: dst.isStart, transitionDate: transitionDate, offsetHours: dst.offsetHours)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .glassEffect(.regular, in: Capsule(style: .continuous))
+                        .padding(.bottom, 8)
+                }
+            }
             .background {
                 sheetSkyBackground
                     .animation(.bouncy(), value: currentDetent)
             }
+            // The detail pane sits on HomeView's sky background
+            .clearNavigationBackground(isEmbedded)
             .navigationBarTitleDisplayMode(.inline)
             .scrollEdgeEffectStyle(.soft, for: .top)
             .onAppear {
@@ -1130,6 +1178,8 @@ struct SunriseSunsetSheet: View {
                 refreshAstronomyData(force: true, referenceDate: initialDate)
             }
             .task(id: timeZoneIdentifier) {
+                // The detail pane switches cities in place
+                weatherLoadAttempted = false
                 refreshAstronomyData(force: true, referenceDate: currentDate)
                 // Fetch weather data only if weather is enabled
                 // Using .task(id:) ensures this runs when timeZoneIdentifier changes
@@ -1155,34 +1205,38 @@ struct SunriseSunsetSheet: View {
             }
             .toolbar {
                 
-                ToolbarItem(placement: .principal) {
-                    VStack(spacing: 2) {
-                        Text(cityName)
-                            .font(.headline)
-                            .foregroundStyle(.primary)
-                        
-                        let adjustedDate = currentDate.addingTimeInterval(timeOffset)
-                        Text(adjustedDate.formattedDate(
-                            style: dateStyle,
-                            timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
-                        ))
-                        .font(.footnote.weight(.medium))
-                        .foregroundStyle(.secondary)
-                    }
-                }
-                
-                ToolbarItem(placement: .topBarLeading) {
-                    Button(action: {
-                        if hapticEnabled {
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                if !isEmbedded {
+                    ToolbarItem(placement: .principal) {
+                        VStack(spacing: 2) {
+                            Text(cityName)
+                                .font(.headline)
+                                .foregroundStyle(.primary)
+                            
+                            let adjustedDate = currentDate.addingTimeInterval(timeOffset)
+                            Text(adjustedDate.formattedDate(
+                                style: dateStyle,
+                                timeZone: TimeZone(identifier: timeZoneIdentifier) ?? TimeZone.current
+                            ))
+                            .font(.footnote.weight(.medium))
+                            .foregroundStyle(.secondary)
                         }
-                        dismiss()
-                    }) {
-                        Image(systemName: "xmark")
+                    }
+                    
+                    ToolbarItem(placement: .topBarLeading) {
+                        Button(action: {
+                            if hapticEnabled {
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            }
+                            dismiss()
+                        }) {
+                            Image(systemName: "xmark")
+                        }
                     }
                 }
                 
-                // Bottom bar: location + DST (if any) + reset (if time is scrolled)
+                // Bottom bar: location + DST (if any) + reset (if time is scrolled).
+                // The detail pane keeps only the location: its DST pill floats
+                // over the content and the list's Slide to Adjust bar resets.
                 // Open in Map
                 if getCoordinatesForTimeZone(timeZoneIdentifier) != nil {
                     ToolbarItem(placement: .bottomBar) {
@@ -1197,40 +1251,21 @@ struct SunriseSunsetSheet: View {
                     }
                 }
                 
-                if getCoordinatesForTimeZone(timeZoneIdentifier) != nil && dstInfo != nil {
+                if !isEmbedded && getCoordinatesForTimeZone(timeZoneIdentifier) != nil && dstInfo != nil {
                     ToolbarSpacer(.fixed, placement: .bottomBar)
                 }
                 
                 // DST information in bottom bar
-                if let dst = dstInfo, let transitionDate = dst.transitionDate {
+                if !isEmbedded, let dst = dstInfo, let transitionDate = dst.transitionDate {
                     ToolbarItem(placement: .bottomBar) {
-                        HStack(spacing: 5) {
-                            Text("DST")
-                                .font(.footnote.weight(.medium))
-                                .foregroundStyle(.secondary)
-                            
-                            Text(dst.isStart ? String(localized: "Starts") : String(localized: "Ends"))
-                                .font(.footnote.weight(.medium))
-                                .foregroundStyle(.secondary)
-                            
-                            Text(formatDSTDate(transitionDate))
-                                .font(.footnote.weight(.medium))
-                                .foregroundStyle(.primary)
-                            
-                            if dst.offsetHours != 0 {
-                                Text(dst.offsetHours > 0 ? String(format: String(localized: "+%d hours"), dst.offsetHours) : String(format: String(localized: "%d hours"), dst.offsetHours))
-                                    .font(.footnote.weight(.medium))
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                        .blendMode(.plusLighter)
-                        .frame(maxWidth: .infinity)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 8)
+                        dstLabel(isStart: dst.isStart, transitionDate: transitionDate, offsetHours: dst.offsetHours)
+                            .frame(maxWidth: .infinity)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 8)
                     }
                 }
                 
-                if timeOffset != 0 {
+                if !isEmbedded && timeOffset != 0 {
                     // DST pill already expands to fill the middle; without it,
                     // a flexible spacer pushes the reset button to the far right.
                     if dstInfo != nil {
@@ -1323,6 +1358,15 @@ private struct HorizontalScrollEdgeFade: ViewModifier {
 private extension View {
     func horizontalScrollEdgeFade(width: CGFloat = 32) -> some View {
         modifier(HorizontalScrollEdgeFade(fadeWidth: width))
+    }
+
+    @ViewBuilder
+    func clearNavigationBackground(_ isClear: Bool) -> some View {
+        if isClear {
+            containerBackground(.clear, for: .navigation)
+        } else {
+            self
+        }
     }
 
     func detailsSheetCardChrome(cornerRadius: CGFloat = 20) -> some View {

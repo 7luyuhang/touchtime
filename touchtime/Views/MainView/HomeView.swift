@@ -39,6 +39,33 @@ private struct HomeSkyListRowBackground: View {
     }
 }
 
+/// Next to a vertical bar (iPhone Duo) a list drops that side's section
+/// margin down to the safe area, so its cards run wider than the rest of the
+/// screen. Padding the safe area on that side gives the margin back.
+@available(iOS 27.1, *)
+private struct VerticalBarListMargin: ViewModifier {
+    let length: CGFloat
+    @Environment(\.toolbarVerticalEdge) private var verticalBarEdge
+
+    func body(content: Content) -> some View {
+        content.safeAreaPadding(
+            verticalBarEdge == .leading ? .leading : .trailing,
+            verticalBarEdge == nil ? 0 : length
+        )
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func verticalBarListMargin(_ length: CGFloat) -> some View {
+        if #available(iOS 27.1, *) {
+            modifier(VerticalBarListMargin(length: length))
+        } else {
+            self
+        }
+    }
+}
+
 // MARK: - Lazy Card Image (deferred rendering for ShareLink)
 struct LazyCardImage: Transferable {
     let render: () -> UIImage
@@ -114,6 +141,10 @@ struct HomeView: View {
     @State private var showSunriseSunsetSheet = false
     @State private var selectedTimeZone: String = ""
     @State private var selectedCityName: String = ""
+    // iPhone Duo landscape: the list and a city's details side by side
+    @State private var isLandscape = false
+    // City shown in the landscape detail pane; nil means the local time
+    @State private var detailPaneCityId: UUID? = nil
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
     @State private var showSetTimerSheet = false
@@ -1109,7 +1140,107 @@ struct HomeView: View {
         return renderer.uiImage ?? UIImage(systemName: "photo") ?? UIImage()
     }
     
+    /// On iPhone Duo in landscape the list and a city's details sit side
+    /// by side, instead of the details opening as a sheet.
+    private var usesSplitLayout: Bool {
+        guard #available(iOS 27.1, *) else { return false }
+        return isLandscape
+    }
+
+    /// The city in the landscape detail pane: the tapped row while it's
+    /// still listed, otherwise the first row.
+    private var detailPaneCity: (name: String, timeZoneIdentifier: String)? {
+        if let cityId = detailPaneCityId,
+           let clock = displayedClocks.first(where: { $0.id == cityId }) {
+            return (getLocalizedCityName(for: clock), clock.timeZoneIdentifier)
+        }
+        if showLocalTime {
+            return (String(localized: "Local"), TimeZone.current.identifier)
+        }
+        if let clock = displayedClocks.first {
+            return (getLocalizedCityName(for: clock), clock.timeZoneIdentifier)
+        }
+        return nil
+    }
+
     var body: some View {
+        Group {
+            if #available(iOS 27.1, *), usesSplitLayout {
+                ArrangementView {
+                    homeContent
+                } secondary: {
+                    cityDetailPane
+                }
+                .arrangementViewStyle(.split.axes(.horizontal))
+                .background { splitSkyBackground }
+            } else {
+                homeContent
+            }
+        }
+        .background {
+            // Measures the whole window, so the keyboard can't make a portrait
+            // screen look wide
+            Color.clear
+                .ignoresSafeArea()
+                .onGeometryChange(for: Bool.self) { proxy in
+                    proxy.size.width > proxy.size.height
+                } action: { isWide in
+                    isLandscape = isWide
+                    // The detail pane takes over from the details sheet
+                    if usesSplitLayout {
+                        showSunriseSunsetSheet = false
+                    }
+                }
+        }
+    }
+
+    // Fades in from 20% of the window width to full at 80%. Smoothstep opacity
+    // ramp: a linear one shows hard bands where the fade starts and ends
+    private static let splitSkyFadeStops: [Gradient.Stop] = (0...8).map { step in
+        let progress = Double(step) / 8
+        return .init(color: .black.opacity(progress * progress * (3 - 2 * progress)), location: 0.2 + progress * 0.6)
+    }
+
+    /// Behind both panes: the detail pane city's sky, fading in from under
+    /// the list to full strength on the right.
+    private var splitSkyBackground: some View {
+        ZStack {
+            Color(UIColor.systemGroupedBackground)
+
+            if showSkyDot, let city = detailPaneCity {
+                SkyBackgroundView(
+                    date: currentDate.addingTimeInterval(timeOffset),
+                    timeZoneIdentifier: city.timeZoneIdentifier,
+                    weatherCondition: showWeather ? weatherManager.weatherData[city.timeZoneIdentifier]?.condition : nil,
+                    appliesCardChrome: false
+                )
+                .mask {
+                    LinearGradient(stops: Self.splitSkyFadeStops, startPoint: .leading, endPoint: .trailing)
+                }
+            }
+        }
+        .allowsHitTesting(false)
+        .ignoresSafeArea()
+    }
+
+    @ViewBuilder
+    private var cityDetailPane: some View {
+        if let city = detailPaneCity {
+            SunriseSunsetSheet(
+                cityName: city.name,
+                timeZoneIdentifier: city.timeZoneIdentifier,
+                initialDate: currentDate,
+                timeOffset: timeOffset,
+                isEmbedded: true
+            )
+            .environmentObject(weatherManager)
+        } else {
+            Color(UIColor.systemGroupedBackground)
+                .ignoresSafeArea()
+        }
+    }
+
+    private var homeContent: some View {
         NavigationStack {
             ZStack(alignment: .bottom) {
                 ShakeDetectorView {
@@ -1296,7 +1427,10 @@ struct HomeView: View {
                                 .onTapGesture {
                                     selectedTimeZone = TimeZone.current.identifier
                                     selectedCityName = String(localized: "Local")
-                                    showSunriseSunsetSheet = true
+                                    detailPaneCityId = nil
+                                    if !usesSplitLayout {
+                                        showSunriseSunsetSheet = true
+                                    }
                                     
                                     // Provide haptic feedback if enabled
                                     if hapticEnabled {
@@ -1383,7 +1517,10 @@ struct HomeView: View {
                                 .onTapGesture {
                                     selectedTimeZone = clock.timeZoneIdentifier
                                     selectedCityName = getLocalizedCityName(for: clock)
-                                    showSunriseSunsetSheet = true
+                                    detailPaneCityId = clock.id
+                                    if !usesSplitLayout {
+                                        showSunriseSunsetSheet = true
+                                    }
                                     
                                     // Provide haptic feedback if enabled
                                     if hapticEnabled {
@@ -1434,6 +1571,8 @@ struct HomeView: View {
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
                     .safeAreaPadding(.bottom, 52)
+                    // Same width as Slide to Adjust beside the vertical bar
+                    .verticalBarListMargin(20)
                     .id(selectedCollectionId?.uuidString ?? "default")
                     .transition(.identity) // Collection Animation
                     // Centralized batch weather prefetch for all displayed cities
@@ -1476,12 +1615,15 @@ struct HomeView: View {
             }
             .background(
                 ZStack {
-                    // Base system background
-                    Color(UIColor.systemGroupedBackground)
-                        .ignoresSafeArea()
+                    // Base system background. Beside the detail pane the split's
+                    // sky background shows through instead
+                    if !usesSplitLayout {
+                        Color(UIColor.systemGroupedBackground)
+                            .ignoresSafeArea()
+                    }
                     
                     // Sky Background Effect for System Time
-                    if showLocalTime && showSkyDot {
+                    if showLocalTime && showSkyDot && !usesSplitLayout {
                         VStack {
                             LocalSkyGlowBackground(
                                 currentDate: $currentDate,
@@ -1508,6 +1650,12 @@ struct HomeView: View {
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
             .ignoresSafeArea(.keyboard, edges: .bottom)
+            // Beside the detail pane the stack still reserves a vertical bar's
+            // width at its trailing edge, though the system draws that bar at
+            // the window edge
+            .ignoresSafeArea(.container, edges: usesSplitLayout ? .trailing : [])
+            // Lets the split's sky background show through the stack
+            .containerBackground(usesSplitLayout ? .clear : Color(UIColor.systemGroupedBackground), for: .navigation)
             
             // Navigation Title
             .navigationTitle("")
