@@ -154,6 +154,7 @@ struct HomeView: View {
     // store is observed, so pins toggled inside the countdown sheet update
     // the cards immediately.
     @Environment(CountdownStore.self) private var countdownStore
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     // Countdown being edited after tapping its pinned card on Home.
     @State private var editingHomeCountdown: CountdownItem? = nil
     // Pinned countdown being shared as an image from its card's context menu.
@@ -1194,6 +1195,15 @@ struct HomeView: View {
         }
     }
 
+    /// The widest iPhone's width, for the list column on wider screens.
+    private static let maximumColumnWidth: CGFloat = 440
+
+    /// On a wide screen that isn't split (the unfolded iPhone Duo in
+    /// portrait) the list and Slide to Adjust keep to a phone-wide column.
+    private var usesPhoneColumn: Bool {
+        horizontalSizeClass == .regular && !usesSplitLayout
+    }
+
     // Fades in from 20% of the window width to full at 80%. Smoothstep opacity
     // ramp: a linear one shows hard bands where the fade starts and ends
     private static let splitSkyFadeStops: [Gradient.Stop] = (0...8).map { step in
@@ -1573,6 +1583,9 @@ struct HomeView: View {
                     .safeAreaPadding(.bottom, 52)
                     // Same width as Slide to Adjust beside the vertical bar
                     .verticalBarListMargin(20)
+                    // In regular width the list drops its side margins; the
+                    // phone-wide column keeps a phone's
+                    .safeAreaPadding(.horizontal, usesPhoneColumn ? 20 : 0)
                     .id(selectedCollectionId?.uuidString ?? "default")
                     .transition(.identity) // Collection Animation
                     // Centralized batch weather prefetch for all displayed cities
@@ -1613,6 +1626,8 @@ struct HomeView: View {
                         .transition(.blurReplace())
                 }
             }
+            .frame(maxWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil)
+            .frame(maxWidth: .infinity)
             .background(
                 ZStack {
                     // Base system background. Beside the detail pane the split's

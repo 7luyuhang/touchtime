@@ -27,10 +27,10 @@ struct AnalogClockFullView: View {
         static let blackAndWhiteContrast = 1.25
     }
 
-    // iPhone Duo landscape: the clock, and Slide to Adjust under it, stop at
-    // about a phone's width, leaving the rest of the height to the digital
-    // time above and the controls below
-    private static let maximumLandscapeClockWidth: CGFloat = 400
+    // Regular width (the unfolded iPhone Duo, either way up): the clock, and
+    // Slide to Adjust under it, stop at about a phone's width, leaving the
+    // rest of the space to the digital time above and the controls below
+    private static let maximumClockWidth: CGFloat = 400
 
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
@@ -72,6 +72,7 @@ struct AnalogClockFullView: View {
     @State private var cameraPreviewFilter: CameraPreviewFilter = .standard
     @StateObject private var cameraSessionController = CameraSessionController()
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showLocalTime") private var showLocalTime = true
@@ -1133,8 +1134,8 @@ struct AnalogClockFullView: View {
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
-                let isLandscape = geometry.size.width > geometry.size.height
-                let size = min(geometry.size.width, geometry.size.height, isLandscape ? Self.maximumLandscapeClockWidth : .infinity)
+                let isRegularWidth = horizontalSizeClass == .regular
+                let size = min(geometry.size.width, geometry.size.height, isRegularWidth ? Self.maximumClockWidth : .infinity)
                 // The face circle is drawn `size - 24` wide, so the 12pt band
                 // around it is empty and reads as part of the gap above the clock.
                 let clockFaceInset: CGFloat = 12
@@ -1354,7 +1355,7 @@ struct AnalogClockFullView: View {
                                     onStopwatchLapResetTap: handleHomeStopwatchLapResetTap
                                 )
                                 // No wider than the clock above it
-                                .frame(maxWidth: isLandscape ? Self.maximumLandscapeClockWidth : nil)
+                                .frame(maxWidth: isRegularWidth ? Self.maximumClockWidth : nil)
                                 .padding(.horizontal)
                                 .padding(.bottom, 8)
                                 .overlay(alignment: .topTrailing) { // Capture Button
