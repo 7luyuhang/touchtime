@@ -31,6 +31,9 @@ struct AnalogClockFullView: View {
     // Slide to Adjust under it, stop at about a phone's width, leaving the
     // rest of the space to the digital time above and the controls below
     private static let maximumClockWidth: CGFloat = 400
+    // Slide to Adjust draws its bar and buttons 5pt in from each side, so it
+    // takes 10pt more to line them up with the tab bar's edges
+    private static let maximumControlsWidth: CGFloat = maximumClockWidth + 10
 
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
@@ -825,6 +828,27 @@ struct AnalogClockFullView: View {
         }
     }
 
+    @ToolbarContentBuilder
+    private var cameraToolbarItem: some ToolbarContent {
+        if !displayedClocks.isEmpty {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                AnalogClockCameraToolbarControls(
+                    isCameraBackgroundEnabled: isCameraBackgroundEnabled,
+                    isStandardSelected: cameraPreviewFilter == .standard,
+                    isBlurSelected: cameraPreviewFilter == .blur,
+                    isBlackAndWhiteSelected: cameraPreviewFilter == .blackAndWhite,
+                    onSelectStandard: { setCameraFilter(.standard) },
+                    onSelectBlur: { setCameraFilter(.blur) },
+                    onSelectBlackAndWhite: { setCameraFilter(.blackAndWhite) },
+                    onFlipCamera: handleCameraFlip,
+                    onEnableCamera: handleCameraToggle
+                )
+                // The camera background belongs to the Time page only
+                .disabled(selectedDisplayPage != .time)
+            }
+        }
+    }
+
     @ViewBuilder
     private var leadingMenuContent: some View {
         if !hasLifetimeAccess {
@@ -1222,7 +1246,7 @@ struct AnalogClockFullView: View {
             scrollTimeControls
         }
         // As on a phone, the laps span Slide to Adjust and its 16pt side padding
-        .frame(maxWidth: horizontalSizeClass == .regular ? Self.maximumClockWidth + 32 : nil)
+        .frame(maxWidth: horizontalSizeClass == .regular ? Self.maximumControlsWidth + 32 : nil)
     }
 
     /// Lap history on the Stopwatch page, the local time on the Time page.
@@ -1314,8 +1338,8 @@ struct AnalogClockFullView: View {
             onStopwatchStartStopTap: toggleHomeStopwatch,
             onStopwatchLapResetTap: handleHomeStopwatchLapResetTap
         )
-        // No wider than the clock above it
-        .frame(maxWidth: horizontalSizeClass == .regular ? Self.maximumClockWidth : nil)
+        // As wide as the tab bar below it
+        .frame(maxWidth: horizontalSizeClass == .regular ? Self.maximumControlsWidth : nil)
         .padding(.horizontal)
         .padding(.bottom, 8)
         .overlay(alignment: .topTrailing) { // Capture Button
@@ -1406,6 +1430,20 @@ struct AnalogClockFullView: View {
                         selectedTimeZoneIdentifier: selectedTimeZone.identifier,
                         timeOffset: timeOffset
                     )
+                    .overlay(alignment: .top) {
+                        // Square darkening gradient at the top of the sky
+                        if !isCameraBackgroundEnabled && showSkyDot {
+                            LinearGradient(
+                                colors: [.black.opacity(0.10), .black.opacity(0)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                            .blendMode(.plusDarker)
+                            .frame(height: geometry.size.width)
+                            .ignoresSafeArea()
+                            .allowsHitTesting(false)
+                        }
+                    }
 
                     // Empty state when no local time and no cities
                     if displayedClocks.isEmpty && !showLocalTime {
@@ -1475,25 +1513,9 @@ struct AnalogClockFullView: View {
                         Image(systemName: "ellipsis")
                     }
                 }
-                
-                if !displayedClocks.isEmpty {
-                    ToolbarItemGroup(placement: .topBarTrailing) {
-                        AnalogClockCameraToolbarControls(
-                            isCameraBackgroundEnabled: isCameraBackgroundEnabled,
-                            isStandardSelected: cameraPreviewFilter == .standard,
-                            isBlurSelected: cameraPreviewFilter == .blur,
-                            isBlackAndWhiteSelected: cameraPreviewFilter == .blackAndWhite,
-                            onSelectStandard: { setCameraFilter(.standard) },
-                            onSelectBlur: { setCameraFilter(.blur) },
-                            onSelectBlackAndWhite: { setCameraFilter(.blackAndWhite) },
-                            onFlipCamera: handleCameraFlip,
-                            onEnableCamera: handleCameraToggle
-                        )
-                        // The camera background belongs to the Time page only
-                        .disabled(selectedDisplayPage != .time)
-                    }
-                }
             }
+            // Under the ellipsis in the iPhone Duo's vertical bar
+            .toolbarPreferringVerticalBar(cameraToolbarItem)
             .onReceive(timer) { now in
                 handleHomeTimerTick(at: now)
                 finalizeHomeStopwatchIfLimitReached(at: now)
@@ -2761,6 +2783,19 @@ private extension View {
         modifier(_RotationEffect(angle: angle, anchor: anchor).ignoredByLayout())
     }
 
+    /// Adds `content` to the toolbar, preferring the iPhone Duo's vertical bar,
+    /// which of its own accord only takes items that are plain images. Checked
+    /// here rather than in the toolbar: its builder can't hide the newer type
+    /// from earlier systems.
+    @ViewBuilder
+    func toolbarPreferringVerticalBar(_ content: some ToolbarContent) -> some View {
+        if #available(iOS 27.1, *) {
+            toolbar { content.axisBehavior(.verticalPreferred) }
+        } else {
+            toolbar { content }
+        }
+    }
+
     /// Fades the view out toward its leading and trailing edges. The mask
     /// draws it on its own, so it is blended in plus-lighter as a whole.
     @ViewBuilder
@@ -3080,6 +3115,7 @@ struct DigitalTimeDisplayView: View {
     let onTimeTap: () -> Void
     
     @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @State private var showsLapSheet = false
 
     init(
         currentDate: Date,
@@ -3348,11 +3384,23 @@ struct DigitalTimeDisplayView: View {
                 .buttonStyle(.plain)
                 .contentShape(Rectangle())
 
-                Text(stopwatchSubtitle(at: context.date))
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(.secondary)
-                    .blendMode(.plusLighter)
-                    .monospacedDigit()
+                // Opens the full lap list, once there are laps
+                Button {
+                    guard !stopwatch.laps.isEmpty else { return }
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    }
+                    showsLapSheet = true
+                } label: {
+                    Text(stopwatchSubtitle(at: context.date))
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(.secondary)
+                        .blendMode(.plusLighter)
+                        .monospacedDigit()
+                }
+                .buttonStyle(.plain)
+                .contentShape(Rectangle())
+                .allowsHitTesting(!stopwatch.laps.isEmpty)
             }
         }
     }
@@ -3443,6 +3491,9 @@ struct DigitalTimeDisplayView: View {
             guard oldValue != newValue else { return }
             triggerPageHapticIfNeeded()
             onDisplayPageChange(newValue)
+        }
+        .sheet(isPresented: $showsLapSheet) {
+            StopwatchLapListSheet(laps: stopwatch.laps)
         }
     }
 }
