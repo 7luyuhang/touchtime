@@ -16,7 +16,11 @@ import VariableBlur
 struct LifetimeStoreView: View {
     private static let productID = "com.time.lifetime"
 
+    /// The widest iPhone's width, for the store's column on wider screens.
+    private static let maximumColumnWidth: CGFloat = 440
+
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
@@ -69,6 +73,12 @@ struct LifetimeStoreView: View {
         }
     }
 
+    /// On a wide screen (the unfolded iPhone Duo, either way up) the store
+    /// keeps to a phone-wide column.
+    private var usesPhoneColumn: Bool {
+        horizontalSizeClass == .regular
+    }
+
     var body: some View {
         ZStack {
             ParticleView()
@@ -79,6 +89,10 @@ struct LifetimeStoreView: View {
                 .blendMode(.plusLighter)
 
             GeometryReader { geometry in
+                let columnWidth = usesPhoneColumn
+                    ? min(geometry.size.width, Self.maximumColumnWidth)
+                    : geometry.size.width
+
                 ScrollView {
                     VStack(spacing: 24) {
                         // Optically centered in the space between the navigation
@@ -87,7 +101,7 @@ struct LifetimeStoreView: View {
                             .frame(maxHeight: .infinity, alignment: .opticalCenter)
 
                         VStack(spacing: 24) {
-                            complicationShowcaseRow(cardWidth: geometry.size.width - 48)
+                            complicationShowcaseRow(cardWidth: columnWidth - 48)
 
                             Text("And more features")
                                 .font(.subheadline.weight(.semibold))
@@ -98,6 +112,7 @@ struct LifetimeStoreView: View {
                         }
                     }
                     .padding(24)
+                    .frame(maxWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil)
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: geometry.size.height, alignment: .bottom)
                 }
@@ -452,6 +467,7 @@ struct LifetimeStoreView: View {
             footerActions
         }
         .padding(.horizontal, 24)
+        .frame(maxWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil)
     }
 
     private var purchaseButton: some View {
