@@ -36,7 +36,7 @@ struct AnalogClockFullView: View {
     private static let maximumControlsWidth: CGFloat = maximumClockWidth + 10
     // The folded iPhone Duo's screen is short for its width: the clock shrinks
     // so the digits above it and the controls below each keep at least this
-    private static let foldedMinimumSectionHeight: CGFloat = 120
+    private static let foldedMinimumSectionHeight: CGFloat = 110
 
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
@@ -2808,26 +2808,20 @@ private extension View {
 
     /// Fades the view out toward its leading and trailing edges. The mask
     /// draws it on its own, so it is blended in plus-lighter as a whole.
-    @ViewBuilder
-    func plusLighterHorizontalEdgeFade(_ isEnabled: Bool) -> some View {
-        if isEnabled {
-            self
-                .mask {
-                    LinearGradient(
-                        stops: [
-                            .init(color: .clear, location: 0),
-                            .init(color: .black, location: 0.15),
-                            .init(color: .black, location: 0.85),
-                            .init(color: .clear, location: 1)
-                        ],
-                        startPoint: .leading,
-                        endPoint: .trailing
-                    )
-                }
-                .blendMode(.plusLighter)
-        } else {
-            self
+    func plusLighterHorizontalEdgeFade() -> some View {
+        mask {
+            LinearGradient(
+                stops: [
+                    .init(color: .clear, location: 0),
+                    .init(color: .black, location: 0.15),
+                    .init(color: .black, location: 0.85),
+                    .init(color: .clear, location: 1)
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
         }
+        .blendMode(.plusLighter)
     }
 }
 
@@ -3466,9 +3460,9 @@ struct DigitalTimeDisplayView: View {
                 // A paged TabView takes all the height it is offered and has no
                 // ideal height of its own, so size it to its digits explicitly.
                 .frame(height: Self.digitsBlockHeight(digitFontSize: digitFontSize))
-                // Beside the clock the pager ends mid-screen, so pages fade out
-                // there mid-swipe instead of being cut off
-                .plusLighterHorizontalEdgeFade(isBesideClock)
+                // Pages fade out toward the sides mid-swipe instead of being
+                // cut off at the pager's edges
+                .plusLighterHorizontalEdgeFade()
 
                 Spacer(minLength: 0)
 
