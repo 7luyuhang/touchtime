@@ -500,7 +500,7 @@ struct CountdownDetailsView: View {
                 focusedField = nil
                 showCoverPicker = true
             }
-            .padding(.horizontal, 16)
+            .formRowWidthPadding(16)
             .padding(.top, 8)
         }
         // Dismiss-keyboard button floating above the keyboard while the
@@ -1448,5 +1448,31 @@ private struct ContactAvatar: View {
         }
         .frame(width: size, height: size)
         .clipShape(Circle())
+    }
+}
+
+/// Horizontal padding that keeps the preview card as wide as the form rows
+/// below it. Next to a vertical bar (iPhone Duo) the form drops that side's
+/// margin down to the safe area, so the card gives up its padding there too.
+@available(iOS 27.1, *)
+private struct FormRowWidthPadding: ViewModifier {
+    let length: CGFloat
+    @Environment(\.toolbarVerticalEdge) private var verticalBarEdge
+
+    func body(content: Content) -> some View {
+        content
+            .padding(.leading, verticalBarEdge == .leading ? 0 : length)
+            .padding(.trailing, verticalBarEdge == .trailing ? 0 : length)
+    }
+}
+
+private extension View {
+    @ViewBuilder
+    func formRowWidthPadding(_ length: CGFloat) -> some View {
+        if #available(iOS 27.1, *) {
+            modifier(FormRowWidthPadding(length: length))
+        } else {
+            padding(.horizontal, length)
+        }
     }
 }
