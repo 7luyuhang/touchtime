@@ -114,6 +114,15 @@ struct StarsView: View {
     }
 }
 
+extension StarsView.Motion {
+    /// The sky over the city of `timeZoneIdentifier`, or over London for a zone
+    /// without one.
+    init(timeOffset: TimeInterval, timeZoneIdentifier: String) {
+        let latitude = TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier)?.latitude ?? 51.5074
+        self.init(timeOffset: timeOffset, turnsClockwise: latitude < 0)
+    }
+}
+
 // The stars are scattered over a disc around the celestial pole as wide as the
 // view's diagonal, so the view stays covered however far the disc turns; only
 // the stars that land on the view are drawn.
@@ -211,6 +220,9 @@ struct SkyBackgroundView: View {
     /// Set to false when the containing card already applies clipping and
     /// border chrome around the complete card.
     var appliesCardChrome: Bool = true
+    /// How many stars show at night, and how they turn (nil keeps them still).
+    var starCount: Int = 25
+    var starsMotion: StarsView.Motion? = nil
 
     // Create sky color gradient instance
     private var skyColorGradient: SkyColorGradient {
@@ -239,7 +251,7 @@ struct SkyBackgroundView: View {
 
             // Stars overlay for nighttime
             if starOpacity > 0 {
-                StarsView()
+                StarsView(starCount: starCount, motion: starsMotion)
                     .opacity(starOpacity)
                     .blendMode(.plusLighter)
                     .animation(.easeInOut(duration: 0.5), value: starOpacity)

@@ -26,6 +26,8 @@ private struct HomeSkyListRowBackground: View {
     let date: Date
     let timeZoneIdentifier: String
     let weatherCondition: WeatherCondition?
+    /// Displayed time minus now, which the stars turn with.
+    let timeOffset: TimeInterval
 
     var body: some View {
         SkyBackgroundView(
@@ -33,7 +35,8 @@ private struct HomeSkyListRowBackground: View {
             timeZoneIdentifier: timeZoneIdentifier,
             weatherCondition: weatherCondition,
             showRainEffect: true,
-            appliesCardChrome: false
+            appliesCardChrome: false,
+            starsMotion: StarsView.Motion(timeOffset: timeOffset, timeZoneIdentifier: timeZoneIdentifier)
         )
         .skyBackgroundCardChrome()
     }
@@ -1222,7 +1225,10 @@ struct HomeView: View {
                     date: currentDate.addingTimeInterval(timeOffset),
                     timeZoneIdentifier: city.timeZoneIdentifier,
                     weatherCondition: showWeather ? weatherManager.weatherData[city.timeZoneIdentifier]?.condition : nil,
-                    appliesCardChrome: false
+                    appliesCardChrome: false,
+                    // Full screen, like the Clock tab's sky
+                    starCount: 150,
+                    starsMotion: StarsView.Motion(timeOffset: timeOffset, timeZoneIdentifier: city.timeZoneIdentifier)
                 )
                 .mask {
                     LinearGradient(stops: Self.splitSkyFadeStops, startPoint: .leading, endPoint: .trailing)
@@ -2338,6 +2344,10 @@ fileprivate enum RowTimeFormat {
         return Date(timeIntervalSinceReferenceDate: (interval / 60).rounded(.down) * 60)
     }
 
+    static func minuteQuantized(offset: TimeInterval) -> TimeInterval {
+        (offset / 60).rounded(.down) * 60
+    }
+
     static func cityDate(timeZoneIdentifier: String, displayDate: Date, referenceDate: Date, dateStyle: String) -> String {
         guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
             return ""
@@ -2423,7 +2433,8 @@ fileprivate struct RowSkyBackground: View {
         HomeSkyListRowBackground(
             date: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
             timeZoneIdentifier: timeZoneIdentifier,
-            weatherCondition: showWeather ? weatherManager.weatherData[timeZoneIdentifier]?.condition : nil
+            weatherCondition: showWeather ? weatherManager.weatherData[timeZoneIdentifier]?.condition : nil,
+            timeOffset: RowTimeFormat.minuteQuantized(offset: timeOffset)
         )
     }
 }

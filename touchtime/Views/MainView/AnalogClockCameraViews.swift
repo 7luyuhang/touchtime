@@ -22,9 +22,7 @@ struct AnalogClockCameraBackgroundLayer: View {
     let timeOffset: TimeInterval
 
     private var starsMotion: StarsView.Motion {
-        let coordinate = TimeZoneCoordinates.getCoordinate(for: selectedTimeZoneIdentifier)
-            ?? (latitude: 51.5074, longitude: -0.1278)
-        return StarsView.Motion(timeOffset: timeOffset, turnsClockwise: coordinate.latitude < 0)
+        StarsView.Motion(timeOffset: timeOffset, timeZoneIdentifier: selectedTimeZoneIdentifier)
     }
 
     var body: some View {
