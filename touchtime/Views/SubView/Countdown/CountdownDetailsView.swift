@@ -750,6 +750,7 @@ struct CountdownDetailsView: View {
                     }
                 } else {
                     detailsForm
+                        .scrollEdgeEffectStyle(.soft, for: .top)
                 }
             }
             // Landing on a page: haptic tick, and drop the keyboard so it

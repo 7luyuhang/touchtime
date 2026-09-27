@@ -555,10 +555,12 @@ struct ArrangeListView: View {
                                     .monospacedDigit()
                                     .foregroundStyle(.secondary)
                                 
-                                // Drag hint
-                                Image(systemName: "line.3.horizontal")
-                                    .font(.title3)
-                                    .foregroundStyle(.tertiary)
+                                // Drag hint, once there's more than one to order
+                                if pinnedCountdowns.count > 1 {
+                                    Image(systemName: "line.3.horizontal")
+                                        .font(.title3)
+                                        .foregroundStyle(.tertiary)
+                                }
                             }
                             .deleteDisabled(true)
                         }

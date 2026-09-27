@@ -98,6 +98,7 @@ struct CoverPickerSheet: View {
             }
             .navigationTitle(isEditingPhoto ? String(localized: "Crop") : String(localized: "Cover"))
             .navigationBarTitleDisplayMode(.inline)
+            .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar {
                 // The title as a view so the zoom can roll its digits;
                 // only the zoom animates, Cover and Crop still swap in place.
