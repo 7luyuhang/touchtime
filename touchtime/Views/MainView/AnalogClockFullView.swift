@@ -1332,20 +1332,24 @@ struct AnalogClockFullView: View {
 
     /// iPhone Duo landscape's left column: the digital time, and under it
     /// what sits under the clock in portrait (lap history or the local time),
-    /// filling the space from the subtitle down to the page dots.
+    /// centered between the subtitle and the page dots.
     private var digitsColumn: some View {
         GeometryReader { column in
             let digitsHeight = DigitalTimeDisplayView.digitsBlockHeight(forAvailableHeight: column.size.height)
+            let infoHeight: CGFloat = 140
+            // Top of the page dots: 6pt dots in the middle of a 52pt row, 8pt
+            // off the bottom
+            let dotsInset: CGFloat = 37
 
             digitalTimeDisplay(isBesideClock: true)
                 .overlay(alignment: .bottom) {
                     VStack {
                         clockInfo
-                        // The page dots' row, level with Slide to Adjust
-                        Color.clear
-                            .frame(height: 60)
                     }
-                    .frame(height: (column.size.height - digitsHeight) / 2)
+                    .frame(height: infoHeight)
+                    // From under the subtitle to the dots
+                    .frame(height: (column.size.height - digitsHeight) / 2 - dotsInset)
+                    .padding(.bottom, dotsInset)
                 }
         }
     }
