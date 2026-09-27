@@ -19,6 +19,11 @@ private struct RainFallEffect: ViewModifier {
 
     @State private var startDate = Date()
     @State private var isVisible = false
+    /// The shader's layer takes on a new size a moment after the view does,
+    /// leaving part of it uncovered, so the effect steps aside while the size
+    /// changes, as when the iPhone Duo's panes resize while it folds.
+    @State private var isResizing = false
+    @State private var resizeCount = 0
     @Environment(\.scenePhase) private var scenePhase
 
     func body(content: Content) -> some View {
@@ -40,8 +45,9 @@ private struct RainFallEffect: ViewModifier {
                 // Only drive the per-frame shader while the view is on-screen and the
                 // app is in the foreground; otherwise freeze it so we don't re-render
                 // the shader every frame for an invisible/background view.
+                let isShaderEnabled = !isResizing
                 TimelineView(.animation(minimumInterval: 1.0 / 30.0,
-                                        paused: !isVisible || scenePhase != .active)) { context in
+                                        paused: !isVisible || scenePhase != .active || isResizing)) { context in
                     let elapsed = Float(context.date.timeIntervalSince(startDate))
                     content
                         .visualEffect { view, proxy in
@@ -52,9 +58,24 @@ private struct RainFallEffect: ViewModifier {
                                     .float(intensity),
                                     .float(dropScale)
                                 ),
-                                maxSampleOffset: CGSize(width: 30, height: 30)
+                                maxSampleOffset: CGSize(width: 30, height: 30),
+                                isEnabled: isShaderEnabled
                             )
                         }
+                }
+                .onGeometryChange(for: CGSize.self) { proxy in
+                    proxy.size
+                } action: { oldSize, newSize in
+                    guard oldSize != newSize else { return }
+                    isResizing = true
+                    resizeCount += 1
+                }
+                // Back on once the size has held still for a moment
+                .task(id: resizeCount) {
+                    guard isResizing else { return }
+                    try? await Task.sleep(for: .milliseconds(600))
+                    guard !Task.isCancelled else { return }
+                    isResizing = false
                 }
                 .onAppear { isVisible = true }
                 .onDisappear { isVisible = false }
