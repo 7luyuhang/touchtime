@@ -43,7 +43,7 @@ private struct HomeSkyListRowBackground: View {
 /// margin down to the safe area, so its cards run wider than the rest of the
 /// screen. Padding the safe area on that side gives the margin back.
 @available(iOS 27.1, *)
-private struct VerticalBarListMargin: ViewModifier {
+struct VerticalBarListMargin: ViewModifier {
     let length: CGFloat
     @Environment(\.toolbarVerticalEdge) private var verticalBarEdge
 
@@ -55,7 +55,7 @@ private struct VerticalBarListMargin: ViewModifier {
     }
 }
 
-private extension View {
+extension View {
     @ViewBuilder
     func verticalBarListMargin(_ length: CGFloat) -> some View {
         if #available(iOS 27.1, *) {

@@ -46,6 +46,7 @@ struct TimeZonePickerViewWrapper: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("showWhatsNewLongpressCity") private var showWhatsNewLongpressCity = true
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @State private var isLandscape = false
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Precomputed timezone data
@@ -172,10 +173,33 @@ struct TimeZonePickerViewWrapper: View {
     /// The widest iPhone's width, for the list column on wider screens.
     private static let maximumColumnWidth: CGFloat = 440
 
-    /// On a wide screen (the unfolded iPhone Duo, either way up) the list
-    /// keeps to a phone-wide column.
+    /// On iPhone Duo in landscape the dot map and the city list sit side by
+    /// side, instead of the map heading the list.
+    private var usesSplitLayout: Bool {
+        guard #available(iOS 27.1, *) else { return false }
+        return isLandscape
+    }
+
+    /// On a wide screen that isn't split (the unfolded iPhone Duo in
+    /// portrait) the list keeps to a phone-wide column.
     private var usesPhoneColumn: Bool {
-        horizontalSizeClass == .regular
+        horizontalSizeClass == .regular && !usesSplitLayout
+    }
+
+    /// Every added city highlighted, with the solar terminator curve.
+    private var worldMap: some View {
+        DotsWorldMapView(
+            timeZoneIdentifiers: worldClocks.map(\.timeZoneIdentifier),
+            date: currentDate
+        )
+    }
+
+    /// The split layout's left pane: the map in the middle of the screen.
+    private var worldMapPane: some View {
+        worldMap
+            .padding(24)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea(.container, edges: .vertical)
     }
     
     var body: some View {
@@ -192,16 +216,13 @@ struct TimeZonePickerViewWrapper: View {
                     ContentUnavailableView.search(text: searchText)
                 } else {
                     List {
-                        // Dots world map with every added city highlighted and
-                        // the solar terminator curve (hidden while searching)
-                        if searchText.isEmpty {
+                        // Dots world map, hidden while searching (beside the
+                        // list instead in the split layout)
+                        if searchText.isEmpty && !usesSplitLayout {
                             Section {
-                                DotsWorldMapView(
-                                    timeZoneIdentifiers: worldClocks.map(\.timeZoneIdentifier),
-                                    date: currentDate
-                                )
-                                .listRowBackground(Color.clear)
-                                .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                                worldMap
+                                    .listRowBackground(Color.clear)
+                                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
                             }
                         }
                         
@@ -292,17 +313,25 @@ struct TimeZonePickerViewWrapper: View {
 //                    .listStyle(.plain)
                     .listSectionIndexVisibility(searchText.isEmpty ? .visible : .hidden)
                     .safeAreaPadding(.bottom, searchText.isEmpty ? 0 : 48)
+                    // Keeps a margin beside the vertical bar in the split layout
+                    .verticalBarListMargin(usesSplitLayout ? 20 : 0)
                     // In regular width the list drops its side margins; the
-                    // phone-wide column keeps a phone's
+                    // phone-wide column keeps a phone's, and in the split
+                    // layout the side at the fold matches the vertical bar's
                     .safeAreaPadding(.horizontal, usesPhoneColumn ? 20 : 0)
+                    .safeAreaPadding(.leading, usesSplitLayout ? 20 : 0)
                     .tint(.primary) // A-Z Colour
                 }
             }
-            .frame(maxWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil)
-            .frame(maxWidth: .infinity)
+            .besideWorldMap(
+                worldMapPane,
+                isSplit: usesSplitLayout,
+                columnWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil
+            )
             .searchable(text: $searchText, prompt: String(localized: "Cities & Countries"))
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .scrollEdgeEffectStyle(.soft, for: .top)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     VStack(spacing: 0) {
@@ -318,6 +347,17 @@ struct TimeZonePickerViewWrapper: View {
                     }
                 }
             }
+        }
+        .background {
+            // Measures the whole window, so the keyboard can't make a portrait
+            // screen look wide
+            Color.clear
+                .ignoresSafeArea()
+                .onGeometryChange(for: Bool.self) { proxy in
+                    proxy.size.width > proxy.size.height
+                } action: { isWide in
+                    isLandscape = isWide
+                }
         }
         .onAppear {
             currentDate = Date()
@@ -414,6 +454,25 @@ struct TimeZonePickerViewWrapper: View {
     func saveWorldClocks() {
         if let encoded = try? JSONEncoder().encode(worldClocks) {
             UserDefaults.standard.set(encoded, forKey: worldClocksKey)
+        }
+    }
+}
+
+private extension View {
+    /// Beside `map` in iPhone Duo landscape, otherwise in a column no wider
+    /// than `columnWidth`.
+    @ViewBuilder
+    func besideWorldMap(_ map: some View, isSplit: Bool, columnWidth: CGFloat?) -> some View {
+        if #available(iOS 27.1, *), isSplit {
+            ArrangementView {
+                map
+            } secondary: {
+                self
+            }
+            .arrangementViewStyle(.split.axes(.horizontal))
+        } else {
+            frame(maxWidth: columnWidth)
+                .frame(maxWidth: .infinity)
         }
     }
 }

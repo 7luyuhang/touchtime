@@ -34,6 +34,9 @@ struct AnalogClockFullView: View {
     // Slide to Adjust draws its bar and buttons 5pt in from each side, so it
     // takes 10pt more to line them up with the tab bar's edges
     private static let maximumControlsWidth: CGFloat = maximumClockWidth + 10
+    // The folded iPhone Duo's screen is short for its width: the clock shrinks
+    // so the digits above it and the controls below each keep at least this
+    private static let foldedMinimumSectionHeight: CGFloat = 120
 
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
@@ -1400,7 +1403,14 @@ struct AnalogClockFullView: View {
         NavigationStack {
             GeometryReader { geometry in
                 let isRegularWidth = horizontalSizeClass == .regular
-                let size = min(geometry.size.width, geometry.size.height, isRegularWidth ? Self.maximumClockWidth : .infinity)
+                // In portrait only the folded Duo has side insets, from its
+                // vertical bar
+                let hasVerticalBar = geometry.safeAreaInsets.leading + geometry.safeAreaInsets.trailing > 0
+                let size = min(
+                    geometry.size.width,
+                    geometry.size.height - (hasVerticalBar ? 2 * Self.foldedMinimumSectionHeight : 0),
+                    isRegularWidth ? Self.maximumClockWidth : .infinity
+                )
                 // The face circle is drawn `size - 24` wide, so the 12pt band
                 // around it is empty and reads as part of the gap above the clock.
                 let clockFaceInset: CGFloat = 12
