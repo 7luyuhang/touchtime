@@ -244,22 +244,23 @@ struct StopwatchLapHistoryView: View {
 
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var showsLapSheet = false
+    @State private var topFadeHeight: CGFloat = 0
+    @State private var bottomFadeHeight: CGFloat = 0
 
     private var lapExtremes: StopwatchLapExtremes {
         StopwatchLapExtremes(laps: laps)
     }
 
+    /// Fades the list out at an edge only while laps are scrolled past it, so
+    /// the newest lap isn't dimmed at rest.
     private var edgeFadeMask: some View {
-        LinearGradient(
-            stops: [
-                .init(color: .clear, location: 0),
-                .init(color: .black, location: 0.25),
-                .init(color: .black, location: 0.75),
-                .init(color: .clear, location: 1)
-            ],
-            startPoint: .top,
-            endPoint: .bottom
-        )
+        VStack(spacing: 0) {
+            LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                .frame(height: topFadeHeight)
+            Color.black
+            LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                .frame(height: bottomFadeHeight)
+        }
     }
 
     private func lapRow(index: Int, lap: TimeInterval) -> some View {
@@ -285,6 +286,10 @@ struct StopwatchLapHistoryView: View {
 
     var body: some View {
         GeometryReader { proxy in
+            // Each fade grows with the laps hidden past its edge, up to a
+            // quarter of the height
+            let maximumFadeHeight = proxy.size.height / 4
+
             ScrollView(.vertical) {
                 VStack(spacing: 8) {
                     ForEach(Array(laps.enumerated().reversed()), id: \.offset) { index, lap in
@@ -306,6 +311,17 @@ struct StopwatchLapHistoryView: View {
                 .frame(minHeight: proxy.size.height, alignment: .center)
             }
             .scrollIndicators(.hidden)
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                min(max(geometry.contentOffset.y, 0), maximumFadeHeight)
+            } action: { _, height in
+                topFadeHeight = height
+            }
+            .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                let hiddenHeight = geometry.contentSize.height - geometry.containerSize.height - geometry.contentOffset.y
+                return min(max(hiddenHeight, 0), maximumFadeHeight)
+            } action: { _, height in
+                bottomFadeHeight = height
+            }
             .mask(edgeFadeMask)
         }
         .blendMode(.plusLighter)
