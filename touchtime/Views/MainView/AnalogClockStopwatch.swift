@@ -123,7 +123,7 @@ struct StopwatchClockFaceView: View {
     }
 
     /// The lap hand and the sweep that follows it.
-    private static let lapHandColor: Color = .yellow
+    private static let lapHandColor: Color = .cyan
 
     private static func secondsAngle(for elapsed: TimeInterval) -> Double {
         elapsed.truncatingRemainder(dividingBy: 60) * 6.0
@@ -165,7 +165,7 @@ struct StopwatchClockFaceView: View {
                 // Like the iOS Stopwatch: the first Lap adds a second hand that
                 // tracks the current lap and snaps back to 60 on every Lap. The
                 // sweep, drawn like the timer's set range, follows that hand in
-                // its yellow; the total hand keeps running without one. There
+                // its color; the total hand keeps running without one. There
                 // are never more than two hands.
                 let hasLapHand = !stopwatch.laps.isEmpty
                 let lapElapsed = stopwatch.currentLapElapsed(at: context.date)

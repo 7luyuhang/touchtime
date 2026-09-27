@@ -482,6 +482,8 @@ struct CountdownDetailsView: View {
         // The Reminder section slides in and out as the date picker
         // crosses today, rather than snapping.
         .animation(.spring(), value: hasHappened)
+        // Same margins as the preview card's padding
+        .formRowMargins(16)
         // Live preview of this countdown, sticky above the form like the
         // time card in DetailsSheet: the rows scroll under its glass. The
         // spacing keeps the first section header off the card's edge.
@@ -1467,6 +1469,22 @@ private struct FormRowWidthPadding: ViewModifier {
     }
 }
 
+/// The form rows' horizontal margins, set to match the preview card's
+/// padding: inside the attachments pager the form otherwise gave up most of
+/// its trailing margin (unfolded iPhone Duo). Next to a vertical bar that
+/// side keeps the form's own margin, which the card follows.
+@available(iOS 27.1, *)
+private struct FormRowMargins: ViewModifier {
+    let length: CGFloat
+    @Environment(\.toolbarVerticalEdge) private var verticalBarEdge
+
+    func body(content: Content) -> some View {
+        content
+            .contentMargins(.leading, verticalBarEdge == .leading ? nil : length, for: .scrollContent)
+            .contentMargins(.trailing, verticalBarEdge == .trailing ? nil : length, for: .scrollContent)
+    }
+}
+
 private extension View {
     @ViewBuilder
     func formRowWidthPadding(_ length: CGFloat) -> some View {
@@ -1474,6 +1492,15 @@ private extension View {
             modifier(FormRowWidthPadding(length: length))
         } else {
             padding(.horizontal, length)
+        }
+    }
+
+    @ViewBuilder
+    func formRowMargins(_ length: CGFloat) -> some View {
+        if #available(iOS 27.1, *) {
+            modifier(FormRowMargins(length: length))
+        } else {
+            contentMargins(.horizontal, length, for: .scrollContent)
         }
     }
 }
