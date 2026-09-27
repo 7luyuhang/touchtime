@@ -37,8 +37,18 @@ struct TipJarView: View {
     @State private var showExpandedFeatures = false
     @State private var heartBurst = 0
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
     private static let heartEmojis = ["❤️", "🧡", "💛", "💚", "🩵", "💙", "💜", "🩷"]
+
+    /// The widest iPhone's width, for the tip jar's column on wider screens.
+    private static let maximumColumnWidth: CGFloat = 440
+
+    /// On a wide screen (the unfolded iPhone Duo, either way up) the tip jar
+    /// keeps to a phone-wide column.
+    private var usesPhoneColumn: Bool {
+        horizontalSizeClass == .regular
+    }
     
     var body: some View {
         ZStack{
@@ -204,6 +214,8 @@ struct TipJarView: View {
                     }
                 }
                 .padding()
+                .frame(maxWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil)
+                .frame(maxWidth: .infinity)
             }
             // Title
             .navigationTitle(String(localized: "Support & Love"))
