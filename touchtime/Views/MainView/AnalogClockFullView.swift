@@ -2758,6 +2758,30 @@ private extension View {
     func rotationEffectIgnoringLayout(_ angle: SwiftUI.Angle, anchor: UnitPoint = .center) -> some View {
         modifier(_RotationEffect(angle: angle, anchor: anchor).ignoredByLayout())
     }
+
+    /// Fades the view out toward its leading and trailing edges. The mask
+    /// draws it on its own, so it is blended in plus-lighter as a whole.
+    @ViewBuilder
+    func plusLighterHorizontalEdgeFade(_ isEnabled: Bool) -> some View {
+        if isEnabled {
+            self
+                .mask {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .clear, location: 0),
+                            .init(color: .black, location: 0.15),
+                            .init(color: .black, location: 0.85),
+                            .init(color: .clear, location: 1)
+                        ],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                }
+                .blendMode(.plusLighter)
+        } else {
+            self
+        }
+    }
 }
 
 // MARK: - UTC Clock Hand
@@ -3382,6 +3406,9 @@ struct DigitalTimeDisplayView: View {
                 // A paged TabView takes all the height it is offered and has no
                 // ideal height of its own, so size it to its digits explicitly.
                 .frame(height: Self.digitsBlockHeight(digitFontSize: digitFontSize))
+                // Beside the clock the pager ends mid-screen, so pages fade out
+                // there mid-swipe instead of being cut off
+                .plusLighterHorizontalEdgeFade(isBesideClock)
 
                 Spacer(minLength: 0)
 
