@@ -1221,6 +1221,8 @@ struct AnalogClockFullView: View {
             clockInfo
             scrollTimeControls
         }
+        // As on a phone, the laps span Slide to Adjust and its 16pt side padding
+        .frame(maxWidth: horizontalSizeClass == .regular ? Self.maximumClockWidth + 32 : nil)
     }
 
     /// Lap history on the Stopwatch page, the local time on the Time page.
