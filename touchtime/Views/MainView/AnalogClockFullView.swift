@@ -1131,6 +1131,241 @@ struct AnalogClockFullView: View {
         }
     }
 
+    /// The analog face for the selected page.
+    private func clockFace(size: CGFloat) -> some View {
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            if selectedDisplayPage == .stopwatch {
+                StopwatchClockFaceView(
+                    size: size,
+                    stopwatch: homeStopwatch
+                )
+            } else if selectedDisplayPage == .timer {
+                TimerClockFaceView(
+                    size: size,
+                    remainingSeconds: homeTimerRemainingSeconds(at: context.date),
+                    configuredSeconds: homeTimerConfiguredSeconds,
+                    resetAnimationTrigger: homeTimerResetAnimationTrigger,
+                    resetAnimationFromSeconds: homeTimerResetAnimationFromSeconds,
+                    isAdjustable: isTimerInStartState(at: context.date),
+                    hapticEnabled: hapticEnabled,
+                    onAdjustSeconds: { delta in
+                        adjustHomeTimerConfiguredSeconds(by: delta)
+                    },
+                    onAdjustingChanged: { adjusting in
+                        isTimerCircleAdjusting = adjusting
+                    }
+                )
+            } else {
+                AnalogClockFaceView(
+                    date: context.date.addingTimeInterval(timeOffset),
+                    timeOffset: $timeOffset,
+                    showScrollTimeButtons: $showScrollTimeButtons,
+                    selectedTimeZone: selectedTimeZone,
+                    size: size,
+                    worldClocks: displayedClocks,
+                    showLocalTime: showLocalTime,
+                    selectedCityId: $selectedCityId,
+                    hapticEnabled: hapticEnabled,
+                    showDetailsSheet: $showDetailsSheet,
+                    showMoonPhaseView: $showMoonPhaseView,
+                    weather: weatherManager.weatherData[selectedTimeZone.identifier],
+                    showWeather: showWeather,
+                    showTimeInsteadOfCityName: showTimeInsteadOfCityName
+                )
+            }
+        }
+    }
+
+    /// The digital time pager: above the clock, or beside it in iPhone Duo
+    /// landscape.
+    private func digitalTimeDisplay(isBesideClock: Bool) -> some View {
+        DigitalTimeDisplayView(
+            currentDate: currentDate,
+            timeOffset: timeOffset,
+            selectedTimeZone: selectedTimeZone,
+            use24HourFormat: use24HourFormat,
+            weather: weatherManager.weatherData[selectedTimeZone.identifier],
+            showWeather: showWeather,
+            useCelsius: useCelsius,
+            hapticEnabled: hapticEnabled,
+            timerConfiguredSeconds: homeTimerConfiguredSeconds,
+            timerEndDateEpoch: homeTimerEndDateEpoch,
+            timerIsPaused: homeTimerPaused,
+            timerPausedRemainingSeconds: homeTimerPausedRemainingSeconds,
+            timerIsAdjusting: isTimerCircleAdjusting,
+            onTimerTap: handleHomeTimerTap,
+            onTimerConfigureTap: {
+                triggerMenuHaptic()
+                showSetTimerSheet = true
+            },
+            stopwatch: homeStopwatch,
+            onStopwatchTap: handleHomeStopwatchDigitsTap,
+            selectedPage: $selectedDisplayPage,
+            onDisplayPageChange: { page in
+                selectedDisplayPage = page
+            },
+            isBesideClock: isBesideClock
+        ) {
+            if hapticEnabled {
+                let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
+                impactFeedback.impactOccurred()
+            }
+            showTimeAdjustmentSheet = true
+        }
+        .animation(.spring(), value: selectedTimeZone.identifier)
+    }
+
+    /// Under the clock: lap history or the local time, then Slide to Adjust.
+    private var bottomControls: some View {
+        VStack {
+            clockInfo
+            scrollTimeControls
+        }
+    }
+
+    /// Lap history on the Stopwatch page, the local time on the Time page.
+    @ViewBuilder
+    private var clockInfo: some View {
+        if selectedDisplayPage == .stopwatch {
+            // Lap history between the stopwatch face and its controls
+            StopwatchLapHistoryView(laps: homeStopwatch.laps)
+                .padding(.bottom, 4)
+        } else {
+            Spacer()
+            // Local time display (hidden when continuous scroll reset button is showing)
+            if selectedDisplayPage == .time,
+               !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons),
+               selectedCityId != nil {
+                HStack(spacing: 4) {
+                    Image(systemName: "location.fill")
+                        .font(.footnote.weight(.medium))
+                    Text({
+                        if showTimeInsteadOfCityName {
+                            // Show "Local" when hands show time
+                            return String(localized: "Local")
+                        } else {
+                            // Show local time when hands show city names
+                            let formatter = DateFormatter()
+                            formatter.locale = Locale(identifier: "en_US_POSIX")
+                            formatter.timeZone = TimeZone.current
+                            if use24HourFormat {
+                                formatter.dateFormat = "HH:mm"
+                            } else {
+                                formatter.dateFormat = "h:mm"
+                            }
+                            return formatter.string(from: currentDate.addingTimeInterval(timeOffset))
+                        }
+                    }())
+                    .font(.subheadline.weight(.medium))
+
+                    let additionalText = selectedAdditionalTimeText
+                    let shouldShowAdditionalText = showTimeInsteadOfCityName
+                        ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
+                        : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
+                    if shouldShowAdditionalText {
+                        Text("·")
+                            .font(.subheadline.weight(.medium))
+                        Text(additionalText)
+                            .font(.subheadline.weight(.medium))
+                            .contentTransition(.numericText())
+                            .animation(.smooth(duration: 0.25), value: additionalText)
+                    }
+                }
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .padding(.bottom, 16)
+            }
+            Spacer()
+        }
+    }
+
+    private var scrollTimeControls: some View {
+        ScrollTimeView(
+            timeOffset: $timeOffset,
+            showButtons: $showScrollTimeButtons,
+            worldClocks: $worldClocks,
+            enableDoubleTapExpandedControls: true,
+            expandedControlsMode: scrollTimeExpandedControlsMode,
+            onAlarmTap: {
+                showSetAlarmSheet = true
+            },
+            onTimerTap: {
+                showSetTimerSheet = true
+            },
+            onCountdownTap: {
+                showCountdownSheet = true
+            },
+            onStopwatchTap: {
+                showStopwatchRecordsSheet = true
+            },
+            onTimerResetTap: {
+                resetHomeTimer()
+            },
+            onTimerPlayPauseTap: {
+                handleHomeTimerTap()
+            },
+            timerPlayPauseSymbol: timerPlayPauseSymbol(at: Date()),
+            timerPlayPauseTitle: timerPlayPauseTitle(at: Date()),
+            stopwatchControlsState: homeStopwatch.controlsState,
+            onStopwatchStartStopTap: toggleHomeStopwatch,
+            onStopwatchLapResetTap: handleHomeStopwatchLapResetTap
+        )
+        // No wider than the clock above it
+        .frame(maxWidth: horizontalSizeClass == .regular ? Self.maximumClockWidth : nil)
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+        .overlay(alignment: .topTrailing) { // Capture Button
+            AnalogClockCameraCaptureButton(
+                isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden,
+                action: handleCapturePhoto
+            )
+        }
+        .overlay(alignment: .topLeading) { // Close Camera Button
+            AnalogClockCameraCloseButton(
+                isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden,
+                action: handleCameraClose
+            )
+        }
+    }
+
+    /// iPhone Duo landscape's left column: the digital time, and under it
+    /// what sits under the clock in portrait (lap history or the local time),
+    /// filling the space from the subtitle down to the page dots.
+    private var digitsColumn: some View {
+        GeometryReader { column in
+            let digitsHeight = DigitalTimeDisplayView.digitsBlockHeight(forAvailableHeight: column.size.height)
+
+            digitalTimeDisplay(isBesideClock: true)
+                .overlay(alignment: .bottom) {
+                    VStack {
+                        clockInfo
+                        // The page dots' row, level with Slide to Adjust
+                        Color.clear
+                            .frame(height: 60)
+                    }
+                    .frame(height: (column.size.height - digitsHeight) / 2)
+                }
+        }
+    }
+
+    /// iPhone Duo landscape's right column: the face centered, level with the
+    /// digits in the left column, and Slide to Adjust under it.
+    private var clockColumn: some View {
+        GeometryReader { column in
+            let size = min(column.size.width, column.size.height, Self.maximumClockWidth)
+
+            VStack(spacing: 0) {
+                Spacer(minLength: 0)
+                clockFace(size: size)
+                scrollTimeControls
+                    .frame(height: (column.size.height - size) / 2, alignment: .bottom)
+            }
+            .frame(width: column.size.width, height: column.size.height)
+        }
+    }
+
     var body: some View {
         NavigationStack {
             GeometryReader { geometry in
@@ -1179,49 +1414,25 @@ struct AnalogClockFullView: View {
                                 addCitiesButton
                             }
                         }
+                    } else if #available(iOS 27.1, *), geometry.size.width > geometry.size.height {
+                        // iPhone Duo landscape: the digital time and the clock
+                        // side by side. The columns span the full height so the
+                        // digits and the face center on the screen; the bottom
+                        // inset given back at both ends keeps the dots and
+                        // controls off the home indicator.
+                        let bottomInset = geometry.safeAreaInsets.bottom
+                        ArrangementView {
+                            digitsColumn
+                                .padding(.vertical, bottomInset)
+                        } secondary: {
+                            clockColumn
+                                .padding(.vertical, bottomInset)
+                        }
+                        .arrangementViewStyle(.split.axes(.horizontal))
+                        .ignoresSafeArea(.container, edges: .vertical)
                     } else {
                         // Analog Clock - always centered
-                        TimelineView(.periodic(from: .now, by: 1)) { context in
-                            if selectedDisplayPage == .stopwatch {
-                                StopwatchClockFaceView(
-                                    size: size,
-                                    stopwatch: homeStopwatch
-                                )
-                            } else if selectedDisplayPage == .timer {
-                                TimerClockFaceView(
-                                    size: size,
-                                    remainingSeconds: homeTimerRemainingSeconds(at: context.date),
-                                    configuredSeconds: homeTimerConfiguredSeconds,
-                                    resetAnimationTrigger: homeTimerResetAnimationTrigger,
-                                    resetAnimationFromSeconds: homeTimerResetAnimationFromSeconds,
-                                    isAdjustable: isTimerInStartState(at: context.date),
-                                    hapticEnabled: hapticEnabled,
-                                    onAdjustSeconds: { delta in
-                                        adjustHomeTimerConfiguredSeconds(by: delta)
-                                    },
-                                    onAdjustingChanged: { adjusting in
-                                        isTimerCircleAdjusting = adjusting
-                                    }
-                                )
-                            } else {
-                                AnalogClockFaceView(
-                                    date: context.date.addingTimeInterval(timeOffset),
-                                    timeOffset: $timeOffset,
-                                    showScrollTimeButtons: $showScrollTimeButtons,
-                                    selectedTimeZone: selectedTimeZone,
-                                    size: size,
-                                    worldClocks: displayedClocks,
-                                    showLocalTime: showLocalTime,
-                                    selectedCityId: $selectedCityId,
-                                    hapticEnabled: hapticEnabled,
-                                    showDetailsSheet: $showDetailsSheet,
-                                    showMoonPhaseView: $showMoonPhaseView,
-                                    weather: weatherManager.weatherData[selectedTimeZone.identifier],
-                                    showWeather: showWeather,
-                                    showTimeInsteadOfCityName: showTimeInsteadOfCityName
-                                )
-                            }
-                        }
+                        clockFace(size: size)
                         
                         // Digital time and scroll controls overlay
                         VStack(spacing: 0) {
@@ -1230,148 +1441,16 @@ struct AnalogClockFullView: View {
                             // pager can shrink (and scale its type) instead of overflowing
                             // under the navigation bar on shorter screens; it runs down to
                             // the circle itself so the dots are centered on what is visible.
-                            DigitalTimeDisplayView(
-                                currentDate: currentDate,
-                                timeOffset: timeOffset,
-                                selectedTimeZone: selectedTimeZone,
-                                use24HourFormat: use24HourFormat,
-                                weather: weatherManager.weatherData[selectedTimeZone.identifier],
-                                showWeather: showWeather,
-                                useCelsius: useCelsius,
-                                hapticEnabled: hapticEnabled,
-                                timerConfiguredSeconds: homeTimerConfiguredSeconds,
-                                timerEndDateEpoch: homeTimerEndDateEpoch,
-                                timerIsPaused: homeTimerPaused,
-                                timerPausedRemainingSeconds: homeTimerPausedRemainingSeconds,
-                                timerIsAdjusting: isTimerCircleAdjusting,
-                                onTimerTap: handleHomeTimerTap,
-                                onTimerConfigureTap: {
-                                    triggerMenuHaptic()
-                                    showSetTimerSheet = true
-                                },
-                                stopwatch: homeStopwatch,
-                                onStopwatchTap: handleHomeStopwatchDigitsTap,
-                                selectedPage: $selectedDisplayPage,
-                                onDisplayPageChange: { page in
-                                    selectedDisplayPage = page
-                                }
-                            ) {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
-                                    impactFeedback.impactOccurred()
-                                }
-                                showTimeAdjustmentSheet = true
-                            }
-                            .animation(.spring(), value: selectedTimeZone.identifier)
-                            .frame(height: sectionHeight + clockFaceInset)
+                            digitalTimeDisplay(isBesideClock: false)
+                                .frame(height: sectionHeight + clockFaceInset)
                             
                             // Middle - clock area (transparent placeholder)
                             Color.clear
                                 .frame(height: size - clockFaceInset)
                             
                             // Bottom section - Scroll controls
-                            VStack {
-                                if selectedDisplayPage == .stopwatch {
-                                    // Lap history between the stopwatch face and its controls
-                                    StopwatchLapHistoryView(laps: homeStopwatch.laps)
-                                        .padding(.bottom, 4)
-                                } else {
-                                    Spacer()
-                                    // Local time display (hidden when continuous scroll reset button is showing)
-                                    if selectedDisplayPage == .time,
-                                       !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons),
-                                       selectedCityId != nil {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: "location.fill")
-                                                .font(.footnote.weight(.medium))
-                                            Text({
-                                                if showTimeInsteadOfCityName {
-                                                    // Show "Local" when hands show time
-                                                    return String(localized: "Local")
-                                                } else {
-                                                    // Show local time when hands show city names
-                                                    let formatter = DateFormatter()
-                                                    formatter.locale = Locale(identifier: "en_US_POSIX")
-                                                    formatter.timeZone = TimeZone.current
-                                                    if use24HourFormat {
-                                                        formatter.dateFormat = "HH:mm"
-                                                    } else {
-                                                        formatter.dateFormat = "h:mm"
-                                                    }
-                                                    return formatter.string(from: displayDate)
-                                                }
-                                            }())
-                                            .font(.subheadline.weight(.medium))
-
-                                            let additionalText = selectedAdditionalTimeText
-                                            let shouldShowAdditionalText = showTimeInsteadOfCityName
-                                                ? (additionalTimeDisplay == "Time Difference" && !additionalText.isEmpty)
-                                                : (!additionalText.isEmpty || additionalTimeDisplay == "UTC")
-                                            if shouldShowAdditionalText {
-                                                Text("·")
-                                                    .font(.subheadline.weight(.medium))
-                                                Text(additionalText)
-                                                    .font(.subheadline.weight(.medium))
-                                                    .contentTransition(.numericText())
-                                                    .animation(.smooth(duration: 0.25), value: additionalText)
-                                            }
-                                        }
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .monospacedDigit()
-                                        .contentTransition(.numericText())
-                                        .padding(.bottom, 16)
-                                    }
-                                    Spacer()
-                                }
-                                ScrollTimeView(
-                                    timeOffset: $timeOffset,
-                                    showButtons: $showScrollTimeButtons,
-                                    worldClocks: $worldClocks,
-                                    enableDoubleTapExpandedControls: true,
-                                    expandedControlsMode: scrollTimeExpandedControlsMode,
-                                    onAlarmTap: {
-                                        showSetAlarmSheet = true
-                                    },
-                                    onTimerTap: {
-                                        showSetTimerSheet = true
-                                    },
-                                    onCountdownTap: {
-                                        showCountdownSheet = true
-                                    },
-                                    onStopwatchTap: {
-                                        showStopwatchRecordsSheet = true
-                                    },
-                                    onTimerResetTap: {
-                                        resetHomeTimer()
-                                    },
-                                    onTimerPlayPauseTap: {
-                                        handleHomeTimerTap()
-                                    },
-                                    timerPlayPauseSymbol: timerPlayPauseSymbol(at: Date()),
-                                    timerPlayPauseTitle: timerPlayPauseTitle(at: Date()),
-                                    stopwatchControlsState: homeStopwatch.controlsState,
-                                    onStopwatchStartStopTap: toggleHomeStopwatch,
-                                    onStopwatchLapResetTap: handleHomeStopwatchLapResetTap
-                                )
-                                // No wider than the clock above it
-                                .frame(maxWidth: isRegularWidth ? Self.maximumClockWidth : nil)
-                                .padding(.horizontal)
-                                .padding(.bottom, 8)
-                                .overlay(alignment: .topTrailing) { // Capture Button
-                                    AnalogClockCameraCaptureButton(
-                                        isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden,
-                                        action: handleCapturePhoto
-                                    )
-                                }
-                                .overlay(alignment: .topLeading) { // Close Camera Button
-                                    AnalogClockCameraCloseButton(
-                                        isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden,
-                                        action: handleCameraClose
-                                    )
-                                }
-                            }
-                            .frame(height: sectionHeight)
+                            bottomControls
+                                .frame(height: sectionHeight)
                         }
                     }
                 }
@@ -2965,6 +3044,9 @@ struct DigitalTimeDisplayView: View {
     let onStopwatchTap: () -> Void
     @Binding var selectedPage: DisplayPage
     let onDisplayPageChange: (DisplayPage) -> Void
+    /// Beside the clock (iPhone Duo landscape) the digits sit in the middle
+    /// of their column and the dots at its foot, level with Slide to Adjust.
+    let isBesideClock: Bool
     let onTimeTap: () -> Void
     
     @AppStorage("dateStyle") private var dateStyle = "Relative"
@@ -2989,6 +3071,7 @@ struct DigitalTimeDisplayView: View {
         onStopwatchTap: @escaping () -> Void,
         selectedPage: Binding<DisplayPage>,
         onDisplayPageChange: @escaping (DisplayPage) -> Void,
+        isBesideClock: Bool = false,
         onTimeTap: @escaping () -> Void
     ) {
         self.currentDate = currentDate
@@ -3010,6 +3093,7 @@ struct DigitalTimeDisplayView: View {
         self.onStopwatchTap = onStopwatchTap
         _selectedPage = selectedPage
         self.onDisplayPageChange = onDisplayPageChange
+        self.isBesideClock = isBesideClock
         self.onTimeTap = onTimeTap
     }
 
@@ -3049,6 +3133,11 @@ struct DigitalTimeDisplayView: View {
         let digitFont = UIFont.systemFont(ofSize: digitFontSize, weight: .light)
         let subtitleFont = UIFont.preferredFont(forTextStyle: .subheadline)
         return digitFont.lineHeight + subtitleFont.lineHeight
+    }
+
+    /// Height of the digits and their subtitle when the view is `height` tall.
+    static func digitsBlockHeight(forAvailableHeight height: CGFloat) -> CGFloat {
+        digitsBlockHeight(digitFontSize: digitFontSize(forAvailableHeight: height))
     }
 
     private func formattedCurrentTime() -> String {
@@ -3238,6 +3327,19 @@ struct DigitalTimeDisplayView: View {
         }
     }
     
+    // Top Dots
+    private var pageDots: some View {
+        HStack(spacing: 8) {
+            ForEach(DisplayPage.allCases, id: \.self) { page in
+                Circle()
+                    .fill(Color.white.opacity(page == selectedPage ? 1.0 : 0.25))
+                    .frame(width: 6, height: 6)
+            }
+        }
+        .blendMode(.plusLighter)
+        .animation(.spring(duration: 0.25), value: selectedPage)
+    }
+    
     var body: some View {
         // The section is shared out dynamically: the pager hugs its digits and
         // the three spacers split what is left equally, so the dots sit halfway
@@ -3279,20 +3381,22 @@ struct DigitalTimeDisplayView: View {
 
                 Spacer(minLength: 0)
 
-                // Top Dots
-                HStack(spacing: 8) {
-                    ForEach(DisplayPage.allCases, id: \.self) { page in
-                        Circle()
-                            .fill(Color.white.opacity(page == selectedPage ? 1.0 : 0.25))
-                            .frame(width: 6, height: 6)
-                    }
-                }
-                .blendMode(.plusLighter)
-                .animation(.spring(duration: 0.25), value: selectedPage)
+                if !isBesideClock {
+                    pageDots
 
-                Spacer(minLength: 0)
+                    Spacer(minLength: 0)
+                }
             }
             .frame(width: geometry.size.width, height: geometry.size.height)
+            .overlay(alignment: .bottom) {
+                if isBesideClock {
+                    // Level with Slide to Adjust in the clock column, which is
+                    // 52pt tall and 8pt off the bottom
+                    pageDots
+                        .frame(height: 52)
+                        .padding(.bottom, 8)
+                }
+            }
             .coordinateSpace(name: Self.tabCoordinateSpaceName)
         }
         .onChange(of: hasConfiguredTimer) { oldValue, newValue in

@@ -45,6 +45,7 @@ struct TimeZonePickerViewWrapper: View {
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("showWhatsNewLongpressCity") private var showWhatsNewLongpressCity = true
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // Precomputed timezone data
@@ -168,6 +169,15 @@ struct TimeZonePickerViewWrapper: View {
         }
     }
     
+    /// The widest iPhone's width, for the list column on wider screens.
+    private static let maximumColumnWidth: CGFloat = 440
+
+    /// On a wide screen (the unfolded iPhone Duo, either way up) the list
+    /// keeps to a phone-wide column.
+    private var usesPhoneColumn: Bool {
+        horizontalSizeClass == .regular
+    }
+    
     var body: some View {
         // Compute filtered data once per body evaluation:
         // the filter walks all timezones, so it must not run per section
@@ -282,9 +292,14 @@ struct TimeZonePickerViewWrapper: View {
 //                    .listStyle(.plain)
                     .listSectionIndexVisibility(searchText.isEmpty ? .visible : .hidden)
                     .safeAreaPadding(.bottom, searchText.isEmpty ? 0 : 48)
+                    // In regular width the list drops its side margins; the
+                    // phone-wide column keeps a phone's
+                    .safeAreaPadding(.horizontal, usesPhoneColumn ? 20 : 0)
                     .tint(.primary) // A-Z Colour
                 }
             }
+            .frame(maxWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil)
+            .frame(maxWidth: .infinity)
             .searchable(text: $searchText, prompt: String(localized: "Cities & Countries"))
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
