@@ -2439,24 +2439,36 @@ fileprivate struct RowSkyBackground: View {
     }
 }
 
-/// Blurred sky glow used as the screen background for the local time zone.
+/// The local time zone's sky color across the top of the screen, fading out
+/// downward.
 fileprivate struct LocalSkyGlowBackground: View {
     @Binding var currentDate: Date
     @Binding var timeOffset: TimeInterval
     @ObservedObject var weatherManager: WeatherManager
     @AppStorage("showWeather") private var showWeather = false
 
+    // Smoothstep opacity ramp: a linear one shows hard bands where the fade
+    // starts and ends
+    private static let fadeStops: [Gradient.Stop] = (0...8).map { step in
+        let location = Double(step) / 8
+        return .init(color: .black.opacity(location * location * (3 - 2 * location)), location: location)
+    }
+
     var body: some View {
-        SkyBackgroundView(
+        let sky = SkyColorGradient(
             date: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
             timeZoneIdentifier: TimeZone.current.identifier,
-            weatherCondition: showWeather ? weatherManager.weatherData[TimeZone.current.identifier]?.condition : nil,
-            appliesCardChrome: false
+            weatherCondition: showWeather ? weatherManager.weatherData[TimeZone.current.identifier]?.condition : nil
         )
-        .frame(width: 500, height: 500)
-        .blur(radius: 50)
-        .offset(y: -250)
-        .opacity(0.35)
+
+        Rectangle()
+            .fill(sky.linearGradient())
+            .animation(.easeInOut(duration: 0.5), value: sky.animationValue)
+            .frame(height: 400)
+            .mask {
+                LinearGradient(stops: Self.fadeStops, startPoint: .bottom, endPoint: .top)
+            }
+            .opacity(0.25)
     }
 }
 

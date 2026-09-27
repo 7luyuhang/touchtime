@@ -290,14 +290,16 @@ struct AboutView: View {
                 .ignoresSafeArea()
         }
         .fullScreenCover(isPresented: $showOnboarding) {
-            OnboardingView(hasCompletedOnboarding: Binding(
-                get: { !showOnboarding },
-                set: { newValue in
-                    if newValue {
-                        showOnboarding = false
+            NavigationStack {
+                OnboardingView(hasCompletedOnboarding: Binding(
+                    get: { !showOnboarding },
+                    set: { newValue in
+                        if newValue {
+                            showOnboarding = false
+                        }
                     }
-                }
-            ), weatherManager: weatherManager, isReviewing: true)
+                ), weatherManager: weatherManager, isReviewing: true)
+            }
         }
     }
     

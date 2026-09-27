@@ -61,15 +61,17 @@ struct DotMatrixOverlay: View {
 
 struct OnboardingView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @Binding var hasCompletedOnboarding: Bool
     @ObservedObject var weatherManager: WeatherManager
-    var isReviewing: Bool = false  // True when showing from Settings
+    var isReviewing: Bool = false  // True when showing from Settings, inside a NavigationStack for its close button
     @State private var animateIcon = false
     @State private var animateText = false
     @State private var animateButton = false
     @State private var currentPage = 1  // 1 intro, 2 features, 3 time format, 4 complication selection
     @State private var animateFeatures = false
     @State private var currentDate = Date()
+    @State private var containerWidth: CGFloat = 0
     @Namespace private var timeFormatNamespace
     @State private var hapticEngine: CHHapticEngine?
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -99,6 +101,9 @@ struct OnboardingView: View {
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    /// The widest iPhone's width, for the onboarding's column on wider screens.
+    private static let maximumColumnWidth: CGFloat = 440
     
     private enum OnboardingComplicationType: CaseIterable {
         case analogClock
@@ -174,6 +179,18 @@ struct OnboardingView: View {
             || effectiveShowMoonSunAzimuth || showSunriseSunset || showWeatherCondition
             || showTemperatureIndicator || showTemperatureRange || showUVIndex || showWindDirection
             || effectiveShowDaylight || effectiveShowTimeOverlay || showSolarCurve
+    }
+
+    /// On a wide screen (the unfolded iPhone Duo, either way up) the
+    /// onboarding keeps to a phone-wide column.
+    private var usesPhoneColumn: Bool {
+        horizontalSizeClass == .regular
+    }
+
+    /// Space between the phone-wide column and each side of the screen.
+    private var columnInset: CGFloat {
+        guard usesPhoneColumn else { return 0 }
+        return max(0, (containerWidth - Self.maximumColumnWidth) / 2)
     }
     
     // Prepare haptic engine
@@ -344,12 +361,12 @@ struct OnboardingView: View {
                                 .frame(width: 100, height: 100)
                                 .blur(radius: 100)
                                 .blendMode(.plusLighter)
-                                .scaleEffect(animateIcon ? 1.0 : 0.85)
-                                .opacity(animateIcon ? 1.0 : 0.0)
-                                .offset(y: animateText ? 0 : 50)
-                                .animation(
-                                    .bouncy(duration: 2.5), value: animateIcon
-                                )
+                                .animation(.bouncy(duration: 2.5)) { content in
+                                    content
+                                        .scaleEffect(animateIcon ? 1.0 : 0.85)
+                                        .opacity(animateIcon ? 1.0 : 0.0)
+                                        .offset(y: animateText ? 0 : 50)
+                                }
                             Image("TouchTimeAppIcon")
                                 .resizable()
                                 .scaledToFit()
@@ -357,14 +374,14 @@ struct OnboardingView: View {
                                                 RoundedRectangle(cornerRadius: 28, style: .continuous)
                                 )
                                 .frame(width: 100, height: 100)
-                                .brightness(animateIcon ? 0 : 1.0)
-                                .blur(radius: animateIcon ? 0 : 25)
-                                .scaleEffect(animateIcon ? 1.0 : 0.5)
-                                .opacity(animateIcon ? 1.0 : 0.0)
-                                .offset(y: animateText ? 0 : 50)
-                                .animation(
-                                    .bouncy(duration: 1.0), value: animateIcon
-                                )
+                                .animation(.bouncy(duration: 1.0)) { content in
+                                    content
+                                        .brightness(animateIcon ? 0 : 1.0)
+                                        .blur(radius: animateIcon ? 0 : 25)
+                                        .scaleEffect(animateIcon ? 1.0 : 0.5)
+                                        .opacity(animateIcon ? 1.0 : 0.0)
+                                        .offset(y: animateText ? 0 : 50)
+                                }
                                 .onTapGesture {
                                     if hapticEnabled {
                                         let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
@@ -377,24 +394,24 @@ struct OnboardingView: View {
                             // App Name
                             Text("Touch Time")
                                 .font(.system(size: 24).weight(.semibold))
-                                .blur(radius: animateText ? 0 : 10)
-                                .opacity(animateText ? 1.0 : 0.0)
-                                .offset(y: animateText ? 0 : 75)
-                                .animation(
-                                    .smooth(duration: 1.0),value: animateText
-                                )
+                                .animation(.smooth(duration: 1.0)) { content in
+                                    content
+                                        .blur(radius: animateText ? 0 : 10)
+                                        .opacity(animateText ? 1.0 : 0.0)
+                                        .offset(y: animateText ? 0 : 75)
+                                }
                             // Description
                             Text("The world time flows within the delicate sky")
                                 .foregroundStyle(.secondary)
                                 .blendMode(.plusLighter)
                                 .multilineTextAlignment(.center)
                                 .padding(.horizontal, 40)
-                                .blur(radius: animateText ? 0 : 10)
-                                .opacity(animateText ? 1.0 : 0.0)
-                                .offset(y: animateText ? 0 : 75)
-                                .animation(
-                                    .smooth(duration: 1.0),value: animateText
-                                )
+                                .animation(.smooth(duration: 1.0)) { content in
+                                    content
+                                        .blur(radius: animateText ? 0 : 10)
+                                        .opacity(animateText ? 1.0 : 0.0)
+                                        .offset(y: animateText ? 0 : 75)
+                                }
                         }
                     }
                     .transition(.blurReplace())
@@ -816,6 +833,10 @@ struct OnboardingView: View {
                                 .padding(.horizontal, 24)
                                 .padding(.top, 8)
                             }
+                            // Scrolls out to the screen's edges, with its
+                            // options starting in line with the column
+                            .contentMargins(.horizontal, columnInset, for: .scrollContent)
+                            .padding(.horizontal, -columnInset)
                             .transition(.blurReplace())
                             }
 
@@ -913,32 +934,41 @@ struct OnboardingView: View {
                 }
                 .padding(.horizontal, 32)
                 .padding(.bottom, currentPage == 2 ? 0 : 16)
-                .scaleEffect(animateButton ? 1.0 : 0.85)
-                .opacity(animateButton ? 1.0 : 0.0)
-                .animation(
-                    .spring(duration: 1.0), value: animateButton
-                )
+                .animation(.spring(duration: 1.0)) { content in
+                    content
+                        .scaleEffect(animateButton ? 1.0 : 0.85)
+                        .opacity(animateButton ? 1.0 : 0.0)
+                }
   
             }
+            .frame(maxWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil)
         }
-        .overlay(alignment: .topLeading) {
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.size.width
+        } action: { width in
+            containerWidth = width
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
             if isReviewing {
-                Button(action: {
-                    dismiss()
-                }) {
-                    Image(systemName: "xmark")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(width: 36, height: 36)
-                        .glassEffect(.clear.interactive())
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
                 }
-                .padding(.leading)
             }
         }
         .onAppear {
             prepareHaptics()
             enforceComplicationAvailability()
             
+            // Their animations are scoped to the appear effects, not layout:
+            // in About's NavigationStack this runs before the page has its frame
             animateIcon = true
             animateText = true
             animateButton = true
