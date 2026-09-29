@@ -155,11 +155,9 @@ struct CoverPickerSheet: View {
                 }
 
                 if isEditingPhoto {
-                    // Replace and Save sit together in the middle of the
-                    // bar, in plain glass: the tinted action while cropping
-                    // is the checkmark.
-                    ToolbarSpacer(.flexible, placement: .bottomBar)
-
+                    // Replace on the leading side, Save on the trailing
+                    // side, both in plain glass: the tinted action while
+                    // cropping is the checkmark.
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             triggerHaptic()
@@ -171,7 +169,7 @@ struct CoverPickerSheet: View {
                         }
                     }
 
-                    ToolbarSpacer(.fixed, placement: .bottomBar)
+                    ToolbarSpacer(.flexible, placement: .bottomBar)
 
                     // Saves the photo as picked to the library, the way the
                     // share screen saves its image. Once saved, the label
@@ -187,8 +185,6 @@ struct CoverPickerSheet: View {
                                 .animation(.spring(), value: didSavePhoto)
                         }
                     }
-
-                    ToolbarSpacer(.flexible, placement: .bottomBar)
                 } else {
                     // Random pick from the grid, in plain glass on the
                     // left; the tinted action stays the photo one.
