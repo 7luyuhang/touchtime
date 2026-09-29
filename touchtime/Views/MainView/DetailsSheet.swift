@@ -476,15 +476,11 @@ struct SunriseSunsetSheet: View {
             }
             .background(
                 showSkyDot ?
-                ZStack {
-                    Color.black
-                    SkyBackgroundView(
-                        date: currentDate.addingTimeInterval(timeOffset),
-                        timeZoneIdentifier: timeZoneIdentifier,
-                        weatherCondition: weatherConditionForSky,
-                        showRainEffect: true
-                    )
-                } : nil
+                StickyTimeSky(
+                    date: currentDate.addingTimeInterval(timeOffset),
+                    timeZoneIdentifier: timeZoneIdentifier,
+                    weatherCondition: weatherConditionForSky
+                ) : nil
             )
             .clipShape(
                 RoundedRectangle(cornerRadius: 26, style: .continuous)
@@ -1314,6 +1310,83 @@ struct SunriseSunsetSheet: View {
                 )
             }
         }
+    }
+}
+
+/// The sky behind the sticky time card. While it rains, the card's sky lands
+/// out of step with the card as the card changes size, as when the iPhone
+/// Duo's panes resize, so a plain sky stands in until the size settles.
+private struct StickyTimeSky: View {
+    let date: Date
+    let timeZoneIdentifier: String
+    let weatherCondition: WeatherCondition?
+
+    @State private var isResizing = false
+    @State private var resizeCount = 0
+
+    private var isRaining: Bool {
+        (weatherCondition?.rainIntensity ?? 0) > 0
+    }
+
+    var body: some View {
+        ZStack {
+            if isRaining {
+                CoreAnimationGradient(
+                    colors: SkyColorGradient(
+                        date: date,
+                        timeZoneIdentifier: timeZoneIdentifier,
+                        weatherCondition: weatherCondition
+                    )
+                    .colorsOverBlack(opacity: 0.65)
+                )
+            }
+
+            SkyBackgroundView(
+                date: date,
+                timeZoneIdentifier: timeZoneIdentifier,
+                weatherCondition: weatherCondition,
+                showRainEffect: true,
+                drawsOverBlack: true
+            )
+            .opacity(isRaining && isResizing ? 0 : 1)
+        }
+        .onGeometryChange(for: CGSize.self) { proxy in
+            proxy.size
+        } action: { oldSize, newSize in
+            guard oldSize != newSize else { return }
+            isResizing = true
+            resizeCount += 1
+        }
+        // Back to the rain once the size has held still for a moment
+        .task(id: resizeCount) {
+            guard isResizing else { return }
+            try? await Task.sleep(for: .milliseconds(600))
+            guard !Task.isCancelled else { return }
+            isResizing = false
+        }
+    }
+}
+
+/// A top-to-bottom gradient drawn by Core Animation. It keeps pace with a
+/// system-animated resize, where SwiftUI's own drawing can take the final
+/// size up front.
+private struct CoreAnimationGradient: UIViewRepresentable {
+    let colors: [Color]
+
+    func makeUIView(context: Context) -> GradientView {
+        let view = GradientView()
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ view: GradientView, context: Context) {
+        view.gradientLayer.colors = colors.map { UIColor($0).cgColor }
+    }
+
+    final class GradientView: UIView {
+        override class var layerClass: AnyClass { CAGradientLayer.self }
+
+        var gradientLayer: CAGradientLayer { layer as! CAGradientLayer }
     }
 }
 

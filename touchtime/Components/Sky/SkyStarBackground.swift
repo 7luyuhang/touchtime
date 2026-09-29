@@ -220,6 +220,8 @@ struct SkyBackgroundView: View {
     /// Set to false when the containing card already applies clipping and
     /// border chrome around the complete card.
     var appliesCardChrome: Bool = true
+    /// Draws the sky opaque, as it looks over black.
+    var drawsOverBlack: Bool = false
     /// How many stars show at night, and how they turn (nil keeps them still).
     var starCount: Int = 25
     var starsMotion: StarsView.Motion? = nil
@@ -246,7 +248,7 @@ struct SkyBackgroundView: View {
             // transparent pixels (which would show as black refractive halos
             // around drops near the rounded corners).
             Rectangle()
-                .fill(gradient.linearGradient(opacity: 0.65))
+                .fill(drawsOverBlack ? gradient.linearGradientOverBlack(opacity: 0.65) : gradient.linearGradient(opacity: 0.65))
                 .animation(.easeInOut(duration: 0.5), value: gradient.animationValue)
 
             // Stars overlay for nighttime

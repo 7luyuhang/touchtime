@@ -124,6 +124,23 @@ struct SkyColorGradient {
         )
     }
 
+    // The stops at `opacity` over black, as opaque colors
+    func colorsOverBlack(opacity: Double) -> [Color] {
+        labStops.map { lab in
+            let rgb = Self.labToSrgb(lab) * opacity
+            return Color(red: rgb.x, green: rgb.y, blue: rgb.z)
+        }
+    }
+
+    // The gradient at `opacity` over black, as opaque colors
+    func linearGradientOverBlack(opacity: Double) -> LinearGradient {
+        LinearGradient(
+            colors: colorsOverBlack(opacity: opacity),
+            startPoint: .top,
+            endPoint: .bottom
+        )
+    }
+
     // Animation trigger quantized to 0.5° of solar elevation: fires every few
     // minutes during fast twilight color changes, almost never at midday or
     // deep night when the sky is static. Encodes rain state so weather
