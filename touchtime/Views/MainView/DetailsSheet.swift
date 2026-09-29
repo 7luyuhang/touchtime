@@ -22,10 +22,11 @@ struct SunriseSunsetSheet: View {
     let timeZoneIdentifier: String
     let initialDate: Date
     let timeOffset: TimeInterval
-    /// Shown inline as the landscape detail pane on iPhone Duo instead of
-    /// as a sheet: always expanded, without a title or close button, and
+    /// Shown inline as a detail pane on iPhone Duo instead of as a sheet,
+    /// split from the list along this axis: beside it in landscape, above it
+    /// in portrait. Always expanded, without a title or close button, and
     /// without its own sky, as HomeView draws one behind both panes.
-    var isEmbedded = false
+    var splitAxis: Axis? = nil
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -52,6 +53,16 @@ struct SunriseSunsetSheet: View {
     @State private var upcomingMoonPhases: [UpcomingMoonPhase] = []
     @State private var isMoonPhasesExpanded = false // Track upcoming phases expansion
     @State private var astronomyDayCacheKey: String = ""
+
+    private var isEmbedded: Bool {
+        splitAxis != nil
+    }
+
+    /// Beside the list the bottom bar moves into the vertical bar, which has
+    /// no room for the DST pill, so the pill floats over the content instead.
+    private var floatsDSTPill: Bool {
+        splitAxis == .horizontal
+    }
 
     // Large detent layout: sticky time section and full-sheet sky
     private var isExpanded: Bool {
@@ -1135,6 +1146,8 @@ struct SunriseSunsetSheet: View {
                     .animation(.bouncy(), value: currentDetent)
                 }
                 .scrollIndicators(.hidden)
+                // Above the list it fades out toward the fold
+                .foldEdgeFade(.bottom, isActive: splitAxis == .vertical)
             .safeAreaInset(edge: .top, spacing: 0) {
                 Group {
                     if isExpanded {
@@ -1149,9 +1162,7 @@ struct SunriseSunsetSheet: View {
                 .animation(.bouncy(), value: currentDetent)
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
-                // Beside the list the bottom bar moves into the vertical bar,
-                // which has no room for the DST pill
-                if isEmbedded, let dst = dstInfo, let transitionDate = dst.transitionDate {
+                if floatsDSTPill, let dst = dstInfo, let transitionDate = dst.transitionDate {
                     dstLabel(isStart: dst.isStart, transitionDate: transitionDate, offsetHours: dst.offsetHours)
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
@@ -1169,7 +1180,7 @@ struct SunriseSunsetSheet: View {
             // Beside the list the stack still reserves a vertical bar's width
             // at its trailing edge, though the system draws that bar at the
             // window edge
-            .ignoresSafeArea(.container, edges: isEmbedded ? .trailing : [])
+            .ignoresSafeArea(.container, edges: splitAxis == .horizontal ? .trailing : [])
             // The detail pane sits on HomeView's sky background
             .clearNavigationBackground(isEmbedded)
             .navigationBarTitleDisplayMode(.inline)
@@ -1238,8 +1249,8 @@ struct SunriseSunsetSheet: View {
                 }
                 
                 // Bottom bar: location + DST (if any) + reset (if time is scrolled).
-                // The detail pane keeps only the location: its DST pill floats
-                // over the content and the list's Slide to Adjust bar resets.
+                // The detail pane leaves the reset to the list's Slide to Adjust
+                // bar, and beside the list its DST pill floats over the content.
                 // Open in Map
                 if getCoordinatesForTimeZone(timeZoneIdentifier) != nil {
                     ToolbarItem(placement: .bottomBar) {
@@ -1254,12 +1265,12 @@ struct SunriseSunsetSheet: View {
                     }
                 }
                 
-                if !isEmbedded && getCoordinatesForTimeZone(timeZoneIdentifier) != nil && dstInfo != nil {
+                if !floatsDSTPill && getCoordinatesForTimeZone(timeZoneIdentifier) != nil && dstInfo != nil {
                     ToolbarSpacer(.fixed, placement: .bottomBar)
                 }
                 
                 // DST information in bottom bar
-                if !isEmbedded, let dst = dstInfo, let transitionDate = dst.transitionDate {
+                if !floatsDSTPill, let dst = dstInfo, let transitionDate = dst.transitionDate {
                     ToolbarItem(placement: .bottomBar) {
                         dstLabel(isStart: dst.isStart, transitionDate: transitionDate, offsetHours: dst.offsetHours)
                             .frame(maxWidth: .infinity)

@@ -69,6 +69,51 @@ extension View {
     }
 }
 
+/// Fades scrolling content out over its last stretch before the fold between
+/// iPhone Duo's stacked panes, so it dissolves into the sky behind them
+/// instead of ending in a hard edge.
+struct FoldEdgeFade: ViewModifier {
+    let edge: VerticalEdge
+
+    private static let length: CGFloat = 40
+
+    // Smoothstep opacity ramp: a linear one shows hard bands where the fade
+    // starts and ends
+    private static let stops: [Gradient.Stop] = (0...8).map { step in
+        let location = Double(step) / 8
+        return .init(color: .black.opacity(location * location * (3 - 2 * location)), location: location)
+    }
+
+    func body(content: Content) -> some View {
+        content.mask {
+            VStack(spacing: 0) {
+                if edge == .top {
+                    LinearGradient(stops: Self.stops, startPoint: .top, endPoint: .bottom)
+                        .frame(height: Self.length)
+                }
+                Color.black
+                if edge == .bottom {
+                    LinearGradient(stops: Self.stops, startPoint: .bottom, endPoint: .top)
+                        .frame(height: Self.length)
+                }
+            }
+            // Also covers what the scroll view draws under its bars
+            .ignoresSafeArea()
+        }
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func foldEdgeFade(_ edge: VerticalEdge, isActive: Bool) -> some View {
+        if isActive {
+            modifier(FoldEdgeFade(edge: edge))
+        } else {
+            self
+        }
+    }
+}
+
 // MARK: - Lazy Card Image (deferred rendering for ShareLink)
 struct LazyCardImage: Transferable {
     let render: () -> UIImage
@@ -146,7 +191,7 @@ struct HomeView: View {
     @State private var selectedCityName: String = ""
     // iPhone Duo landscape: the list and a city's details side by side
     @State private var isLandscape = false
-    // City shown in the landscape detail pane; nil means the local time
+    // City shown in the detail pane; nil means the local time
     @State private var detailPaneCityId: UUID? = nil
     @State private var showArrangeListSheet = false
     @State private var showSetAlarmSheet = false
@@ -1142,15 +1187,24 @@ struct HomeView: View {
         return renderer.uiImage ?? UIImage(systemName: "photo") ?? UIImage()
     }
     
-    /// On iPhone Duo in landscape the list and a city's details sit side
-    /// by side, instead of the details opening as a sheet.
-    private var usesSplitLayout: Bool {
-        guard #available(iOS 27.1, *) else { return false }
-        return isLandscape
+    /// On iPhone Duo a city's details share the screen with the list instead
+    /// of opening as a sheet: side by side in landscape, and stacked on the
+    /// unfolded screen in portrait, flat or partially open, the details above
+    /// the fold and the list below it.
+    private var splitAxis: Axis? {
+        guard #available(iOS 27.1, *) else { return nil }
+        if isLandscape {
+            return .horizontal
+        }
+        return horizontalSizeClass == .regular ? .vertical : nil
     }
 
-    /// The city in the landscape detail pane: the tapped row while it's
-    /// still listed, otherwise the first row.
+    private var usesSplitLayout: Bool {
+        splitAxis != nil
+    }
+
+    /// The city in the detail pane: the tapped row while it's still listed,
+    /// otherwise the first row.
     private var detailPaneCity: (name: String, timeZoneIdentifier: String)? {
         if let cityId = detailPaneCityId,
            let clock = displayedClocks.first(where: { $0.id == cityId }) {
@@ -1167,13 +1221,13 @@ struct HomeView: View {
 
     var body: some View {
         Group {
-            if #available(iOS 27.1, *), usesSplitLayout {
+            if #available(iOS 27.1, *), let splitAxis {
                 ArrangementView {
                     cityDetailPane
                 } secondary: {
                     homeContent
                 }
-                .arrangementViewStyle(.split.axes(.horizontal))
+                .arrangementViewStyle(.split.axes(splitAxis == .horizontal ? .horizontal : .vertical))
                 .background { splitSkyBackground }
             } else {
                 homeContent
@@ -1188,32 +1242,36 @@ struct HomeView: View {
                     proxy.size.width > proxy.size.height
                 } action: { isWide in
                     isLandscape = isWide
-                    // The detail pane takes over from the details sheet
-                    if usesSplitLayout {
-                        showSunriseSunsetSheet = false
-                    }
                 }
+        }
+        // The detail pane takes over from the details sheet
+        .onChange(of: usesSplitLayout) { _, usesSplitLayout in
+            if usesSplitLayout {
+                showSunriseSunsetSheet = false
+            }
         }
     }
 
     /// The widest iPhone's width, for the list column on wider screens.
     private static let maximumColumnWidth: CGFloat = 440
 
-    /// On a wide screen that isn't split (the unfolded iPhone Duo in
-    /// portrait) the list and Slide to Adjust keep to a phone-wide column.
+    /// On a wide screen without the details beside it (the unfolded iPhone
+    /// Duo in portrait, flat or partially open) the list and Slide to Adjust
+    /// keep to a phone-wide column.
     private var usesPhoneColumn: Bool {
-        horizontalSizeClass == .regular && !usesSplitLayout
+        horizontalSizeClass == .regular && splitAxis != .horizontal
     }
 
-    // Fades in from 20% of the window width to full at 80%. Smoothstep opacity
-    // ramp: a linear one shows hard bands where the fade starts and ends
+    // Fades in from 20% of the way across the window to full at 80%.
+    // Smoothstep opacity ramp: a linear one shows hard bands where the fade
+    // starts and ends
     private static let splitSkyFadeStops: [Gradient.Stop] = (0...8).map { step in
         let progress = Double(step) / 8
         return .init(color: .black.opacity(progress * progress * (3 - 2 * progress)), location: 0.2 + progress * 0.6)
     }
 
     /// Behind both panes: the detail pane city's sky, fading in from under
-    /// the list to full strength on the left.
+    /// the list to full strength on the left, or at the top when stacked.
     private var splitSkyBackground: some View {
         ZStack {
             Color(UIColor.systemGroupedBackground)
@@ -1229,7 +1287,11 @@ struct HomeView: View {
                     starsMotion: StarsView.Motion(timeOffset: timeOffset, timeZoneIdentifier: city.timeZoneIdentifier)
                 )
                 .mask {
-                    LinearGradient(stops: Self.splitSkyFadeStops, startPoint: .trailing, endPoint: .leading)
+                    LinearGradient(
+                        stops: Self.splitSkyFadeStops,
+                        startPoint: splitAxis == .vertical ? .bottom : .trailing,
+                        endPoint: splitAxis == .vertical ? .top : .leading
+                    )
                 }
             }
         }
@@ -1245,9 +1307,13 @@ struct HomeView: View {
                 timeZoneIdentifier: city.timeZoneIdentifier,
                 initialDate: currentDate,
                 timeOffset: timeOffset,
-                isEmbedded: true
+                splitAxis: splitAxis
             )
             .environmentObject(weatherManager)
+            // Above the list its cards line up with the list's: they sit 16pt
+            // inside the pane, the list's 20pt inside the column
+            .frame(maxWidth: usesPhoneColumn ? Self.maximumColumnWidth - 8 : nil)
+            .frame(maxWidth: .infinity)
         } else {
             Color(UIColor.systemGroupedBackground)
                 .ignoresSafeArea()
@@ -1590,6 +1656,8 @@ struct HomeView: View {
                     // In regular width the list drops its side margins; the
                     // phone-wide column keeps a phone's
                     .safeAreaPadding(.horizontal, usesPhoneColumn ? 20 : 0)
+                    // Below the details it fades in from the fold
+                    .foldEdgeFade(.top, isActive: splitAxis == .vertical)
                     .id(selectedCollectionId?.uuidString ?? "default")
                     .transition(.identity) // Collection Animation
                     // Centralized batch weather prefetch for all displayed cities
@@ -2049,8 +2117,13 @@ struct HomeView: View {
                 .ignoresSafeArea()
             }
             
-            // Sunrise/Sunset Sheet
-            .sheet(isPresented: $showSunriseSunsetSheet) {
+            // Sunrise/Sunset Sheet. Hidden as soon as the layout splits: opening
+            // the iPhone Duo in portrait changes only the size class, and the
+            // list rebuilt beside the detail pane would present it again
+            .sheet(isPresented: Binding(
+                get: { showSunriseSunsetSheet && !usesSplitLayout },
+                set: { showSunriseSunsetSheet = $0 }
+            )) {
                 SunriseSunsetSheet(
                     cityName: selectedCityName,
                     timeZoneIdentifier: selectedTimeZone,
