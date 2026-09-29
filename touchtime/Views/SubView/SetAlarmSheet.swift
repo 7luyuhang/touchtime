@@ -15,6 +15,10 @@ struct SetAlarmSheet: View {
         case oldestFirst
     }
 
+    /// The widest iPhone's width: a sheet wider than this is on the unfolded
+    /// iPhone Duo.
+    private static let maximumPhoneWidth: CGFloat = 440
+
     @Environment(\.dismiss) private var dismiss
     @State private var alarmRecords: [AlarmRecord] = []
     @State private var authorizationState: AlarmManager.AuthorizationState = AlarmManager.shared.authorizationState
@@ -28,6 +32,9 @@ struct SetAlarmSheet: View {
     @State private var showLocalCityTimeAdjustmentSheet = false
     @State private var localCityTimeOffset: TimeInterval = 0
     @State private var localShowScrollTimeButtons = false
+    // Unfolded iPhone Duo: the repeat days are capsules sharing the row's
+    // width, instead of circles spread across it
+    @State private var usesCapsuleWeekdays = false
 
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -165,6 +172,11 @@ struct SetAlarmSheet: View {
                     .tint(.blue)
                 }
             }
+        }
+        .onGeometryChange(for: Bool.self) { proxy in
+            proxy.size.width > Self.maximumPhoneWidth
+        } action: { isWiderThanPhone in
+            usesCapsuleWeekdays = isWiderThanPhone
         }
         .sheet(isPresented: $showLocalCityTimeAdjustmentSheet) {
             CityTimeAdjustmentSheet(
@@ -746,9 +758,9 @@ struct SetAlarmSheet: View {
 
     @ViewBuilder
     private func repeatWeekdayRow(for record: AlarmRecord) -> some View {
-        HStack(spacing: 0) {
+        HStack(spacing: usesCapsuleWeekdays ? 8 : 0) {
             ForEach(Array(repeatWeekdayOptions.enumerated()), id: \.element.index) { index, weekday in
-                if index > 0 {
+                if index > 0 && !usesCapsuleWeekdays {
                     Spacer(minLength: 0)
                 }
 
@@ -758,16 +770,23 @@ struct SetAlarmSheet: View {
                     }
                 } label: {
                     let isSelected = record.repeatWeekdays.contains(weekday.index)
+                    let fill = isSelected ? Color.white : Color.black.opacity(0.20)
                     Text(weekday.name)
                         .font(.callout)
                         .fontWeight(.semibold)
                         .fontDesign(.rounded)
                         .foregroundStyle(isSelected ? Color.black : Color.white)
-                        .frame(width: 36, height: 36)
-                        .background(
-                            Circle()
-                                .fill(isSelected ? Color.white : Color.black.opacity(0.20))
-                        )
+                        .frame(minWidth: 36, maxWidth: usesCapsuleWeekdays ? .infinity : 36)
+                        .frame(height: 36)
+                        .background {
+                            if usesCapsuleWeekdays {
+                                Capsule(style: .continuous)
+                                    .fill(fill)
+                            } else {
+                                Circle()
+                                    .fill(fill)
+                            }
+                        }
                 }
                 .buttonStyle(.plain)
             }

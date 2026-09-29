@@ -1156,6 +1156,9 @@ struct SunriseSunsetSheet: View {
                         .padding(.horizontal, 16)
                         .padding(.vertical, 12)
                         .glassEffect(.regular, in: Capsule(style: .continuous))
+                        // Level with the list's Slide to Adjust bar: as tall as
+                        // ScrollTimeView's controls (52pt) and as far up (8pt)
+                        .frame(minHeight: 52)
                         .padding(.bottom, 8)
                 }
             }

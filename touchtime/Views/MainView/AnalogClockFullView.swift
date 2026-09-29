@@ -1408,7 +1408,7 @@ struct AnalogClockFullView: View {
                 let hasVerticalBar = geometry.safeAreaInsets.leading + geometry.safeAreaInsets.trailing > 0
                 let size = min(
                     geometry.size.width,
-                    geometry.size.height - (hasVerticalBar ? 2 * Self.foldedMinimumSectionHeight : 0),
+                    max(geometry.size.height - (hasVerticalBar ? 2 * Self.foldedMinimumSectionHeight : 0), 0),
                     isRegularWidth ? Self.maximumClockWidth : .infinity
                 )
                 // The face circle is drawn `size - 24` wide, so the 12pt band
@@ -1500,7 +1500,7 @@ struct AnalogClockFullView: View {
                             
                             // Middle - clock area (transparent placeholder)
                             Color.clear
-                                .frame(height: size - clockFaceInset)
+                                .frame(height: max(size - clockFaceInset, 0))
                             
                             // Bottom section - Scroll controls
                             bottomControls
