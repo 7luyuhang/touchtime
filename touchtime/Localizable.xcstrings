@@ -5362,7 +5362,20 @@
       }
     },
     "DST" : {
-
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "夏令时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "夏令時間"
+          }
+        }
+      }
     },
     "Dubai" : {
       "extractionState" : "manual",
