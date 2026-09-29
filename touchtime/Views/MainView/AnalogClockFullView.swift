@@ -771,18 +771,26 @@ struct AnalogClockFullView: View {
     // Timer Tool Bar Title
     @ViewBuilder
     private var timerToolbarTitle: some View {
-        let titleLabel = Text(homeTimerDisplayName)
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(.primary)
-            .lineLimit(1)
-            .truncationMode(.tail)
-            .contentTransition(.numericText())
-            .frame(maxWidth: 200)
-            .padding(.horizontal, 16)
-            .frame(height: 44)
-            .glassEffect(.regular, in: Capsule(style: .continuous))
-            .contentShape(Capsule())
-            .animation(.snappy, value: homeTimerDisplayName)
+        let titleLabel = HStack(spacing: 6) {
+            Text(homeTimerDisplayName)
+                .lineLimit(1)
+                .truncationMode(.tail)
+                .contentTransition(.numericText())
+                .frame(maxWidth: 200)
+
+            if hasConfiguredHomeTimer {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .font(.subheadline.weight(.semibold))
+        .foregroundStyle(.primary)
+        .padding(.horizontal, 16)
+        .frame(height: 44)
+        .glassEffect(.regular, in: Capsule(style: .continuous))
+        .contentShape(Capsule())
+        .animation(.snappy, value: homeTimerDisplayName)
 
         if hasConfiguredHomeTimer {
             Menu {
@@ -1159,7 +1167,7 @@ struct AnalogClockFullView: View {
     }
 
     /// The analog face for the selected page.
-    private func clockFace(size: CGFloat) -> some View {
+    private func clockFace(size: CGFloat, isFolded: Bool) -> some View {
         TimelineView(.periodic(from: .now, by: 1)) { context in
             if selectedDisplayPage == .stopwatch {
                 StopwatchClockFaceView(
@@ -1189,6 +1197,7 @@ struct AnalogClockFullView: View {
                     showScrollTimeButtons: $showScrollTimeButtons,
                     selectedTimeZone: selectedTimeZone,
                     size: size,
+                    isFolded: isFolded,
                     worldClocks: displayedClocks,
                     showLocalTime: showLocalTime,
                     selectedCityId: $selectedCityId,
@@ -1391,7 +1400,7 @@ struct AnalogClockFullView: View {
 
             VStack(spacing: 0) {
                 Spacer(minLength: 0)
-                clockFace(size: size)
+                clockFace(size: size, isFolded: false)
                 scrollTimeControls
                     .frame(height: (column.size.height - size) / 2, alignment: .bottom)
             }
@@ -1486,7 +1495,7 @@ struct AnalogClockFullView: View {
                         .ignoresSafeArea(.container, edges: .vertical)
                     } else {
                         // Analog Clock - always centered
-                        clockFace(size: size)
+                        clockFace(size: size, isFolded: hasVerticalBar)
                         
                         // Digital time and scroll controls overlay
                         VStack(spacing: 0) {
@@ -1821,6 +1830,7 @@ struct AnalogClockFaceView: View {
     @Binding var showScrollTimeButtons: Bool
     let selectedTimeZone: TimeZone
     let size: CGFloat
+    let isFolded: Bool
     let worldClocks: [WorldClock]
     let showLocalTime: Bool
     @Binding var selectedCityId: UUID?
@@ -2493,6 +2503,7 @@ struct AnalogClockFaceView: View {
                         minute: time.minute,
                         angle: clockHandAngle(for: clock.timeZoneIdentifier),
                         size: size,
+                        isFolded: isFolded,
                         color: .white.opacity(0.25), // Hand colour
                         isSelected: false,
                         isLocal: false,
@@ -2514,6 +2525,7 @@ struct AnalogClockFaceView: View {
                     minute: localTime.minute,
                     angle: localClockHandAngle,
                     size: size,
+                    isFolded: isFolded,
                     color: .blue,
                     isSelected: false,
                     isLocal: true,
@@ -2537,6 +2549,7 @@ struct AnalogClockFaceView: View {
                         minute: time.minute,
                         angle: clockHandAngle(for: clock.timeZoneIdentifier),
                         size: size,
+                        isFolded: isFolded,
                         color: .white.opacity(0.25),
                         isSelected: true,
                         isLocal: false,
@@ -2556,6 +2569,7 @@ struct AnalogClockFaceView: View {
                     minute: localTime.minute,
                     angle: localClockHandAngle,
                     size: size,
+                    isFolded: isFolded,
                     color: .blue,
                     isSelected: true,
                     isLocal: true,
@@ -2613,6 +2627,7 @@ struct ClockHandWithLabel: View {
     let minute: Int
     let angle: Double
     let size: CGFloat
+    let isFolded: Bool
     let color: Color
     let isSelected: Bool
     let isLocal: Bool
@@ -2659,13 +2674,21 @@ struct ClockHandWithLabel: View {
         return color
     }
 
+    // Shorter on the folded iPhone Duo, whose smaller clock would otherwise
+    // leave the labels crowding the center
+    private var labelLength: CGFloat {
+        isFolded ? 80 : 95
+    }
+
+    // Whatever the label's length, its outer end stays just inside the hour
+    // numbers
     private var labelCenterOffset: CGFloat {
-        size / 2 - 95
+        size / 2 - 47.5 - labelLength / 2
     }
 
     // Stop the hand at the inner edge of the label instead of its center.
     private var handLength: CGFloat {
-        max(labelCenterOffset - 45.5, 0)
+        max(labelCenterOffset - labelLength / 2 + 2, 0)
     }
     
     var body: some View {
@@ -2697,7 +2720,7 @@ struct ClockHandWithLabel: View {
                             .truncationMode(.tail)
                             .padding(.vertical, 4)
                             .padding(.horizontal, 10)
-                            .frame(maxWidth: 95)
+                            .frame(maxWidth: labelLength)
                             .glassEffect(
                                 .regular.tint(.white).interactive(),
                                 in: Capsule(style: .continuous)
@@ -2711,7 +2734,7 @@ struct ClockHandWithLabel: View {
                                 .truncationMode(.tail)
                                 .padding(.vertical, 4)
                                 .padding(.horizontal, 10)
-                                .frame(maxWidth: 95)
+                                .frame(maxWidth: labelLength)
                                 .glassEffect(
                                     .regular.tint(.white).interactive(),
                                     in: Capsule(style: .continuous)
@@ -2731,7 +2754,7 @@ struct ClockHandWithLabel: View {
                         .truncationMode(.tail)
                         .padding(.vertical, 4)
                         .padding(.horizontal, 10)
-                        .frame(maxWidth: 95)
+                        .frame(maxWidth: labelLength)
                         .glassEffect(
                             .regular.tint(.blue).interactive(),
                             in: Capsule(style: .continuous)
@@ -2746,7 +2769,7 @@ struct ClockHandWithLabel: View {
                             .truncationMode(.tail)
                             .padding(.vertical, 4)
                             .padding(.horizontal, 10)
-                            .frame(maxWidth: 95)
+                            .frame(maxWidth: labelLength)
                         .blendMode(.plusLighter)
                         .glassEffect(
                             .regular.tint(.black.opacity(0.10)).interactive(),
@@ -2766,7 +2789,7 @@ struct ClockHandWithLabel: View {
             
             // Separate hit target so taps follow the rotated label's visible position.
             Color.clear
-                .frame(width: 95, height: 28)
+                .frame(width: labelLength, height: 28)
                 .contentShape(Capsule(style: .continuous))
                 .rotationEffect(.degrees(-90 + textCounterRotation))
                 .offset(y: -labelCenterOffset)
