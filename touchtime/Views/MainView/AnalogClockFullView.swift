@@ -33,7 +33,7 @@ struct AnalogClockFullView: View {
     private static let maximumClockWidth: CGFloat = 400
     // Slide to Adjust draws its bar and buttons 5pt in from each side, so it
     // takes 10pt more to line them up with the tab bar's edges
-    private static let maximumControlsWidth: CGFloat = maximumClockWidth + 10
+    static let maximumControlsWidth: CGFloat = maximumClockWidth + 10
     // The folded iPhone Duo's screen is short for its width: the clock shrinks
     // so the digits above it and the controls below each keep at least this
     private static let foldedMinimumSectionHeight: CGFloat = 110
@@ -2788,11 +2788,7 @@ struct ClockHandWithLabel: View {
     }
 }
 
-private extension View {
-    func rotationEffectIgnoringLayout(_ angle: SwiftUI.Angle, anchor: UnitPoint = .center) -> some View {
-        modifier(_RotationEffect(angle: angle, anchor: anchor).ignoredByLayout())
-    }
-
+extension View {
     /// Adds `content` to the toolbar, preferring the iPhone Duo's vertical bar,
     /// which of its own accord only takes items that are plain images. Checked
     /// here rather than in the toolbar: its builder can't hide the newer type
@@ -2804,6 +2800,12 @@ private extension View {
         } else {
             toolbar { content }
         }
+    }
+}
+
+private extension View {
+    func rotationEffectIgnoringLayout(_ angle: SwiftUI.Angle, anchor: UnitPoint = .center) -> some View {
+        modifier(_RotationEffect(angle: angle, anchor: anchor).ignoredByLayout())
     }
 
     /// Fades the view out toward its leading and trailing edges. The mask

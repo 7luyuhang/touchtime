@@ -235,9 +235,6 @@ struct HomeView: View {
     @AppStorage("homeTimerAlarmID") private var homeTimerAlarmIDRawValue = ""
     @AppStorage("homeTimerName") private var homeTimerName = ""
     
-    // Namespace for zoom transition
-    @Namespace private var earthViewNamespace
-    
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     // UserDefaults key for storing world clocks
@@ -1880,7 +1877,6 @@ struct HomeView: View {
                     }) {
                         Image(systemName: "globe.americas.fill")
                     }
-                    .matchedTransitionSource(id: "earthView", in: earthViewNamespace)
                 }
             }
             
@@ -2170,7 +2166,6 @@ struct HomeView: View {
                     worldClocks: $worldClocks,
                     weatherManager: weatherManager
                 )
-                    .navigationTransition(.zoom(sourceID: "earthView", in: earthViewNamespace))
                     .interactiveDismissDisabled(true)
             }
             
