@@ -1171,9 +1171,9 @@ struct HomeView: View {
         Group {
             if #available(iOS 27.1, *), usesSplitLayout {
                 ArrangementView {
-                    homeContent
-                } secondary: {
                     cityDetailPane
+                } secondary: {
+                    homeContent
                 }
                 .arrangementViewStyle(.split.axes(.horizontal))
                 .background { splitSkyBackground }
@@ -1215,7 +1215,7 @@ struct HomeView: View {
     }
 
     /// Behind both panes: the detail pane city's sky, fading in from under
-    /// the list to full strength on the right.
+    /// the list to full strength on the left.
     private var splitSkyBackground: some View {
         ZStack {
             Color(UIColor.systemGroupedBackground)
@@ -1231,7 +1231,7 @@ struct HomeView: View {
                     starsMotion: StarsView.Motion(timeOffset: timeOffset, timeZoneIdentifier: city.timeZoneIdentifier)
                 )
                 .mask {
-                    LinearGradient(stops: Self.splitSkyFadeStops, startPoint: .leading, endPoint: .trailing)
+                    LinearGradient(stops: Self.splitSkyFadeStops, startPoint: .trailing, endPoint: .leading)
                 }
             }
         }
@@ -1671,10 +1671,6 @@ struct HomeView: View {
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
             .ignoresSafeArea(.keyboard, edges: .bottom)
-            // Beside the detail pane the stack still reserves a vertical bar's
-            // width at its trailing edge, though the system draws that bar at
-            // the window edge
-            .ignoresSafeArea(.container, edges: usesSplitLayout ? .trailing : [])
             // Lets the split's sky background show through the stack
             .containerBackground(usesSplitLayout ? .clear : Color(UIColor.systemGroupedBackground), for: .navigation)
             

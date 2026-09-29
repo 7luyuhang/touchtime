@@ -1167,6 +1167,10 @@ struct SunriseSunsetSheet: View {
                 sheetSkyBackground
                     .animation(.bouncy(), value: currentDetent)
             }
+            // Beside the list the stack still reserves a vertical bar's width
+            // at its trailing edge, though the system draws that bar at the
+            // window edge
+            .ignoresSafeArea(.container, edges: isEmbedded ? .trailing : [])
             // The detail pane sits on HomeView's sky background
             .clearNavigationBackground(isEmbedded)
             .navigationBarTitleDisplayMode(.inline)
