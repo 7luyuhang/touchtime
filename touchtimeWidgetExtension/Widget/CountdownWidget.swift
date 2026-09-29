@@ -22,6 +22,9 @@ struct CountdownWidgetEntry: TimelineEntry {
         let title: String
         /// Rolled forward to the next occurrence for repeating countdowns.
         let targetDate: Date
+        /// Set while the countdown is paused: the day count holds as of
+        /// this date instead of following the entry's date.
+        let pausedAt: Date?
         let emoji: String?
         let photoData: Data?
         /// How the photo is framed in the badge; nil shows it centred.
@@ -58,6 +61,7 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
             CountdownWidgetEntry.Countdown(
                 title: $0.title,
                 targetDate: $0.effectiveTargetDate(at: date),
+                pausedAt: $0.pausedAt,
                 emoji: $0.emoji,
                 photoData: $0.photoData,
                 photoCrop: $0.photoCrop
@@ -80,6 +84,7 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
             countdown: CountdownWidgetEntry.Countdown(
                 title: String(localized: "New Year"),
                 targetDate: newYear,
+                pausedAt: nil,
                 emoji: "🎆",
                 photoData: nil,
                 photoCrop: nil
@@ -165,14 +170,14 @@ struct CountdownWidgetView: View {
         entry.showCoverInFullColor ? .fullColor : .desaturated
     }
 
-    /// Whole calendar days from the entry's date to the event; negative
-    /// once the event has happened.
+    /// Whole calendar days from the entry's date (or the pause date, while
+    /// paused) to the event; negative once the event has happened.
     private var dayDifference: Int {
         guard let countdown else { return 0 }
         let calendar = Calendar.current
         return calendar.dateComponents(
             [.day],
-            from: calendar.startOfDay(for: entry.date),
+            from: calendar.startOfDay(for: countdown.pausedAt ?? entry.date),
             to: calendar.startOfDay(for: countdown.targetDate)
         ).day ?? 0
     }

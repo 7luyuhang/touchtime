@@ -47,7 +47,8 @@ struct HomeCountdownSection: View {
                     photoData: item.photoData,
                     photoCrop: item.photoCrop,
                     now: now,
-                    isRepeating: item.repeatFrequency != .never
+                    isRepeating: item.repeatFrequency != .never,
+                    pausedAt: item.pausedAt
                 )
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -78,7 +79,7 @@ struct HomeCountdownSection: View {
                 UIPasteboard.general.string = CountdownShare.copyText(
                     title: item.title,
                     targetDate: item.effectiveTargetDate(at: now),
-                    now: now,
+                    now: item.pausedAt ?? now,
                     showYears: showYears,
                     showMonths: showMonths,
                     showDays: showDays
@@ -148,8 +149,9 @@ enum CountdownShare {
     }
 
     /// Renders the countdown card into a share image, like the city card
-    /// share: 9:16 by default, or the frame the share sheet picked.
-    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isRepeating: Bool, now: Date, showYears: Bool, showMonths: Bool, showDays: Bool, aspectRatio: ShareAspectRatio = .nineBySixteen) -> UIImage {
+    /// share: 9:16 by default, or the frame the share sheet picked. A
+    /// paused countdown (`pausedAt` set) is counted as of its pause date.
+    static func renderCardImage(title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isRepeating: Bool, now: Date, pausedAt: Date? = nil, showYears: Bool, showMonths: Bool, showDays: Bool, aspectRatio: ShareAspectRatio = .nineBySixteen) -> UIImage {
         let snapshotView = CountdownCardSnapshotView(
             title: title,
             targetDate: targetDate,
@@ -158,7 +160,8 @@ enum CountdownShare {
             photoCrop: photoCrop,
             isRepeating: isRepeating,
             now: now,
-            footerText: footerText(from: now, to: targetDate, showYears: showYears, showMonths: showMonths, showDays: showDays),
+            pausedAt: pausedAt,
+            footerText: footerText(from: pausedAt ?? now, to: targetDate, showYears: showYears, showMonths: showMonths, showDays: showDays),
             aspectRatio: aspectRatio
         )
         .environment(\.colorScheme, .dark)
@@ -234,6 +237,9 @@ struct CountdownCardSnapshotView: View {
     let isRepeating: Bool
     /// Reference "now" for the day count (scrubbed time on Home).
     let now: Date
+    /// Set while the countdown is paused: the day count holds as of this
+    /// date, and a pause symbol takes the top-left arrow's place.
+    var pausedAt: Date? = nil
     /// Context line under the card, e.g. "in 1 year 4 days".
     let footerText: String
     /// Frame of the image: a centred crop of the 9:16 layout, so the card
@@ -275,13 +281,24 @@ struct CountdownCardSnapshotView: View {
     private var dayDifference: Int {
         calendar.dateComponents(
             [.day],
-            from: calendar.startOfDay(for: now),
+            from: calendar.startOfDay(for: pausedAt ?? now),
             to: calendar.startOfDay(for: targetDate)
         ).day ?? 0
     }
 
     private var hasHappened: Bool {
         dayDifference < 0
+    }
+
+    /// Same top-left symbol as the live card.
+    private var statusSymbol: String {
+        if isRepeating {
+            return "repeat"
+        }
+        if pausedAt != nil {
+            return "pause"
+        }
+        return hasHappened ? "arrow.left" : "arrow.right"
     }
 
     private var bigText: String {
@@ -332,11 +349,11 @@ struct CountdownCardSnapshotView: View {
                 // Card replica from HomeView, centered vertically
                 ZStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        // Repeat symbol (repeating) / happened (left arrow) /
-                        // happening (right arrow) top-left, countdown date
-                        // top-right
+                        // Repeat symbol (repeating) / pause (paused) /
+                        // happened (left arrow) / happening (right arrow)
+                        // top-left, countdown date top-right
                         HStack {
-                            Image(systemName: isRepeating ? "repeat" : (hasHappened ? "arrow.left" : "arrow.right"))
+                            Image(systemName: statusSymbol)
                                 .font(.subheadline.weight(.semibold))
                                 .foregroundStyle(.secondary)
                                 .blendMode(.plusLighter)

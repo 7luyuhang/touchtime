@@ -252,15 +252,15 @@ struct CountdownSheet: View {
                 }
         }
         .sheet(isPresented: $showEditorSheet) {
-            CountdownDetailsView { title, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, reminderTime, reminderLeadDays, reminderKind, contact, scheduledMessage in
-                addCountdown(title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, photoCrop: photoCrop, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind, contact: contact, scheduledMessage: scheduledMessage)
+            CountdownDetailsView { title, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, reminderTime, reminderLeadDays, reminderKind, contact, scheduledMessage, pausedAt in
+                addCountdown(title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, photoCrop: photoCrop, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind, contact: contact, scheduledMessage: scheduledMessage, pausedAt: pausedAt)
             }
         }
         .sheet(item: $editingCountdown) { item in
             CountdownDetailsView(countdown: item, onDelete: {
                 deleteCountdown(item)
-            }) { title, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, reminderTime, reminderLeadDays, reminderKind, contact, scheduledMessage in
-                updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, photoCrop: photoCrop, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind, contact: contact, scheduledMessage: scheduledMessage)
+            }) { title, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, reminderTime, reminderLeadDays, reminderKind, contact, scheduledMessage, pausedAt in
+                updateCountdown(item, title: title, targetDate: targetDate, emoji: emoji, photoData: photoData, photoCrop: photoCrop, isPinned: isPinned, repeatFrequency: repeatFrequency, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind, contact: contact, scheduledMessage: scheduledMessage, pausedAt: pausedAt)
             }
             // Force a fresh view identity per item, otherwise SwiftUI reuses
             // the sheet content and @State keeps the previous item's values.
@@ -277,7 +277,8 @@ struct CountdownSheet: View {
                 photoData: item.photoData,
                 photoCrop: item.photoCrop,
                 isRepeating: item.repeatFrequency != .never,
-                now: now
+                now: now,
+                pausedAt: item.pausedAt
             )
         }
         .fullScreenCover(isPresented: $showLifetimeStore) {
@@ -439,6 +440,7 @@ struct CountdownSheet: View {
                 photoCrop: item.photoCrop,
                 now: now,
                 isRepeating: item.repeatFrequency != .never,
+                pausedAt: item.pausedAt,
                 isPinned: item.isPinned
             )
             // The card brings its own glass background and corners, so
@@ -463,7 +465,7 @@ struct CountdownSheet: View {
                 UIPasteboard.general.string = CountdownShare.copyText(
                     title: item.title,
                     targetDate: item.effectiveTargetDate(at: now),
-                    now: now,
+                    now: item.pausedAt ?? now,
                     showYears: showYears,
                     showMonths: showMonths,
                     showDays: showDays
@@ -519,8 +521,8 @@ struct CountdownSheet: View {
         }
     }
 
-    private func addCountdown(title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int, reminderKind: CountdownItem.ReminderKind, contact: CountdownItem.LinkedContact?, scheduledMessage: String?) {
-        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, repeatFrequency: repeatFrequency, emoji: emoji, photoData: photoData, photoCrop: photoCrop, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind, contact: contact, scheduledMessage: scheduledMessage)
+    private func addCountdown(title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int, reminderKind: CountdownItem.ReminderKind, contact: CountdownItem.LinkedContact?, scheduledMessage: String?, pausedAt: Date?) {
+        let item = CountdownItem(id: UUID(), title: title, targetDate: targetDate, createdAt: Date(), isPinned: isPinned, repeatFrequency: repeatFrequency, emoji: emoji, photoData: photoData, photoCrop: photoCrop, reminderTime: reminderTime, reminderLeadDays: reminderLeadDays, reminderKind: reminderKind, contact: contact, scheduledMessage: scheduledMessage, pausedAt: pausedAt)
         withAnimation(.spring()) {
             countdownStore.countdowns.append(item)
         }
@@ -535,7 +537,7 @@ struct CountdownSheet: View {
         triggerHaptic()
     }
 
-    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int, reminderKind: CountdownItem.ReminderKind, contact: CountdownItem.LinkedContact?, scheduledMessage: String?) {
+    private func updateCountdown(_ item: CountdownItem, title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderLeadDays: Int, reminderKind: CountdownItem.ReminderKind, contact: CountdownItem.LinkedContact?, scheduledMessage: String?, pausedAt: Date?) {
         guard let index = countdownStore.countdowns.firstIndex(where: { $0.id == item.id }) else { return }
         // Assemble the edited item first so the store (and UserDefaults)
         // sees a single mutation instead of one per field.
@@ -552,6 +554,7 @@ struct CountdownSheet: View {
         updated.reminderKind = reminderKind
         updated.contact = contact
         updated.scheduledMessage = scheduledMessage
+        updated.pausedAt = pausedAt
         withAnimation(.spring()) {
             countdownStore.countdowns[index] = updated
         }
@@ -603,11 +606,18 @@ private struct CountdownRow: View {
         item.effectiveTargetDate(at: now)
     }
 
-    /// Whole calendar days from today to the target date; negative for past dates.
+    /// The date the count is measured from: `now`, or the pause date while
+    /// the countdown is paused, which holds the count where it stopped.
+    private var countingDate: Date {
+        item.pausedAt ?? now
+    }
+
+    /// Whole calendar days from the counting date to the target date;
+    /// negative for past dates.
     private var dayDifference: Int {
         calendar.dateComponents(
             [.day],
-            from: calendar.startOfDay(for: now),
+            from: calendar.startOfDay(for: countingDate),
             to: calendar.startOfDay(for: effectiveTargetDate)
         ).day ?? 0
     }
@@ -627,7 +637,7 @@ private struct CountdownRow: View {
 
         let difference = calendar.dateComponents(
             unitSet,
-            from: calendar.startOfDay(for: now),
+            from: calendar.startOfDay(for: countingDate),
             to: calendar.startOfDay(for: effectiveTargetDate)
         )
 
@@ -687,10 +697,15 @@ private struct CountdownRow: View {
                 .foregroundStyle(.primary)
                 .contentTransition(.numericText())
 
-            // Repeat symbol ahead of the date for repeating countdowns
+            // Repeat symbol ahead of the date for repeating countdowns,
+            // pause symbol for paused ones
             HStack(spacing: 4) {
                 if item.repeatFrequency != .never {
                     Image(systemName: "repeat")
+                        .font(.footnote.weight(.semibold))
+                        .transition(.blurReplace)
+                } else if item.pausedAt != nil {
+                    Image(systemName: "pause")
                         .font(.footnote.weight(.semibold))
                         .transition(.blurReplace)
                 }

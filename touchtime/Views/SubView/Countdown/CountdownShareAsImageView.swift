@@ -28,6 +28,9 @@ struct CountdownShareAsImageView: View {
     let isRepeating: Bool
     /// Reference "now" for the day count and the footer line.
     var now: Date = Date()
+    /// Set while the countdown is paused: the day count and the footer
+    /// line hold as of this date, and the card shows a pause symbol.
+    var pausedAt: Date? = nil
 
     var body: some View {
         ShareAsImageView(title: title) { aspectRatio, frameCornerRadius in
@@ -39,8 +42,9 @@ struct CountdownShareAsImageView: View {
                 photoCrop: photoCrop,
                 isRepeating: isRepeating,
                 now: now,
+                pausedAt: pausedAt,
                 footerText: CountdownShare.footerText(
-                    from: now,
+                    from: pausedAt ?? now,
                     to: targetDate,
                     showYears: showYears,
                     showMonths: showMonths,
@@ -59,6 +63,7 @@ struct CountdownShareAsImageView: View {
                 photoCrop: photoCrop,
                 isRepeating: isRepeating,
                 now: now,
+                pausedAt: pausedAt,
                 showYears: showYears,
                 showMonths: showMonths,
                 showDays: showDays,

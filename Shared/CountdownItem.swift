@@ -197,8 +197,13 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     /// Message button opens Messages with it already typed. Nil when none
     /// is written (or no contact is linked).
     var scheduledMessage: String?
+    /// When counting was paused: a countdown that has happened stops
+    /// counting up and keeps the day count it had on that day. Nil while
+    /// it counts. Only a one-off countdown already past that day can be
+    /// paused; the editor drops a pause that no longer holds when it saves.
+    var pausedAt: Date?
 
-    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0, reminderKind: ReminderKind = .notification, contact: LinkedContact? = nil, scheduledMessage: String? = nil) {
+    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0, reminderKind: ReminderKind = .notification, contact: LinkedContact? = nil, scheduledMessage: String? = nil, pausedAt: Date? = nil) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
@@ -213,6 +218,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         self.reminderKind = reminderKind
         self.contact = contact
         self.scheduledMessage = scheduledMessage
+        self.pausedAt = pausedAt
     }
 
     // Items saved before pinning/repeat/emoji/photo existed are missing
@@ -251,6 +257,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         // doesn't decode drops just the link, not the whole store.
         contact = (try? container.decodeIfPresent(LinkedContact.self, forKey: .contact)) ?? nil
         scheduledMessage = try container.decodeIfPresent(String.self, forKey: .scheduledMessage)
+        pausedAt = try container.decodeIfPresent(Date.self, forKey: .pausedAt)
     }
 
     /// The stored date for one-off countdowns; for repeating ones, the

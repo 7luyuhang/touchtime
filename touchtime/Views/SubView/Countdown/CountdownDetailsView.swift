@@ -25,7 +25,7 @@ struct CountdownDetailsView: View {
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
 
-    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?) -> Void
+    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?, Date?) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
@@ -45,6 +45,10 @@ struct CountdownDetailsView: View {
     /// Message for the contact, typed in the row under theirs; the Message
     /// button opens Messages with it filled in. Cleared with the contact.
     @State private var scheduledMessage: String
+    /// When counting was paused, set from the more menu; nil while it
+    /// counts. Kept as is while the date changes, and saved only while it
+    /// still holds (see `draftPausedAt`).
+    @State private var pausedAt: Date?
     @State private var showDiscardDialog = false
     @State private var showCoverPicker = false
     @State private var showContactPicker = false
@@ -97,7 +101,7 @@ struct CountdownDetailsView: View {
         scrolledTab ?? .detail
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?, Date?) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -126,6 +130,7 @@ struct CountdownDetailsView: View {
         _reminderKind = State(initialValue: countdown?.reminderKind ?? .notification)
         _contact = State(initialValue: countdown?.contact)
         _scheduledMessage = State(initialValue: countdown?.scheduledMessage ?? "")
+        _pausedAt = State(initialValue: countdown?.pausedAt)
     }
 
     private var trimmedTitle: String {
@@ -249,6 +254,7 @@ struct CountdownDetailsView: View {
             || draftReminderKind != original.reminderKind
             || contact != original.contact
             || draftScheduledMessage != original.scheduledMessage
+            || draftPausedAt != original.pausedAt
     }
 
     /// What the countdown counts to right now: the picked date, rolled
@@ -265,6 +271,38 @@ struct CountdownDetailsView: View {
     /// since nothing is left to be reminded of.
     private var hasHappened: Bool {
         CountdownShare.dayDifference(from: Date(), to: effectiveTargetDate) < 0
+    }
+
+    /// `date` if it can pause the countdown as currently set: one that
+    /// never repeats and whose day was already behind the pause day. Nil
+    /// otherwise, so a pause drops away while the date is moved past it
+    /// (or the countdown is set to repeat) and comes back if that change
+    /// is undone, like the Reminder settings.
+    private func validPause(_ date: Date?) -> Date? {
+        guard let date, repeatFrequency == .never,
+              CountdownShare.dayDifference(from: date, to: targetDate) < 0 else { return nil }
+        return date
+    }
+
+    /// The pause as it will be saved, and as the preview card and the
+    /// Share menu show it.
+    private var draftPausedAt: Date? {
+        validPause(pausedAt)
+    }
+
+    /// Pause toggle in the more menu. Turning it back on before the editor
+    /// closes resumes the saved pause, so switching it off and on again
+    /// keeps the count it was frozen at instead of freezing today's.
+    private var pauseBinding: Binding<Bool> {
+        Binding(
+            get: {
+                draftPausedAt != nil
+            },
+            set: { isPaused in
+                triggerHaptic()
+                pausedAt = isPaused ? (validPause(original?.pausedAt) ?? Date()) : nil
+            }
+        )
     }
 
     /// Selectable range: a century either side of today keeps the year
@@ -495,6 +533,7 @@ struct CountdownDetailsView: View {
                 photoData: photoData,
                 photoCrop: photoCrop,
                 isRepeating: repeatFrequency != .never,
+                pausedAt: draftPausedAt,
                 emojiParticleBurst: emojiParticleBurst
             ) {
                 triggerHaptic()
@@ -791,7 +830,8 @@ struct CountdownDetailsView: View {
                     emoji: emoji,
                     photoData: photoData,
                     photoCrop: photoCrop,
-                    isRepeating: repeatFrequency != .never
+                    isRepeating: repeatFrequency != .never,
+                    pausedAt: draftPausedAt
                 )
             }
             .sheet(isPresented: $showCustomRepeatSheet) {
@@ -858,7 +898,7 @@ struct CountdownDetailsView: View {
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage)
+                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage, draftPausedAt)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -904,6 +944,14 @@ struct CountdownDetailsView: View {
                                 // renders in the small secondary menu style.
                                 Section(String(format: String(localized: "Created on %@"), original.createdAt.formatted(.dateTime.year().month().day()))) {
                                     shareMenu
+
+                                    // Only a countdown that has happened counts
+                                    // up, so only it has a count to pause.
+                                    if hasHappened {
+                                        Toggle(isOn: pauseBinding) {
+                                            Label(String(localized: "Pause"), systemImage: "pause.circle")
+                                        }
+                                    }
 
                                     Divider()
 
@@ -1036,7 +1084,7 @@ struct CountdownDetailsView: View {
                 UIPasteboard.general.string = CountdownShare.copyText(
                     title: shareTitle,
                     targetDate: effectiveTargetDate,
-                    now: Date(),
+                    now: draftPausedAt ?? Date(),
                     showYears: showYears,
                     showMonths: showMonths,
                     showDays: showDays
@@ -1128,7 +1176,7 @@ struct CountdownDetailsView: View {
 
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage)
+        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage, draftPausedAt)
         dismiss()
     }
 
@@ -1142,10 +1190,11 @@ struct CountdownDetailsView: View {
 
 /// Live preview card for a countdown, styled after the Settings preview
 /// card: a happened/happening arrow (or a repeat symbol for repeating
-/// countdowns) top-left, event title bottom-left, the
-/// day count as a large bare number on the right, and a complication-sized
-/// emoji in the middle whose dominant colour fills the card. Also reused on
-/// the Home screen; without `onEmojiTap` the emoji is display-only.
+/// countdowns, a pause symbol for paused ones) top-left, event title
+/// bottom-left, the day count as a large bare number on the right, and a
+/// complication-sized emoji in the middle whose dominant colour fills the
+/// card. Also reused on the Home screen; without `onEmojiTap` the emoji is
+/// display-only.
 struct CountdownPreviewCard: View {
     let title: String
     let targetDate: Date
@@ -1161,6 +1210,10 @@ struct CountdownPreviewCard: View {
     /// True for repeating countdowns; swaps the top-left arrow for a
     /// repeat symbol.
     var isRepeating: Bool = false
+    /// Set while the countdown is paused: the day count holds as of this
+    /// date instead of following `now`, and a pause symbol takes the
+    /// top-left arrow's place.
+    var pausedAt: Date? = nil
     /// Shows a pin after the date, top-right, where the countdown sheet's
     /// compact rows have theirs. Off on Home, where every card is pinned.
     var isPinned: Bool = false
@@ -1187,18 +1240,36 @@ struct CountdownPreviewCard: View {
         Calendar.current
     }
 
+    /// The date the day count is measured from: `now`, or the pause date
+    /// while paused, which holds the count where it stopped.
+    private var countingDate: Date {
+        pausedAt ?? now
+    }
+
     /// Whole calendar days from the reference date to the target date;
     /// negative once the event has happened.
     private var dayDifference: Int {
         calendar.dateComponents(
             [.day],
-            from: calendar.startOfDay(for: now),
+            from: calendar.startOfDay(for: countingDate),
             to: calendar.startOfDay(for: targetDate)
         ).day ?? 0
     }
 
     private var hasHappened: Bool {
         dayDifference < 0
+    }
+
+    /// Top-left symbol: repeat for repeating countdowns, pause while
+    /// paused, otherwise an arrow back (happened) or ahead (happening).
+    private var statusSymbol: String {
+        if isRepeating {
+            return "repeat"
+        }
+        if pausedAt != nil {
+            return "pause"
+        }
+        return hasHappened ? "arrow.left" : "arrow.right"
     }
 
     private var bigText: String {
@@ -1227,10 +1298,11 @@ struct CountdownPreviewCard: View {
     var body: some View {
         ZStack {
             VStack(alignment: .leading, spacing: 4) {
-                // Repeat symbol (repeating) / happened (left arrow) /
-                // happening (right arrow) top-left, countdown date top-right
+                // Repeat symbol (repeating) / pause (paused) / happened (left
+                // arrow) / happening (right arrow) top-left, countdown date
+                // top-right
                 HStack {
-                    Image(systemName: isRepeating ? "repeat" : (hasHappened ? "arrow.left" : "arrow.right"))
+                    Image(systemName: statusSymbol)
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(.secondary)
                         .blendMode(.plusLighter)
@@ -1340,6 +1412,7 @@ struct CountdownPreviewCard: View {
         .animation(.spring(), value: bigText)
         .animation(.spring(), value: hasHappened)
         .animation(.spring(), value: isRepeating)
+        .animation(.spring(), value: pausedAt)
         .animation(.spring(), value: isPinned)
         .animation(.spring(), value: emoji)
         .animation(.spring(), value: photoData)
