@@ -9,8 +9,8 @@ import SwiftUI
 import UIKit
 
 /// The Space page of a countdown: everything the user saved for the event
-/// (notes and photos) laid out as a two-column grid of square widget-style
-/// tiles.
+/// (notes and photos) laid out as a grid of square widget-style tiles, two
+/// columns wide, or four on the unfolded iPhone Duo.
 struct CountdownSpaceView: View {
     let countdownID: UUID
 
@@ -28,6 +28,8 @@ struct CountdownSpaceView: View {
     /// still holding its slot, so the rest of the grid stays put until
     /// the card is gone.
     @State private var removingAttachmentIDs: Set<UUID> = []
+    /// Unfolded iPhone Duo, either way up: four columns instead of two.
+    @State private var usesFourColumns = false
 
     private let spaceStore = CountdownSpaceStore.shared
 
@@ -36,11 +38,13 @@ struct CountdownSpaceView: View {
     private static let contextMenuDismissDuration: TimeInterval = 0.35
     /// Length of the card's vanish animation.
     private static let vanishDuration: TimeInterval = 0.3
+    /// The widest iPhone's width: a page wider than this is on the unfolded
+    /// iPhone Duo.
+    private static let maximumPhoneWidth: CGFloat = 440
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 12),
-        GridItem(.flexible(), spacing: 12)
-    ]
+    private var columns: [GridItem] {
+        Array(repeating: GridItem(.flexible(), spacing: 12), count: usesFourColumns ? 4 : 2)
+    }
 
     private var attachments: [SpaceAttachment] {
         spaceStore.attachments(for: countdownID)
@@ -72,6 +76,11 @@ struct CountdownSpaceView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemGroupedBackground))
+        .onGeometryChange(for: Bool.self) { proxy in
+            proxy.size.width > Self.maximumPhoneWidth
+        } action: { isWiderThanPhone in
+            usesFourColumns = isWiderThanPhone
+        }
         .fullScreenCover(item: $viewedImage) { attachment in
             SpaceImageViewer(attachment: attachment)
                 .navigationTransition(.zoom(sourceID: attachment.id, in: zoomNamespace))

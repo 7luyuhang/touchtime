@@ -779,8 +779,8 @@ struct AnalogClockFullView: View {
                 .frame(maxWidth: 200)
 
             if hasConfiguredHomeTimer {
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 10, weight: .bold))
+                Image(systemName: "chevron.compact.right")
+                    .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(.secondary)
             }
         }

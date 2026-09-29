@@ -116,6 +116,7 @@ struct LifetimeStoreView: View {
                     .frame(maxWidth: .infinity)
                     .frame(minHeight: geometry.size.height, alignment: .bottom)
                 }
+                .scrollIndicators(.hidden)
             }
 
             // Square darkening gradient at the top of the screen
