@@ -384,11 +384,15 @@ struct CountdownDetailsView: View {
 
             Section {
                 DatePicker(
-                    String(localized: "Date"),
                     selection: $targetDate,
                     in: targetDateRange,
                     displayedComponents: [.date]
-                )
+                ) {
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "calendar", topColor: .gray, bottomColor: .gray, style: .plain)
+                        Text(String(localized: "Date"))
+                    }
+                }
                 .datePickerStyle(.compact)
 
                 // Repeat: the presets, then Custom below a divider, which
@@ -450,7 +454,10 @@ struct CountdownDetailsView: View {
             if !hasHappened {
                 Section {
                     TouchTimeToggle(isOn: $reminderEnabled) {
-                        Text(String(localized: "Reminder"))
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "bell.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text(String(localized: "Reminder"))
+                        }
                     }
 
                     if reminderEnabled {
@@ -532,8 +539,11 @@ struct CountdownDetailsView: View {
                     Button {
                         presentContactPicker()
                     } label: {
-                        Text(String(localized: "Select Contact..."))
-                            .foregroundStyle(.white)
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "person.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text(String(localized: "Select Contact..."))
+                                .foregroundStyle(.white)
+                        }
                     }
                 }
             } footer: {
@@ -547,7 +557,10 @@ struct CountdownDetailsView: View {
 
             Section {
                 TouchTimeToggle(isOn: $isPinned) {
-                    Text(String(localized: "Pin Countdown"))
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "pin.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                        Text(String(localized: "Pin Countdown"))
+                    }
                 }
             } footer: {
                 Text(String(localized: "Pinned countdowns will also appear on the Home screen."))
