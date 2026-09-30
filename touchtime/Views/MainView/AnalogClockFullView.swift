@@ -2338,7 +2338,7 @@ struct AnalogClockFaceView: View {
             }
             
             // Hour numbers
-            HourNumbersView(size: size)
+            HourNumbersView(size: size, isFolded: isFolded)
             
             
             // Golden hour indicator (yellow)

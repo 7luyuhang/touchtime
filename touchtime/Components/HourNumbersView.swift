@@ -9,6 +9,11 @@ import SwiftUI
 
 struct HourNumbersView: View {
     let size: CGFloat
+    let isFolded: Bool
+
+    private var numberFont: Font {
+        isFolded ? .body.weight(.semibold) : .title3.weight(.medium)
+    }
     
     var body: some View {
         Group {
@@ -20,7 +25,7 @@ struct HourNumbersView: View {
                 let y = radius * sin(angle * .pi / 180)
                 
                 Text("\(hour)")
-                    .font(.title3.weight(.medium))
+                    .font(numberFont)
                     .fontDesign(.rounded)
                     .foregroundColor(.white)
                     .position(x: size / 2 + x, y: size / 2 + y)
@@ -35,7 +40,7 @@ struct HourNumbersView: View {
                 let y = radius * sin(angle * .pi / 180)
                 
                 Text("\(displayHour)")
-                    .font(.title3.weight(.medium))
+                    .font(numberFont)
                     .fontDesign(.rounded)
                     .foregroundColor(.white)
                     .position(x: size / 2 + x, y: size / 2 + y)
