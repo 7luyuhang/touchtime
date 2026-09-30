@@ -83,31 +83,60 @@ final class CountdownReminderManager {
         guard authorization == .authorized || authorization == .provisional else { return }
 
         let now = Date()
-        let calendar = Calendar.current
         for item in countdowns {
             guard let fireDate = item.nextReminderFireDate(after: now) else { continue }
 
             let content = UNMutableNotificationContent()
             content.title = item.title
-            switch item.reminderLeadDays {
-            case 0:
-                content.body = String(localized: "The event is today.")
-            case 1:
-                content.body = String(localized: "The event is tomorrow.")
-            default:
-                content.body = String(format: String(localized: "The event is in %d days."), item.reminderLeadDays)
-            }
+            content.body = notificationBody(for: item)
             content.sound = .default
 
-            let components = calendar.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
-            let trigger = UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
             let request = UNNotificationRequest(
                 identifier: Self.identifierPrefix + item.id.uuidString,
                 content: content,
-                trigger: trigger
+                trigger: notificationTrigger(firingAt: fireDate, for: item)
             )
             try? await center.add(request)
         }
+    }
+
+    /// How far off the event is. A time on another city's clock goes off
+    /// on the reminder day's date there, which can be the day before or
+    /// after here, so it counts that city's days and names it.
+    private func notificationBody(for item: CountdownItem) -> String {
+        guard let city = item.reminderCity else {
+            switch item.reminderLeadDays {
+            case 0:
+                return String(localized: "The event is today.")
+            case 1:
+                return String(localized: "The event is tomorrow.")
+            default:
+                return String(format: String(localized: "The event is in %d days."), item.reminderLeadDays)
+            }
+        }
+
+        switch item.reminderLeadDays {
+        case 0:
+            return String(format: String(localized: "In %@, the event is today."), city.localizedCityName)
+        case 1:
+            return String(format: String(localized: "In %@, the event is tomorrow."), city.localizedCityName)
+        default:
+            return String(format: String(localized: "In %@, the event is in %d days."), city.localizedCityName, item.reminderLeadDays)
+        }
+    }
+
+    /// Goes off at `fireDate`. A local time keeps to the clock here; a time
+    /// on another city's clock is one moment wherever the phone is, so it
+    /// is counted down to instead. A calendar trigger would follow the
+    /// phone into another time zone, and take the first run of the hour
+    /// the clocks repeat when they go back.
+    private func notificationTrigger(firingAt fireDate: Date, for item: CountdownItem) -> UNNotificationTrigger {
+        guard item.reminderCity == nil else {
+            // The interval must be positive, and `fireDate` can be only just ahead.
+            return UNTimeIntervalNotificationTrigger(timeInterval: max(fireDate.timeIntervalSinceNow, 1), repeats: false)
+        }
+        let components = Calendar.current.dateComponents([.year, .month, .day, .hour, .minute], from: fireDate)
+        return UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
     }
 
     /// Alarm reminders are one-shot AlarmKit alarms, one per countdown and

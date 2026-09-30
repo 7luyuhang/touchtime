@@ -183,8 +183,14 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     /// changed again.
     var photoCrop: PhotoCrop?
     /// Reminder on the day of the event at this time of day; only the
-    /// hour and minute are meaningful. Nil when the reminder is off.
+    /// hour and minute are meaningful, read on `reminderCity`'s clock
+    /// (the device's own without one). Nil when the reminder is off.
     var reminderTime: Date?
+    /// The city whose clock the reminder time is set on, picked from
+    /// Home's cities (a friend abroad, say); nil for local time. The
+    /// reminder then goes off at that time there, on the reminder day's
+    /// date, which can be the day before or after here.
+    var reminderCity: WorldClock?
     /// How many days before the event day the reminder fires; 0 means on
     /// the day of the event.
     var reminderLeadDays: Int
@@ -203,7 +209,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
     /// paused; the editor drops a pause that no longer holds when it saves.
     var pausedAt: Date?
 
-    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderLeadDays: Int = 0, reminderKind: ReminderKind = .notification, contact: LinkedContact? = nil, scheduledMessage: String? = nil, pausedAt: Date? = nil) {
+    init(id: UUID, title: String, targetDate: Date, createdAt: Date, isPinned: Bool = false, repeatFrequency: RepeatFrequency = .never, emoji: String? = nil, photoData: Data? = nil, photoCrop: PhotoCrop? = nil, reminderTime: Date? = nil, reminderCity: WorldClock? = nil, reminderLeadDays: Int = 0, reminderKind: ReminderKind = .notification, contact: LinkedContact? = nil, scheduledMessage: String? = nil, pausedAt: Date? = nil) {
         self.id = id
         self.title = title
         self.targetDate = targetDate
@@ -214,6 +220,7 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         self.photoData = photoData
         self.photoCrop = photoCrop
         self.reminderTime = reminderTime
+        self.reminderCity = reminderCity
         self.reminderLeadDays = reminderLeadDays
         self.reminderKind = reminderKind
         self.contact = contact
@@ -244,6 +251,9 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         // dropping the whole store.
         photoCrop = (try? container.decodeIfPresent(PhotoCrop.self, forKey: .photoCrop)) ?? nil
         reminderTime = try container.decodeIfPresent(Date.self, forKey: .reminderTime)
+        // Saves that predate reminder cities have no key; a city that
+        // doesn't decode falls back to local time, not an empty store.
+        reminderCity = (try? container.decodeIfPresent(WorldClock.self, forKey: .reminderCity)) ?? nil
         reminderLeadDays = try container.decodeIfPresent(Int.self, forKey: .reminderLeadDays) ?? 0
         // Saves that predate the choice, or a kind from a newer app version,
         // fall back to a notification rather than dropping the whole store.
@@ -293,23 +303,47 @@ struct CountdownItem: Identifiable, Codable, Equatable {
         return next
     }
 
+    /// The time zone a reminder time is set in: `city`'s, or the device's
+    /// own for local time.
+    static func reminderTimeZone(for city: WorldClock?) -> TimeZone {
+        city.flatMap { TimeZone(identifier: $0.timeZoneIdentifier) } ?? .current
+    }
+
+    /// When a reminder at `hour`:`minute` on `city`'s clock goes off on
+    /// `day`. The date is `day`'s on the device's calendar, so a friend
+    /// abroad is reminded on the event's date where they are.
+    static func reminderDate(on day: Date, hour: Int, minute: Int, in city: WorldClock?) -> Date? {
+        var components = Calendar.current.dateComponents([.era, .year, .month, .day], from: day)
+        components.hour = hour
+        components.minute = minute
+        var calendar = Calendar.current
+        calendar.timeZone = reminderTimeZone(for: city)
+        return calendar.date(from: components)
+    }
+
     /// When the reminder (notification or alarm) should next fire:
-    /// `reminderLeadDays` before the (next) occurrence day, at the
-    /// reminder's time of day.
+    /// `reminderLeadDays` before an occurrence day, at the reminder's time
+    /// of day on the reminder city's clock, whichever such moment comes
+    /// first after `now`.
     /// Nil without a reminder, or when the time has already passed on a
     /// countdown that never repeats.
     func nextReminderFireDate(after now: Date) -> Date? {
         guard let reminderTime else { return nil }
         let calendar = Calendar.current
-        let time = calendar.dateComponents([.hour, .minute], from: reminderTime)
+        var reminderCalendar = calendar
+        reminderCalendar.timeZone = Self.reminderTimeZone(for: reminderCity)
+        let time = reminderCalendar.dateComponents([.hour, .minute], from: reminderTime)
 
-        // A repeating countdown whose reminder already rang today still
-        // reads "Today" all day, so step past that occurrence to the next.
-        var searchFrom = now
+        // Starts two days back: a time on a clock behind this one can go
+        // off a day or two after its occurrence here, once that occurrence
+        // has rolled on. A repeating countdown whose reminder already rang
+        // today still reads "Today" all day, so step past that occurrence
+        // to the next.
+        var searchFrom = calendar.date(byAdding: .day, value: -2, to: now) ?? now
         for _ in 0..<4 {
             let occurrence = Self.nextOccurrence(of: targetDate, frequency: repeatFrequency, after: searchFrom)
             let reminderDay = calendar.date(byAdding: .day, value: -reminderLeadDays, to: occurrence) ?? occurrence
-            if let fireDate = calendar.date(bySettingHour: time.hour ?? 9, minute: time.minute ?? 0, second: 0, of: reminderDay),
+            if let fireDate = Self.reminderDate(on: reminderDay, hour: time.hour ?? 9, minute: time.minute ?? 0, in: reminderCity),
                fireDate > now {
                 return fireDate
             }

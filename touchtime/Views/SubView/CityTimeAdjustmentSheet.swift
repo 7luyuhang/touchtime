@@ -231,20 +231,7 @@ struct CityTimeAdjustmentSheet: View {
                                     .font(.subheadline.weight(.semibold))
                             }
                         
-                        HStack(spacing: 4) {
-                            Image(systemName: "location.fill")
-                                .font(.subheadline.weight(.semibold))
-                            
-                            Text(adjustedLocalTimeText)
-                                .font(.subheadline.weight(.semibold))
-                                .monospacedDigit()
-                                .contentTransition(.numericText())
-                                .animation(.smooth(duration: 0.25), value: adjustedLocalTimeText)
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 10)
-                        .glassEffect(.regular.tint(.blue), in: .capsule(style: .continuous))
-                        .foregroundStyle(.white)
+                        LocalTimeCapsule(time: adjustedLocalTimeText)
                     }
                     .padding(.leading, 20)
                     .padding(.trailing, 8)
@@ -520,5 +507,39 @@ struct CityTimeAdjustmentSheet: View {
                 }
             }
         }
+    }
+}
+
+/// Blue capsule with a location arrow under the time wheels: the picked
+/// time on the device's own clock. `dayOffset` marks a local time that
+/// lands on another day than the picked one ("-1d" for the day before).
+struct LocalTimeCapsule: View {
+    let time: String
+    var dayOffset: Int = 0
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "location.fill")
+                .font(.subheadline.weight(.semibold))
+
+            Text(time)
+                .font(.subheadline.weight(.semibold))
+                .monospacedDigit()
+                .contentTransition(.numericText())
+                .animation(.smooth(duration: 0.25), value: time)
+
+            if dayOffset != 0 {
+                Text(String(format: "%+d", dayOffset) + String(localized: "d"))
+                    .font(.subheadline.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .transition(.blurReplace)
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 16)
+        .glassEffect(.regular, in: .capsule(style: .continuous))
+        .foregroundStyle(.white)
+        .animation(.smooth(duration: 0.25), value: dayOffset)
     }
 }

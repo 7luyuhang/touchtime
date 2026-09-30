@@ -25,7 +25,7 @@ struct CountdownDetailsView: View {
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
 
-    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?, Date?) -> Void
+    let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, WorldClock?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?, Date?) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
 
@@ -38,6 +38,8 @@ struct CountdownDetailsView: View {
     @State private var repeatFrequency: CountdownItem.RepeatFrequency
     @State private var reminderEnabled: Bool
     @State private var reminderTime: Date
+    /// The city whose clock the reminder time is set on; nil for local.
+    @State private var reminderCity: WorldClock?
     @State private var reminderLeadDays: Int
     @State private var reminderKind: CountdownItem.ReminderKind
     /// The one contact linked to this countdown; nil until one is picked.
@@ -56,6 +58,7 @@ struct CountdownDetailsView: View {
     @State private var showShareImageSheet = false
     @State private var showNotificationPermissionAlert = false
     @State private var showAlarmPermissionAlert = false
+    @State private var showReminderTimeSheet = false
     // Custom repeat sheet: the wheels edit these and confirm applies them
     // to `repeatFrequency`, so cancelling leaves the frequency untouched.
     @State private var showCustomRepeatSheet = false
@@ -101,7 +104,7 @@ struct CountdownDetailsView: View {
         scrolledTab ?? .detail
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?, Date?) -> Void) {
+    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, WorldClock?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?, Date?) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
@@ -126,6 +129,7 @@ struct CountdownDetailsView: View {
         let defaultReminderTime = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: .now) ?? .now
         _reminderEnabled = State(initialValue: countdown?.reminderTime != nil)
         _reminderTime = State(initialValue: countdown?.reminderTime ?? defaultReminderTime)
+        _reminderCity = State(initialValue: countdown?.reminderCity)
         _reminderLeadDays = State(initialValue: countdown?.reminderLeadDays ?? 0)
         _reminderKind = State(initialValue: countdown?.reminderKind ?? .notification)
         _contact = State(initialValue: countdown?.contact)
@@ -140,6 +144,12 @@ struct CountdownDetailsView: View {
     /// The reminder time as currently configured in the form; nil when off.
     private var draftReminderTime: Date? {
         reminderEnabled ? reminderTime : nil
+    }
+
+    /// The reminder city as currently configured; nil (local time) when
+    /// the reminder is off.
+    private var draftReminderCity: WorldClock? {
+        reminderEnabled ? reminderCity : nil
     }
 
     /// Lead days as currently configured; 0 (event day) when the reminder
@@ -202,10 +212,12 @@ struct CountdownDetailsView: View {
             : String(format: String(localized: "%d Days"), days)
     }
 
-    /// Reminder time for the footer, honouring the 24-hour format setting.
-    private var reminderTimeString: String {
+    /// A reminder time as the section writes it, honouring the 24-hour
+    /// format setting.
+    private func formattedReminderTime(_ date: Date, in timeZone: TimeZone) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
         if use24HourFormat {
             formatter.dateFormat = "HH:mm"
         } else {
@@ -213,7 +225,36 @@ struct CountdownDetailsView: View {
             formatter.amSymbol = "am"
             formatter.pmSymbol = "pm"
         }
-        return formatter.string(from: reminderTime)
+        return formatter.string(from: date)
+    }
+
+    /// Reminder time for the footer, on the reminder city's clock.
+    private var reminderTimeString: String {
+        formattedReminderTime(reminderTime, in: CountdownItem.reminderTimeZone(for: reminderCity))
+    }
+
+    /// Reminder time for the Time row, on the device's clock: when a time
+    /// set on another city's clock goes off here on the reminder day.
+    private var reminderLocalTimeString: String {
+        var calendar = Calendar.current
+        calendar.timeZone = CountdownItem.reminderTimeZone(for: reminderCity)
+        let time = calendar.dateComponents([.hour, .minute], from: reminderTime)
+        let localDate = CountdownItem.reminderDate(on: reminderDay, hour: time.hour ?? 9, minute: time.minute ?? 0, in: reminderCity) ?? reminderTime
+        return formattedReminderTime(localDate, in: .current)
+    }
+
+    /// The reminder time as the footer reads it: "9:00 am", or "9:00 am
+    /// Tokyo time" when it is set on another city's clock.
+    private var reminderFooterTime: String {
+        guard let reminderCity else { return reminderTimeString }
+        return String(format: String(localized: "%@ %@ time"), reminderTimeString, reminderCity.localizedCityName)
+    }
+
+    /// The day the reminder falls on: the (next) event day, less the lead
+    /// days. The Time row and the reminder time sheet work out the local
+    /// time on it.
+    private var reminderDay: Date {
+        Calendar.current.date(byAdding: .day, value: -reminderLeadDays, to: effectiveTargetDate) ?? effectiveTargetDate
     }
 
     /// Reminder section footer: what arrives (notification or alarm), at
@@ -223,19 +264,19 @@ struct CountdownDetailsView: View {
         switch reminderKind {
         case .notification:
             if reminderLeadDays == 0 {
-                Text("Get a notification at \(reminderTimeString) on the day of the event.")
+                Text("Get a notification at \(reminderFooterTime) on the day of the event.")
             } else if reminderLeadDays == 1 {
-                Text("Get a notification at \(reminderTimeString), 1 day before the event.")
+                Text("Get a notification at \(reminderFooterTime), 1 day before the event.")
             } else {
-                Text("Get a notification at \(reminderTimeString), \(reminderLeadDays) days before the event.")
+                Text("Get a notification at \(reminderFooterTime), \(reminderLeadDays) days before the event.")
             }
         case .alarm:
             if reminderLeadDays == 0 {
-                Text("Get an alarm at \(reminderTimeString) on the day of the event.")
+                Text("Get an alarm at \(reminderFooterTime) on the day of the event.")
             } else if reminderLeadDays == 1 {
-                Text("Get an alarm at \(reminderTimeString), 1 day before the event.")
+                Text("Get an alarm at \(reminderFooterTime), 1 day before the event.")
             } else {
-                Text("Get an alarm at \(reminderTimeString), \(reminderLeadDays) days before the event.")
+                Text("Get an alarm at \(reminderFooterTime), \(reminderLeadDays) days before the event.")
             }
         }
     }
@@ -250,6 +291,7 @@ struct CountdownDetailsView: View {
             || isPinned != original.isPinned
             || repeatFrequency != original.repeatFrequency
             || draftReminderTime != original.reminderTime
+            || draftReminderCity != original.reminderCity
             || draftReminderLeadDays != original.reminderLeadDays
             || draftReminderKind != original.reminderKind
             || contact != original.contact
@@ -452,13 +494,7 @@ struct CountdownDetailsView: View {
                                     .contentShape(Circle())
                             }
 
-                            DatePicker(
-                                "",
-                                selection: $reminderTime,
-                                displayedComponents: [.hourAndMinute]
-                            )
-                            .datePickerStyle(.compact)
-                            .labelsHidden()
+                            reminderTimeButton
                         }
 
                         // How the reminder arrives: a notification, or an
@@ -560,6 +596,35 @@ struct CountdownDetailsView: View {
             }
         }
         .animation(.spring(), value: focusedField == .scheduledMessage)
+    }
+
+    /// The reminder time in the Time row, as tall as the lead-day button
+    /// beside it: the local time, after a location arrow when it is set
+    /// on another city's clock (the footer names the city). Opens the
+    /// reminder time sheet, whose title switches cities.
+    private var reminderTimeButton: some View {
+        Button {
+            presentReminderTimeSheet()
+        } label: {
+            HStack(spacing: 4) {
+                if reminderCity != nil {
+                    Image(systemName: "location.fill")
+                        .font(.footnote.weight(.semibold))
+                        .transition(.blurReplace)
+                }
+
+                Text(reminderLocalTimeString)
+                    .monospacedDigit()
+                    .contentTransition(.numericText())
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 34)
+            .background(Capsule().fill(Color(UIColor.tertiarySystemFill)))
+            .contentShape(Capsule())
+            .animation(.spring(), value: reminderLocalTimeString)
+            .animation(.spring(), value: reminderCity != nil)
+        }
+        .buttonStyle(.plain)
     }
 
     /// Round blue glass button that drops the keyboard, tinted like the
@@ -849,6 +914,12 @@ struct CountdownDetailsView: View {
                     }
                 )
             }
+            .sheet(isPresented: $showReminderTimeSheet) {
+                ReminderTimeSheet(time: reminderTime, city: reminderCity, reminderDay: reminderDay) { time, city in
+                    reminderTime = time
+                    reminderCity = city
+                }
+            }
             .photosPicker(
                 isPresented: $showSpacePhotoPicker,
                 selection: $spacePhotoItems,
@@ -898,7 +969,7 @@ struct CountdownDetailsView: View {
             .onDisappear {
                 // No explicit save button when editing: commit changes on dismiss.
                 guard isEditing, hasChanges, !trimmedTitle.isEmpty else { return }
-                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage, draftPausedAt)
+                onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderCity, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage, draftPausedAt)
             }
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -1134,6 +1205,14 @@ struct CountdownDetailsView: View {
         }
     }
 
+    /// Opens the reminder time sheet from the Time row.
+    private func presentReminderTimeSheet() {
+        triggerHaptic()
+        // Drop the keyboard before the sheet comes up
+        focusedField = nil
+        showReminderTimeSheet = true
+    }
+
     /// Opens the system contact picker to link (or replace) the contact.
     private func presentContactPicker() {
         triggerHaptic()
@@ -1176,7 +1255,7 @@ struct CountdownDetailsView: View {
 
     private func saveAndDismiss() {
         triggerHaptic()
-        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage, draftPausedAt)
+        onSave(trimmedTitle, targetDate, emoji, photoData, photoCrop, isPinned, repeatFrequency, draftReminderTime, draftReminderCity, draftReminderLeadDays, draftReminderKind, contact, draftScheduledMessage, draftPausedAt)
         dismiss()
     }
 
