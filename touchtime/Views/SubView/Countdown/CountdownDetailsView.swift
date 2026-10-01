@@ -394,13 +394,18 @@ struct CountdownDetailsView: View {
                     }
                 }
                 .datePickerStyle(.compact)
+            }
 
-                // Repeat: the presets, then Custom below a divider, which
-                // opens the interval sheet. A Menu rather than a menu-style
-                // Picker so the list can end in an action; the label copies
-                // the picker's value-plus-chevron look.
+            // Repeat: the presets, then Custom below a divider, which
+            // opens the interval sheet. A Menu rather than a menu-style
+            // Picker so the list can end in an action; the label copies
+            // the picker's value-plus-chevron look.
+            Section {
                 HStack {
-                    Text(String(localized: "Repeat"))
+                    HStack(spacing: 12) {
+                        SystemIconImage(systemName: "repeat", topColor: .gray, bottomColor: .gray, style: .plain)
+                        Text(String(localized: "Repeat"))
+                    }
 
                     Spacer()
 
