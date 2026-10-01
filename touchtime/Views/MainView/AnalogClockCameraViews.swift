@@ -133,6 +133,9 @@ struct AnalogClockCameraCloseButton: View {
     }
 }
 
+/// The camera button: it turns the camera background on, then opens its
+/// filters. Its button style is up to the caller: plain in the navigation bar,
+/// a glass circle outside it.
 struct AnalogClockCameraToolbarControls: View {
     let isCameraBackgroundEnabled: Bool
     let isStandardSelected: Bool
@@ -146,7 +149,7 @@ struct AnalogClockCameraToolbarControls: View {
 
     @Environment(\.isEnabled) private var isEnabled
 
-    /// `.plain` buttons don't dim on their own, so fade the symbol when disabled
+    /// Neither button style dims on its own, so fade the symbol when disabled
     private var symbolStyle: HierarchicalShapeStyle {
         isEnabled ? .primary : .tertiary
     }
@@ -186,13 +189,11 @@ struct AnalogClockCameraToolbarControls: View {
                 Image(systemName: "camera.filters")
                     .foregroundStyle(symbolStyle)
             }
-            .buttonStyle(.plain)
         } else {
             Button(action: onEnableCamera) {
                 Image(systemName: "camera.aperture")
                     .foregroundStyle(symbolStyle)
             }
-            .buttonStyle(.plain)
         }
     }
 }

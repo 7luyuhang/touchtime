@@ -77,6 +77,8 @@ struct AnalogClockFullView: View {
     @State private var staticCameraFrame: UIImage?
     @State private var cameraPreviewFilter: CameraPreviewFilter = .standard
     @StateObject private var cameraSessionController = CameraSessionController()
+    /// The clock's space is wider than tall: the open iPhone Duo in landscape
+    @State private var isLandscape = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
@@ -839,23 +841,45 @@ struct AnalogClockFullView: View {
         }
     }
 
+    /// The open iPhone Duo in portrait, flat or partially open, where the
+    /// ellipsis and camera buttons leave the navigation bar for the top of
+    /// the clock's half below the fold, as on the List tab
+    private var usesPortraitSplit: Bool {
+        guard #available(iOS 27.1, *) else { return false }
+        return horizontalSizeClass == .regular && !isLandscape
+            && !(displayedClocks.isEmpty && !showLocalTime)
+    }
+
+    private var moreMenu: some View {
+        Menu {
+            leadingMenuContent
+        } label: {
+            Image(systemName: "ellipsis")
+        }
+    }
+
+    private var cameraControls: some View {
+        AnalogClockCameraToolbarControls(
+            isCameraBackgroundEnabled: isCameraBackgroundEnabled,
+            isStandardSelected: cameraPreviewFilter == .standard,
+            isBlurSelected: cameraPreviewFilter == .blur,
+            isBlackAndWhiteSelected: cameraPreviewFilter == .blackAndWhite,
+            onSelectStandard: { setCameraFilter(.standard) },
+            onSelectBlur: { setCameraFilter(.blur) },
+            onSelectBlackAndWhite: { setCameraFilter(.blackAndWhite) },
+            onFlipCamera: handleCameraFlip,
+            onEnableCamera: handleCameraToggle
+        )
+        // The camera background belongs to the Time page only
+        .disabled(selectedDisplayPage != .time)
+    }
+
     @ToolbarContentBuilder
     private var cameraToolbarItem: some ToolbarContent {
-        if !displayedClocks.isEmpty {
+        if !displayedClocks.isEmpty && !usesPortraitSplit {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                AnalogClockCameraToolbarControls(
-                    isCameraBackgroundEnabled: isCameraBackgroundEnabled,
-                    isStandardSelected: cameraPreviewFilter == .standard,
-                    isBlurSelected: cameraPreviewFilter == .blur,
-                    isBlackAndWhiteSelected: cameraPreviewFilter == .blackAndWhite,
-                    onSelectStandard: { setCameraFilter(.standard) },
-                    onSelectBlur: { setCameraFilter(.blur) },
-                    onSelectBlackAndWhite: { setCameraFilter(.blackAndWhite) },
-                    onFlipCamera: handleCameraFlip,
-                    onEnableCamera: handleCameraToggle
-                )
-                // The camera background belongs to the Time page only
-                .disabled(selectedDisplayPage != .time)
+                cameraControls
+                    .buttonStyle(.plain)
             }
         }
     }
@@ -1421,27 +1445,44 @@ struct AnalogClockFullView: View {
     /// folded screen's, so it takes the folded screen's numbers and labels.
     /// There's no room left for the reset button that floats above Slide to
     /// Adjust once the time is adjusted, so it covers the bottom of the face.
+    /// The ellipsis and camera buttons sit in its top corners.
     private var clockBelowFold: some View {
         GeometryReader { pane in
             // Slide to Adjust is 52pt tall and 8pt off the bottom
             let controlsHeight: CGFloat = 60
+            // Between the face circle and Slide to Adjust
+            let gapAboveControls: CGFloat = 16
             // The face circle is drawn 12pt inside the face's frame. That empty
             // band can run up past the top of the pane, toward the fold, and
-            // is the gap above Slide to Adjust.
+            // down into the gap above Slide to Adjust.
             let clockFaceInset: CGFloat = 12
             let size = min(
                 pane.size.width,
-                max(pane.size.height - controlsHeight + clockFaceInset, 0),
+                max(pane.size.height - controlsHeight - gapAboveControls + 2 * clockFaceInset, 0),
                 Self.maximumClockWidth
             )
 
-            VStack(spacing: 0) {
+            VStack(spacing: gapAboveControls) {
                 clockFace(size: size, isFolded: true)
-                    .padding(.top, -clockFaceInset)
+                    .padding(.vertical, -clockFaceInset)
                     .frame(maxHeight: .infinity)
                 scrollTimeControls
             }
             .frame(width: pane.size.width, height: pane.size.height)
+            .overlay(alignment: .top) {
+                // Where the List tab's navigation bar below the fold puts its
+                // buttons
+                HStack {
+                    moreMenu
+                    Spacer()
+                    if !displayedClocks.isEmpty {
+                        cameraControls
+                    }
+                }
+                .buttonStyle(BarGlassCircleButtonStyle())
+                .padding(.horizontal, 20)
+                .padding(.top, 10)
+            }
         }
     }
 
@@ -1566,17 +1607,20 @@ struct AnalogClockFullView: View {
                 }
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
+            .onGeometryChange(for: Bool.self) { proxy in
+                proxy.size.width > proxy.size.height
+            } action: { isWide in
+                isLandscape = isWide
+            }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {
                     principalToolbarTitle
                 }
                 
-                ToolbarItem(placement: .topBarLeading) {
-                    Menu {
-                        leadingMenuContent
-                    } label: {
-                        Image(systemName: "ellipsis")
+                if !usesPortraitSplit {
+                    ToolbarItem(placement: .topBarLeading) {
+                        moreMenu
                     }
                 }
             }
@@ -2871,6 +2915,22 @@ extension View {
         } else {
             toolbar { content }
         }
+    }
+}
+
+/// A navigation bar button's look outside the bar: its symbol on a 48pt glass
+/// circle. Applied through a button style so a menu's glass travels with it
+/// into the open menu, and the whole circle takes taps.
+private struct BarGlassCircleButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            // The bar's symbol size and weight, which don't follow Dynamic Type
+            .font(.system(size: 17, weight: .medium))
+            .imageScale(.large)
+            .foregroundStyle(.primary)
+            .frame(width: 48, height: 48)
+            .glassEffect(.regular.interactive(), in: .circle)
+            .contentShape(.circle)
     }
 }
 
