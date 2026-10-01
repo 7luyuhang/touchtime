@@ -240,6 +240,9 @@ struct StopwatchLapExtremes {
 /// Completed laps, newest first, shown between the clock face and the controls.
 /// Tapping the area opens `StopwatchLapListSheet` with the full list.
 struct StopwatchLapHistoryView: View {
+    /// How far the rows sit in from the sides
+    static let rowInset: CGFloat = 56
+
     let laps: [TimeInterval]
 
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -280,7 +283,6 @@ struct StopwatchLapHistoryView: View {
                 .foregroundStyle(.primary)
         }
         .font(.subheadline.weight(.medium))
-        .padding(.horizontal, 40)
         .monospacedDigit()
     }
 
@@ -299,14 +301,13 @@ struct StopwatchLapHistoryView: View {
                             if index != 0 {
                                 Divider()
                                     .overlay(.white.opacity(0.05))
-                                    .padding(.horizontal, 40)
                             }
                         }
                         .transition(.blurReplace.combined(with: .opacity))
                     }
                 }
                 .padding(.top, 8)
-                .padding(.horizontal)
+                .padding(.horizontal, Self.rowInset)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: proxy.size.height, alignment: .center)
             }
