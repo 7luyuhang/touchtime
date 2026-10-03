@@ -860,7 +860,11 @@ struct CountdownDetailsView: View {
                         // horizontal scroll view keeps its content inside the
                         // safe area, so every page started at the bar's edge and
                         // drew a hard seam against the sheet background behind it.
+                        // Pages span the side insets too (the folded iPhone Duo's
+                        // vertical bar): a page only as wide as the space beside
+                        // the bar leaves the next page showing under it.
                         let insets = viewport.safeAreaInsets
+                        let pageWidth = viewport.size.width + insets.leading + insets.trailing
                         let pageHeight = viewport.size.height + insets.top + insets.bottom
                         ScrollView(.horizontal) {
                             // Keep both pages alive in a regular HStack. A lazy
@@ -870,19 +874,17 @@ struct CountdownDetailsView: View {
                             // sheet has expanded to fill the screen.
                             HStack(alignment: .top, spacing: 0) {
                                 detailsForm
-                                    .safeAreaPadding(.top, insets.top)
-                                    .safeAreaPadding(.bottom, insets.bottom)
-                                    .frame(width: viewport.size.width, height: pageHeight)
+                                    .safeAreaPadding(insets)
+                                    .frame(width: pageWidth, height: pageHeight)
                                     .id(EditorTab.detail)
 
                                 CountdownSpaceView(countdownID: original.id)
-                                    .safeAreaPadding(.top, insets.top)
-                                    .safeAreaPadding(.bottom, insets.bottom)
-                                    .frame(width: viewport.size.width, height: pageHeight)
+                                    .safeAreaPadding(insets)
+                                    .frame(width: pageWidth, height: pageHeight)
                                     .id(EditorTab.space)
                             }
                             .frame(
-                                width: viewport.size.width * CGFloat(EditorTab.allCases.count),
+                                width: pageWidth * CGFloat(EditorTab.allCases.count),
                                 height: pageHeight,
                                 alignment: .leading
                             )

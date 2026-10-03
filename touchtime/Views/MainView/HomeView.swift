@@ -2161,7 +2161,8 @@ struct HomeView: View {
                     onConfirm: { durationSeconds in
                         startHomeTimer(durationSeconds: durationSeconds)
                     },
-                    onPlayPause: handleHomeTimerTap
+                    onPlayPause: handleHomeTimerTap,
+                    onClearHomeTimer: clearHomeTimer
                 )
             }
 

@@ -24,6 +24,8 @@ struct SetTimerSheet: View {
     let onConfirm: (Int) -> Void
     // Toggles pause/resume of the running home timer, used by the active Recents row
     let onPlayPause: (() -> Void)?
+    // Clears the home timer, used when its Recents entry is removed
+    let onClearHomeTimer: (() -> Void)?
 
     // Remembers the last duration the user confirmed, used as the default for new timers
     private static let lastSetDurationKey = "lastSetTimerDurationSeconds"
@@ -49,7 +51,8 @@ struct SetTimerSheet: View {
     init(
         initialDurationSeconds: Int,
         onConfirm: @escaping (Int) -> Void,
-        onPlayPause: (() -> Void)? = nil
+        onPlayPause: (() -> Void)? = nil,
+        onClearHomeTimer: (() -> Void)? = nil
     ) {
         let defaultDurationSeconds = 2 * 60
         let lastSetDuration = UserDefaults.standard.integer(forKey: Self.lastSetDurationKey)
@@ -58,6 +61,7 @@ struct SetTimerSheet: View {
         let clampedDuration = min(max(effectiveDuration, 0), Self.maxDurationSeconds)
         self.onConfirm = onConfirm
         self.onPlayPause = onPlayPause
+        self.onClearHomeTimer = onClearHomeTimer
         _selectedDuration = State(initialValue: clampedDuration)
         _recentTimers = State(initialValue: RecentTimerStore.load())
     }
@@ -186,8 +190,13 @@ struct SetTimerSheet: View {
     // MARK: - Recents
 
     private func deleteRecentTimer(_ recent: RecentTimer) {
+        let isHomeTimer = matchesHomeTimer(recent)
         recentTimers.removeAll { $0.id == recent.id }
         RecentTimerStore.save(recentTimers)
+
+        if isHomeTimer {
+            onClearHomeTimer?()
+        }
 
         if hapticEnabled {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -195,8 +204,13 @@ struct SetTimerSheet: View {
     }
 
     private func deleteAllRecentTimers() {
+        let includesHomeTimer = recentTimers.contains(where: matchesHomeTimer)
         recentTimers.removeAll()
         RecentTimerStore.save(recentTimers)
+
+        if includesHomeTimer {
+            onClearHomeTimer?()
+        }
 
         if hapticEnabled {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
