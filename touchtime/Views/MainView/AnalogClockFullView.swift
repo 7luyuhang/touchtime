@@ -1239,7 +1239,7 @@ struct AnalogClockFullView: View {
     /// The digital time pager: above the clock, or in a pane of its own on the
     /// open iPhone Duo, beside the clock in landscape and above the fold in
     /// portrait.
-    private func digitalTimeDisplay(isInOwnPane: Bool) -> some View {
+    private func digitalTimeDisplay(isInOwnPane: Bool, centeringHeight: CGFloat? = nil) -> some View {
         DigitalTimeDisplayView(
             currentDate: currentDate,
             timeOffset: timeOffset,
@@ -1265,7 +1265,8 @@ struct AnalogClockFullView: View {
             onDisplayPageChange: { page in
                 selectedDisplayPage = page
             },
-            isInOwnPane: isInOwnPane
+            isInOwnPane: isInOwnPane,
+            centeringHeight: centeringHeight
         ) {
             if hapticEnabled {
                 let impactFeedback = UIImpactFeedbackGenerator(style: .rigid)
@@ -1396,20 +1397,22 @@ struct AnalogClockFullView: View {
     /// The digital time in a pane of its own on the open iPhone Duo, the left
     /// column in landscape or the half above the fold in portrait. Under it is
     /// what otherwise sits under the clock (lap history or the local time),
-    /// centered between the subtitle and the page dots.
-    private var digitsPane: some View {
+    /// centered between the subtitle and the page dots. The digits center in
+    /// `centeringHeight` from the pane's top, by default the pane's height.
+    private func digitsPane(centeringHeight: CGFloat? = nil) -> some View {
         GeometryReader { pane in
+            let centeringHeight = centeringHeight ?? pane.size.height
             let digitsHeight = DigitalTimeDisplayView.digitsBlockHeight(forAvailableHeight: pane.size.height)
             // Top of the page dots: 6pt dots in the middle of a 52pt row, 8pt
             // off the bottom
             let dotsInset: CGFloat = 37
             // From under the subtitle to the dots
-            let spaceUnderDigits = max((pane.size.height - digitsHeight) / 2 - dotsInset, 0)
+            let spaceUnderDigits = max(pane.size.height - dotsInset - (centeringHeight + digitsHeight) / 2, 0)
             // Above the fold there's less room than this, and the lap history
             // would run into the subtitle and the dots
             let infoHeight = min(140, spaceUnderDigits)
 
-            digitalTimeDisplay(isInOwnPane: true)
+            digitalTimeDisplay(isInOwnPane: true, centeringHeight: centeringHeight)
                 .overlay(alignment: .bottom) {
                     VStack {
                         clockInfo
@@ -1563,7 +1566,7 @@ struct AnalogClockFullView: View {
                         // controls off the home indicator.
                         let bottomInset = geometry.safeAreaInsets.bottom
                         ArrangementView {
-                            digitsPane
+                            digitsPane()
                                 .padding(.vertical, bottomInset)
                         } secondary: {
                             clockColumn
@@ -1574,13 +1577,21 @@ struct AnalogClockFullView: View {
                     } else if #available(iOS 27.1, *), isRegularWidth {
                         // iPhone Duo open in portrait, flat or partially open:
                         // the digital time above the fold, and the clock and
-                        // Slide to Adjust below it
+                        // Slide to Adjust below it. The split spans the full
+                        // height so it stays even about the fold, and the
+                        // digits center on the whole screen above it, under
+                        // the navigation bar; the bottom inset is given back
+                        // below the fold.
+                        let screenHeight = geometry.size.height
+                            + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom
                         ArrangementView {
-                            digitsPane
+                            digitsPane(centeringHeight: screenHeight / 2)
                         } secondary: {
                             clockBelowFold
+                                .padding(.bottom, geometry.safeAreaInsets.bottom)
                         }
                         .arrangementViewStyle(.split.axes(.vertical))
+                        .ignoresSafeArea(.container, edges: .vertical)
                     } else {
                         // Analog Clock - always centered
                         clockFace(size: size, isFolded: hasVerticalBar)
@@ -3250,6 +3261,9 @@ struct DigitalTimeDisplayView: View {
     /// landscape or above the fold in portrait) the digits sit in the middle
     /// of the pane and the dots at its foot.
     let isInOwnPane: Bool
+    /// In a pane of its own, the height from the top that the digits center
+    /// in, when it isn't the pane's. It can run past the pane's bottom.
+    let centeringHeight: CGFloat?
     let onTimeTap: () -> Void
     
     @AppStorage("dateStyle") private var dateStyle = "Relative"
@@ -3276,6 +3290,7 @@ struct DigitalTimeDisplayView: View {
         selectedPage: Binding<DisplayPage>,
         onDisplayPageChange: @escaping (DisplayPage) -> Void,
         isInOwnPane: Bool = false,
+        centeringHeight: CGFloat? = nil,
         onTimeTap: @escaping () -> Void
     ) {
         self.currentDate = currentDate
@@ -3298,6 +3313,7 @@ struct DigitalTimeDisplayView: View {
         _selectedPage = selectedPage
         self.onDisplayPageChange = onDisplayPageChange
         self.isInOwnPane = isInOwnPane
+        self.centeringHeight = centeringHeight
         self.onTimeTap = onTimeTap
     }
 
@@ -3606,6 +3622,7 @@ struct DigitalTimeDisplayView: View {
                     Spacer(minLength: 0)
                 }
             }
+            .padding(.bottom, geometry.size.height - (centeringHeight ?? geometry.size.height))
             .frame(width: geometry.size.width, height: geometry.size.height)
             .overlay(alignment: .bottom) {
                 if isInOwnPane {
