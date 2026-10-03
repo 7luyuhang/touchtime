@@ -233,14 +233,31 @@ struct CountdownDetailsView: View {
         formattedReminderTime(reminderTime, in: CountdownItem.reminderTimeZone(for: reminderCity))
     }
 
-    /// Reminder time for the Time row, on the device's clock: when a time
-    /// set on another city's clock goes off here on the reminder day.
-    private var reminderLocalTimeString: String {
+    /// When the reminder goes off: its time on the reminder city's clock,
+    /// on the reminder day.
+    private var reminderDate: Date {
         var calendar = Calendar.current
         calendar.timeZone = CountdownItem.reminderTimeZone(for: reminderCity)
         let time = calendar.dateComponents([.hour, .minute], from: reminderTime)
-        let localDate = CountdownItem.reminderDate(on: reminderDay, hour: time.hour ?? 9, minute: time.minute ?? 0, in: reminderCity) ?? reminderTime
-        return formattedReminderTime(localDate, in: .current)
+        return CountdownItem.reminderDate(on: reminderDay, hour: time.hour ?? 9, minute: time.minute ?? 0, in: reminderCity) ?? reminderTime
+    }
+
+    /// Reminder time for the Time row, on the device's clock: when a time
+    /// set on another city's clock goes off here on the reminder day.
+    private var reminderLocalTimeString: String {
+        formattedReminderTime(reminderDate, in: .current)
+    }
+
+    /// Days between the reminder day and the day the reminder goes off
+    /// here: -1 when a time set on a clock ahead is the day before, as in
+    /// the reminder time sheet's capsule.
+    private var reminderLocalDayOffset: Int {
+        let calendar = Calendar.current
+        return calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: reminderDay),
+            to: calendar.startOfDay(for: reminderDate)
+        ).day ?? 0
     }
 
     /// The reminder time as the footer reads it: "9:00 am", or "9:00 am
@@ -618,8 +635,9 @@ struct CountdownDetailsView: View {
 
     /// The reminder time in the Time row, as tall as the lead-day button
     /// beside it: the local time, after a location arrow when it is set
-    /// on another city's clock (the footer names the city). Opens the
-    /// reminder time sheet, whose title switches cities.
+    /// on another city's clock (the footer names the city), and before
+    /// the day shift ("-1d") when it goes off here on another day. Opens
+    /// the reminder time sheet, whose title switches cities.
     private var reminderTimeButton: some View {
         Button {
             presentReminderTimeSheet()
@@ -631,9 +649,22 @@ struct CountdownDetailsView: View {
                         .transition(.blurReplace)
                 }
 
-                Text(reminderLocalTimeString)
-                    .monospacedDigit()
-                    .contentTransition(.numericText())
+                // The smaller day shift sits on the time's baseline, while
+                // the arrow stays centred on the time.
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(reminderLocalTimeString)
+                        .monospacedDigit()
+                        .contentTransition(.numericText())
+
+                    if reminderLocalDayOffset != 0 {
+                        Text(String(format: "%+d", reminderLocalDayOffset) + String(localized: "d"))
+                            .font(.subheadline.weight(.semibold))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                            .contentTransition(.numericText())
+                            .transition(.blurReplace)
+                    }
+                }
             }
             .padding(.horizontal, 12)
             .frame(height: 34)
@@ -641,6 +672,7 @@ struct CountdownDetailsView: View {
             .contentShape(Capsule())
             .animation(.spring(), value: reminderLocalTimeString)
             .animation(.spring(), value: reminderCity != nil)
+            .animation(.spring(), value: reminderLocalDayOffset)
         }
         .buttonStyle(.plain)
     }
@@ -1038,7 +1070,13 @@ struct CountdownDetailsView: View {
                                     // up, so only it has a count to pause.
                                     if hasHappened {
                                         Toggle(isOn: pauseBinding) {
-                                            Label(String(localized: "Pause"), systemImage: "pause.circle")
+                                            if let draftPausedAt {
+                                                // Paused, with the day it paused as the subtitle.
+                                                Label(String(localized: "Paused"), systemImage: "pause.circle")
+                                                Text(draftPausedAt.formatted(.dateTime.year().month().day()))
+                                            } else {
+                                                Label(String(localized: "Pause"), systemImage: "pause.circle")
+                                            }
                                         }
                                     }
 

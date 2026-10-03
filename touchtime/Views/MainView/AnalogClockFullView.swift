@@ -1534,7 +1534,7 @@ struct AnalogClockFullView: View {
                         // Square darkening gradient at the top of the sky
                         if !isCameraBackgroundEnabled && showSkyDot {
                             LinearGradient(
-                                colors: [.black.opacity(0.10), .black.opacity(0)],
+                                colors: [.black.opacity(0.05), .black.opacity(0)],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )

@@ -11461,6 +11461,22 @@
         }
       }
     },
+    "Paused" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已暂停"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已暫停"
+          }
+        }
+      }
+    },
     "Perth" : {
       "extractionState" : "manual",
       "localizations" : {
