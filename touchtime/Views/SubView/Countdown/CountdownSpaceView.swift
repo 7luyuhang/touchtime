@@ -10,11 +10,13 @@ import UIKit
 
 /// The Space page of a countdown: everything the user saved for the event
 /// (notes and photos) laid out as a grid of square widget-style tiles, two
-/// columns wide, or four on the unfolded iPhone Duo.
+/// columns wide, or four on the unfolded iPhone Duo unless it is partially
+/// open in landscape.
 struct CountdownSpaceView: View {
     let countdownID: UUID
 
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @Environment(\.isWindowLandscape) private var isWindowLandscape
 
     /// Photo zoomed open from its card into the full-screen viewer.
     @State private var viewedImage: SpaceAttachment?
@@ -28,8 +30,12 @@ struct CountdownSpaceView: View {
     /// still holding its slot, so the rest of the grid stays put until
     /// the card is gone.
     @State private var removingAttachmentIDs: Set<UUID> = []
-    /// Unfolded iPhone Duo, either way up: four columns instead of two.
-    @State private var usesFourColumns = false
+    /// Wider than an iPhone: the unfolded iPhone Duo, either way up, which
+    /// gets four columns instead of two.
+    @State private var isWiderThanPhone = false
+    /// Unless it is partially open in landscape, where the page takes one
+    /// half: then it keeps to two.
+    @State private var isHingePartiallyOpen = false
 
     private let spaceStore = CountdownSpaceStore.shared
 
@@ -43,7 +49,8 @@ struct CountdownSpaceView: View {
     private static let maximumPhoneWidth: CGFloat = 440
 
     private var columns: [GridItem] {
-        Array(repeating: GridItem(.flexible(), spacing: 12), count: usesFourColumns ? 4 : 2)
+        let usesFourColumns = isWiderThanPhone && !(isHingePartiallyOpen && isWindowLandscape)
+        return Array(repeating: GridItem(.flexible(), spacing: 12), count: usesFourColumns ? 4 : 2)
     }
 
     private var attachments: [SpaceAttachment] {
@@ -78,8 +85,11 @@ struct CountdownSpaceView: View {
         .background(Color(.systemGroupedBackground))
         .onGeometryChange(for: Bool.self) { proxy in
             proxy.size.width > Self.maximumPhoneWidth
-        } action: { isWiderThanPhone in
-            usesFourColumns = isWiderThanPhone
+        } action: { isWider in
+            isWiderThanPhone = isWider
+        }
+        .onHingePartiallyOpenChange { isPartiallyOpen in
+            isHingePartiallyOpen = isPartiallyOpen
         }
         .fullScreenCover(item: $viewedImage) { attachment in
             SpaceImageViewer(attachment: attachment)
@@ -186,6 +196,20 @@ struct CountdownSpaceView: View {
         let impactFeedback = UIImpactFeedbackGenerator(style: .light)
         impactFeedback.prepare()
         impactFeedback.impactOccurred()
+    }
+}
+
+private extension View {
+    /// Whether the iPhone Duo is partially open, each time its hinge changes.
+    @ViewBuilder
+    func onHingePartiallyOpenChange(_ action: @escaping (Bool) -> Void) -> some View {
+        if #available(iOS 27.1, *) {
+            onHingeChange { _, newContext in
+                action(newContext.hinge?.status == .partiallyOpen)
+            }
+        } else {
+            self
+        }
     }
 }
 

@@ -18,6 +18,9 @@ struct touchtimeApp: App {
     // Shared countdown source of truth; injected app-wide so the Home
     // cards and the countdown sheet always observe the same data.
     @State private var countdownStore = CountdownStore()
+    // Injected app-wide, so sheets that take only part of the window still
+    // know which way up it is.
+    @State private var isWindowLandscape = false
 
     init() {
         // Initialize TipKit
@@ -32,6 +35,18 @@ struct touchtimeApp: App {
             ContentView()
                 .environment(countdownStore)
                 .environment(\.colorScheme, .dark) // Force dark theme
+                .environment(\.isWindowLandscape, isWindowLandscape)
+                .background {
+                    // Measures the whole window, so the keyboard can't make a
+                    // portrait screen look wide
+                    Color.clear
+                        .ignoresSafeArea()
+                        .onGeometryChange(for: Bool.self) { proxy in
+                            proxy.size.width > proxy.size.height
+                        } action: { isWide in
+                            isWindowLandscape = isWide
+                        }
+                }
                 .onAppear {
                     // Force dark mode for all windows when app appears
                     DispatchQueue.main.async {
@@ -60,4 +75,10 @@ struct touchtimeApp: App {
             }
         }
     }
+}
+
+extension EnvironmentValues {
+    /// Whether the window is wider than it is tall. A sheet can't tell from
+    /// its own size: on the iPhone Duo in landscape it takes only one half.
+    @Entry var isWindowLandscape = false
 }

@@ -605,6 +605,7 @@ struct CountdownDetailsView: View {
                 photoCrop: photoCrop,
                 isRepeating: repeatFrequency != .never,
                 pausedAt: draftPausedAt,
+                isPinned: isPinned,
                 emojiParticleBurst: emojiParticleBurst
             ) {
                 triggerHaptic()
