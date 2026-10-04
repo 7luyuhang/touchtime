@@ -32,7 +32,7 @@ struct IslandCircleButton<Intent: LiveActivityIntent>: View {
         Button(intent: intent) {
             ZStack {
                 Image(systemName: systemImage)
-                    .font(.system(size: 20, weight: .semibold))
+                    .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(prominence == .primary ? Color.black : Color.white)
                     .id(systemImage)
                     .transition(.scale.combined(with: .opacity))
