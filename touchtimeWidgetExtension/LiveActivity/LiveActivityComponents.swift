@@ -291,3 +291,20 @@ struct IslandTitleAndDigits<Digits: View>: View {
         .foregroundStyle(.white)
     }
 }
+
+// MARK: - Dynamic Island Compact Symbol
+
+/// The symbol on the leading side of the compact Dynamic Island. Sized by
+/// frame because the compact presentation shrinks font-sized content.
+struct IslandCompactSymbol: View {
+    let systemImage: String
+
+    var body: some View {
+        Image(systemName: systemImage)
+            .resizable()
+            .fontWeight(.semibold)
+            .scaledToFit()
+            .frame(width: 22, height: 22)
+            .foregroundStyle(.white)
+    }
+}

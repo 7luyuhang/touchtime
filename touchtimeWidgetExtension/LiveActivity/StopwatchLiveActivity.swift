@@ -30,12 +30,11 @@ struct StopwatchLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
-                Image(systemName: "stopwatch")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
+                IslandCompactSymbol(systemImage: "stopwatch")
             } compactTrailing: {
                 StopwatchDigits(state: context.state, maxPrecision: .seconds(1))
                     .font(.body.weight(.semibold))
+                    .fontDesign(.rounded)
                     .monospacedDigit()
                     .minimumScaleFactor(0.7)
                     .foregroundStyle(.white)

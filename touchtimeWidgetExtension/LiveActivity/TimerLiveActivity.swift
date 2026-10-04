@@ -28,12 +28,11 @@ struct TimerLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
-                Image(systemName: "timer")
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.white)
+                IslandCompactSymbol(systemImage: "timer")
             } compactTrailing: {
                 TimerDigits(state: context.state)
                     .font(.body.weight(.semibold))
+                    .fontDesign(.rounded)
                     .monospacedDigit()
                     .foregroundStyle(.white)
             } minimal: {
