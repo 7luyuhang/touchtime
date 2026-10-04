@@ -579,6 +579,15 @@ struct AnalogClockFullView: View {
         homeStopwatchStartEpoch = Date().timeIntervalSince1970
     }
 
+    /// Start from the Stopwatch records sheet, then turn to the Stopwatch
+    /// page the way a freshly set timer turns to the Timer page.
+    private func startHomeStopwatchFromRecords() {
+        startHomeStopwatch()
+        withAnimation(.spring(duration: 0.25)) {
+            selectedDisplayPage = .stopwatch
+        }
+    }
+
     /// Persist the stop once the running total hits 99:59:59.99. The display
     /// is already clamped, so this only has to flip the controls over.
     private func finalizeHomeStopwatchIfLimitReached(at now: Date) {
@@ -1691,7 +1700,7 @@ struct AnalogClockFullView: View {
                 )
             }
             .sheet(isPresented: $showStopwatchRecordsSheet) {
-                StopwatchRecordsSheet()
+                StopwatchRecordsSheet(stopwatch: homeStopwatch, onStart: startHomeStopwatchFromRecords)
             }
             .sheet(isPresented: $showCountdownSheet) {
                 CountdownSheet()

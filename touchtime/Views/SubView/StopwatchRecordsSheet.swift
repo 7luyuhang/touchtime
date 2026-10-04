@@ -14,6 +14,11 @@ import UIKit
 /// for its laps in place. (Not a push: a pushed page gets an opaque backing
 /// that breaks the sheet's glass.)
 struct StopwatchRecordsSheet: View {
+    /// The Home stopwatch, which decides whether Start is offered.
+    let stopwatch: StopwatchSnapshot
+    /// Starts the Home stopwatch, or resumes it once stopped.
+    let onStart: () -> Void
+
     @Environment(\.dismiss) private var dismiss
     @State private var records: [StopwatchRecord] = StopwatchRecordStore.load()
     /// The session whose laps are showing instead of the records.
@@ -25,6 +30,12 @@ struct StopwatchRecordsSheet: View {
 
     private var isShowingLaps: Bool {
         openedRecord != nil
+    }
+
+    /// Start belongs to the records page, and only while the stopwatch has
+    /// something to start: not running, and not stopped at its limit.
+    private var showsStartButton: Bool {
+        !isShowingLaps && !stopwatch.isRunning && !stopwatch.isFinished
     }
 
     var body: some View {
@@ -77,6 +88,28 @@ struct StopwatchRecordsSheet: View {
                         } label: {
                             Image(systemName: "ellipsis")
                         }
+                    }
+                }
+
+                if showsStartButton {
+                    ToolbarItem(placement: .bottomBar) {
+                        Button {
+                            triggerHaptic()
+                            onStart()
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Image(systemName: "play.fill")
+                                    .font(.subheadline.weight(.semibold))
+                                Text(String(localized: "Start"))
+                                    .font(.headline)
+                            }
+                            .foregroundStyle(.white)
+                            .frame(height: 40)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.blue)
+                        .padding(.horizontal, 8)
                     }
                 }
             }

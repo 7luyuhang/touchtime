@@ -565,6 +565,16 @@ struct HomeView: View {
         }
     }
 
+    /// Start from the Stopwatch records sheet; the card appears with it.
+    private func startHomeStopwatch() {
+        let stopwatch = homeStopwatch
+        guard !stopwatch.isRunning, !stopwatch.isFinished else { return }
+
+        withAnimation(.spring()) {
+            homeStopwatchStartEpoch = Date().timeIntervalSince1970
+        }
+    }
+
     /// Persist the stop once the running total hits 99:59:59.99. The display
     /// is already clamped, so this only has to flip the card's button to play.
     private func finalizeHomeStopwatchIfLimitReached(at now: Date) {
@@ -2166,7 +2176,7 @@ struct HomeView: View {
 
             // Stopwatch Records Sheet
             .sheet(isPresented: $showStopwatchRecordsSheet) {
-                StopwatchRecordsSheet()
+                StopwatchRecordsSheet(stopwatch: homeStopwatch, onStart: startHomeStopwatch)
             }
 
             // Countdown Sheet
