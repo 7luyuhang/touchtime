@@ -12,7 +12,6 @@ import AVFoundation
 import CoreHaptics
 import WeatherKit
 import TipKit
-import AlarmKit
 import Photos
 
 struct AnalogClockFullView: View {
@@ -105,8 +104,6 @@ struct AnalogClockFullView: View {
     @AppStorage("stopwatchLapHandColor") private var stopwatchLapHandColor: StopwatchLapHandColor = .cyan
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-    private let alarmManager = AlarmManager.shared
-    @State private var homeTimerAlarmSyncVersion = 0
     @State private var homeTimerResetAnimationTrigger = 0
     @State private var homeTimerResetAnimationFromSeconds = 0
     @State private var isTimerCircleAdjusting = false
@@ -529,82 +526,9 @@ struct AnalogClockFullView: View {
     private func refreshHomeTimerAlarm(
         requestAuthorization: Bool
     ) {
-        homeTimerAlarmSyncVersion += 1
-        let syncVersion = homeTimerAlarmSyncVersion
-        let shouldSchedule = hasConfiguredHomeTimer && !homeTimerPaused
-        let remainingSeconds = homeTimerRemainingSeconds(at: Date())
-        let existingAlarmID = homeTimerAlarmID
-
-        Task { @MainActor in
-            await synchronizeHomeTimerAlarm(
-                syncVersion: syncVersion,
-                existingAlarmID: existingAlarmID,
-                shouldSchedule: shouldSchedule,
-                remainingSeconds: remainingSeconds,
-                requestAuthorization: requestAuthorization
-            )
+        Task {
+            await HomeTimerAlarm.refresh(requestAuthorization: requestAuthorization)
         }
-    }
-
-    @MainActor
-    private func synchronizeHomeTimerAlarm(
-        syncVersion: Int,
-        existingAlarmID: UUID?,
-        shouldSchedule: Bool,
-        remainingSeconds: Int,
-        requestAuthorization: Bool
-    ) async {
-        let isStale = { syncVersion != homeTimerAlarmSyncVersion || Task.isCancelled }
-
-        if let existingAlarmID {
-            try? alarmManager.cancel(id: existingAlarmID)
-        }
-
-        guard !isStale() else { return }
-
-        guard shouldSchedule, remainingSeconds > 0 else {
-            homeTimerAlarmIDRawValue = ""
-            return
-        }
-
-        if requestAuthorization {
-            switch await AlarmSupport.ensureAuthorization(using: alarmManager) {
-            case .authorized:
-                break
-            case .denied:
-                homeTimerAlarmIDRawValue = ""
-                return
-            case .failed(let error):
-                homeTimerAlarmIDRawValue = ""
-                print("Failed to authorize AlarmKit for timer: \(error.localizedDescription)")
-                return
-            }
-        } else if alarmManager.authorizationState != .authorized {
-            homeTimerAlarmIDRawValue = ""
-            return
-        }
-
-        let newAlarmID = UUID()
-
-        do {
-            try await AlarmSupport.scheduleTimerAlarm(
-                id: newAlarmID,
-                durationSeconds: remainingSeconds,
-                eventTitle: homeTimerDisplayName,
-                using: alarmManager
-            )
-        } catch {
-            homeTimerAlarmIDRawValue = ""
-            print("Failed to schedule AlarmKit timer reminder: \(error.localizedDescription)")
-            return
-        }
-
-        guard !isStale() else {
-            try? alarmManager.cancel(id: newAlarmID)
-            return
-        }
-
-        homeTimerAlarmIDRawValue = newAlarmID.uuidString
     }
 
     private func handleHomeTimerTick(at now: Date) {

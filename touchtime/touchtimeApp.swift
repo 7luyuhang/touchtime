@@ -28,11 +28,15 @@ struct touchtimeApp: App {
             .displayFrequency(.daily),
             .datastoreLocation(.applicationDefault)
         ])
+
+        // Timer / stopwatch Live Activity buttons, also when they launch the app in the background
+        LiveActivityActionRouter.perform = LiveActivityManager.perform
     }
     
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .syncsLiveActivities()
                 .environment(countdownStore)
                 .environment(\.colorScheme, .dark) // Force dark theme
                 .environment(\.isWindowLandscape, isWindowLandscape)

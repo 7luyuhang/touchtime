@@ -9,6 +9,8 @@
 	</array>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Allow alarm access to let you set local alarms.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationShortcutItems</key>
 	<array>
 		<dict>

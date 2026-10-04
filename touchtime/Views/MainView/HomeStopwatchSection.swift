@@ -21,11 +21,12 @@ struct HomeStopwatchSection: View {
         stopwatch.isRunning ? "pause.fill" : "play.fill"
     }
 
-    private var lapCountText: String {
-        if stopwatch.laps.count == 1 {
+    /// "1 Lap" or "3 Laps"; also worded this way on the stopwatch's Live Activity.
+    static func lapCountText(lapCount: Int) -> String {
+        if lapCount == 1 {
             return String(localized: "1 Lap")
         }
-        return String.localizedStringWithFormat(String(localized: "%d Laps"), stopwatch.laps.count)
+        return String.localizedStringWithFormat(String(localized: "%d Laps"), lapCount)
     }
 
     /// While running, the shown second changes on these ticks: one second
@@ -60,7 +61,7 @@ struct HomeStopwatchSection: View {
                         Spacer()
 
                         if !stopwatch.laps.isEmpty {
-                            Text(lapCountText)
+                            Text(Self.lapCountText(lapCount: stopwatch.laps.count))
                                 .font(.subheadline)
                                 .foregroundStyle(.secondary)
                                 .blendMode(.plusLighter)

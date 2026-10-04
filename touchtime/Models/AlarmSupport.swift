@@ -216,27 +216,27 @@ enum AlarmSupport {
         )
     }
 
+    /// Schedules the alert that rings when the Home timer ends at `fireDate`.
     static func scheduleTimerAlarm(
         id: UUID,
-        durationSeconds: Int,
+        fireDate: Date,
         eventTitle: String? = nil,
         using alarmManager: AlarmManager = .shared
     ) async throws {
-        let clampedDuration = max(durationSeconds, 1)
         let alarmTitle = resolvedAlarmTitle(eventTitle, fallback: String(localized: "Timer"))
+        // Alert only: a countdown presentation would make AlarmKit show its
+        // own countdown Live Activity next to the timer's TimerActivityAttributes one.
         let attributes = AlarmAttributes<TouchtimeAlarmMetadata>(
-            presentation: AlarmPresentation(
-                alert: alertPresentation(title: alarmTitle),
-                countdown: .init(title: alarmTitle)
-            ),
+            presentation: AlarmPresentation(alert: alertPresentation(title: alarmTitle)),
             tintColor: .orange // Timer Orange
         )
 
         _ = try await alarmManager.schedule(
             id: id,
-            configuration: .timer(
-                duration: TimeInterval(clampedDuration),
-                attributes: attributes
+            configuration: .alarm(
+                schedule: .fixed(fireDate),
+                attributes: attributes,
+                stopIntent: TimerAlarmStopIntent()
             )
         )
     }
@@ -295,5 +295,76 @@ enum AlarmSupport {
     private static func todayLocaleWeekday() -> Locale.Weekday {
         let currentWeekday = Calendar.current.component(.weekday, from: Date())
         return localeWeekday(from: currentWeekday) ?? .monday
+    }
+}
+
+/// The alarm that rings when the Home timer ends. There is at most one; its
+/// id is kept under the same key as the timer views' `homeTimerAlarmID`.
+@MainActor
+enum HomeTimerAlarm {
+    private static let alarmIDKey = "homeTimerAlarmID"
+    /// Bumped by every refresh, so one still waiting on AlarmKit can tell a
+    /// newer one has taken over.
+    private static var refreshVersion = 0
+
+    /// Replaces the alarm with one for the timer's current end. A paused,
+    /// finished or cleared timer is left without one.
+    static func refresh(requestAuthorization: Bool) async {
+        refreshVersion += 1
+        let version = refreshVersion
+        let isOvertaken = { version != refreshVersion || Task.isCancelled }
+        let defaults = UserDefaults.standard
+        let alarmManager = AlarmManager.shared
+        let timer = HomeTimerSnapshot(defaults: defaults)
+
+        if let existingAlarmID = UUID(uuidString: defaults.string(forKey: alarmIDKey) ?? "") {
+            try? alarmManager.cancel(id: existingAlarmID)
+        }
+
+        guard !isOvertaken() else { return }
+
+        guard let fireDate = timer.runningEndDate, fireDate > Date() else {
+            defaults.set("", forKey: alarmIDKey)
+            return
+        }
+
+        if requestAuthorization {
+            switch await AlarmSupport.ensureAuthorization(using: alarmManager) {
+            case .authorized:
+                break
+            case .denied:
+                defaults.set("", forKey: alarmIDKey)
+                return
+            case .failed(let error):
+                defaults.set("", forKey: alarmIDKey)
+                print("Failed to authorize AlarmKit for timer: \(error.localizedDescription)")
+                return
+            }
+        } else if alarmManager.authorizationState != .authorized {
+            defaults.set("", forKey: alarmIDKey)
+            return
+        }
+
+        let newAlarmID = UUID()
+
+        do {
+            try await AlarmSupport.scheduleTimerAlarm(
+                id: newAlarmID,
+                fireDate: fireDate,
+                eventTitle: timer.displayName,
+                using: alarmManager
+            )
+        } catch {
+            defaults.set("", forKey: alarmIDKey)
+            print("Failed to schedule AlarmKit timer reminder: \(error.localizedDescription)")
+            return
+        }
+
+        guard !isOvertaken() else {
+            try? alarmManager.cancel(id: newAlarmID)
+            return
+        }
+
+        defaults.set(newAlarmID.uuidString, forKey: alarmIDKey)
     }
 }

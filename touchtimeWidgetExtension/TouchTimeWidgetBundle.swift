@@ -16,5 +16,7 @@ struct TouchTimeWidgetBundle: WidgetBundle {
         WorldCitiesWidget()
         TerminatorWidget()
         CountdownWidget()
+        TimerLiveActivity()
+        StopwatchLiveActivity()
     }
 }

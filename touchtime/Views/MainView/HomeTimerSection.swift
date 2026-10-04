@@ -21,7 +21,7 @@ struct HomeTimerSection: View {
     private let complicationButtonSize: CGFloat = 64
 
     private var configuredDisplay: String {
-        formattedConfiguredDuration(seconds: configuredSeconds)
+        Self.formattedConfiguredDuration(seconds: configuredSeconds)
     }
 
     private func centerButtonSymbol(at date: Date) -> String {
@@ -55,7 +55,9 @@ struct HomeTimerSection: View {
         return String(format: "%02d:%02d", minutes, remainingSeconds)
     }
 
-    private func formattedConfiguredDuration(seconds: Int) -> String {
+    /// "5 min", "1 min 30 sec" or "45 sec"; also worded this way on the
+    /// timer's Live Activity.
+    static func formattedConfiguredDuration(seconds: Int) -> String {
         let clampedSeconds = max(0, min(seconds, 59 * 60 + 59))
         let minutes = clampedSeconds / 60
         let remainingSeconds = clampedSeconds % 60
