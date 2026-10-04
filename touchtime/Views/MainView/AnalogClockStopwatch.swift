@@ -261,7 +261,7 @@ struct StopwatchMinuteSubdialView: View {
     private static let majorTickLength = size * 0.075
     private static let numberRadius = size * 0.25
     private static let numberFontSize = size * 0.14
-    private static let handLength = size * 0.34
+    private static let handLength = tickOuterRadius
     private static let centerDotSize = size * 0.09
 
     /// Not wrapped to one turn, so the step from 29 to 30 keeps going clockwise.
@@ -271,10 +271,6 @@ struct StopwatchMinuteSubdialView: View {
 
     var body: some View {
         ZStack {
-            Circle()
-                .fill(Color.black.opacity(0.10))
-                .glassEffect(.clear, in: Circle())
-
             ForEach(0..<30, id: \.self) { minute in
                 let isMajor = minute % 5 == 0
                 let length = isMajor ? Self.majorTickLength : Self.minorTickLength

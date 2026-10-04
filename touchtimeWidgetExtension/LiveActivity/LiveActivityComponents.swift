@@ -40,7 +40,7 @@ struct IslandCircleButton<Intent: LiveActivityIntent>: View {
             .frame(width: 50, height: 50)
             .animation(.spring(duration: 0.25), value: systemImage)
             .background(
-                prominence == .primary ? Color.white : Color.white.opacity(0.18),
+                prominence == .primary ? Color.white : Color.white.opacity(0.20),
                 in: Circle()
             )
         }
