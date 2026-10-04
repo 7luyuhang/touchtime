@@ -967,6 +967,14 @@ struct AnalogClockFullView: View {
             }
         }
 
+        // Settings Section
+        Button(action: {
+            triggerMenuHaptic()
+            showSettingsSheet = true
+        }) {
+            Label("Settings", systemImage: "gear")
+        }
+
         Section(String(localized: "Tools")) {
             Button(action: {
                 triggerMenuHaptic()
@@ -1004,14 +1012,6 @@ struct AnalogClockFullView: View {
             showWidgetIntroSheet = true
         }) {
             Label(String(localized: "Widgets"), systemImage: "widget.small")
-        }
-
-        // Settings Section
-        Button(action: {
-            triggerMenuHaptic()
-            showSettingsSheet = true
-        }) {
-            Label("Settings", systemImage: "gear")
         }
     }
 

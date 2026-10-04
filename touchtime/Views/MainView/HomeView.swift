@@ -1921,6 +1921,18 @@ struct HomeView: View {
                             }
                         }
 
+                        // Settings Section
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showSettingsSheet = true
+                        }) {
+                            Label("Settings", systemImage: "gear")
+                        }
+
                         Section(String(localized: "Tools")) {
                             Button(action: {
                                 if hapticEnabled {
@@ -1989,18 +2001,6 @@ struct HomeView: View {
                             showWidgetIntroSheet = true
                         }) {
                             Label(String(localized: "Widgets"), systemImage: "widget.small")
-                        }
-
-                        // Settings Section
-                        Button(action: {
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                            showSettingsSheet = true
-                        }) {
-                            Label("Settings", systemImage: "gear")
                         }
                     } label: {
                         Image(systemName: "ellipsis")

@@ -493,6 +493,7 @@ struct SettingsView: View {
                             Spacer()
                             
                             Image(systemName: "arrow.right")
+                                .symbolEffect(.wiggle.right, options: .repeat(.periodic(delay: 1.0)))
                                 .font(.headline.weight(.bold))
                                 .foregroundStyle(.white)
                                 .padding(.vertical, 10)
