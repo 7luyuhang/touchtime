@@ -184,6 +184,11 @@ struct StopwatchClockFaceView: View {
                         )
                     }
 
+                    // Minutes, halfway up to the 60: over the sweep, whose edge
+                    // line would otherwise cut through it, and under the hands
+                    StopwatchMinuteSubdialView(elapsedMinutes: Int(elapsed / 60))
+                        .offset(y: -numberRingRadius / 2)
+
                     // Total elapsed
                     TimerAnimatedHandView(
                         angle: totalAngle,
@@ -209,6 +214,73 @@ struct StopwatchClockFaceView: View {
                 .frame(width: 8, height: 8)
         }
         .frame(width: size, height: size)
+    }
+}
+
+// MARK: - Stopwatch Minute Subdial
+/// The elapsed minutes on a small dial in the stopwatch face, like the iOS
+/// Stopwatch: 30 minutes a turn, the hand stepping one mark each time the
+/// seconds hand completes a turn.
+struct StopwatchMinuteSubdialView: View {
+    let elapsedMinutes: Int
+
+    private static let size: CGFloat = 80
+    private static let tickOuterRadius = size * 0.445
+    private static let minorTickLength = size * 0.05
+    private static let majorTickLength = size * 0.075
+    private static let numberRadius = size * 0.25
+    private static let numberFontSize = size * 0.14
+    private static let handLength = size * 0.34
+    private static let centerDotSize = size * 0.09
+
+    /// Not wrapped to one turn, so the step from 29 to 30 keeps going clockwise.
+    private static func angle(forMinutes minutes: Int) -> Double {
+        Double(minutes) * 12
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .fill(Color.black.opacity(0.10))
+                .glassEffect(.clear, in: Circle())
+
+            ForEach(0..<30, id: \.self) { minute in
+                let isMajor = minute % 5 == 0
+                let length = isMajor ? Self.majorTickLength : Self.minorTickLength
+
+                Capsule()
+                    .fill(isMajor ? Color.white : Color.white.opacity(0.25))
+                    .frame(width: 1.5, height: length)
+                    .offset(y: -(Self.tickOuterRadius - length / 2))
+                    .rotationEffect(.degrees(Self.angle(forMinutes: minute)))
+                    .blendMode(.plusLighter)
+            }
+
+            ForEach([5, 10, 15, 20, 25, 30], id: \.self) { minutes in
+                let radians = (Self.angle(forMinutes: minutes) - 90) * .pi / 180
+
+                Text("\(minutes)")
+                    .font(.system(size: Self.numberFontSize, weight: .semibold, design: .rounded))
+                    .foregroundStyle(.white)
+                    .offset(
+                        x: Self.numberRadius * cos(radians),
+                        y: Self.numberRadius * sin(radians)
+                    )
+            }
+
+            Capsule()
+                .fill(.white)
+                .frame(width: 2, height: Self.handLength)
+                .offset(y: -Self.handLength / 2)
+                .rotationEffect(.degrees(Self.angle(forMinutes: elapsedMinutes)))
+                // Reset snaps back rather than unwinding every turn
+                .animation(elapsedMinutes == 0 ? nil : .spring(duration: 0.25), value: elapsedMinutes)
+
+            Circle()
+                .fill(.white)
+                .frame(width: Self.centerDotSize, height: Self.centerDotSize)
+        }
+        .frame(width: Self.size, height: Self.size)
     }
 }
 
