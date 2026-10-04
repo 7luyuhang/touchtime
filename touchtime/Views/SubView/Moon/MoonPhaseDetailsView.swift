@@ -112,7 +112,7 @@ struct MoonPhaseDetailsView: View {
     }
 
     private var illuminationText: String {
-        "\(Int((snapshot.illuminatedFraction * 100).rounded()))%"
+        Int((snapshot.illuminatedFraction * 100).rounded()).formatted(.percent)
     }
 
     // Road-usage formatting converts to km or miles following the system

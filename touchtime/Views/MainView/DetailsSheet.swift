@@ -600,7 +600,7 @@ struct SunriseSunsetSheet: View {
                     }
                 }
 
-                Text("\(chancePercent)%")
+                Text(chancePercent, format: .percent)
                     .monospacedDigit()
                     .contentTransition(.numericText())
                     .animation(.spring(), value: chancePercent)
