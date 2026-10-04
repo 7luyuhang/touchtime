@@ -579,9 +579,11 @@ struct AnalogClockFullView: View {
         homeStopwatchStartEpoch = Date().timeIntervalSince1970
     }
 
-    /// Start from the Stopwatch records sheet, then turn to the Stopwatch
-    /// page the way a freshly set timer turns to the Timer page.
-    private func startHomeStopwatchFromRecords() {
+    /// Start from the Stopwatch records sheet. A session under way is
+    /// replaced, going to the records first as Reset sends it; then the page
+    /// turns to the Stopwatch the way a freshly set timer turns to the Timer page.
+    private func startNewHomeStopwatch() {
+        resetHomeStopwatch()
         startHomeStopwatch()
         withAnimation(.spring(duration: 0.25)) {
             selectedDisplayPage = .stopwatch
@@ -1700,7 +1702,7 @@ struct AnalogClockFullView: View {
                 )
             }
             .sheet(isPresented: $showStopwatchRecordsSheet) {
-                StopwatchRecordsSheet(stopwatch: homeStopwatch, onStart: startHomeStopwatchFromRecords)
+                StopwatchRecordsSheet(stopwatch: homeStopwatch, onStart: startNewHomeStopwatch)
             }
             .sheet(isPresented: $showCountdownSheet) {
                 CountdownSheet()

@@ -565,13 +565,22 @@ struct HomeView: View {
         }
     }
 
-    /// Start from the Stopwatch records sheet; the card appears with it.
-    private func startHomeStopwatch() {
+    /// Start from the Stopwatch records sheet. A session under way is
+    /// replaced, going to the records first as Reset sends it.
+    private func startNewHomeStopwatch() {
+        let now = Date()
         let stopwatch = homeStopwatch
-        guard !stopwatch.isRunning, !stopwatch.isFinished else { return }
+        if stopwatch.hasStarted {
+            StopwatchRecordStore.remember(
+                totalSeconds: stopwatch.elapsed(at: now),
+                laps: stopwatch.laps
+            )
+        }
 
         withAnimation(.spring()) {
-            homeStopwatchStartEpoch = Date().timeIntervalSince1970
+            homeStopwatchAccumulatedSeconds = 0
+            homeStopwatchLapsData = Data()
+            homeStopwatchStartEpoch = now.timeIntervalSince1970
         }
     }
 
@@ -2176,7 +2185,7 @@ struct HomeView: View {
 
             // Stopwatch Records Sheet
             .sheet(isPresented: $showStopwatchRecordsSheet) {
-                StopwatchRecordsSheet(stopwatch: homeStopwatch, onStart: startHomeStopwatch)
+                StopwatchRecordsSheet(stopwatch: homeStopwatch, onStart: startNewHomeStopwatch)
             }
 
             // Countdown Sheet

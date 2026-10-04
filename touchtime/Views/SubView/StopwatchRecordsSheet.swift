@@ -14,15 +14,16 @@ import UIKit
 /// for its laps in place. (Not a push: a pushed page gets an opaque backing
 /// that breaks the sheet's glass.)
 struct StopwatchRecordsSheet: View {
-    /// The Home stopwatch, which decides whether Start is offered.
+    /// The Home stopwatch; once it has started, Start asks before replacing it.
     let stopwatch: StopwatchSnapshot
-    /// Starts the Home stopwatch, or resumes it once stopped.
+    /// Starts the Home stopwatch afresh, replacing a session under way.
     let onStart: () -> Void
 
     @Environment(\.dismiss) private var dismiss
     @State private var records: [StopwatchRecord] = StopwatchRecordStore.load()
     /// The session whose laps are showing instead of the records.
     @State private var openedRecord: StopwatchRecord? = nil
+    @State private var showReplaceStopwatchConfirmation = false
 
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("use24HourFormat") private var use24HourFormat = false
@@ -30,12 +31,6 @@ struct StopwatchRecordsSheet: View {
 
     private var isShowingLaps: Bool {
         openedRecord != nil
-    }
-
-    /// Start belongs to the records page, and only while the stopwatch has
-    /// something to start: not running, and not stopped at its limit.
-    private var showsStartButton: Bool {
-        !isShowingLaps && !stopwatch.isRunning && !stopwatch.isFinished
     }
 
     var body: some View {
@@ -91,12 +86,15 @@ struct StopwatchRecordsSheet: View {
                     }
                 }
 
-                if showsStartButton {
+                if !isShowingLaps {
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             triggerHaptic()
-                            onStart()
-                            dismiss()
+                            if stopwatch.hasStarted {
+                                showReplaceStopwatchConfirmation = true
+                            } else {
+                                startStopwatch()
+                            }
                         } label: {
                             HStack {
                                 Image(systemName: "play.fill")
@@ -104,12 +102,22 @@ struct StopwatchRecordsSheet: View {
                                 Text(String(localized: "Start"))
                                     .font(.headline)
                             }
-                            .foregroundStyle(.white)
+                            .foregroundStyle(.black)
                             .frame(height: 40)
                         }
                         .buttonStyle(.borderedProminent)
-                        .tint(.blue)
+                        .tint(.white)
                         .padding(.horizontal, 8)
+                        .confirmationDialog(
+                            String(localized: "Are you sure you want to replace current stopwatch?"),
+                            isPresented: $showReplaceStopwatchConfirmation,
+                            titleVisibility: .visible
+                        ) {
+                            Button(String(localized: "Replace"), role: .destructive) {
+                                triggerHaptic()
+                                startStopwatch()
+                            }
+                        }
                     }
                 }
             }
@@ -217,6 +225,11 @@ struct StopwatchRecordsSheet: View {
             return String(localized: "1 Lap")
         }
         return String.localizedStringWithFormat(String(localized: "%d Laps"), record.laps.count)
+    }
+
+    private func startStopwatch() {
+        onStart()
+        dismiss()
     }
 
     private func deleteRecord(_ record: StopwatchRecord) {

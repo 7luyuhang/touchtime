@@ -1947,6 +1947,22 @@
         }
       }
     },
+    "Are you sure you want to replace current stopwatch?" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "确定要替换当前秒表吗？"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "確定要取代目前的秒錶嗎？"
+          }
+        }
+      }
+    },
     "Are you sure you want to replace current timer?" : {
       "localizations" : {
         "zh-Hans" : {
