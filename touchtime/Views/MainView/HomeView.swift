@@ -279,6 +279,9 @@ struct HomeView: View {
     @AppStorage("homeTimerPausedRemainingSeconds") private var homeTimerPausedRemainingSeconds = 0
     @AppStorage("homeTimerAlarmID") private var homeTimerAlarmIDRawValue = ""
     @AppStorage("homeTimerName") private var homeTimerName = ""
+    @AppStorage("homeStopwatchStartEpoch") private var homeStopwatchStartEpoch: Double = 0
+    @AppStorage("homeStopwatchAccumulatedSeconds") private var homeStopwatchAccumulatedSeconds: Double = 0
+    @AppStorage("homeStopwatchLapsData") private var homeStopwatchLapsData = Data()
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
@@ -607,6 +610,67 @@ struct HomeView: View {
             }
         } else if homeTimerCompletionHandled {
             homeTimerCompletionHandled = false
+        }
+    }
+
+    // MARK: - Home Stopwatch
+
+    private var homeStopwatch: StopwatchSnapshot {
+        StopwatchSnapshot(
+            startEpoch: homeStopwatchStartEpoch,
+            accumulatedSeconds: homeStopwatchAccumulatedSeconds,
+            laps: StopwatchLapStore.decode(homeStopwatchLapsData)
+        )
+    }
+
+    /// Start / Stop from the stopwatch card.
+    private func handleHomeStopwatchTap() {
+        let stopwatch = homeStopwatch
+        guard !stopwatch.isFinished else { return }
+
+        if stopwatch.isRunning {
+            homeStopwatchAccumulatedSeconds = stopwatch.elapsed(at: Date())
+            homeStopwatchStartEpoch = 0
+        } else {
+            homeStopwatchStartEpoch = Date().timeIntervalSince1970
+        }
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
+        }
+    }
+
+    /// Persist the stop once the running total hits 99:59:59.99. The display
+    /// is already clamped, so this only has to flip the card's button to play.
+    private func finalizeHomeStopwatchIfLimitReached(at now: Date) {
+        guard homeStopwatch.hasReachedLimit(at: now) else { return }
+        homeStopwatchAccumulatedSeconds = StopwatchSnapshot.maxElapsed
+        homeStopwatchStartEpoch = 0
+    }
+
+    /// Reset ends the session: its time and laps go to the Stopwatch records
+    /// (see `StopwatchRecordsSheet`) before the stopwatch is cleared.
+    private func resetHomeStopwatch() {
+        let stopwatch = homeStopwatch
+        if stopwatch.hasStarted {
+            StopwatchRecordStore.remember(
+                totalSeconds: stopwatch.elapsed(at: Date()),
+                laps: stopwatch.laps
+            )
+        }
+
+        withAnimation(.spring()) {
+            homeStopwatchStartEpoch = 0
+            homeStopwatchAccumulatedSeconds = 0
+            homeStopwatchLapsData = Data()
+        }
+
+        if hapticEnabled {
+            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+            impactFeedback.prepare()
+            impactFeedback.impactOccurred()
         }
     }
 
@@ -1333,7 +1397,7 @@ struct HomeView: View {
                 .allowsHitTesting(false)
                 
                 // Blank View
-                if displayedClocks.isEmpty && !showLocalTime && !hasConfiguredHomeTimer && !hasPinnedCountdowns {
+                if displayedClocks.isEmpty && !showLocalTime && !hasConfiguredHomeTimer && !homeStopwatch.hasStarted && !hasPinnedCountdowns {
                     // Empty state view
                     ContentUnavailableView {
                         Label("Nothing here", systemImage: selectedCollectionId != nil ? "questionmark.folder" : "location.magnifyingglass")
@@ -1459,6 +1523,15 @@ struct HomeView: View {
                                 onTap: handleHomeTimerTap,
                                 onReset: resetHomeTimer,
                                 onDelete: clearHomeTimer
+                            )
+                        }
+
+                        // Home Stopwatch Section
+                        if homeStopwatch.hasStarted {
+                            HomeStopwatchSection(
+                                stopwatch: homeStopwatch,
+                                onTap: handleHomeStopwatchTap,
+                                onReset: resetHomeStopwatch
                             )
                         }
                         
@@ -1951,6 +2024,7 @@ struct HomeView: View {
             
             .onReceive(timer) { now in
                 handleHomeTimerTick(at: now)
+                finalizeHomeStopwatchIfLimitReached(at: now)
 
                 // Only update when the minute changes.
                 // The List displays "HH:mm" (no seconds) and all visual components
@@ -1966,6 +2040,7 @@ struct HomeView: View {
             .onAppear {
                 loadCollections()
                 restoreHomeTimerStateIfNeeded()
+                finalizeHomeStopwatchIfLimitReached(at: Date())
             }
             
             // Listen for reset notification to reset scroll time
