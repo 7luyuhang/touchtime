@@ -33,6 +33,8 @@ struct IslandCircleButton<Intent: LiveActivityIntent>: View {
             Image(systemName: systemImage)
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(prominence == .primary ? Color.black : Color.white)
+                .contentTransition(.symbolEffect(.replace, options: .speed(2.0)))
+                .animation(.spring(), value: systemImage)
                 .frame(width: 50, height: 50)
                 .background(
                     prominence == .primary ? Color.white : Color.white.opacity(0.18),
@@ -172,30 +174,32 @@ struct LockScreenCard<Intent: LiveActivityIntent, Content: View>: View {
                 .frame(minHeight: 64)
 
             Button(intent: playPauseIntent) {
-                Image(systemName: playPauseSymbol)
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.white)
-                    .contentTransition(.symbolEffect(.replace, options: .speed(2.0)))
-                    .animation(.spring(), value: playPauseSymbol)
-                    .frame(width: 64, height: 64)
-                    .background(Color.white.opacity(0.15), in: Circle())
+                ZStack {
+                    Image(systemName: playPauseSymbol)
+                        .font(.title2.weight(.semibold))
+                        .foregroundStyle(.white)
+                        .id(playPauseSymbol)
+                        .transition(.scale.combined(with: .opacity))
+                }
+                .frame(width: 64, height: 64)
+                .animation(.spring(duration: 0.25), value: playPauseSymbol)
+                .background(Color.white.opacity(0.15), in: Circle())
             }
             .buttonStyle(.plain)
             .accessibilityLabel(Text(playPauseAccessibilityLabel))
         }
         .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.vertical, 14)
         .background {
             Self.cardShape
                 .fill(.clear)
                 .glassEffect(.clear, in: Self.cardShape)
-//                .overlay {
-//                    Self.cardShape
-//                        .fill(LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom))
-//                        .opacity(0.50)
-//                }
+                .overlay {
+                    Self.cardShape
+                        .fill(LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom))
+                        .opacity(0.75)
+                }
         }
-        // Home is always dark, and the card sits on the wallpaper either way
         .environment(\.colorScheme, .dark)
     }
 }
@@ -249,7 +253,6 @@ struct LockScreenCardTitleRow<Digits: View>: View {
                 .monospacedDigit()
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
-                // Past an hour the digits shrink rather than run under the center button
                 .frame(maxWidth: 120, alignment: .trailing)
         }
         .padding(.bottom, -4)
