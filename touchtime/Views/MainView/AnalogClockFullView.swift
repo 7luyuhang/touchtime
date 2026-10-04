@@ -102,6 +102,7 @@ struct AnalogClockFullView: View {
     @AppStorage("homeStopwatchStartEpoch") private var homeStopwatchStartEpoch: Double = 0
     @AppStorage("homeStopwatchAccumulatedSeconds") private var homeStopwatchAccumulatedSeconds: Double = 0
     @AppStorage("homeStopwatchLapsData") private var homeStopwatchLapsData = Data()
+    @AppStorage("stopwatchLapHandColor") private var stopwatchLapHandColor: StopwatchLapHandColor = .cyan
     
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     private let alarmManager = AlarmManager.shared
@@ -744,6 +745,17 @@ struct AnalogClockFullView: View {
         )
     }
 
+    private var stopwatchLapHandColorSelection: Binding<StopwatchLapHandColor> {
+        Binding(
+            get: { stopwatchLapHandColor },
+            set: { newValue in
+                guard newValue != stopwatchLapHandColor else { return }
+                triggerMenuHaptic()
+                stopwatchLapHandColor = newValue
+            }
+        )
+    }
+
     @ViewBuilder
     private var principalToolbarTitle: some View {
         switch selectedDisplayPage {
@@ -760,14 +772,35 @@ struct AnalogClockFullView: View {
 
     // Stopwatch Tool Bar Title
     private var stopwatchToolbarTitle: some View {
-        Text(String(localized: "Stopwatch"))
+        Menu {
+            Picker(String(localized: "Lap Hand Colour"), selection: stopwatchLapHandColorSelection) {
+                ForEach(StopwatchLapHandColor.allCases) { option in
+                    Label(option.displayName, systemImage: "circle.fill")
+                        .tint(option.color)
+                        .tag(option)
+                }
+            }
+            .pickerStyle(.palette)
+            // No selected look: without this the system boxes the current colour
+            .paletteSelectionEffect(.custom)
+            // A palette picker in a menu hides its label unless told to show it
+            .labelsVisibility(.visible)
+        } label: {
+            HStack(spacing: 6) {
+                Text(String(localized: "Stopwatch"))
+                    .lineLimit(1)
+
+                Image(systemName: "chevron.compact.right")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.secondary)
+            }
             .font(.subheadline.weight(.semibold))
             .foregroundStyle(.primary)
-            .lineLimit(1)
             .padding(.horizontal, 16)
             .frame(height: 44)
             .glassEffect(.regular, in: Capsule(style: .continuous))
             .contentShape(Capsule())
+        }
     }
 
     // Timer Tool Bar Title
@@ -1196,7 +1229,8 @@ struct AnalogClockFullView: View {
             if selectedDisplayPage == .stopwatch {
                 StopwatchClockFaceView(
                     size: size,
-                    stopwatch: homeStopwatch
+                    stopwatch: homeStopwatch,
+                    lapHandColor: stopwatchLapHandColor.color
                 )
             } else if selectedDisplayPage == .timer {
                 TimerClockFaceView(

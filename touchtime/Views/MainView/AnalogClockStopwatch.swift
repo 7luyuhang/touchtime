@@ -113,17 +113,48 @@ enum StopwatchTimeFormatter {
     }
 }
 
+// MARK: - Stopwatch Lap Hand Colour
+/// The colours offered for the lap hand, picked from the Stopwatch title menu.
+enum StopwatchLapHandColor: String, CaseIterable, Identifiable {
+    case cyan
+    case red
+    case yellow
+    case green
+    case white
+
+    var id: Self { self }
+
+    var color: Color {
+        switch self {
+        case .cyan: .cyan
+        case .red: .red
+        case .yellow: .yellow
+        case .green: .green
+        case .white: .white
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .cyan: String(localized: "Cyan")
+        case .red: String(localized: "Red")
+        case .yellow: String(localized: "Yellow")
+        case .green: String(localized: "Green")
+        case .white: String(localized: "White")
+        }
+    }
+}
+
 // MARK: - Stopwatch Clock Face
 struct StopwatchClockFaceView: View {
     let size: CGFloat
     let stopwatch: StopwatchSnapshot
+    /// The lap hand and the sweep that follows it.
+    let lapHandColor: Color
 
     private var numberRingRadius: CGFloat {
         size / 2 - 36
     }
-
-    /// The lap hand and the sweep that follows it.
-    private static let lapHandColor: Color = .cyan
 
     private static func secondsAngle(for elapsed: TimeInterval) -> Double {
         elapsed.truncatingRemainder(dividingBy: 60) * 6.0
@@ -172,7 +203,7 @@ struct StopwatchClockFaceView: View {
                 let lapAngle = Self.secondsAngle(for: lapElapsed)
                 let trailElapsed = hasLapHand ? lapElapsed : elapsed
                 let trailAngle = hasLapHand ? lapAngle : totalAngle
-                let trailColor: Color = hasLapHand ? Self.lapHandColor : .white
+                let trailColor: Color = hasLapHand ? lapHandColor : .white
 
                 ZStack {
                     if trailElapsed > 0 {
@@ -201,7 +232,7 @@ struct StopwatchClockFaceView: View {
                         TimerAnimatedHandView(
                             angle: lapAngle,
                             size: size,
-                            color: Self.lapHandColor
+                            color: lapHandColor
                         )
                     }
                 }
@@ -253,7 +284,8 @@ struct StopwatchMinuteSubdialView: View {
                     .frame(width: 1.5, height: length)
                     .offset(y: -(Self.tickOuterRadius - length / 2))
                     .rotationEffect(.degrees(Self.angle(forMinutes: minute)))
-                    .blendMode(.plusLighter)
+                    // Opaque white would saturate the edge pixels and square off the vertical ticks
+                    .blendMode(isMajor ? .normal : .plusLighter)
             }
 
             ForEach([5, 10, 15, 20, 25, 30], id: \.self) { minutes in
