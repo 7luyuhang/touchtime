@@ -276,6 +276,8 @@ struct IslandTitleAndDigits<Digits: View>: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
+                .contentTransition(.numericText())
+                .animation(.spring(duration: 0.25), value: title)
                 .padding(.trailing, 4)
 
             digits

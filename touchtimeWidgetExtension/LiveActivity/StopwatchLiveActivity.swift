@@ -23,7 +23,9 @@ struct StopwatchLiveActivity: Widget {
                 }
 
                 DynamicIslandExpandedRegion(.trailing) {
-                    IslandTitleAndDigits(title: context.attributes.title) {
+                    IslandTitleAndDigits(
+                        title: context.state.lapsText.isEmpty ? context.attributes.title : context.state.lapsText
+                    ) {
                         StopwatchDigits(state: context.state, maxPrecision: .milliseconds(10))
                     }
                 }
