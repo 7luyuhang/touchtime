@@ -30,16 +30,19 @@ struct IslandCircleButton<Intent: LiveActivityIntent>: View {
 
     var body: some View {
         Button(intent: intent) {
-            Image(systemName: systemImage)
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(prominence == .primary ? Color.black : Color.white)
-                .contentTransition(.symbolEffect(.replace, options: .speed(2.0)))
-                .animation(.spring(), value: systemImage)
-                .frame(width: 50, height: 50)
-                .background(
-                    prominence == .primary ? Color.white : Color.white.opacity(0.18),
-                    in: Circle()
-                )
+            ZStack {
+                Image(systemName: systemImage)
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(prominence == .primary ? Color.black : Color.white)
+                    .id(systemImage)
+                    .transition(.scale.combined(with: .opacity))
+            }
+            .frame(width: 50, height: 50)
+            .animation(.spring(duration: 0.25), value: systemImage)
+            .background(
+                prominence == .primary ? Color.white : Color.white.opacity(0.18),
+                in: Circle()
+            )
         }
         .buttonStyle(.plain)
         .accessibilityLabel(Text(accessibilityLabel))
@@ -268,23 +271,20 @@ struct IslandTitleAndDigits<Digits: View>: View {
     @ViewBuilder let digits: Digits
 
     var body: some View {
-        VStack(alignment: .trailing, spacing: 0) {
+        VStack(alignment: .trailing, spacing: 4) {
             Text(title)
-                .font(.subheadline.weight(.semibold))
+                .font(.footnote.weight(.semibold))
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
-                // Clear of the region's rounded corner, and in line with the digits' ink
                 .padding(.trailing, 4)
 
             digits
-                // Small enough for the stopwatch's hundredths to fit without
-                // shrinking, so the timer's digits come out the same size
                 .font(.system(size: 28))
-                .fontWeight(.light)
+                .fontWeight(.regular)
                 .fontDesign(.rounded)
                 .monospacedDigit()
                 .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .minimumScaleFactor(0.50)
         }
         .foregroundStyle(.white)
     }
