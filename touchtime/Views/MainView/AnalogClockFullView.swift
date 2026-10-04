@@ -2557,16 +2557,25 @@ struct AnalogClockFaceView: View {
             }
             
             // Sun/Weather icon
-            Image(systemName: showWeather && weather != nil ? weather!.condition.icon : "sun.max.fill")
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(.tertiary)
-                .blendMode(.plusLighter)
-                .frame(height: 24)
-                .scaleEffect(hideOtherHands ? focusedIconScale : 1.0)
-                .position(x: size / 2,  y: size / 2 + (size / 2 - 64) - (hideOtherHands ? focusedIconShift : 0))
-                .contentTransition(.symbolEffect(.replace))
-                .animation(.spring(), value: weather?.condition)
-                .animation(.spring(), value: hideOtherHands)
+            Button {
+                if hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                }
+                showDetailsSheet = true
+            } label: {
+                Image(systemName: showWeather && weather != nil ? weather!.condition.icon : "sun.max.fill")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+                    .blendMode(.plusLighter)
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .scaleEffect(hideOtherHands ? focusedIconScale : 1.0)
+            .position(x: size / 2,  y: size / 2 + (size / 2 - 64) - (hideOtherHands ? focusedIconShift : 0))
+            .contentTransition(.symbolEffect(.replace))
+            .animation(.spring(), value: weather?.condition)
+            .animation(.spring(), value: hideOtherHands)
 
             if hideOtherHands, showWeather, let weather {
                 Text(weather.condition.displayName)
