@@ -117,11 +117,6 @@ struct HomeStopwatchSection: View {
                 }
                 .tint(.red)
             }
-            .swipeActions(edge: .leading, allowsFullSwipe: true) {
-                Button(action: onReset) {
-                    Image(systemName: "arrow.counterclockwise")
-                }
-            }
             .contextMenu {
                 Button(action: onReset) {
                     Label(String(localized: "Reset"), systemImage: "arrow.counterclockwise")
