@@ -2073,9 +2073,9 @@ struct HomeView: View {
                 Text("Please allow calendar access in Settings to add events.")
             }
 
-            // Share Cities Sheet: empty when there is no local time and no cities
+            // Share Sheet: empty when there is no local time, no cities and no pinned countdowns
             .sheet(isPresented: $showShareSheet) {
-                if worldClocks.isEmpty && !showLocalTime {
+                if worldClocks.isEmpty && !showLocalTime && !countdownStore.countdowns.contains(where: \.isPinned) {
                     ShareCitiesEmptyView()
                 } else {
                     ShareCitiesSheet(

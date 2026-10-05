@@ -5009,6 +5009,7 @@
       }
     },
     "Deselect All" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -13112,6 +13113,7 @@
       }
     },
     "Select All" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -13341,6 +13343,7 @@
     },
     "Share Cities" : {
       "comment" : "Share Cities",
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

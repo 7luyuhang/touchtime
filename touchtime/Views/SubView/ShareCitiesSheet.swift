@@ -9,8 +9,8 @@ import SwiftUI
 import UIKit
 import WeatherKit
 
-/// Shown in place of the share sheet when there is no local time and no
-/// cities to share.
+/// Shown in place of the share sheet when there is no local time, no
+/// cities and no pinned countdowns to share.
 struct ShareCitiesEmptyView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -58,11 +58,27 @@ struct ShareCitiesSheet: View {
         }
     }
 
+    /// Pinned countdown being shared as an image, counted from the moment
+    /// the menu item is tapped, like the city card.
+    private struct CountdownShareData: Identifiable {
+        let id = UUID()
+        let item: CountdownItem
+        let now: Date
+    }
+
+    /// The one item selected, which the Share menu can also share as an image.
+    private enum SingleSelection {
+        case city(name: String, timeZoneIdentifier: String)
+        case countdown(CountdownItem)
+    }
+
     @Binding var worldClocks: [WorldClock]
     @Binding var showSheet: Bool
     @State private var selectedCities: Set<UUID> = []
+    @State private var selectedCountdowns: Set<UUID> = []
     @State private var showLocalTime = false
     @State private var cityShareData: CityShareData? = nil
+    @State private var countdownShareData: CountdownShareData? = nil
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showLocalTime") private var showLocalTimeInHome = true
     @AppStorage("customLocalName") private var customLocalName = ""
@@ -90,8 +106,14 @@ struct ShareCitiesSheet: View {
     @AppStorage("availableTimeEnabled") private var availableTimeEnabled = AvailableTimeDefaults.isEnabled
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     @AppStorage("additionalTimeDisplay") private var additionalTimeDisplay = "None"
+    // Same Time Display settings as the countdown sheet rows, so shared
+    // countdown text breaks the interval into the units chosen there.
+    @AppStorage("countdownShowYears") private var countdownShowYears = false
+    @AppStorage("countdownShowMonths") private var countdownShowMonths = false
+    @AppStorage("countdownShowDays") private var countdownShowDays = true
     
     @EnvironmentObject private var weatherManager: WeatherManager
+    @Environment(CountdownStore.self) private var countdownStore
     
     let currentDate: Date
     let timeOffset: TimeInterval
@@ -185,9 +207,42 @@ struct ShareCitiesSheet: View {
         )
     }
     
+    // Current time plus the Slide to Adjust offset, which the countdowns count from
+    var now: Date {
+        currentDate.addingTimeInterval(timeOffset)
+    }
+    
+    // Pinned countdowns, in the order of their cards on Home
+    var pinnedCountdowns: [CountdownItem] {
+        countdownStore.pinnedCountdowns(at: now)
+    }
+    
+    // "in 4 days", "3 days ago" or "Today", in the countdown sheet's units
+    func countdownText(for item: CountdownItem) -> String {
+        CountdownShare.footerText(
+            from: item.pausedAt ?? now,
+            to: item.effectiveTargetDate(at: now),
+            showYears: countdownShowYears,
+            showMonths: countdownShowMonths,
+            showDays: countdownShowDays
+        )
+    }
+    
     // Generate share text
     func generateShareText() -> String {
         var shareLines: [String] = []
+        
+        // Add selected pinned countdowns, which come before the cities on Home
+        for item in pinnedCountdowns where selectedCountdowns.contains(item.id) {
+            shareLines.append(CountdownShare.copyText(
+                title: item.title,
+                targetDate: item.effectiveTargetDate(at: now),
+                now: item.pausedAt ?? now,
+                showYears: countdownShowYears,
+                showMonths: countdownShowMonths,
+                showDays: countdownShowDays
+            ))
+        }
         
         // Add local time if selected and shown in home
         if showLocalTimeInHome && showLocalTime {
@@ -209,29 +264,28 @@ struct ShareCitiesSheet: View {
         return shareLines.joined(separator: "\n")
     }
     
-    // Check if all cities are selected
-    var allCitiesSelected: Bool {
-        let allWorldClocksSelected = worldClocks.allSatisfy { selectedCities.contains($0.id) }
-        let localTimeSelected = !showLocalTimeInHome || showLocalTime
-        return allWorldClocksSelected && localTimeSelected
+    var isLocalTimeSelected: Bool {
+        showLocalTimeInHome && showLocalTime
     }
     
-    // Single selection: exactly one city OR only Local
-    var isSingleSelection: Bool {
-        let hasLocal = showLocalTimeInHome && showLocalTime
-        let cityCount = selectedCities.count
-        return (hasLocal && cityCount == 0) || (!hasLocal && cityCount == 1)
+    // Local time, cities and countdowns selected, all together
+    var selectionCount: Int {
+        (isLocalTimeSelected ? 1 : 0) + selectedCities.count + selectedCountdowns.count
     }
     
-    // Info for single selection (cityName, timeZoneIdentifier)
-    var singleSelectionInfo: (cityName: String, timeZoneIdentifier: String)? {
-        if showLocalTimeInHome && showLocalTime && selectedCities.isEmpty {
-            return (String(localized: "Local"), TimeZone.current.identifier)
+    // The selected item, when exactly one is selected
+    private var singleSelection: SingleSelection? {
+        guard selectionCount == 1 else { return nil }
+        if isLocalTimeSelected {
+            return .city(name: String(localized: "Local"), timeZoneIdentifier: TimeZone.current.identifier)
         }
-        if selectedCities.count == 1,
-           let clockId = selectedCities.first,
+        if let clockId = selectedCities.first,
            let clock = worldClocks.first(where: { $0.id == clockId }) {
-            return (clock.localizedCityName, clock.timeZoneIdentifier)
+            return .city(name: clock.localizedCityName, timeZoneIdentifier: clock.timeZoneIdentifier)
+        }
+        if let countdownId = selectedCountdowns.first,
+           let item = pinnedCountdowns.first(where: { $0.id == countdownId }) {
+            return .countdown(item)
         }
         return nil
     }
@@ -331,29 +385,14 @@ struct ShareCitiesSheet: View {
         return renderer.uiImage ?? UIImage(systemName: "photo") ?? UIImage()
     }
     
-    // Toggle all selections
-    func toggleSelectAll() {
-        // Provide haptic feedback if enabled
-        if hapticEnabled {
-            let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-            impactFeedback.prepare()
-            impactFeedback.impactOccurred()
-        }
-        
-        withAnimation(.spring()) {
-            if allCitiesSelected {
-                // Deselect all
-                selectedCities.removeAll()
-                if showLocalTimeInHome {
-                    showLocalTime = false
-                }
-            } else {
-                // Select all
-                selectedCities = Set(worldClocks.map { $0.id })
-                if showLocalTimeInHome {
-                    showLocalTime = true
-                }
-            }
+    /// Opens the share-as-image screen for the one selected city or
+    /// countdown, fixing the time it shows at this moment.
+    private func shareAsImage(_ selection: SingleSelection) {
+        switch selection {
+        case .city(let name, let timeZoneIdentifier):
+            shareCardAsImage(cityName: name, timeZoneIdentifier: timeZoneIdentifier)
+        case .countdown(let item):
+            countdownShareData = CountdownShareData(item: item, now: now)
         }
     }
     
@@ -361,6 +400,51 @@ struct ShareCitiesSheet: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 0) {
+                    // Pinned countdowns, above the cities like on Home
+                    ForEach(pinnedCountdowns) { item in
+                        let isSelected = selectedCountdowns.contains(item.id)
+
+                        HStack(spacing: 16) {
+                            // Selection indicator
+                            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                                .font(.title3)
+                                .fontWeight(.semibold)
+                                .foregroundStyle(isSelected ? Color.primary : Color.primary.opacity(0.25))
+                                .contentTransition(.symbolEffect(.replace))
+                                .animation(.spring(), value: isSelected)
+                            
+                            // Countdown title
+                            Text(item.title)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            
+                            Spacer()
+                            
+                            // Day count on the right, kept whole while a long title truncates
+                            Text(countdownText(for: item))
+                                .monospacedDigit()
+                                .foregroundStyle(.secondary)
+                                .lineLimit(1)
+                                .layoutPriority(1)
+                        }
+                        .padding(.vertical, 12)
+                        .frame(maxWidth: .infinity)
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring()) {
+                                if selectedCountdowns.contains(item.id) {
+                                    selectedCountdowns.remove(item.id)
+                                } else {
+                                    selectedCountdowns.insert(item.id)
+                                }
+                            }
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
+                            }
+                        }
+                    }
+                    
                     // Local time card
                     if showLocalTimeInHome {
                         let isSelected = showLocalTime
@@ -457,40 +541,22 @@ struct ShareCitiesSheet: View {
                 .padding(.horizontal)
             }
             .safeAreaPadding(.bottom, 8)
-            .navigationTitle(String(localized: "Share Cities"))
+            .navigationTitle(String(localized: "Share"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollEdgeEffectStyle(.soft, for: .top)
             .scrollIndicators(.hidden)
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                Button(action: toggleSelectAll) {
-                    Text(allCitiesSelected ? String(localized: "Deselect All") : String(localized: "Select All"))
-                        .font(.headline)
-                        .padding(.vertical, 16)
-                        .padding(.horizontal, 24)
-                        .contentTransition(.numericText())
-                }
-                .overlay(
-                    Capsule(style: .continuous)
-                        .stroke(Color.white.opacity(0.05), lineWidth: 1)
-                        .blendMode(.plusLighter)
-                )
-                .contentShape(Capsule(style: .continuous))
-                .glassEffect(.regular.interactive())
-                .buttonStyle(.plain)
-            }
-            
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    // Only show share button if at least one city is selected
-                    if !selectedCities.isEmpty || (showLocalTimeInHome && showLocalTime) {
-                        if isSingleSelection, let info = singleSelectionInfo {
+                    // Only show share button if at least one item is selected
+                    if selectionCount > 0 {
+                        if let selection = singleSelection {
                             // Single selection: Menu with "Copy as Text" and "Share as Image"
                             Menu {
                                 Button(action: copyTimeAsText) {
                                     Label(String(localized: "Copy as Text"), systemImage: "quote.opening")
                                 }
                                 Button {
-                                    shareCardAsImage(cityName: info.cityName, timeZoneIdentifier: info.timeZoneIdentifier)
+                                    shareAsImage(selection)
                                 } label: {
                                     Label(String(localized: "Share as Image"), systemImage: "camera.macro")
                                 }
@@ -536,6 +602,20 @@ struct ShareCitiesSheet: View {
             } render: { aspectRatio in
                 renderCityShareImage(for: share, aspectRatio: aspectRatio)
             }
+        }
+        // Share as Image for a countdown: the same full-screen preview as
+        // its pinned card on Home
+        .fullScreenCover(item: $countdownShareData) { share in
+            CountdownShareAsImageView(
+                title: share.item.title,
+                targetDate: share.item.effectiveTargetDate(at: share.now),
+                emoji: share.item.emoji,
+                photoData: share.item.photoData,
+                photoCrop: share.item.photoCrop,
+                isRepeating: share.item.repeatFrequency != .never,
+                now: share.now,
+                pausedAt: share.item.pausedAt
+            )
         }
         .presentationDetents([.medium])
     }
