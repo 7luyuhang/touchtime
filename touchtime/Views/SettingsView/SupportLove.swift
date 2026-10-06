@@ -149,7 +149,7 @@ struct TipJarView: View {
                                 }
                                 .background(
                                     Capsule(style: .continuous)
-                                        .fill(Color.pink.opacity(0.5))
+                                        .fill(Color.pink.opacity(0.75))
                                         .glassEffect(.regular, in: Capsule(style: .continuous))
                                 )
                                 .transition(.blurReplace.combined(with: .move(edge: .top)).combined(with: .scale))
@@ -293,7 +293,7 @@ struct TipJarView: View {
             )
 
         return plate
-            .fill(Color.white.opacity(0.05))
+            .fill(showExpandedFeatures ? Color.pink.opacity(0.75) : Color.white.opacity(0.05))
             .glassEffect(.clear, in: plate)
             .frame(width: 100, height: 100)
     }
