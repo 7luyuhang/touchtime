@@ -10,9 +10,10 @@ import UIKit
 import Photos
 import PhotosUI
 
-/// Cover picker: a grid of common event emojis, the chosen one colouring
-/// the preview card, or alternatively a photo from the library that fills
-/// the centre badge with a blurred copy as the card background. Every
+/// Cover picker: a grid of every emoji by emoji keyboard category, the
+/// chosen one colouring the preview card, or alternatively a photo from
+/// the library that fills the centre badge with a blurred copy as the card
+/// background. Emojis with skin tones offer them on long press. Every
 /// countdown keeps an emoji; a photo sits on top of it and is the only
 /// cover that can be removed.
 ///
@@ -40,9 +41,8 @@ struct CoverPickerSheet: View {
     /// ...by the shuffle button while a photo is set, since a random
     /// emoji would replace it...
     @State private var showShufflePhotoDialog = false
-    /// ...and by a grid emoji while a photo is set, for the same reason:
-    /// the emoji tapped, whose button the question comes from.
-    @State private var pendingEmoji: String?
+    /// ...and by a grid emoji while a photo is set, for the same reason.
+    @State private var pendingPick: PendingPick?
 
     // Photo editor. `editingCrop` is the framing being edited; nil for a
     // photo not framed yet, which the editor shows just covering the
@@ -65,7 +65,7 @@ struct CoverPickerSheet: View {
     @State private var didSavePhoto = false
     @State private var showPhotoAccessAlert = false
 
-    private let columns = [GridItem(.adaptive(minimum: 52), spacing: 8)]
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 8), count: 6)
 
     /// The full cover photo as picked; nil for emoji covers.
     private var photoImage: UIImage? {
@@ -186,8 +186,8 @@ struct CoverPickerSheet: View {
                         }
                     }
                 } else {
-                    // Random pick from the grid, in plain glass on the
-                    // left; the tinted action stays the photo one.
+                    // Random pick of a common event emoji, in plain glass
+                    // on the left; the tinted action stays the photo one.
                     ToolbarItem(placement: .bottomBar) {
                         Button {
                             triggerHaptic()
@@ -267,41 +267,111 @@ struct CoverPickerSheet: View {
         .interactiveDismissDisabled(isEditingPhoto)
     }
 
-    /// The Cover page: the emoji grid.
+    /// The Cover page: every emoji, each category under its title.
     private var emojiGrid: some View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 8) {
-                ForEach(CountdownCoverEmojis.all, id: \.self) { option in
-                    Button {
-                        triggerHaptic()
-                        // Like the shuffle button, picking an emoji replaces
-                        // a photo cover, so with a photo set this asks first.
-                        if selectedPhotoData == nil {
-                            select(emoji: option)
-                        } else {
-                            pendingEmoji = option
+                ForEach(EmojiCatalog.Category.allCases, id: \.self) { category in
+                    Section {
+                        ForEach(category.emojis, id: \.self) { option in
+                            emojiButton(option)
                         }
-                    } label: {
-                        Text(option)
-                            .font(.system(size: 36))
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 52)
-                    }
-                    .buttonStyle(.plain)
-                    .removePhotoDialog(isPresented: Binding(
-                        get: { pendingEmoji == option },
-                        set: { isPresented in
-                            if !isPresented { pendingEmoji = nil }
-                        }
-                    )) {
-                        triggerHaptic()
-                        select(emoji: option)
+                    } header: {
+                        Text(category.title)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(.secondary)
+                            .blendMode(.plusLighter)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, category == .smileysAndPeople ? 0 : 16)
                     }
                 }
             }
             .padding()
         }
-        .scrollIndicators(.hidden)
+        .scrollIndicators(.visible)
+    }
+
+    /// One emoji of the grid: a tap picks it, and a long press offers its
+    /// skin tones side by side, if it has any. For two people, each tone of
+    /// the first gets a row of every tone of the second.
+    private func emojiButton(_ option: String) -> some View {
+        Button {
+            pick(option, gridEmoji: option)
+        } label: {
+            Text(option)
+                .font(.system(size: 40))
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+        }
+        .buttonStyle(.plain)
+        .contextMenu {
+            ForEach(EmojiCatalog.skinToneRows(of: option), id: \.self) { row in
+                ControlGroup {
+                    ForEach(row, id: \.self) { tone in
+                        Button {
+                            pick(tone, gridEmoji: option)
+                        } label: {
+                            Label {
+                                Text(tone)
+                            } icon: {
+                                EmojiIcon(emoji: tone)
+                            }
+                        }
+                    }
+                }
+                .controlGroupStyle(.palette)
+            }
+        }
+        .removePhotoDialog(
+            isPresented: Binding(
+                get: { pendingPick?.gridEmoji == option },
+                set: { isPresented in
+                    if !isPresented { pendingPick = nil }
+                }
+            ),
+            presenting: pendingPick?.emoji
+        ) { emoji in
+            triggerHaptic()
+            select(emoji: emoji)
+        }
+    }
+
+    /// A skin tone in the long-press menu, drawn as an image: a menu shows
+    /// text at its own small size, but an image at up to 30 points, so the
+    /// image is the emoji at 30 points cropped to its pixels, without the
+    /// line spacing around it. Drawn in `body`, so only once the menu opens
+    /// rather than with every grid button.
+    private struct EmojiIcon: View {
+        let emoji: String
+
+        var body: some View {
+            let attributes: [NSAttributedString.Key: Any] = [.font: UIFont.systemFont(ofSize: 30)]
+            let lineBox = (emoji as NSString).size(withAttributes: attributes)
+            let image = UIGraphicsImageRenderer(size: lineBox).image { _ in
+                (emoji as NSString).draw(at: .zero, withAttributes: attributes)
+            }
+            Image(uiImage: image.croppedToVisiblePixels.withRenderingMode(.alwaysOriginal))
+        }
+    }
+
+    /// An emoji waiting on the photo-removal question, and the grid button
+    /// the question comes from.
+    private struct PendingPick {
+        let gridEmoji: String
+        /// The grid emoji itself, or one of its skin tones.
+        let emoji: String
+    }
+
+    /// Picks an emoji from the button of `gridEmoji`: that emoji, or one of
+    /// its skin tones. Like the shuffle button, picking an emoji replaces a
+    /// photo cover, so with a photo set this asks first, from that button.
+    private func pick(_ emoji: String, gridEmoji: String) {
+        triggerHaptic()
+        if selectedPhotoData == nil {
+            select(emoji: emoji)
+        } else {
+            pendingPick = PendingPick(gridEmoji: gridEmoji, emoji: emoji)
+        }
     }
 
     /// Makes an emoji from the grid the cover. A photo on top goes with
@@ -313,10 +383,10 @@ struct CoverPickerSheet: View {
         onEmojiPick?()
     }
 
-    /// The shuffle button: any grid emoji but the current one, so every
-    /// tap visibly changes the cover.
+    /// The shuffle button: any common event emoji but the current one, so
+    /// every tap visibly changes the cover.
     private func selectRandomEmoji() {
-        let others = CountdownCoverEmojis.all.filter { $0 != selectedEmoji }
+        let others = CountdownCoverEmojis.randomPool.filter { $0 != selectedEmoji }
         select(emoji: others.randomElement() ?? CountdownCoverEmojis.random)
     }
 
@@ -619,12 +689,66 @@ private extension View {
     /// title and destructive Remove (plus the system Cancel) for the minus,
     /// shuffle and emoji buttons, only what Remove goes on to do differs.
     func removePhotoDialog(isPresented: Binding<Bool>, onRemove: @escaping () -> Void) -> some View {
+        removePhotoDialog(isPresented: isPresented, presenting: ()) { _ in onRemove() }
+    }
+
+    /// The question as an emoji button asks it, handing Remove the emoji to
+    /// pick: the pending pick it comes from is cleared as the question goes.
+    func removePhotoDialog<Pick>(
+        isPresented: Binding<Bool>,
+        presenting pick: Pick?,
+        onRemove: @escaping (Pick) -> Void
+    ) -> some View {
         confirmationDialog(
             String(localized: "Are you sure you want to remove this photo?"),
             isPresented: isPresented,
-            titleVisibility: .visible
-        ) {
-            Button(String(localized: "Remove"), role: .destructive, action: onRemove)
+            titleVisibility: .visible,
+            presenting: pick
+        ) { pick in
+            Button(String(localized: "Remove"), role: .destructive) {
+                onRemove(pick)
+            }
         }
+    }
+}
+
+private extension UIImage {
+    /// The image cropped to the smallest rectangle holding all of its
+    /// visible pixels; the image itself if it has none.
+    var croppedToVisiblePixels: UIImage {
+        guard let cgImage else { return self }
+        let width = cgImage.width
+        let height = cgImage.height
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        let isDrawn = pixels.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(
+                data: buffer.baseAddress,
+                width: width,
+                height: height,
+                bitsPerComponent: 8,
+                bytesPerRow: width * 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return false }
+            context.draw(cgImage, in: CGRect(x: 0, y: 0, width: width, height: height))
+            return true
+        }
+        guard isDrawn else { return self }
+
+        var minX = width, minY = height, maxX = -1, maxY = -1
+        for y in 0..<height {
+            for x in 0..<width where pixels[(y * width + x) * 4 + 3] > 0 {
+                minX = min(minX, x)
+                maxX = max(maxX, x)
+                minY = min(minY, y)
+                maxY = max(maxY, y)
+            }
+        }
+        guard maxX >= minX,
+              let cropped = cgImage.cropping(
+                  to: CGRect(x: minX, y: minY, width: maxX - minX + 1, height: maxY - minY + 1)
+              )
+        else { return self }
+        return UIImage(cgImage: cropped, scale: scale, orientation: imageOrientation)
     }
 }

@@ -116,8 +116,8 @@ struct CountdownDetailsView: View {
         let defaultDate = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: tomorrow) ?? tomorrow
         _targetDate = State(initialValue: countdown?.targetDate ?? defaultDate)
 
-        // Every countdown has a cover: a new one starts with a random emoji
-        // from the picker's grid.
+        // Every countdown has a cover: a new one starts with a random common
+        // event emoji.
         let hasCover = countdown?.emoji != nil || countdown?.photoData != nil
         _emoji = State(initialValue: hasCover ? countdown?.emoji : CountdownCoverEmojis.random)
         _photoData = State(initialValue: countdown?.photoData)

@@ -1007,6 +1007,22 @@
         }
       }
     },
+    "Activity" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "活动"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "活動"
+          }
+        }
+      }
+    },
     "Adak" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1735,6 +1751,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "安圭拉"
+          }
+        }
+      }
+    },
+    "Animals & Nature" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "动物与自然"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "動物與自然"
           }
         }
       }
@@ -6215,6 +6247,22 @@
         }
       }
     },
+    "Flags" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "旗帜"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "旗幟"
+          }
+        }
+      }
+    },
     "Flight Time" : {
       "localizations" : {
         "zh-Hans" : {
@@ -6292,6 +6340,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "濃霧"
+          }
+        }
+      }
+    },
+    "Food & Drink" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "食物与饮料"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "美食佳飲"
           }
         }
       }
@@ -10940,6 +11004,22 @@
         }
       }
     },
+    "Objects" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "物体"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "物品"
+          }
+        }
+      }
+    },
     "Ojinaga" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13681,6 +13761,22 @@
         }
       }
     },
+    "Smileys & People" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表情符号与人物"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "表情符號與人物"
+          }
+        }
+      }
+    },
     "Smoky" : {
       "localizations" : {
         "zh-Hans" : {
@@ -14383,6 +14479,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "雪梨"
+          }
+        }
+      }
+    },
+    "Symbols" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "符号"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "符號"
           }
         }
       }
@@ -15366,6 +15478,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Touch Time"
+          }
+        }
+      }
+    },
+    "Travel & Places" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "旅行与地点"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "旅遊與地點"
           }
         }
       }
