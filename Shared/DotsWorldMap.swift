@@ -184,7 +184,7 @@ struct DotsWorldMapLayout {
 /// Drawing only, no interaction, so it renders the same in the app and in
 /// WidgetKit. The view composites additively (plus lighter) over whatever
 /// is behind it, e.g. a sky gradient.
-struct DotsWorldMapCanvas: View {
+struct DotsWorldMapCanvas: View, Animatable {
     /// How the canvas (the artwork's ±80° plus both polar bands, 16:9)
     /// relates to the size it is offered.
     enum Sizing {
@@ -199,8 +199,25 @@ struct DotsWorldMapCanvas: View {
     }
 
     let timeZoneIdentifiers: [String]
-    let date: Date
-    var sizing: Sizing = .fit
+    let sizing: Sizing
+
+    /// Where the sun is overhead at `date`. The map draws from this rather
+    /// than from the date itself so an animated change of date animates the
+    /// terminator and the night side too, e.g. sweeping them back when a
+    /// scrubbed time offset is reset.
+    private var subsolarPoint: SubsolarPoint
+
+    init(timeZoneIdentifiers: [String], date: Date, sizing: Sizing = .fit) {
+        self.timeZoneIdentifiers = timeZoneIdentifiers
+        self.sizing = sizing
+        let subsolar = SolarCalculator.subsolarPoint(date: date)
+        subsolarPoint = SubsolarPoint(latitude: subsolar.latitude, longitude: subsolar.longitude)
+    }
+
+    var animatableData: SubsolarPoint {
+        get { subsolarPoint }
+        set { subsolarPoint = newValue }
+    }
 
     /// The land grid, sampled once per process from this target's copy of
     /// the "WorldMap" asset. Nil when the asset is missing, in which case
@@ -227,7 +244,7 @@ struct DotsWorldMapCanvas: View {
                 // Day/night factors shared by every dot: a point is lit when
                 // sin(altitude) = sinLat*sinDecl + cosLat*cosDecl*cosH > 0,
                 // the same equation whose zero set is the terminator curve.
-                let subsolar = SolarCalculator.subsolarPoint(date: date)
+                let subsolar = subsolarPoint
                 let declinationRad = subsolar.latitude * .pi / 180
                 let sinDeclination = sin(declinationRad)
                 let cosDeclination = cos(declinationRad)
@@ -356,7 +373,7 @@ struct DotsWorldMapCanvas: View {
     /// each longitude, the sun sits on the horizon at latitude
     /// atan(-cos(hourAngle) / tan(declination)).
     private static func terminatorPath(
-        subsolar: (latitude: Double, longitude: Double),
+        subsolar: SubsolarPoint,
         grid: DotsWorldMapGrid,
         layout: DotsWorldMapLayout
     ) -> Path {
@@ -388,5 +405,42 @@ struct DotsWorldMapCanvas: View {
             }
         }
         return curve
+    }
+}
+
+extension DotsWorldMapCanvas {
+    /// The point where the sun is directly overhead, in degrees. SwiftUI
+    /// animates from one value to another along their difference, and the
+    /// longitude difference wraps into -180..<180, so the sun travels at
+    /// most half a turn, at an even pace, however many days apart the two
+    /// dates are. The latitude (the sun's declination) animates directly.
+    nonisolated struct SubsolarPoint: VectorArithmetic {
+        var latitude: Double
+        var longitude: Double
+
+        static let zero = SubsolarPoint(latitude: 0, longitude: 0)
+
+        static func + (lhs: SubsolarPoint, rhs: SubsolarPoint) -> SubsolarPoint {
+            SubsolarPoint(
+                latitude: lhs.latitude + rhs.latitude,
+                longitude: lhs.longitude + rhs.longitude
+            )
+        }
+
+        static func - (lhs: SubsolarPoint, rhs: SubsolarPoint) -> SubsolarPoint {
+            var longitude = (lhs.longitude - rhs.longitude).truncatingRemainder(dividingBy: 360)
+            if longitude >= 180 { longitude -= 360 }
+            if longitude < -180 { longitude += 360 }
+            return SubsolarPoint(latitude: lhs.latitude - rhs.latitude, longitude: longitude)
+        }
+
+        mutating func scale(by rhs: Double) {
+            latitude *= rhs
+            longitude *= rhs
+        }
+
+        var magnitudeSquared: Double {
+            latitude * latitude + longitude * longitude
+        }
     }
 }
