@@ -60,14 +60,13 @@ struct TipJarView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     heartEmblem
-                    
+
                     Text(String(localized: "Thank you for your attention, love you. Your support means the world."))
                         .font(.headline)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                         .padding(.bottom, 16)
                         .padding(.top, 8)
-                    
                     
                     if iapManager.purchaseState == .loading {
                         HStack {

@@ -15250,6 +15250,22 @@
         }
       }
     },
+    "Time zone updated" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时区已更新"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時區已更新"
+          }
+        }
+      }
+    },
     "Timer" : {
       "localizations" : {
         "zh-Hans" : {

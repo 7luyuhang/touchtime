@@ -202,6 +202,7 @@ struct HomeView: View {
     // the cards immediately.
     @Environment(CountdownStore.self) private var countdownStore
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
+    @Environment(\.scenePhase) private var scenePhase
     // Countdown being edited after tapping its pinned card on Home.
     @State private var editingHomeCountdown: CountdownItem? = nil
     // Pinned countdown being shared as an image from its card's context menu.
@@ -271,6 +272,8 @@ struct HomeView: View {
     @AppStorage("showWhatsNewSwipeAdjust") private var showWhatsNewSwipeAdjust = true
     @AppStorage("showShakeToResetTip") private var showShakeToResetTip = false
     @AppStorage("hasTriggeredShakeToResetTip") private var hasTriggeredShakeToResetTip = false
+    @AppStorage("showTimeZoneUpdatedTip") private var showTimeZoneUpdatedTip = false
+    @AppStorage("lastKnownTimeZoneIdentifier") private var lastKnownTimeZoneIdentifier = ""
     @AppStorage("homeTimerConfiguredSeconds") private var homeTimerConfiguredSeconds = 0
     @AppStorage("homeTimerEndDateEpoch") private var homeTimerEndDateEpoch: Double = 0
     @AppStorage("homeTimerCompletionHandled") private var homeTimerCompletionHandled = false
@@ -1372,6 +1375,46 @@ struct HomeView: View {
                     // Main List Content
                     List {
                         
+                        // Time Zone Updated Tip (shown after the device's time zone changes)
+                        if showLocalTime && showTimeZoneUpdatedTip {
+                            Section {
+                                HStack(spacing: 16) {
+                                    Image(systemName: "clock.badge.airplane")
+                                        .font(.headline)
+                                        .foregroundStyle(.secondary)
+                                        .blendMode(.plusLighter)
+                                        .frame(width: 24, height: 24)
+                                    
+                                    Text(String(localized: "Time zone updated"))
+                                        .font(.subheadline)
+                                        .foregroundStyle(.primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "xmark")
+                                        .font(.subheadline.weight(.semibold))
+                                        .foregroundStyle(.primary)
+                                        .frame(width: 24, height: 24)
+                                }
+                                .listRowBackground(
+                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                        .fill(Color.black.opacity(0.10))
+                                        .glassEffect(.clear.interactive(),
+                                                     in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                                )
+                                .contentShape(Rectangle())
+                                .onTapGesture {
+                                    withAnimation(.spring()) {
+                                        showTimeZoneUpdatedTip = false
+                                    }
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                        impactFeedback.impactOccurred()
+                                    }
+                                }
+                            }
+                        }
+                        
                         // Shake to Reset Tip (shown after first city deletion)
                         if showShakeToResetTip {
                             Section {
@@ -1517,7 +1560,9 @@ struct HomeView: View {
                                         weatherManager: weatherManager
                                     ) : nil
                                 )
-                                .id("local-\(showSkyDot)")
+                                // The row only redraws when the minute changes, so a new
+                                // time zone needs a fresh row to show its time right away
+                                .id("local-\(showSkyDot)-\(lastKnownTimeZoneIdentifier)")
                                 
                                 // Tap gesture for local time
                                 .onTapGesture {
@@ -1750,6 +1795,7 @@ struct HomeView: View {
             .animation(.spring(), value: hasLifetimeAccess && availableTimeEnabled)
             .animation(.spring(), value: showWhatsNewSwipeAdjust)
             .animation(.spring(), value: showShakeToResetTip)
+            .animation(.spring(), value: showTimeZoneUpdatedTip)
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
             .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -1983,6 +2029,17 @@ struct HomeView: View {
                 loadCollections()
                 restoreHomeTimerStateIfNeeded()
                 finalizeHomeStopwatchIfLimitReached(at: Date())
+                checkForTimeZoneChange()
+            }
+            
+            // Time zone changes, for the Time Zone Updated tip
+            .onChange(of: scenePhase) { _, newPhase in
+                if newPhase == .active {
+                    checkForTimeZoneChange()
+                }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange).receive(on: DispatchQueue.main)) { _ in
+                checkForTimeZoneChange()
             }
             
             // Listen for reset notification to reset scroll time
@@ -2355,6 +2412,22 @@ struct HomeView: View {
 
         saveWorldClocks()
         saveCollections()
+    }
+
+    // Show the Time Zone Updated tip when the device's time zone differs from
+    // the last one seen, e.g. after landing in another country
+    private func checkForTimeZoneChange() {
+        let currentIdentifier = TimeZone.current.identifier
+        guard currentIdentifier != lastKnownTimeZoneIdentifier else { return }
+
+        // Nothing is recorded before the first check, so there's no change to report
+        let isFirstCheck = lastKnownTimeZoneIdentifier.isEmpty
+        lastKnownTimeZoneIdentifier = currentIdentifier
+
+        guard !isFirstCheck, showLocalTime else { return }
+        withAnimation(.spring()) {
+            showTimeZoneUpdatedTip = true
+        }
     }
 }
 
