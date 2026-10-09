@@ -911,6 +911,8 @@ struct SunriseSunsetSheet: View {
                                                 Text(formatGoldenHourStartTime(goldenHourStart))
                                                     .monospacedDigit()
                                                     .lineLimit(1)
+                                                    .contentTransition(.numericText(countsDown: false))
+                                                    .animation(.spring(), value: goldenHourStart)
                                                 Image(systemName: "arrow.right")
                                                     .font(.footnote.weight(.bold))
                                                     .foregroundStyle(isInGoldenHour ? .yellow : .secondary)
@@ -918,6 +920,8 @@ struct SunriseSunsetSheet: View {
                                                 Text(formatTime(goldenHourEnd))
                                                     .monospacedDigit()
                                                     .lineLimit(1)
+                                                    .contentTransition(.numericText(countsDown: false))
+                                                    .animation(.spring(), value: goldenHourEnd)
                                             }
                                             .lineLimit(1)
                                             .layoutPriority(1)
