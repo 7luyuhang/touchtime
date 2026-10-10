@@ -195,7 +195,8 @@ struct TimeZonePickerViewWrapper: View {
     }
 
     /// The split layout's left pane: the map in the middle of the screen,
-    /// which a double tap turns into a dotted globe.
+    /// which a double tap turns into a dotted globe centred on the spot
+    /// tapped.
     private var worldMapPane: some View {
         DotsWorldMapGlobeView(
             timeZoneIdentifiers: worldClocks.map(\.timeZoneIdentifier),

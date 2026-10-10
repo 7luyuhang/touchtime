@@ -8,14 +8,14 @@
 import SwiftUI
 import UIKit
 
-/// The dotted world map that turns into a dotted 3D globe when double
-/// tapped, for the Search tab's map pane beside the list on iPhone Duo in
-/// landscape. The globe looks like the map, terminator included, with ocean
-/// islands that have a time zone dotted too; it spins slowly and follows a
-/// drag, a tap on an added city's dot names its cities as on the map, and a
-/// double tap turns it back into the map, blurring through the middle of
-/// each change. With Reduce Motion the map and the globe cross-fade instead,
-/// and the globe holds still.
+/// The dotted world map that turns into a dotted 3D globe centred on the
+/// spot double tapped, for the Search tab's map pane beside the list on
+/// iPhone Duo in landscape. The globe looks like the map, terminator
+/// included, with ocean islands that have a time zone dotted too; it spins
+/// slowly and follows a drag, a tap on an added city's dot names its cities
+/// as on the map, and a double tap turns it back into the map, blurring
+/// through the middle of each change. With Reduce Motion the map and the
+/// globe cross-fade instead, and the globe holds still.
 struct DotsWorldMapGlobeView: View {
     let timeZoneIdentifiers: [String]
     let date: Date
@@ -32,6 +32,10 @@ struct DotsWorldMapGlobeView: View {
     /// Counts the morphs, so a morph back to the map that was overtaken by
     /// another morph doesn't hand over to the map when it ends.
     @State private var morphCount = 0
+    /// Which way the globe turns to face as it wraps up: the spot double
+    /// tapped on the map, or nil to turn back the way it faced, when it's
+    /// double tapped on its way back to the map.
+    @State private var globeFacing: GlobeOrientation?
 
     private static let morphAnimation = Animation.smooth(duration: 1.2)
     private static let fadeAnimation = Animation.easeInOut(duration: 0.3)
@@ -41,7 +45,9 @@ struct DotsWorldMapGlobeView: View {
             DotsWorldMapView(
                 timeZoneIdentifiers: timeZoneIdentifiers,
                 date: date,
-                onDoubleTap: showGlobe
+                onDoubleTap: { latitude, longitude in
+                    showGlobe(facing: GlobeOrientation(yaw: longitude, pitch: latitude))
+                }
             )
             .opacity(showsGlobeCanvas ? 0 : 1)
             .allowsHitTesting(!showsGlobeCanvas)
@@ -50,7 +56,8 @@ struct DotsWorldMapGlobeView: View {
                 timeZoneIdentifiers: timeZoneIdentifiers,
                 date: date,
                 isGlobe: isGlobe,
-                onDoubleTap: { isGlobe ? showMap() : showGlobe() }
+                facing: globeFacing,
+                onDoubleTap: { isGlobe ? showMap() : showGlobe(facing: nil) }
             )
             .opacity(showsGlobeCanvas ? 1 : 0)
             .allowsHitTesting(showsGlobeCanvas)
@@ -58,7 +65,8 @@ struct DotsWorldMapGlobeView: View {
         .modifier(SwitchBlur(morph: isGlobe ? 1 : 0, fade: showsGlobeCanvas ? 1 : 0))
     }
 
-    private func showGlobe() {
+    private func showGlobe(facing: GlobeOrientation?) {
+        globeFacing = facing
         playHaptic()
         morphCount += 1
         if reduceMotion {
@@ -135,6 +143,9 @@ private struct DotsGlobePane: View {
     let timeZoneIdentifiers: [String]
     let date: Date
     let isGlobe: Bool
+    /// Which way the globe turns to face as it wraps up; nil to face the way
+    /// it did before it began turning back into the map.
+    let facing: GlobeOrientation?
     let onDoubleTap: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -189,8 +200,8 @@ private struct DotsGlobePane: View {
             dragStartOrientation = nil
             if isGlobe {
                 // The canvas wraps the map up facing its centre, then turns
-                // to face the local time zone
-                motion = GlobeMotion(orientation: .local, isSpinning: true)
+                // to face this
+                motion = GlobeMotion(orientation: facing ?? motion.orientation, isSpinning: true)
             } else {
                 // Held where it is while the canvas turns it back to the
                 // map's centre, the short way round
@@ -296,16 +307,6 @@ private struct GlobeOrientation {
     /// unwraps to: the map's seam is then right behind the globe.
     static var mapCenter: GlobeOrientation {
         GlobeOrientation(yaw: DotsWorldMapCanvas.grid?.longitude(atUnitX: 0.5) ?? 0, pitch: 0)
-    }
-
-    /// Facing the local time zone, tipped toward its hemisphere by half its
-    /// latitude.
-    static var local: GlobeOrientation {
-        let coordinate = TimeZoneCoordinates.getCoordinate(for: TimeZone.current.identifier)
-        return GlobeOrientation(
-            yaw: coordinate?.longitude ?? 0,
-            pitch: (coordinate?.latitude ?? 0) / 2
-        ).nearMapCenter
     }
 
     /// The same way round, with the yaw within half a turn of the map's

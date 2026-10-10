@@ -19,9 +19,10 @@ private struct DotsWorldMapSelection: Identifiable, Equatable {
 struct DotsWorldMapView: View {
     let timeZoneIdentifiers: [String]
     let date: Date
-    /// Called for a double tap anywhere on the map. Only while it's set does
-    /// a tap on a city dot wait to rule out a double tap.
-    let onDoubleTap: (() -> Void)?
+    /// Called for a double tap anywhere on the map, with the latitude and
+    /// longitude under it. Only while it's set does a tap on a city dot wait
+    /// to rule out a double tap.
+    let onDoubleTap: ((_ latitude: Double, _ longitude: Double) -> Void)?
 
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var canvasSize: CGSize = .zero
@@ -34,7 +35,11 @@ struct DotsWorldMapView: View {
         self.init(timeZoneIdentifiers: [timeZoneIdentifier], date: date)
     }
 
-    init(timeZoneIdentifiers: [String], date: Date, onDoubleTap: (() -> Void)? = nil) {
+    init(
+        timeZoneIdentifiers: [String],
+        date: Date,
+        onDoubleTap: ((_ latitude: Double, _ longitude: Double) -> Void)? = nil
+    ) {
         self.timeZoneIdentifiers = timeZoneIdentifiers
         self.date = date
         self.onDoubleTap = onDoubleTap
@@ -54,7 +59,13 @@ struct DotsWorldMapView: View {
                     canvasSize = size
                 }
                 // Ahead of the single tap, so a double tap isn't also taken as one
-                .gesture(TapGesture(count: 2).onEnded { onDoubleTap?() }, isEnabled: onDoubleTap != nil)
+                .gesture(
+                    SpatialTapGesture(count: 2).onEnded { value in
+                        guard let coordinate = coordinate(at: value.location, grid: grid) else { return }
+                        onDoubleTap?(coordinate.latitude, coordinate.longitude)
+                    },
+                    isEnabled: onDoubleTap != nil
+                )
                 .onTapGesture { location in
                     guard let cellIndex = nearestCityCell(to: location, in: citiesByCell.keys, grid: grid) else { return }
                     if hapticEnabled {
@@ -84,6 +95,17 @@ struct DotsWorldMapView: View {
             }
         }
         return nearest?.index
+    }
+
+    /// The latitude and longitude under a point on the map, or nil before
+    /// the map is laid out.
+    private func coordinate(at location: CGPoint, grid: DotsWorldMapGrid) -> (latitude: Double, longitude: Double)? {
+        guard canvasSize.width > 0 else { return nil }
+        let artworkFrame = DotsWorldMapLayout(grid: grid, size: canvasSize).artworkFrame
+        return (
+            latitude: grid.latitude(atUnitY: (location.y - artworkFrame.minY) / artworkFrame.height),
+            longitude: grid.longitude(atUnitX: (location.x - artworkFrame.minX) / artworkFrame.width)
+        )
     }
 
     /// Cell rect in canvas coordinates, used to anchor the popover arrow.
