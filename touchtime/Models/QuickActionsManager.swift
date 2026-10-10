@@ -9,12 +9,14 @@ import SwiftUI
 import Combine
 import UIKit
 
-/// Quick-action destinations, reached from the Home Screen icon menu
-/// or the Spotlight App Shortcuts (see AppShortcuts.swift).
+/// Quick-action destinations, reached from the Home Screen icon menu,
+/// the Spotlight App Shortcuts (see AppShortcuts.swift), or the Camera
+/// Control (see OpenCameraIntent.swift).
 enum QuickAction: String {
     case setAlarm = "com.time.touchtime.setAlarm"
     case setTimer = "com.time.touchtime.setTimer"
     case countdown = "com.time.touchtime.countdown"
+    case camera = "com.time.touchtime.camera"
 
     init?(shortcutItem: UIApplicationShortcutItem) {
         self.init(rawValue: shortcutItem.type)

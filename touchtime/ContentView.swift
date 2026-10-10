@@ -23,6 +23,8 @@ struct ContentView: View {
     @State private var timeOffset: TimeInterval = 0
     @State private var listShowScrollTimeButtons = false
     @State private var clockShowScrollTimeButtons = false
+    // Asks the Clock tab to open its camera, for the Camera Control; the tab clears it
+    @State private var clockOpensCamera = false
     
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     
@@ -57,6 +59,7 @@ struct ContentView: View {
                     worldClocks: $worldClocks,
                     timeOffset: $timeOffset,
                     showScrollTimeButtons: $clockShowScrollTimeButtons,
+                    opensCamera: $clockOpensCamera,
                     weatherManager: weatherManager
                 )
             }
@@ -76,12 +79,13 @@ struct ContentView: View {
                 loadWorldClocks()
             }
             // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)
-            // land on the List tab, where HomeView presents the matching sheet.
+            // land on the List tab, where HomeView presents the matching sheet;
+            // the Camera Control lands on the Clock tab, which opens its camera.
             // The publisher also delivers the pending value on subscription,
             // which covers cold launches.
             .onReceive(QuickActionsManager.shared.$pendingAction) { action in
                 guard let action else { return }
-                selectedTab = .list
+                selectedTab = action == .camera ? .clock : .list
                 DispatchQueue.main.async {
                     QuickActionsManager.shared.pendingAction = nil
                     switch action {
@@ -91,6 +95,8 @@ struct ContentView: View {
                         NotificationCenter.default.post(name: .quickActionSetTimer, object: nil)
                     case .countdown:
                         NotificationCenter.default.post(name: .quickActionCountdown, object: nil)
+                    case .camera:
+                        clockOpensCamera = true
                     }
                 }
             }

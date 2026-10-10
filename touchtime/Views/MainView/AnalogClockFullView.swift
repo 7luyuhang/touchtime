@@ -9,6 +9,7 @@ import SwiftUI
 import Combine
 import UIKit
 import AVFoundation
+import AVKit
 import CoreHaptics
 import WeatherKit
 import TipKit
@@ -40,6 +41,8 @@ struct AnalogClockFullView: View {
     @Binding var worldClocks: [WorldClock]
     @Binding var timeOffset: TimeInterval
     @Binding var showScrollTimeButtons: Bool
+    /// Set by the Camera Control to open the camera; cleared once handled
+    @Binding var opensCamera: Bool
     @ObservedObject var weatherManager: WeatherManager
     @State private var currentDate = Date()
     @State private var selectedCityId: UUID? = nil // nil means Local is selected
@@ -997,7 +1000,27 @@ struct AnalogClockFullView: View {
     private func handleCameraToggle() {
         guard !isCameraBackgroundEnabled && !isCameraPreparing else { return }
         triggerLightHaptic()
+        startCameraBackground()
+    }
 
+    /// Opens the camera on the Time page for the Camera Control. Waits for
+    /// the scene to be active, as the camera only starts then.
+    private func openCameraIfRequested() {
+        guard opensCamera, scenePhase == .active else { return }
+        opensCamera = false
+        // The empty state has no button to close the camera with
+        guard !(displayedClocks.isEmpty && !showLocalTime),
+              !isCameraBackgroundEnabled, !isCameraPreparing else { return }
+
+        if selectedDisplayPage != .time {
+            withAnimation(.spring(duration: 0.25)) {
+                selectedDisplayPage = .time
+            }
+        }
+        startCameraBackground()
+    }
+
+    private func startCameraBackground() {
         let requestId = UUID()
         activeCameraRequestId = requestId
         isCameraPreparing = true
@@ -1628,6 +1651,12 @@ struct AnalogClockFullView: View {
             }
             // Under the ellipsis in the iPhone Duo's vertical bar
             .toolbarPreferringVerticalBar(cameraToolbarItem)
+            // The Camera Control (and the volume buttons) take the picture
+            // like the capture button while the camera is on
+            .onCameraCaptureEvent(isEnabled: isCameraBackgroundEnabled && cameraSessionController.isSessionRunning) { event in
+                guard event.phase == .ended, !isCaptureButtonHidden else { return }
+                handleCapturePhoto()
+            }
             .onReceive(timer) { now in
                 handleHomeTimerTick(at: now)
                 finalizeHomeStopwatchIfLimitReached(at: now)
@@ -1807,6 +1836,11 @@ struct AnalogClockFullView: View {
                         _ = await cameraSessionController.startRunning()
                     }
                 }
+
+                openCameraIfRequested()
+            }
+            .onChange(of: opensCamera) {
+                openCameraIfRequested()
             }
             .onDisappear {
                 cameraWarmupTask?.cancel()
@@ -1832,6 +1866,7 @@ struct AnalogClockFullView: View {
                             _ = await cameraSessionController.startRunning()
                         }
                     }
+                    openCameraIfRequested()
                 } else {
                     cameraSessionController.stopRunning()
                 }

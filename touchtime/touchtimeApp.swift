@@ -5,6 +5,8 @@
 //  Created by yuhang on 23/09/2025.
 //
 
+import AppIntents
+import LockedCameraCapture
 import SwiftUI
 import TipKit
 import UIKit
@@ -31,6 +33,11 @@ struct touchtimeApp: App {
 
         // Timer / stopwatch Live Activity buttons, also when they launch the app in the background
         LiveActivityActionRouter.perform = LiveActivityManager.perform
+        // The Camera Control, and the Camera button in Control Center, open
+        // the Clock tab's camera
+        CameraCaptureRouter.openCamera = {
+            QuickActionsManager.shared.pendingAction = .camera
+        }
     }
     
     var body: some Scene {
@@ -61,6 +68,11 @@ struct touchtimeApp: App {
                         }
                     }
                 }
+                // The Lock Screen camera hands over to the app's camera for
+                // the camera or Photos access only the app can ask for
+                .onContinueUserActivity(NSUserActivityTypeLockedCameraCapture) { _ in
+                    QuickActionsManager.shared.pendingAction = .camera
+                }
         }
         .onChange(of: scenePhase) { _, newPhase in
             // Keep the rolling 24-hour window of on-the-hour notifications topped up,
@@ -72,10 +84,37 @@ struct touchtimeApp: App {
                 // occurrence after one has fired.
                 CountdownReminderManager.shared.reschedule(for: countdownStore.countdowns)
                 SharedWidgetStore.syncFromApp()
+                discardLockedCameraSessionContent()
             } else if newPhase == .background {
                 // Keep the widget's city list and time format up to date
                 SharedWidgetStore.syncFromApp()
                 WidgetCenter.shared.reloadAllTimelines()
+                updateCameraCaptureContext()
+            }
+        }
+    }
+
+    /// Hands the Lock Screen camera the settings it shows the time with, as
+    /// it can't read the app's defaults
+    private func updateCameraCaptureContext() {
+        let defaults = UserDefaults.standard
+        let context = CameraCaptureContext(
+            use24HourFormat: defaults.bool(forKey: "use24HourFormat"),
+            dateStyle: defaults.string(forKey: "dateStyle") ?? "Relative",
+            hapticEnabled: defaults.object(forKey: "hapticEnabled") as? Bool ?? true
+        )
+        Task {
+            try? await OpenCameraIntent.updateAppContext(context)
+        }
+    }
+
+    /// The Lock Screen camera saves straight to Photos, so the folders it
+    /// leaves the app are empty
+    private func discardLockedCameraSessionContent() {
+        Task {
+            let manager = LockedCameraCaptureManager.shared
+            for url in manager.sessionContentURLs {
+                try? await manager.invalidateSessionContent(at: url)
             }
         }
     }

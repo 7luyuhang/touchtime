@@ -11269,6 +11269,22 @@
         }
       }
     },
+    "Opens the camera in Touch Time." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Touch Time 中打开相机。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 Touch Time 中開啟相機。"
+          }
+        }
+      }
+    },
     "Opens the countdowns in Touch Time." : {
       "localizations" : {
         "zh-Hans" : {

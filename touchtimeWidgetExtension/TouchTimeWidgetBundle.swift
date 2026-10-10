@@ -18,5 +18,6 @@ struct TouchTimeWidgetBundle: WidgetBundle {
         CountdownWidget()
         TimerLiveActivity()
         StopwatchLiveActivity()
+        CameraControl()
     }
 }
