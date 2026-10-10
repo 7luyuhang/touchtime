@@ -444,16 +444,21 @@ struct AnalogClockFullView: View {
         return !canResumeProgress
     }
 
+    /// Turns the timer by whole minutes on its dial, which goes round past 0
+    /// either way: on from 59 to 0, and back from 0 to 59.
     @discardableResult
     private func adjustHomeTimerConfiguredSeconds(by deltaSeconds: Int) -> Bool {
-        let minSeconds = 60
-        let maxSeconds = 59 * 60
-        // From the empty state, only forward scrolls should engage the timer.
-        if homeTimerConfiguredSeconds == 0 && deltaSeconds <= 0 { return false }
-        let newConfigured = min(max(homeTimerConfiguredSeconds + deltaSeconds, minSeconds), maxSeconds)
+        guard deltaSeconds != 0 else { return false }
+        // A duration with seconds stops at the next whole minute in the
+        // direction of the turn, so the hand can always land on 0
+        let turnedMinutes = (Double(homeTimerConfiguredSeconds + deltaSeconds) / 60)
+            .rounded(deltaSeconds > 0 ? .down : .up)
+        let newMinutes = (Int(turnedMinutes) % 60 + 60) % 60
+        let newConfigured = newMinutes * 60
         guard newConfigured != homeTimerConfiguredSeconds else { return false }
         homeTimerConfiguredSeconds = newConfigured
-        homeTimerPaused = true
+        // 00:00 leaves no timer, so nothing to pause
+        homeTimerPaused = newConfigured > 0
         homeTimerPausedRemainingSeconds = newConfigured
         homeTimerEndDateEpoch = 0
         homeTimerCompletionHandled = false
