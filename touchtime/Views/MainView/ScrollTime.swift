@@ -1285,12 +1285,12 @@ struct ScrollTimeDotsIndicator: View, Animatable {
 
     // 2pt ticks every 10pt: the same density as the previous static row of
     // 24 dots with 8pt gaps.
-    private static let tickSpacing: CGFloat = 10
-    private static let tickWidth: CGFloat = 2
-    private static let minorHeight: CGFloat = 8
-    private static let majorHeight: CGFloat = 12
+    static let tickSpacing: CGFloat = 10
+    static let tickWidth: CGFloat = 2
+    static let minorHeight: CGFloat = 8
+    static let majorHeight: CGFloat = 12
     /// Four short ticks between each taller major tick (period of five).
-    private static let majorInterval = 5
+    static let majorInterval = 5
 
     var body: some View {
         Canvas { context, size in

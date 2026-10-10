@@ -673,6 +673,12 @@ struct AnalogClockFullView: View {
         }
     }
 
+    /// Once the time is adjusted, Slide to Adjust floats the offset and its
+    /// reset button above itself, in the middle
+    private var showsTimeOffsetControls: Bool {
+        continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons
+    }
+
     private var cityTimeSegmentSelection: Binding<Bool> {
         Binding(
             get: { showTimeInsteadOfCityName },
@@ -985,6 +991,7 @@ struct AnalogClockFullView: View {
             isCameraBackgroundEnabled = false
         }
         cameraSessionController.stopRunning()
+        cameraSessionController.zoomFactor = 1
     }
 
     private func handleCameraToggle() {
@@ -1270,9 +1277,11 @@ struct AnalogClockFullView: View {
                 .padding(.bottom, 4)
         } else {
             Spacer()
-            // Local time display (hidden when continuous scroll reset button is showing)
+            // Local time display (hidden when continuous scroll reset button is
+            // showing, and for the camera's zoom slider)
             if selectedDisplayPage == .time,
-               !(continuousScrollMode && timeOffset != 0 && !showScrollTimeButtons),
+               !isCameraBackgroundEnabled,
+               !showsTimeOffsetControls,
                selectedCityId != nil {
                 HStack(spacing: 4) {
                     Image(systemName: "location.fill")
@@ -1364,6 +1373,14 @@ struct AnalogClockFullView: View {
             AnalogClockCameraCloseButton(
                 isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden,
                 action: handleCameraClose
+            )
+        }
+        .overlay(alignment: .top) { // Zoom Slider
+            AnalogClockCameraZoomSlider(
+                // Gives way to the time offset controls, as the local time does
+                isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden && !showsTimeOffsetControls,
+                zoomFactor: $cameraSessionController.zoomFactor,
+                zoomFactorRange: cameraSessionController.zoomFactorRange
             )
         }
     }

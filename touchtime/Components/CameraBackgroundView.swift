@@ -56,6 +56,16 @@ final class CameraSessionController: NSObject, ObservableObject {
     private let videoOutputQueue = DispatchQueue(label: "com.touchtime.camera.videoOutput", qos: .userInteractive)
     private let videoFrameDelegate = VideoFrameDelegate()
     @Published var didCapturePhoto = false
+    /// The zoom as the Camera app counts it: 1x on the main camera, 0.5x on
+    /// the ultra wide
+    @Published var zoomFactor: Double = 1 {
+        didSet { applyZoomFactor(zoomFactor) }
+    }
+    /// How far the current camera zooms out and in, counted the same way
+    @Published private(set) var zoomFactorRange: ClosedRange<Double> = 1...CameraSessionController.maximumZoomFactor
+
+    /// Past this the digital zoom is too soft for a background
+    nonisolated private static let maximumZoomFactor: Double = 5
 
     private let sessionQueue = DispatchQueue(label: "com.touchtime.camera.session")
     private var didConfigureSession = false
@@ -122,7 +132,7 @@ final class CameraSessionController: NSObject, ObservableObject {
                     self.session.sessionPreset = .high
                     defer { self.session.commitConfiguration() }
 
-                    guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+                    guard let camera = Self.camera(at: .back),
                           let input = try? AVCaptureDeviceInput(device: camera),
                           self.session.canAddInput(input) else {
                         cameraAvailable = false
@@ -152,8 +162,14 @@ final class CameraSessionController: NSObject, ObservableObject {
                 }
 
                 let available = cameraAvailable && didConfigure
+                let zoomFactorRange = self.videoDevice.map(Self.zoomFactorRange(of:))
                 DispatchQueue.main.async {
                     self.isCameraAvailable = available
+                    if let zoomFactorRange {
+                        self.zoomFactorRange = zoomFactorRange
+                        // A camera with an ultra wide starts out on it, below 1x
+                        self.applyZoomFactor(self.zoomFactor)
+                    }
                     if self.session.isRunning {
                         self.sessionState = .running
                     } else {
@@ -235,7 +251,7 @@ final class CameraSessionController: NSObject, ObservableObject {
             guard self.didConfigureSession else { return }
 
             let newPosition: AVCaptureDevice.Position = self.cameraPosition == .back ? .front : .back
-            guard let newCamera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: newPosition),
+            guard let newCamera = Self.camera(at: newPosition),
                   let newInput = try? AVCaptureDeviceInput(device: newCamera) else { return }
 
             self.session.beginConfiguration()
@@ -245,12 +261,14 @@ final class CameraSessionController: NSObject, ObservableObject {
                 .filter { $0.device.hasMediaType(.video) }
             currentVideoInputs.forEach { self.session.removeInput($0) }
 
+            var appliedCamera = newCamera
             var appliedPosition = newPosition
             if self.session.canAddInput(newInput) {
                 self.session.addInput(newInput)
             } else if let previousInput = currentVideoInputs.first, self.session.canAddInput(previousInput) {
                 // Restore the previous camera if the new one can't be added.
                 self.session.addInput(previousInput)
+                appliedCamera = previousInput.device
                 appliedPosition = previousInput.device.position
             }
 
@@ -267,10 +285,59 @@ final class CameraSessionController: NSObject, ObservableObject {
 
             self.session.commitConfiguration()
 
+            // The other camera starts back at 1x
+            Self.setZoomFactor(1, on: appliedCamera)
+            let zoomFactorRange = Self.zoomFactorRange(of: appliedCamera)
+
             DispatchQueue.main.async {
                 self.cameraPosition = appliedPosition
+                self.zoomFactorRange = zoomFactorRange
+                self.zoomFactor = 1
             }
         }
+    }
+
+    /// The camera at `position` with the most lenses, so the back one zooms
+    /// out to its ultra wide where it has one
+    nonisolated private static func camera(at position: AVCaptureDevice.Position) -> AVCaptureDevice? {
+        let deviceTypes: [AVCaptureDevice.DeviceType] = [.builtInTripleCamera, .builtInDualWideCamera, .builtInWideAngleCamera]
+        return deviceTypes.lazy
+            .compactMap { AVCaptureDevice.default($0, for: .video, position: position) }
+            .first
+    }
+
+    /// The camera the session is using; on the session queue
+    private var videoDevice: AVCaptureDevice? {
+        session.inputs
+            .compactMap { $0 as? AVCaptureDeviceInput }
+            .first { $0.device.hasMediaType(.video) }?
+            .device
+    }
+
+    private func applyZoomFactor(_ zoomFactor: Double) {
+        sessionQueue.async {
+            guard let device = self.videoDevice else { return }
+            Self.setZoomFactor(zoomFactor, on: device)
+        }
+    }
+
+    /// On the session queue
+    nonisolated private static func setZoomFactor(_ zoomFactor: Double, on device: AVCaptureDevice) {
+        guard (try? device.lockForConfiguration()) != nil else { return }
+        // Assigning out of range throws, and during a flip the zoom can still
+        // be the other camera's
+        let videoZoomFactor = CGFloat(zoomFactor) / device.displayVideoZoomFactorMultiplier
+        device.videoZoomFactor = min(max(videoZoomFactor, device.minAvailableVideoZoomFactor), device.maxAvailableVideoZoomFactor)
+        device.unlockForConfiguration()
+    }
+
+    /// How far `device` zooms out and in as the Camera app counts it, up to
+    /// `maximumZoomFactor`
+    nonisolated private static func zoomFactorRange(of device: AVCaptureDevice) -> ClosedRange<Double> {
+        let multiplier = Double(device.displayVideoZoomFactorMultiplier)
+        let widest = Double(device.minAvailableVideoZoomFactor) * multiplier
+        let closest = min(Double(device.maxAvailableVideoZoomFactor) * multiplier, maximumZoomFactor)
+        return widest...max(widest, closest)
     }
 
     func capturePhoto() {
