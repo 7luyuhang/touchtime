@@ -10,11 +10,12 @@ import UIKit
 
 /// The dotted world map that turns into a dotted 3D globe when double
 /// tapped, for the Search tab's map pane beside the list on iPhone Duo in
-/// landscape. The globe has a dot for every supported time zone, the added
-/// cities' dots largest and brightest; it spins slowly and follows a drag,
-/// and a double tap turns it back into the map, blurring through the middle
-/// of each change. With Reduce Motion the map and the globe cross-fade
-/// instead, and the globe holds still.
+/// landscape. The globe looks like the map, terminator included, with ocean
+/// islands that have a time zone dotted too; it spins slowly and follows a
+/// drag, a tap on an added city's dot names its cities as on the map, and a
+/// double tap turns it back into the map, blurring through the middle of
+/// each change. With Reduce Motion the map and the globe cross-fade instead,
+/// and the globe holds still.
 struct DotsWorldMapGlobeView: View {
     let timeZoneIdentifiers: [String]
     let date: Date
@@ -127,7 +128,8 @@ private struct SwitchBlur: ViewModifier, Animatable {
 }
 
 /// The globe canvas with its gestures: a drag turns the globe, which then
-/// carries on with the drag's momentum, and a double tap goes back to the
+/// carries on with the drag's momentum; a tap on an added city's dot lists
+/// its cities in a popover, like the map; and a double tap goes back to the
 /// map (or, on the way there, back to the globe).
 private struct DotsGlobePane: View {
     let timeZoneIdentifiers: [String]
@@ -136,18 +138,26 @@ private struct DotsGlobePane: View {
     let onDoubleTap: () -> Void
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var motion = GlobeMotion(orientation: .mapCenter)
     /// Where the globe faced when the current drag began; nil between drags.
     @State private var dragStartOrientation: GlobeOrientation?
-    @State private var globeRadius: CGFloat = 1
+    @State private var canvasSize: CGSize = .zero
+    @State private var selection: GlobeCitySelection?
 
     /// No spin of its own with Reduce Motion, and no momentum after a drag.
     private var spinSpeed: Double {
         reduceMotion ? 0 : GlobeMotion.spinSpeed
     }
 
+    private var globeRadius: CGFloat {
+        DotsGlobeCanvas.globeRadius(in: canvasSize)
+    }
+
     var body: some View {
-        TimelineView(.animation(paused: !isGlobe || dragStartOrientation != nil || reduceMotion)) { context in
+        // Ticks only while the globe turns on its own: not while it's
+        // dragged, nor while a city's popover holds it still
+        TimelineView(.animation(paused: !isGlobe || !motion.isSpinning || reduceMotion)) { context in
             DotsGlobeCanvas(
                 timeZoneIdentifiers: timeZoneIdentifiers,
                 date: date,
@@ -155,14 +165,26 @@ private struct DotsGlobePane: View {
                 orientation: motion.orientation(at: context.date, spinSpeed: spinSpeed)
             )
         }
-        .onGeometryChange(for: CGFloat.self) { proxy in
-            DotsGlobeCanvas.globeRadius(in: proxy.size)
-        } action: { radius in
-            globeRadius = radius
+        .onGeometryChange(for: CGSize.self) { proxy in
+            proxy.size
+        } action: { size in
+            canvasSize = size
         }
         .contentShape(Rectangle())
         .gesture(drag)
+        // Ahead of the single tap, so a double tap isn't also taken as one
         .onTapGesture(count: 2, perform: onDoubleTap)
+        .onTapGesture { location in
+            selectCity(at: location)
+        }
+        .popover(item: $selection, attachmentAnchor: .rect(.rect(selection?.anchor ?? .zero))) { selected in
+            DotsWorldMapCitiesPopover(identifiers: selected.identifiers)
+        }
+        .onChange(of: selection == nil) { _, isDismissed in
+            if isDismissed, isGlobe {
+                motion = GlobeMotion(orientation: motion.orientation, isSpinning: true)
+            }
+        }
         .onChange(of: isGlobe) { _, isGlobe in
             dragStartOrientation = nil
             if isGlobe {
@@ -198,6 +220,60 @@ private struct DotsGlobePane: View {
                 )
             }
     }
+
+    /// Opens the popover for the added city's dot nearest a tap, among those
+    /// facing the viewer, and holds the globe still so the dot stays under
+    /// the popover's arrow.
+    private func selectCity(at location: CGPoint) {
+        guard isGlobe, canvasSize.width > 0, let lattice = DotsGlobeLattice.shared else { return }
+        let orientation = motion.orientation(at: .now, spinSpeed: spinSpeed)
+        let globe = GlobeProjection(
+            orientation: orientation,
+            center: CGPoint(x: canvasSize.width / 2, y: canvasSize.height / 2),
+            radius: globeRadius
+        )
+
+        var nearest: (cityDot: DotsGlobeLattice.CityDot, point: CGPoint, distance: CGFloat)?
+        for cityDot in lattice.cityDots(for: timeZoneIdentifiers) {
+            let projected = globe.project(cityDot.dot.point.vector)
+            // At least half shown, the rim fading dots out
+            guard projected.depth > SurfaceMorph.edgeFade / 2 else { continue }
+            let point = CGPoint(
+                x: globe.center.x + globe.radius * projected.x,
+                y: globe.center.y + globe.radius * projected.y
+            )
+            let distance = hypot(point.x - location.x, point.y - location.y)
+            if distance <= DotsWorldMapView.tapTolerance, distance < (nearest?.distance ?? .infinity) {
+                nearest = (cityDot, point, distance)
+            }
+        }
+        guard let nearest else { return }
+
+        if hapticEnabled {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+        motion = GlobeMotion(orientation: orientation)
+        let dotSize = globeRadius * CGFloat(DotsGlobeCanvas.cityDotDiameter)
+        selection = GlobeCitySelection(
+            id: nearest.cityDot.dot.id,
+            identifiers: nearest.cityDot.identifiers,
+            anchor: CGRect(
+                x: nearest.point.x - dotSize / 2,
+                y: nearest.point.y - dotSize / 2,
+                width: dotSize,
+                height: dotSize
+            )
+        )
+    }
+}
+
+/// An added city's dot tapped on the globe: its cities, and where it is on
+/// screen for the popover's arrow.
+private struct GlobeCitySelection: Identifiable {
+    /// The dot's index in the lattice.
+    let id: Int
+    let identifiers: [String]
+    let anchor: CGRect
 }
 
 /// Which way the globe faces: the longitude (yaw) and latitude (pitch) at
@@ -336,14 +412,19 @@ private struct DotsGlobeCanvas: View, Animatable {
         min(size.width, size.height) / 2 * 0.9
     }
 
+    /// Half the gap between neighbouring lattice dots, in radians.
+    static let dotDiameter = DotsGlobeLattice.spacing * .pi / 180 * 0.5
+    /// Twice the plain dots, like the map's city dots.
+    static let cityDotDiameter = dotDiameter * 2
+
     var body: some View {
         if let grid = DotsWorldMapCanvas.grid, let lattice = DotsGlobeLattice.shared {
             // The same table the map draws its city dots from
             let citiesByCell = DotsWorldMapCanvas.citiesByCell(for: timeZoneIdentifiers, grid: grid)
-            let addedCityDots = lattice.dots(nearest: timeZoneIdentifiers)
+            let cityDots = lattice.cityDots(for: timeZoneIdentifiers)
 
             Canvas { context, size in
-                draw(in: context, size: size, grid: grid, lattice: lattice, citiesByCell: citiesByCell, addedCityDots: addedCityDots)
+                draw(in: context, size: size, grid: grid, lattice: lattice, citiesByCell: citiesByCell, cityDots: cityDots)
             }
             // Composites like the map, additively over what's behind it
             .blendMode(.plusLighter)
@@ -356,7 +437,7 @@ private struct DotsGlobeCanvas: View, Animatable {
         grid: DotsWorldMapGrid,
         lattice: DotsGlobeLattice,
         citiesByCell: [Int: [String]],
-        addedCityDots: [DotsGlobeLattice.Dot]
+        cityDots: [DotsGlobeLattice.CityDot]
     ) {
         guard size.width > 0, size.height > 0 else { return }
         let morph = min(max(self.morph, 0), 1)
@@ -368,22 +449,8 @@ private struct DotsGlobeCanvas: View, Animatable {
             radius: radius
         )
         let surface = SurfaceMorph(flatMap: flatMap, globe: globe, wrap: smoothstep(0, 0.7, morph))
-        let sun = SurfacePoint(latitude: subsolarPoint.latitude, longitude: subsolarPoint.longitude).vector
-
-        // The terminator stays on the map, gone before the map has moved much
-        let terminatorOpacity = 1 - smoothstep(0, 0.15, morph)
-        if terminatorOpacity > 0 {
-            var terminatorContext = context
-            terminatorContext.opacity = terminatorOpacity
-            terminatorContext.translateBy(x: flatMap.origin.x, y: flatMap.origin.y)
-            DotsWorldMapCanvas.drawTerminator(
-                in: terminatorContext,
-                size: flatMap.size,
-                subsolar: subsolarPoint,
-                grid: grid,
-                layout: flatMap.layout
-            )
-        }
+        let subsolar = SurfacePoint(latitude: subsolarPoint.latitude, longitude: subsolarPoint.longitude)
+        let sun = subsolar.vector
 
         var dots = DotBatch()
         // The map's own dots wrap up with it, handing over to the globe's
@@ -414,32 +481,116 @@ private struct DotsGlobeCanvas: View, Animatable {
         }
 
         if latticeOpacity > 0 {
-            // Half the gap between neighbouring dots, in radians
-            let dotDiameter = DotsGlobeLattice.spacing * .pi / 180 * 0.5
-            for dot in lattice.dots {
+            // A city's dot hides the dot under it, which would otherwise
+            // brighten its middle wherever the city's dot is dimmed
+            let cityDotIDs = Set(cityDots.map(\.dot.id))
+            for dot in lattice.dots where !cityDotIDs.contains(dot.id) {
                 guard let placement = surface.placement(
                     ofGlobeDot: dot.point,
                     at: flatMap.point(unitX: dot.mapUnitX, unitY: dot.mapUnitY),
-                    diameter: dot.isTimeZone ? dotDiameter * 1.15 : dotDiameter
+                    diameter: Self.dotDiameter
                 ) else { continue }
-                // Dimmer in night, with a short twilight between
+                // 0.1 in night to 0.25 in daylight like the map's land dots,
+                // with a short twilight between
                 let daylight = smoothstep(-0.08, 0.08, (dot.point.vector * sun).sum())
-                let opacity = dot.isTimeZone ? 0.45 + 0.35 * daylight : 0.1 + 0.15 * daylight
-                dots.add(opacity: opacity * placement.visibility * latticeOpacity, transform: placement.transform)
+                dots.add(opacity: (0.1 + 0.15 * daylight) * placement.visibility * latticeOpacity, transform: placement.transform)
             }
-            // Over their time zone's dot, sized like the map's city dots
-            for dot in addedCityDots {
+            for cityDot in cityDots {
+                let dot = cityDot.dot
                 guard let placement = surface.placement(
                     ofGlobeDot: dot.point,
                     at: flatMap.point(unitX: dot.mapUnitX, unitY: dot.mapUnitY),
-                    diameter: dotDiameter * 2
+                    diameter: Self.cityDotDiameter
                 ) else { continue }
                 dots.add(opacity: placement.visibility * latticeOpacity, transform: placement.transform)
             }
         }
 
         dots.fill(in: context)
+
+        // Over the dots, as on the map. The map's terminator is gone before
+        // the map has moved much, and the globe's shows up only once the map
+        // has wrapped up
+        let mapTerminatorOpacity = 1 - smoothstep(0, 0.15, morph)
+        if mapTerminatorOpacity > 0 {
+            var terminatorContext = context
+            terminatorContext.opacity = mapTerminatorOpacity
+            terminatorContext.translateBy(x: flatMap.origin.x, y: flatMap.origin.y)
+            DotsWorldMapCanvas.drawTerminator(
+                in: terminatorContext,
+                size: flatMap.size,
+                subsolar: subsolarPoint,
+                grid: grid,
+                layout: flatMap.layout
+            )
+        }
+        let globeTerminatorOpacity = smoothstep(0.7, 1, morph)
+        if globeTerminatorOpacity > 0 {
+            var terminatorContext = context
+            terminatorContext.opacity = globeTerminatorOpacity
+            drawGlobeTerminator(in: terminatorContext, globe: globe, subsolar: subsolar)
+        }
     }
+
+    /// The great circle where the sun is on the horizon, a quarter turn
+    /// round the globe from the subsolar point, stroked like the map's
+    /// terminator over the globe's side facing the viewer.
+    private func drawGlobeTerminator(in context: GraphicsContext, globe: GlobeProjection, subsolar: SurfacePoint) {
+        // The visible half, from rim to rim, centred on the circle's point
+        // nearest the viewer
+        let nearestAngle = atan2(globe.project(subsolar.north).depth, globe.project(subsolar.east).depth)
+        // Half a degree apart, close enough to read as a smooth curve
+        let segments = 360
+        var curve = Path()
+        for index in 0...segments {
+            let angle = nearestAngle + .pi * (Double(index) / Double(segments) - 0.5)
+            let projected = globe.project(subsolar.east * cos(angle) + subsolar.north * sin(angle))
+            let point = CGPoint(
+                x: Double(globe.center.x) + Double(globe.radius) * projected.x,
+                y: Double(globe.center.y) + Double(globe.radius) * projected.y
+            )
+            if index == 0 {
+                curve.move(to: point)
+            } else {
+                curve.addLine(to: point)
+            }
+        }
+
+        var curveContext = context
+        curveContext.blendMode = .plusLighter
+        curveContext.clipToLayer { mask in
+            let globeRect = CGRect(
+                x: globe.center.x - globe.radius,
+                y: globe.center.y - globe.radius,
+                width: globe.radius * 2,
+                height: globe.radius * 2
+            )
+            mask.fill(
+                Path(ellipseIn: globeRect),
+                with: .radialGradient(Self.terminatorRimFade, center: globe.center, startRadius: 0, endRadius: globe.radius)
+            )
+        }
+        curveContext.stroke(
+            curve,
+            with: .color(.white.opacity(0.25)),
+            style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+        )
+    }
+
+    /// How much of the globe's terminator shows from the globe's centre
+    /// (location 0) out to its rim (1): as much as a dot would there.
+    private static let terminatorRimFade: Gradient = {
+        let stopCount = 24
+        return Gradient(stops: (0...stopCount).map { index in
+            // Even steps of depth, which bunch up toward the rim, where the
+            // fade is
+            let depth = 1 - Double(index) / Double(stopCount)
+            return Gradient.Stop(
+                color: .white.opacity(smoothstep(0, SurfaceMorph.edgeFade, depth) * SurfaceMorph.shading(depth: depth)),
+                location: (1 - depth * depth).squareRoot()
+            )
+        })
+    }()
 }
 
 /// The aspect-fit rect the flat map draws in (see DotsWorldMapCanvas.Sizing),
@@ -526,7 +677,13 @@ private struct SurfaceMorph {
 
     /// How far into the side facing the viewer dots fade in, in the
     /// surface's foreshortening (1 face on, 0 edge on).
-    private static let edgeFade: Double = 0.12
+    static let edgeFade: Double = 0.12
+
+    /// Dimmer toward the globe's rim, like a lit sphere: 1 face on, 0.45 at
+    /// the rim, for a depth as GlobeProjection.project gives it.
+    static func shading(depth: Double) -> Double {
+        0.45 + 0.55 * max(depth, 0)
+    }
 
     /// A dot `diameter` points across on the flat map, which stretches with
     /// the map as it wraps up.
@@ -569,8 +726,7 @@ private struct SurfaceMorph {
         let unfolded = ((1 - wrap) * flatScale.x + wrap * radius * point.cosLatitude)
             * ((1 - wrap) * flatScale.y + wrap * radius)
         let facing = (perLatitude.x * perLongitude.y - perLongitude.x * perLatitude.y) / unfolded
-        // Dimmer toward the globe's rim, like a lit sphere
-        let shading = 0.45 + 0.55 * max(onGlobe.depth, 0)
+        let shading = Self.shading(depth: onGlobe.depth)
         let visibility = smoothstep(0, Self.edgeFade, facing) * (1 + (shading - 1) * wrap)
         guard visibility > 0 else { return nil }
 
@@ -639,11 +795,12 @@ private struct SurfacePoint {
 /// (ocean islands included).
 private struct DotsGlobeLattice {
     struct Dot {
+        /// The dot's index in the lattice, counting row by row.
+        let id: Int
         let point: SurfacePoint
         /// Where the dot sits on the flat map, in its artwork's unit space.
         let mapUnitX: Double
         let mapUnitY: Double
-        let isTimeZone: Bool
     }
 
     /// Degrees between neighbouring dots.
@@ -686,10 +843,10 @@ private struct DotsGlobeLattice {
         for row in rowDotCounts.indices {
             let latitude = Self.latitude(ofRow: row)
             for column in 0..<rowDotCounts[row] {
-                let isTimeZone = timeZoneIndices.contains(rowStartIndices[row] + column)
+                let index = rowStartIndices[row] + column
                 let longitude = Self.longitude(ofColumn: column, dotCount: rowDotCounts[row])
-                guard isTimeZone || Self.isLand(latitude: latitude, longitude: longitude, in: landGrid) else { continue }
-                dots.append(Self.dot(row: row, column: column, isTimeZone: isTimeZone, rowDotCounts: rowDotCounts, mapGrid: mapGrid))
+                guard timeZoneIndices.contains(index) || Self.isLand(latitude: latitude, longitude: longitude, in: landGrid) else { continue }
+                dots.append(Self.dot(id: index, row: row, column: column, rowDotCounts: rowDotCounts, mapGrid: mapGrid))
             }
         }
         self.dots = dots
@@ -702,15 +859,32 @@ private struct DotsGlobeLattice {
         }
     }
 
-    /// The lattice dots holding each identifier's time zone, one per dot.
-    func dots(nearest identifiers: [String]) -> [Dot] {
-        var latticeIndices = Set<Int>()
-        return identifiers.compactMap { identifier in
-            guard let coordinate = TimeZoneCoordinates.getCoordinate(for: identifier) else { return nil }
+    /// A lattice dot holding the time zones of one or more of the cities.
+    struct CityDot {
+        let dot: Dot
+        var identifiers: [String]
+    }
+
+    /// The lattice dots holding the cities' time zones, each listing its
+    /// cities in the order given.
+    func cityDots(for identifiers: [String]) -> [CityDot] {
+        var cityDots: [CityDot] = []
+        var positionsByLatticeIndex: [Int: Int] = [:]
+        for identifier in identifiers {
+            guard let coordinate = TimeZoneCoordinates.getCoordinate(for: identifier) else { continue }
             let point = Self.latticePoint(latitude: coordinate.latitude, longitude: coordinate.longitude, rowDotCounts: rowDotCounts)
-            guard latticeIndices.insert(rowStartIndices[point.row] + point.column).inserted else { return nil }
-            return Self.dot(row: point.row, column: point.column, isTimeZone: true, rowDotCounts: rowDotCounts, mapGrid: mapGrid)
+            let latticeIndex = rowStartIndices[point.row] + point.column
+            if let position = positionsByLatticeIndex[latticeIndex] {
+                cityDots[position].identifiers.append(identifier)
+            } else {
+                positionsByLatticeIndex[latticeIndex] = cityDots.count
+                cityDots.append(CityDot(
+                    dot: Self.dot(id: latticeIndex, row: point.row, column: point.column, rowDotCounts: rowDotCounts, mapGrid: mapGrid),
+                    identifiers: [identifier]
+                ))
+            }
         }
+        return cityDots
     }
 
     private static func latitude(ofRow row: Int) -> Double {
@@ -730,14 +904,14 @@ private struct DotsGlobeLattice {
         return (row, min(Int(offset / 360 * Double(dotCount)), dotCount - 1))
     }
 
-    private static func dot(row: Int, column: Int, isTimeZone: Bool, rowDotCounts: [Int], mapGrid: DotsWorldMapGrid) -> Dot {
+    private static func dot(id: Int, row: Int, column: Int, rowDotCounts: [Int], mapGrid: DotsWorldMapGrid) -> Dot {
         let latitude = latitude(ofRow: row)
         let longitude = longitude(ofColumn: column, dotCount: rowDotCounts[row])
         return Dot(
+            id: id,
             point: SurfacePoint(latitude: latitude, longitude: longitude),
             mapUnitX: mapGrid.unitX(longitude: longitude),
-            mapUnitY: mapGrid.unitY(latitude: latitude),
-            isTimeZone: isTimeZone
+            mapUnitY: mapGrid.unitY(latitude: latitude)
         )
     }
 

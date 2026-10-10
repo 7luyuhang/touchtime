@@ -28,7 +28,7 @@ struct DotsWorldMapView: View {
     @State private var selection: DotsWorldMapSelection?
 
     /// How far (in points) a tap may land from a city dot and still count.
-    private static let tapTolerance: CGFloat = 24
+    static let tapTolerance: CGFloat = 24
 
     init(timeZoneIdentifier: String, date: Date) {
         self.init(timeZoneIdentifiers: [timeZoneIdentifier], date: date)
@@ -66,30 +66,9 @@ struct DotsWorldMapView: View {
                     item: $selection,
                     attachmentAnchor: .rect(.rect(anchorRect(for: selection, grid: grid)))
                 ) { selected in
-                    let selectedCities = citiesByCell[selected.id] ?? []
-
-                    VStack(alignment: .center, spacing: 10) {
-                        ForEach(Array(selectedCities.enumerated()), id: \.offset) { index, identifier in
-                            Text(Self.cityDisplayName(for: identifier))
-                                .font(.subheadline.weight(.medium))
-
-                            if index < selectedCities.count - 1 {
-                                Divider()
-                            }
-                        }
-                    }
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 12)
-                    .presentationCompactAdaptation(.popover)
+                    DotsWorldMapCitiesPopover(identifiers: citiesByCell[selected.id] ?? [])
                 }
         }
-    }
-
-    /// City name for the popover, localized the same way as the city list.
-    private static func cityDisplayName(for identifier: String) -> String {
-        let cityName = identifier.split(separator: "/").last
-            .map { $0.replacingOccurrences(of: "_", with: " ") } ?? identifier
-        return String(localized: String.LocalizationValue(cityName))
     }
 
     /// The city cell nearest to a tap, or nil when none is within tolerance.
@@ -112,5 +91,34 @@ struct DotsWorldMapView: View {
         guard let selection, canvasSize.width > 0 else { return .zero }
         return DotsWorldMapLayout(grid: grid, size: canvasSize)
             .cellRect(column: selection.id % grid.columns, row: selection.id / grid.columns)
+    }
+}
+
+/// The popover listing the city (or cities) sharing a tapped dot, on the
+/// map and on the globe alike.
+struct DotsWorldMapCitiesPopover: View {
+    let identifiers: [String]
+
+    var body: some View {
+        VStack(alignment: .center, spacing: 10) {
+            ForEach(Array(identifiers.enumerated()), id: \.offset) { index, identifier in
+                Text(Self.cityDisplayName(for: identifier))
+                    .font(.subheadline.weight(.medium))
+
+                if index < identifiers.count - 1 {
+                    Divider()
+                }
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 12)
+        .presentationCompactAdaptation(.popover)
+    }
+
+    /// City name, localized the same way as the city list.
+    private static func cityDisplayName(for identifier: String) -> String {
+        let cityName = identifier.split(separator: "/").last
+            .map { $0.replacingOccurrences(of: "_", with: " ") } ?? identifier
+        return String(localized: String.LocalizationValue(cityName))
     }
 }
