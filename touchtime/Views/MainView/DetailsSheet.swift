@@ -611,6 +611,72 @@ struct SunriseSunsetSheet: View {
         .detailsSheetCard()
     }
 
+    // Wind speed in km/h, or in mph alongside Fahrenheit
+    private func formatWindSpeed(_ speed: Measurement<UnitSpeed>?) -> String {
+        guard let speed else { return "-" }
+        let unit: UnitSpeed = useCelsius ? .kilometersPerHour : .milesPerHour
+        return speed.converted(to: unit).formatted(
+            .measurement(
+                width: .abbreviated,
+                usage: .asProvided,
+                numberFormatStyle: .number.precision(.fractionLength(0))
+            )
+        )
+    }
+
+    private func windSpeedLine(_ title: LocalizedStringKey, speed: Measurement<UnitSpeed>?) -> some View {
+        let speedText = formatWindSpeed(speed)
+        return HStack {
+            Text(title)
+                .font(.headline)
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
+                .lineLimit(1)
+
+            Spacer()
+
+            Text(speedText)
+                .monospacedDigit()
+                .lineLimit(1)
+                .contentTransition(.numericText())
+                .animation(.spring(), value: speedText)
+        }
+    }
+
+    // Wind and gust speeds (left) + wind direction complication (right)
+    private func windRow(speed: Measurement<UnitSpeed>, gust: Measurement<UnitSpeed>?) -> some View {
+        let complicationSize: CGFloat = 64
+        return HStack(spacing: 16) {
+            VStack(spacing: 12) {
+                windSpeedLine("Wind", speed: speed)
+
+                Divider()
+                    .overlay(.white.opacity(0.10))
+                    .blendMode(.plusLighter)
+
+                windSpeedLine("Gusts", speed: gust)
+            }
+
+            Color.clear
+                .frame(width: complicationSize, height: complicationSize)
+        }
+        .detailsSheetCard()
+        // Over the card rather than in it: the card's plusLighter blend would
+        // add the glass's copy of the sky back onto the sky and wash it out
+        .overlay(alignment: .trailing) {
+            WindDirectionIndicator(
+                timeZone: TimeZone(identifier: timeZoneIdentifier) ?? .current,
+                size: complicationSize
+            )
+            .overlay(
+                Circle()
+                    .stroke(.white.opacity(0.1), lineWidth: 1)
+                    .blendMode(.plusLighter)
+            )
+            .padding(.trailing, 16)
+        }
+    }
+
     // Next DST transition, e.g. "DST Ends Oct 25 -1 hours"
     private func dstLabel(isStart: Bool, transitionDate: Date, offsetHours: Int) -> some View {
         HStack(spacing: 5) {
@@ -776,6 +842,10 @@ struct SunriseSunsetSheet: View {
                                             .padding(.horizontal, 16)
                                             .transition(.blurReplace())
                                     }
+
+                                    // Wind section
+                                    windRow(speed: weather.wind.speed, gust: weather.wind.gust)
+                                        .padding(.horizontal, 16)
                                 }
                                 .padding(.top, 16) // Row top padding
 

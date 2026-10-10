@@ -7132,6 +7132,22 @@
         }
       }
     },
+    "Gusts" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阵风"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "陣風"
+          }
+        }
+      }
+    },
     "Guyana" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -16605,6 +16621,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "威納馬克"
+          }
+        }
+      }
+    },
+    "Wind" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "风速"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "風速"
           }
         }
       }
