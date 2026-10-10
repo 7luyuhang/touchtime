@@ -19,6 +19,9 @@ private struct DotsWorldMapSelection: Identifiable, Equatable {
 struct DotsWorldMapView: View {
     let timeZoneIdentifiers: [String]
     let date: Date
+    /// Called for a double tap anywhere on the map. Only while it's set does
+    /// a tap on a city dot wait to rule out a double tap.
+    let onDoubleTap: (() -> Void)?
 
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var canvasSize: CGSize = .zero
@@ -31,9 +34,10 @@ struct DotsWorldMapView: View {
         self.init(timeZoneIdentifiers: [timeZoneIdentifier], date: date)
     }
 
-    init(timeZoneIdentifiers: [String], date: Date) {
+    init(timeZoneIdentifiers: [String], date: Date, onDoubleTap: (() -> Void)? = nil) {
         self.timeZoneIdentifiers = timeZoneIdentifiers
         self.date = date
+        self.onDoubleTap = onDoubleTap
     }
 
     var body: some View {
@@ -49,6 +53,8 @@ struct DotsWorldMapView: View {
                 } action: { size in
                     canvasSize = size
                 }
+                // Ahead of the single tap, so a double tap isn't also taken as one
+                .gesture(TapGesture(count: 2).onEnded { onDoubleTap?() }, isEnabled: onDoubleTap != nil)
                 .onTapGesture { location in
                     guard let cellIndex = nearestCityCell(to: location, in: citiesByCell.keys, grid: grid) else { return }
                     if hapticEnabled {

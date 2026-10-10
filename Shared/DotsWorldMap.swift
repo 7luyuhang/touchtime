@@ -114,6 +114,13 @@ struct DotsWorldMapGrid {
     func unitY(latitude: Double) -> Double {
         (Self.latitudeMax - latitude) / Self.latitudeSpan
     }
+
+    /// Wrapped into the artwork's longitude window, like `cell(latitude:longitude:)`.
+    func unitX(longitude: Double) -> Double {
+        var offset = (longitude - Self.longitudeMin).truncatingRemainder(dividingBy: Self.longitudeSpan)
+        if offset < 0 { offset += Self.longitudeSpan }
+        return offset / Self.longitudeSpan
+    }
 }
 
 /// Point geometry of the dot grid inside a canvas of a given size. The
@@ -263,55 +270,25 @@ struct DotsWorldMapCanvas: View, Animatable {
                         // Coastal cities can fall on an ocean cell; draw their dot anyway.
                         guard isCity || grid.isLand(column: column, row: row) else { continue }
 
-                        // Dots in night are dimmed instead of overlaying a dark
-                        // fill, so the day/night edge stays soft and dotted.
                         let isDay = sinLatFactor + cosLatFactor * cosHourAngleByColumn[column] > 0
-                        let opacity: Double = isCity ? 1.0 : (isDay ? 0.25 : 0.1)
+                        let style = Self.dotStyle(isCity: isCity, isDay: isDay, dotDiameter: dotDiameter)
 
-                        let diameter = isCity ? dotDiameter * 2 : dotDiameter
                         let center = layout.cellCenter(column: column, row: row)
                         let rect = CGRect(
-                            x: center.x - diameter / 2,
-                            y: center.y - diameter / 2,
-                            width: diameter,
-                            height: diameter
+                            x: center.x - style.diameter / 2,
+                            y: center.y - style.diameter / 2,
+                            width: style.diameter,
+                            height: style.diameter
                         )
                         context.fill(
                             Path(ellipseIn: rect),
-                            with: .color(.white.opacity(opacity))
+                            with: .color(.white.opacity(style.opacity))
                         )
                     }
                 }
 
-                // Solar terminator on top of the dots. The canvas reaches
-                // ±90°, so the curve turns around inside the polar bands
-                // instead of being cut at the artwork's edge; a soft mask
-                // fades it out there so it never reaches the poles.
-                // A scoped copy keeps blend mode and mask local to the curve.
-                var curveContext = context
-                curveContext.blendMode = .plusLighter
-                curveContext.clipToLayer { mask in
-                    mask.fill(
-                        Path(CGRect(origin: .zero, size: size)),
-                        with: Self.terminatorLatitudeMask(grid: grid, layout: layout)
-                    )
-                }
-                // Fade the curve out toward the left/right edges so it
-                // doesn't end abruptly at the map bounds.
-                curveContext.stroke(
-                    Self.terminatorPath(subsolar: subsolar, grid: grid, layout: layout),
-                    with: .linearGradient(
-                        Gradient(stops: [
-                            .init(color: .white.opacity(0), location: 0),
-                            .init(color: .white.opacity(0.25), location: 0.15),
-                            .init(color: .white.opacity(0.25), location: 0.85),
-                            .init(color: .white.opacity(0), location: 1)
-                        ]),
-                        startPoint: .zero,
-                        endPoint: CGPoint(x: size.width, y: 0)
-                    ),
-                    style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
-                )
+                // Solar terminator on top of the dots.
+                Self.drawTerminator(in: context, size: size, subsolar: subsolar, grid: grid, layout: layout)
             }
             // View-level blend so the whole canvas layer composites
             // additively with the views behind it (e.g. the sky gradient in
@@ -326,6 +303,55 @@ struct DotsWorldMapCanvas: View, Animatable {
                 canvas
             }
         }
+    }
+
+    /// Size and brightness of one map dot: a city's dot is twice the size of
+    /// a plain land dot and fully opaque. Land dots are dimmed, more so in
+    /// night than in daylight, instead of overlaying a dark fill, so the
+    /// day/night edge stays soft and dotted.
+    static func dotStyle(isCity: Bool, isDay: Bool, dotDiameter: CGFloat) -> (diameter: CGFloat, opacity: Double) {
+        if isCity {
+            return (dotDiameter * 2, 1)
+        }
+        return (dotDiameter, isDay ? 0.25 : 0.1)
+    }
+
+    /// Strokes the solar terminator for `subsolar` over a map canvas of
+    /// `size`. The canvas reaches ±90°, so the curve turns around inside the
+    /// polar bands instead of being cut at the artwork's edge; a soft mask
+    /// fades it out there so it never reaches the poles.
+    static func drawTerminator(
+        in context: GraphicsContext,
+        size: CGSize,
+        subsolar: SubsolarPoint,
+        grid: DotsWorldMapGrid,
+        layout: DotsWorldMapLayout
+    ) {
+        // A scoped copy keeps blend mode and mask local to the curve.
+        var curveContext = context
+        curveContext.blendMode = .plusLighter
+        curveContext.clipToLayer { mask in
+            mask.fill(
+                Path(CGRect(origin: .zero, size: size)),
+                with: terminatorLatitudeMask(grid: grid, layout: layout)
+            )
+        }
+        // Fade the curve out toward the left/right edges so it
+        // doesn't end abruptly at the map bounds.
+        curveContext.stroke(
+            terminatorPath(subsolar: subsolar, grid: grid, layout: layout),
+            with: .linearGradient(
+                Gradient(stops: [
+                    .init(color: .white.opacity(0), location: 0),
+                    .init(color: .white.opacity(0.25), location: 0.15),
+                    .init(color: .white.opacity(0.25), location: 0.85),
+                    .init(color: .white.opacity(0), location: 1)
+                ]),
+                startPoint: .zero,
+                endPoint: CGPoint(x: size.width, y: 0)
+            ),
+            style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+        )
     }
 
     /// Timezone identifiers grouped by the row-major index of their map cell.

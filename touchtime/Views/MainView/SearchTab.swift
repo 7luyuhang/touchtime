@@ -194,12 +194,16 @@ struct TimeZonePickerViewWrapper: View {
         )
     }
 
-    /// The split layout's left pane: the map in the middle of the screen.
+    /// The split layout's left pane: the map in the middle of the screen,
+    /// which a double tap turns into a globe of every supported time zone.
     private var worldMapPane: some View {
-        worldMap
-            .padding(24)
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea(.container, edges: .vertical)
+        DotsWorldMapGlobeView(
+            timeZoneIdentifiers: worldClocks.map(\.timeZoneIdentifier),
+            date: currentDate
+        )
+        .padding(24)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea(.container, edges: .vertical)
     }
     
     var body: some View {
