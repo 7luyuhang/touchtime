@@ -46,8 +46,8 @@
 		E200000000000000000000AC /* Embed ExtensionKit Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = "$(EXTENSIONS_FOLDER_PATH)";
-			dstSubfolderSpec = 16;
+			dstPath = Extensions;
+			dstSubfolderSpec = 1;
 			files = (
 				E200000000000000000000AD /* touchtimeCaptureExtension.appex in Embed ExtensionKit Extensions */,
 			);
