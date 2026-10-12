@@ -11,14 +11,6 @@
 
 import AppIntents
 
-/// The app's settings the Lock Screen camera shows the time with: the
-/// capture extension can't read the app's defaults.
-nonisolated struct CameraCaptureContext: Codable, Sendable {
-    var use24HourFormat = false
-    var dateStyle = "Relative"
-    var hapticEnabled = true
-}
-
 /// The system runs the intent in the app's process when it opens the app,
 /// so the app sets `openCamera` when it launches.
 @MainActor
@@ -27,8 +19,6 @@ enum CameraCaptureRouter {
 }
 
 struct OpenCameraIntent: CameraCaptureIntent {
-    typealias AppContext = CameraCaptureContext
-
     static let title: LocalizedStringResource = "Open Camera"
     static let description = IntentDescription("Opens the camera in Touch Time.")
 

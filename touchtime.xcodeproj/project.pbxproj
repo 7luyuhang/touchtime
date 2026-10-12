@@ -89,14 +89,12 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Components/CameraBackgroundView.swift,
-				Components/HourNumbersView.swift,
 			);
 			target = E200000000000000000000A2 /* touchtimeCaptureExtension */;
 		};
 		E200000000000000000000B1 /* Exceptions for "Shared" folder in "touchtimeCaptureExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				DateFormatting.swift,
 				OpenCameraIntent.swift,
 			);
 			target = E200000000000000000000A2 /* touchtimeCaptureExtension */;

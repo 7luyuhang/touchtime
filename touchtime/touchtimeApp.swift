@@ -5,7 +5,6 @@
 //  Created by yuhang on 23/09/2025.
 //
 
-import AppIntents
 import LockedCameraCapture
 import SwiftUI
 import TipKit
@@ -68,8 +67,8 @@ struct touchtimeApp: App {
                         }
                     }
                 }
-                // The Lock Screen camera hands over to the app's camera for
-                // the camera or Photos access only the app can ask for
+                // The Lock Screen camera hands over to the app's camera once
+                // the iPhone is unlocked
                 .onContinueUserActivity(NSUserActivityTypeLockedCameraCapture) { _ in
                     QuickActionsManager.shared.pendingAction = .camera
                 }
@@ -89,27 +88,12 @@ struct touchtimeApp: App {
                 // Keep the widget's city list and time format up to date
                 SharedWidgetStore.syncFromApp()
                 WidgetCenter.shared.reloadAllTimelines()
-                updateCameraCaptureContext()
             }
         }
     }
 
-    /// Hands the Lock Screen camera the settings it shows the time with, as
-    /// it can't read the app's defaults
-    private func updateCameraCaptureContext() {
-        let defaults = UserDefaults.standard
-        let context = CameraCaptureContext(
-            use24HourFormat: defaults.bool(forKey: "use24HourFormat"),
-            dateStyle: defaults.string(forKey: "dateStyle") ?? "Relative",
-            hapticEnabled: defaults.object(forKey: "hapticEnabled") as? Bool ?? true
-        )
-        Task {
-            try? await OpenCameraIntent.updateAppContext(context)
-        }
-    }
-
-    /// The Lock Screen camera saves straight to Photos, so the folders it
-    /// leaves the app are empty
+    /// The Lock Screen camera doesn't capture, so the folders it leaves the
+    /// app are empty
     private func discardLockedCameraSessionContent() {
         Task {
             let manager = LockedCameraCaptureManager.shared
