@@ -147,13 +147,21 @@ struct ScrollTimeQuickActionsPicker: View {
 
     /// Mirrors ScrollTimeView.expandedControlButton, without the action
     private func previewCapsule(systemImage: String) -> some View {
-        Image(systemName: systemImage)
-            .font(.title3.weight(.medium))
-            .foregroundStyle(.primary)
-            .frame(maxWidth: .infinity)
-            .frame(height: controlHeight)
-            .glassEffect(.regular.interactive())
-            .glassEffectTransition(.matchedGeometry)
+        Button {
+            if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+        } label: {
+            Image(systemName: systemImage)
+                .font(.title3.weight(.medium))
+                .foregroundStyle(.primary)
+                .frame(maxWidth: .infinity)
+                .frame(height: controlHeight)
+                .contentShape(Capsule(style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .glassEffect(.regular.interactive())
+        .glassEffectTransition(.matchedGeometry)
     }
 
     private func toggleSelection(for action: ScrollTimeQuickAction) {
