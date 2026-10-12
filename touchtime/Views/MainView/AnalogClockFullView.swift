@@ -76,6 +76,8 @@ struct AnalogClockFullView: View {
     @State private var cameraAlertTitle = ""
     @State private var cameraAlertMessage = ""
     @State private var isCaptureButtonHidden = false
+    /// The Camera Control or a volume button is held down
+    @State private var isHardwareButtonPressed = false
     @State private var staticCameraFrame: UIImage?
     @State private var cameraPreviewFilter: CameraPreviewFilter = .standard
     @StateObject private var cameraSessionController = CameraSessionController()
@@ -990,6 +992,8 @@ struct AnalogClockFullView: View {
         cameraToggleTask = nil
         activeCameraRequestId = UUID()
         isCameraPreparing = false
+        // A press still held as the capture events turn off may never end
+        isHardwareButtonPressed = false
         withAnimation(.spring()) {
             isCameraBackgroundEnabled = false
         }
@@ -1389,6 +1393,7 @@ struct AnalogClockFullView: View {
         .overlay(alignment: .topTrailing) { // Capture Button
             AnalogClockCameraCaptureButton(
                 isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden,
+                isHardwareButtonPressed: isHardwareButtonPressed,
                 action: handleCapturePhoto
             )
         }
@@ -1652,8 +1657,10 @@ struct AnalogClockFullView: View {
             // Under the ellipsis in the iPhone Duo's vertical bar
             .toolbarPreferringVerticalBar(cameraToolbarItem)
             // The Camera Control (and the volume buttons) take the picture
-            // like the capture button while the camera is on
+            // like the capture button while the camera is on, pressing it
+            // down while held
             .onCameraCaptureEvent(isEnabled: isCameraBackgroundEnabled && cameraSessionController.isSessionRunning) { event in
+                isHardwareButtonPressed = event.phase == .began
                 guard event.phase == .ended, !isCaptureButtonHidden else { return }
                 handleCapturePhoto()
             }

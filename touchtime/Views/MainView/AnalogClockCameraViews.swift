@@ -82,6 +82,8 @@ struct AnalogClockCameraBackgroundLayer: View {
 
 struct AnalogClockCameraCaptureButton: View {
     let isVisible: Bool
+    /// The Camera Control or a volume button is held down
+    let isHardwareButtonPressed: Bool
     let action: () -> Void
 
     var body: some View {
@@ -96,6 +98,8 @@ struct AnalogClockCameraCaptureButton: View {
                             .padding(5)
                     }
                     .frame(width: 52, height: 52)
+                    .scaleEffect(isHardwareButtonPressed ? 0.9 : 1)
+                    .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isHardwareButtonPressed)
                 }
                 .buttonStyle(.plain)
                 .contentShape(Circle())
