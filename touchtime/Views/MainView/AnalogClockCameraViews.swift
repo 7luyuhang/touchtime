@@ -135,7 +135,8 @@ struct AnalogClockCameraCloseButton: View {
 
 /// Zooms the camera, between the close and capture buttons, along a ruler of
 /// Slide to Adjust's ticks: from the camera's widest zoom on the left to its
-/// closest on the right, with a taller tick at each of the Camera app's stops.
+/// closest on the right, with a taller tick at each of the Camera app's stops
+/// and a dot under the one for 1x.
 /// The ruler follows the finger, and the zoom is wherever its middle reads.
 struct AnalogClockCameraZoomSlider: View {
     let isVisible: Bool
@@ -155,6 +156,9 @@ struct AnalogClockCameraZoomSlider: View {
     /// As many as from one taller tick to the next on Slide to Adjust
     private static let ticksPerStop = ScrollTimeDotsIndicator.majorInterval
     private static let stopSpacing = CGFloat(ticksPerStop) * tickSpacing
+    /// The dot under the 1x tick, and its gap from the tick
+    private static let oneXDotDiameter: CGFloat = 4
+    private static let oneXDotGap: CGFloat = 6
 
     /// The camera's widest and closest zooms, with the stops between them
     private var stops: [Double] {
@@ -190,9 +194,12 @@ struct AnalogClockCameraZoomSlider: View {
     private var ruler: some View {
         let tickCount = (stops.count - 1) * Self.ticksPerStop
         let rulerPosition = position(of: zoomFactor)
+        // Nil when the camera can't zoom to 1x
+        let oneXTickIndex = stops.firstIndex(of: 1).map { $0 * Self.ticksPerStop }
 
         return Canvas { context, size in
             let midX = size.width / 2
+            let tickBottom = (size.height + ScrollTimeDotsIndicator.majorHeight) / 2
 
             for index in 0...tickCount {
                 let x = midX - rulerPosition + CGFloat(index) * Self.tickSpacing
@@ -205,7 +212,7 @@ struct AnalogClockCameraZoomSlider: View {
                     : ScrollTimeDotsIndicator.minorHeight
                 let rect = CGRect(
                     x: x - ScrollTimeDotsIndicator.tickWidth / 2,
-                    y: size.height - height,
+                    y: tickBottom - height,
                     width: ScrollTimeDotsIndicator.tickWidth,
                     height: height
                 )
@@ -213,9 +220,24 @@ struct AnalogClockCameraZoomSlider: View {
                     Capsule().path(in: rect),
                     with: .color(.primary.opacity(opacity))
                 )
+
+                if index == oneXTickIndex {
+                    let dotRect = CGRect(
+                        x: x - Self.oneXDotDiameter / 2,
+                        y: tickBottom + Self.oneXDotGap,
+                        width: Self.oneXDotDiameter,
+                        height: Self.oneXDotDiameter
+                    )
+                    context.fill(
+                        Circle().path(in: dotRect),
+                        with: .color(.primary.opacity(opacity))
+                    )
+                }
             }
         }
-        .frame(height: ScrollTimeDotsIndicator.majorHeight)
+        // Room for the 1x dot under the ticks, and as much over them so the
+        // ticks stay centered between the buttons
+        .frame(height: ScrollTimeDotsIndicator.majorHeight + 2 * (Self.oneXDotGap + Self.oneXDotDiameter))
     }
 
     /// Where `factor` is along the ruler, in points from its start
