@@ -5,6 +5,7 @@
 //  Created by yuhang on 23/09/2025.
 //
 
+import Combine
 import LockedCameraCapture
 import SwiftUI
 import TipKit
@@ -72,6 +73,14 @@ struct touchtimeApp: App {
                 .onContinueUserActivity(NSUserActivityTypeLockedCameraCapture) { _ in
                     QuickActionsManager.shared.pendingAction = .camera
                 }
+                // Alarms set from a city's time follow that city's clock
+                // when the clocks change while the app is open
+                .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in
+                    Task { await AlarmSupport.resyncCityAlarms() }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange).receive(on: DispatchQueue.main)) { _ in
+                    Task { await AlarmSupport.resyncCityAlarms() }
+                }
         }
         .onChange(of: scenePhase) { _, newPhase in
             // Keep the rolling 24-hour window of on-the-hour notifications topped up,
@@ -82,6 +91,9 @@ struct touchtimeApp: App {
                 // Repeating countdown reminders roll forward to their next
                 // occurrence after one has fired.
                 CountdownReminderManager.shared.reschedule(for: countdownStore.countdowns)
+                // Daylight saving or travel may have shifted the device's
+                // clock against the cities alarms were set from
+                Task { await AlarmSupport.resyncCityAlarms() }
                 SharedWidgetStore.syncFromApp()
                 discardLockedCameraSessionContent()
             } else if newPhase == .background {

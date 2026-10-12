@@ -1187,7 +1187,9 @@ struct ScrollTimeView: View {
             // pill morphs into the updated set on the next double-tap.
             showButtons = false
         }
-        .onChange(of: timeOffset) { _, newValue in
+        // Also on appear: this view can be created while time is already
+        // scrolled, and a drag continues from `accumulatedOffset`
+        .onChange(of: timeOffset, initial: true) { _, newValue in
             if dragOffset == 0,
                !inertiaActive,
                newValue != snappedToWholeMinute(accumulatedOffset) {

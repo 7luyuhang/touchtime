@@ -440,15 +440,7 @@ struct SetAlarmSheet: View {
             // Avoid duplicate-ID failures if a system alarm with the same ID still exists.
             try? alarmManager.cancel(id: record.id)
 
-            try await AlarmSupport.scheduleAlarm(
-                id: record.id,
-                hour: record.hour,
-                minute: record.minute,
-                eventTitle: record.eventTitle,
-                repeatRule: record.repeatRule,
-                repeatWeekdays: record.repeatWeekdays,
-                using: alarmManager
-            )
+            try await AlarmSupport.scheduleAlarm(for: record, using: alarmManager)
         } catch {
             if let index = alarmRecords.firstIndex(where: { $0.id == record.id }) {
                 alarmRecords[index].isEnabled = false
@@ -633,15 +625,7 @@ struct SetAlarmSheet: View {
             do {
                 // Avoid duplicate-ID failures if a system alarm with the same ID still exists.
                 try? alarmManager.cancel(id: record.id)
-                try await AlarmSupport.scheduleAlarm(
-                    id: record.id,
-                    hour: record.hour,
-                    minute: record.minute,
-                    eventTitle: record.eventTitle,
-                    repeatRule: record.repeatRule,
-                    repeatWeekdays: record.repeatWeekdays,
-                    using: alarmManager
-                )
+                try await AlarmSupport.scheduleAlarm(for: record, using: alarmManager)
                 alarmRecords[index].isEnabled = true
             } catch {
                 if firstError == nil {
@@ -706,15 +690,9 @@ struct SetAlarmSheet: View {
 
         do {
             try? alarmManager.cancel(id: record.id)
-            try await AlarmSupport.scheduleAlarm(
-                id: record.id,
-                hour: record.hour,
-                minute: record.minute,
-                eventTitle: updatedTitle,
-                repeatRule: record.repeatRule,
-                repeatWeekdays: record.repeatWeekdays,
-                using: alarmManager
-            )
+            var renamedRecord = record
+            renamedRecord.eventTitle = updatedTitle
+            try await AlarmSupport.scheduleAlarm(for: renamedRecord, using: alarmManager)
 
             if let rescheduledIndex = alarmRecords.firstIndex(where: { $0.id == record.id }),
                !alarmRecords[rescheduledIndex].isEnabled {
@@ -729,15 +707,7 @@ struct SetAlarmSheet: View {
                 saveAlarmRecords()
             }
 
-            try? await AlarmSupport.scheduleAlarm(
-                id: record.id,
-                hour: record.hour,
-                minute: record.minute,
-                eventTitle: previousTitle,
-                repeatRule: record.repeatRule,
-                repeatWeekdays: record.repeatWeekdays,
-                using: alarmManager
-            )
+            try? await AlarmSupport.scheduleAlarm(for: record, using: alarmManager)
             synchronizeWithSystemAlarms()
             presentError(error)
         }
@@ -857,7 +827,7 @@ struct SetAlarmSheet: View {
         }
 
         alarmRecords[index].repeatRule = repeatRule
-        alarmRecords[index].repeatWeekdays = normalizedWeekdays
+        alarmRecords[index].setRepeatWeekdays(normalizedWeekdays)
         saveAlarmRecords()
 
         guard baseRecord.isEnabled else {
@@ -869,33 +839,17 @@ struct SetAlarmSheet: View {
 
         do {
             try? alarmManager.cancel(id: updatedRecord.id)
-            try await AlarmSupport.scheduleAlarm(
-                id: updatedRecord.id,
-                hour: updatedRecord.hour,
-                minute: updatedRecord.minute,
-                eventTitle: updatedRecord.eventTitle,
-                repeatRule: updatedRecord.repeatRule,
-                repeatWeekdays: updatedRecord.repeatWeekdays,
-                using: alarmManager
-            )
+            try await AlarmSupport.scheduleAlarm(for: updatedRecord, using: alarmManager)
             synchronizeWithSystemAlarms()
             triggerHaptic()
         } catch {
             if let restoreIndex = alarmRecords.firstIndex(where: { $0.id == recordID }) {
                 alarmRecords[restoreIndex].repeatRule = previousRule
-                alarmRecords[restoreIndex].repeatWeekdays = previousWeekdays
+                alarmRecords[restoreIndex].setRepeatWeekdays(previousWeekdays)
                 saveAlarmRecords()
             }
 
-            try? await AlarmSupport.scheduleAlarm(
-                id: baseRecord.id,
-                hour: baseRecord.hour,
-                minute: baseRecord.minute,
-                eventTitle: baseRecord.eventTitle,
-                repeatRule: previousRule,
-                repeatWeekdays: previousWeekdays,
-                using: alarmManager
-            )
+            try? await AlarmSupport.scheduleAlarm(for: baseRecord, using: alarmManager)
             synchronizeWithSystemAlarms()
             presentError(error)
         }

@@ -544,7 +544,7 @@ struct ShareCitiesSheet: View {
             .navigationTitle(String(localized: "Share"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollEdgeEffectStyle(.soft, for: .top)
-            .scrollIndicators(.hidden)
+            .scrollIndicators(.visible)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     // Only show share button if at least one item is selected

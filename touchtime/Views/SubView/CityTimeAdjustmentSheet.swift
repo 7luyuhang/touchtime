@@ -292,7 +292,7 @@ struct CityTimeAdjustmentSheet: View {
     @MainActor
     private func setAlarmFromSelectedCityTime(eventTitle: String? = nil) async {
         guard !isSchedulingAlarm else { return }
-        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else { return }
+        guard TimeZone(identifier: timeZoneIdentifier) != nil else { return }
 
         isSchedulingAlarm = true
         defer { isSchedulingAlarm = false }
@@ -301,18 +301,26 @@ struct CityTimeAdjustmentSheet: View {
 
         let selectedComponents = Calendar.current.dateComponents([.hour, .minute], from: selectedTime)
         guard let cityHour = selectedComponents.hour,
-              let cityMinute = selectedComponents.minute else { return }
-        let sourceCityCustomName = resolvedSourceCityCustomName()
+              let cityMinute = selectedComponents.minute,
+              let deviceTime = deviceTime(forCityHour: cityHour, cityMinute: cityMinute) else { return }
 
-        let localTime = convertCityTimeToLocalTime(
-            cityHour: cityHour,
-            cityMinute: cityMinute,
-            targetTimeZone: targetTimeZone
+        let newRecord = AlarmRecord(
+            id: UUID(),
+            hour: deviceTime.hour,
+            minute: deviceTime.minute,
+            isEnabled: true,
+            createdAt: Date(),
+            sourceCityName: cityName,
+            sourceCityTimeZoneIdentifier: isLocalCity ? nil : timeZoneIdentifier,
+            sourceCityCustomName: resolvedSourceCityCustomName(),
+            sourceCityHour: cityHour,
+            sourceCityMinute: cityMinute,
+            eventTitle: eventTitle
         )
         var records = loadAlarmRecords()
 
         do {
-            let matchingIndices = records.indices.filter { records[$0].hour == localTime.hour && records[$0].minute == localTime.minute }
+            let matchingIndices = records.indices.filter { records[$0].isSetForSameTime(as: newRecord) }
 
             if let existingIndex = matchingIndices.first {
                 for duplicateIndex in matchingIndices.dropFirst().sorted(by: >) {
@@ -324,12 +332,9 @@ struct CityTimeAdjustmentSheet: View {
                 var updatedRecords = records
                 var updatedRecord = updatedRecords[existingIndex]
                 updatedRecord.isEnabled = true
-                updatedRecord.sourceCityName = cityName
-                updatedRecord.sourceCityTimeZoneIdentifier = timeZoneIdentifier
-                updatedRecord.sourceCityCustomName = sourceCityCustomName
-                updatedRecord.sourceCityHour = cityHour
-                updatedRecord.sourceCityMinute = cityMinute
-                updatedRecord.eventTitle = eventTitle
+                updatedRecord.sourceCityName = newRecord.sourceCityName
+                updatedRecord.sourceCityCustomName = newRecord.sourceCityCustomName
+                updatedRecord.eventTitle = eventTitle ?? updatedRecord.eventTitle
                 updatedRecords[existingIndex] = updatedRecord
 
                 // Save before the async AlarmKit round-trip so alarm lists
@@ -337,43 +342,15 @@ struct CityTimeAdjustmentSheet: View {
                 saveAlarmRecords(updatedRecords)
 
                 try? alarmManager.cancel(id: updatedRecord.id)
-                try await AlarmSupport.scheduleAlarm(
-                    id: updatedRecord.id,
-                    hour: localTime.hour,
-                    minute: localTime.minute,
-                    eventTitle: eventTitle,
-                    repeatRule: updatedRecord.repeatRule,
-                    repeatWeekdays: updatedRecord.repeatWeekdays,
-                    using: alarmManager
-                )
+                try await AlarmSupport.scheduleAlarm(for: updatedRecord, using: alarmManager)
             } else {
-                let record = AlarmRecord(
-                    id: UUID(),
-                    hour: localTime.hour,
-                    minute: localTime.minute,
-                    isEnabled: true,
-                    createdAt: Date(),
-                    sourceCityName: cityName,
-                    sourceCityTimeZoneIdentifier: timeZoneIdentifier,
-                    sourceCityCustomName: sourceCityCustomName,
-                    sourceCityHour: cityHour,
-                    sourceCityMinute: cityMinute,
-                    eventTitle: eventTitle
-                )
-
                 // Save before the async AlarmKit round-trip so alarm lists
                 // reflect the change immediately; rolled back on failure.
                 var updatedRecords = records
-                updatedRecords.append(record)
+                updatedRecords.append(newRecord)
                 saveAlarmRecords(updatedRecords)
 
-                try await AlarmSupport.scheduleAlarm(
-                    id: record.id,
-                    hour: localTime.hour,
-                    minute: localTime.minute,
-                    eventTitle: eventTitle,
-                    using: alarmManager
-                )
+                try await AlarmSupport.scheduleAlarm(for: newRecord, using: alarmManager)
             }
 
             if hapticEnabled {
@@ -405,16 +382,26 @@ struct CityTimeAdjustmentSheet: View {
         }
     }
 
-    private func convertCityTimeToLocalTime(cityHour: Int, cityMinute: Int, targetTimeZone: TimeZone) -> (hour: Int, minute: Int) {
-        let now = Date()
-        let localOffsetMinutes = TimeZone.current.secondsFromGMT(for: now) / 60
-        let targetOffsetMinutes = targetTimeZone.secondsFromGMT(for: now) / 60
+    /// Local is the device's own clock: an alarm set from it follows the
+    /// device across time zones, while one set from a city keeps that
+    /// city's clock.
+    private var isLocalCity: Bool {
+        cityName == String(localized: "Local") && timeZoneIdentifier == TimeZone.current.identifier
+    }
 
-        let selectedCityTotalMinutes = cityHour * 60 + cityMinute
-        let localTotalMinutes = selectedCityTotalMinutes + (localOffsetMinutes - targetOffsetMinutes)
-        let normalizedMinutes = ((localTotalMinutes % 1440) + 1440) % 1440
+    /// The city time on the device's clock, the next time the city's clock
+    /// reads it
+    private func deviceTime(forCityHour cityHour: Int, cityMinute: Int) -> (hour: Int, minute: Int)? {
+        if isLocalCity {
+            return (cityHour, cityMinute)
+        }
 
-        return (hour: normalizedMinutes / 60, minute: normalizedMinutes % 60)
+        guard let timeZone = TimeZone(identifier: timeZoneIdentifier),
+              let occurrence = AlarmSupport.nextCityOccurrence(hour: cityHour, minute: cityMinute, in: timeZone) else {
+            return nil
+        }
+
+        return (occurrence.deviceHour, occurrence.deviceMinute)
     }
 
     private func resolvedSourceCityCustomName() -> String? {
@@ -457,18 +444,8 @@ struct CityTimeAdjustmentSheet: View {
     }
 
     private var selectedLocalAlarmTime: (hour: Int, minute: Int)? {
-        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
-            return nil
-        }
-
         let selectedComponents = Calendar.current.dateComponents([.hour, .minute], from: selectedTime)
-        let cityHour = selectedComponents.hour ?? 0
-        let cityMinute = selectedComponents.minute ?? 0
-        return convertCityTimeToLocalTime(
-            cityHour: cityHour,
-            cityMinute: cityMinute,
-            targetTimeZone: targetTimeZone
-        )
+        return deviceTime(forCityHour: selectedComponents.hour ?? 0, cityMinute: selectedComponents.minute ?? 0)
     }
 
     private func formattedLocalTime(hour: Int, minute: Int) -> String {
