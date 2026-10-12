@@ -745,7 +745,8 @@ struct CountdownDetailsView: View {
     /// when the contact has a phone number. The whole row is a button
     /// that opens the picker again to link someone else; the plain-styled
     /// Message / Call buttons inside take their own taps. Swiping the row
-    /// unlinks the contact; a long press offers both in a context menu.
+    /// unlinks the contact; a long press offers both in a context menu,
+    /// along with making the contact's photo the cover when they have one.
     private func contactRow(_ contact: CountdownItem.LinkedContact) -> some View {
         Button {
             presentContactPicker()
@@ -801,6 +802,16 @@ struct CountdownDetailsView: View {
                 Label(String(localized: "Change Contact"), systemImage: "person.crop.circle.badge.plus")
             }
 
+            // Hidden while the photo already is the cover: using it again
+            // would only throw away the framing set in the cover sheet.
+            if let avatar = contact.thumbnailImageData, avatar != photoData {
+                Button {
+                    useAvatarAsCover(avatar)
+                } label: {
+                    Label(String(localized: "Use Avatar as Cover"), systemImage: "person.crop.circle")
+                }
+            }
+
             Divider()
 
             Menu {
@@ -821,6 +832,15 @@ struct CountdownDetailsView: View {
         triggerHaptic()
         contact = nil
         scheduledMessage = ""
+    }
+
+    /// Makes the contact's photo the cover, as a photo picked in the cover
+    /// sheet would be: unframed, with the emoji kept underneath, so
+    /// removing the photo there brings the emoji back.
+    private func useAvatarAsCover(_ avatar: Data) {
+        triggerHaptic()
+        photoData = avatar
+        photoCrop = nil
     }
 
     /// Round Message / Call button; `title` is its accessibility label.

@@ -5,8 +5,9 @@
 //  Introduces the home screen widgets with 1:1 previews of the small
 //  City Time widget, the medium World Cities widget, the small Daylight
 //  widget (in its transparent home screen appearance), the small
-//  Moon Phase widget (with the phase name shown) and the small Moon
-//  Calendar widget, shown in a swipeable carousel.
+//  Moon Phase widget (with the phase name shown), the small Moon
+//  Calendar widget and the medium Day & Night widget, shown in a
+//  swipeable carousel.
 //
 
 import SwiftUI
@@ -21,13 +22,14 @@ private enum WidgetPreviewComplication {
     case solarCurve
 }
 
-// The five pages of the widget preview carousel
+// The six pages of the widget preview carousel
 private enum WidgetPreviewPage: CaseIterable {
     case small
     case medium
     case daylight
     case moonPhase
     case moonCalendar
+    case dayNight
 
     // Matches each widget's configurationDisplayName in the extension
     var widgetName: String {
@@ -37,6 +39,7 @@ private enum WidgetPreviewPage: CaseIterable {
         case .daylight: String(localized: "Daylight")
         case .moonPhase: String(localized: "Moon Phase")
         case .moonCalendar: String(localized: "Moon Calendar")
+        case .dayNight: String(localized: "Day & Night")
         }
     }
 }
@@ -187,6 +190,27 @@ struct WidgetIntroSheet: View {
                                     )
                                     .frame(width: pageWidth)
                                     .id(WidgetPreviewPage.moonCalendar)
+
+                                // Medium Day & Night widget: the city on the
+                                // dotted world map with the day/night line,
+                                // revealed with the other trailing pages
+                                DayNightWidgetPreview(
+                                    date: context.date,
+                                    cityName: String(localized: "City"),
+                                    timeZoneIdentifier: TimeZone.current.identifier,
+                                    use24Hour: use24HourFormat,
+                                    width: mediumWidth
+                                )
+                                .brightness(animateTrailingWidgets ? 0 : 0.50)
+                                .blur(radius: animateTrailingWidgets ? 0 : 25)
+                                .scaleEffect(animateTrailingWidgets ? 1.0 : 0.5)
+                                .opacity(animateTrailingWidgets ? 1.0 : 0.0)
+                                .offset(y: animateTrailingWidgets ? 0 : 50)
+                                .animation(
+                                    .bouncy(duration: 1.0), value: animateTrailingWidgets
+                                )
+                                .frame(width: pageWidth)
+                                .id(WidgetPreviewPage.dayNight)
                             }
                             .scrollTargetLayout()
                         }
@@ -854,6 +878,62 @@ private struct MoonCalendarWidgetPreview: View {
         }
         .padding(Self.contentInset)
         .frame(width: Self.widgetSize, height: Self.widgetSize)
+        .glassEffect(.clear, in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
+    }
+}
+
+// 1:1 replica of the medium Day & Night widget (TerminatorWidgetView): the
+// app's dotted world map with the city highlighted and the day/night line,
+// stretched over the whole widget, with the city's time bottom-left and its
+// name bottom-right, glass background.
+private struct DayNightWidgetPreview: View {
+    let date: Date
+    let cityName: String
+    let timeZoneIdentifier: String
+    let use24Hour: Bool
+    let width: CGFloat
+
+    private static let cornerRadius: CGFloat = 28
+
+    private var timeString: String {
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = use24Hour ? "HH:mm" : "h:mm"
+        return formatter.string(from: date)
+    }
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            DotsWorldMapCanvas(
+                timeZoneIdentifiers: [timeZoneIdentifier],
+                date: date,
+                sizing: .stretch
+            )
+
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(timeString)
+                    .font(.system(size: 15, weight: .medium))
+                    .monospacedDigit()
+                    .transition(.blurReplace)
+                    .id(timeString)
+
+                Spacer(minLength: 0)
+
+                Text(cityName)
+                    .font(.system(size: 15, weight: .medium))
+                    .lineLimit(1)
+                    .truncationMode(.tail)
+            }
+            // Same insets as the real widget: the text sits in the Southern
+            // Ocean band of the stretched map
+            .padding(.horizontal, 8)
+            .padding(.bottom, 8)
+        }
+        .animation(.smooth(duration: 0.5), value: timeString)
+        .foregroundStyle(.white)
+        .padding(8)
+        .frame(width: width, height: widgetPreviewHeight)
         .glassEffect(.clear, in: RoundedRectangle(cornerRadius: Self.cornerRadius, style: .continuous))
     }
 }

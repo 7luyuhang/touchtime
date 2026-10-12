@@ -4833,6 +4833,22 @@
         }
       }
     },
+    "Day & Night" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "晨昏线"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "晨昏線"
+          }
+        }
+      }
+    },
     "Day ends in %@" : {
       "localizations" : {
         "zh-Hans" : {
@@ -15868,6 +15884,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "烏魯木齊"
+          }
+        }
+      }
+    },
+    "Use Avatar as Cover" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "将头像用作封面"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "將頭像用作封面"
           }
         }
       }
