@@ -1540,6 +1540,9 @@ struct HomeView: View {
                                     item: item,
                                     now: currentDate.addingTimeInterval(timeOffset)
                                 )
+                            },
+                            onArrange: {
+                                showArrangeListSheet = true
                             }
                         )
                         

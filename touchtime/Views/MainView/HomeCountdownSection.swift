@@ -25,6 +25,9 @@ struct HomeCountdownSection: View {
     /// Called from the card's context menu; Home opens the share-as-image
     /// screen for the countdown.
     let onShare: (CountdownItem) -> Void
+    /// Called from the card's context menu; Home opens Arrange, where
+    /// pinned countdowns are reordered.
+    let onArrange: () -> Void
 
     // Same Time Display settings as the countdown sheet rows, so shared
     // text breaks the interval into the units chosen there.
@@ -62,6 +65,14 @@ struct HomeCountdownSection: View {
                     }
 
                     shareMenu(for: item)
+
+                    Divider()
+
+                    Button {
+                        onArrange()
+                    } label: {
+                        Label(String(localized: "Arrange"), systemImage: "list.bullet")
+                    }
                 }
                 .listRowInsets(EdgeInsets())
                 .listRowBackground(Color.clear)

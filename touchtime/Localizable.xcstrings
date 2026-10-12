@@ -10730,6 +10730,22 @@
         }
       }
     },
+    "No paused countdowns." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无已暂停的倒计时。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫無已暫停的倒數計時。"
+          }
+        }
+      }
+    },
     "No Recent Timers" : {
       "localizations" : {
         "zh-Hans" : {
@@ -10758,6 +10774,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "暫無記錄"
+          }
+        }
+      }
+    },
+    "No repeating countdowns." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无重复的倒计时。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫無重複的倒數計時。"
           }
         }
       }

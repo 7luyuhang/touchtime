@@ -17,11 +17,33 @@ private struct CountdownUnitOptions {
     var days: Bool
 }
 
-/// List filter: upcoming countdowns (today or later) vs. past ones.
-/// `nil` means no filter, showing everything.
-private enum CountdownFilter {
+/// List filter: upcoming countdowns (today or later), past ones,
+/// repeating ones or paused ones. `nil` means no filter, showing
+/// everything.
+private enum CountdownFilter: CaseIterable {
     case happening
     case happened
+    case repeating
+    case paused
+
+    var title: String {
+        switch self {
+        case .happening: String(localized: "Happening")
+        case .happened: String(localized: "Happened")
+        case .repeating: String(localized: "Repeat")
+        case .paused: String(localized: "Paused")
+        }
+    }
+
+    /// Blank state description when no countdown passes the filter.
+    var emptyMessage: String {
+        switch self {
+        case .happening: String(localized: "No upcoming countdowns.")
+        case .happened: String(localized: "No past countdowns.")
+        case .repeating: String(localized: "No repeating countdowns.")
+        case .paused: String(localized: "No paused countdowns.")
+        }
+    }
 }
 
 struct CountdownSheet: View {
@@ -163,22 +185,15 @@ struct CountdownSheet: View {
                                 }
 
                                 Section(String(localized: "Filter")) {
-                                    Button {
-                                        triggerHaptic()
-                                        withAnimation(.spring()) {
-                                            filter = filter == .happening ? nil : .happening
+                                    ForEach(CountdownFilter.allCases, id: \.self) { option in
+                                        Button {
+                                            triggerHaptic()
+                                            withAnimation(.spring()) {
+                                                filter = filter == option ? nil : option
+                                            }
+                                        } label: {
+                                            Label(option.title, systemImage: filter == option ? "checkmark.circle" : "")
                                         }
-                                    } label: {
-                                        Label(String(localized: "Happening"), systemImage: filter == .happening ? "checkmark.circle" : "")
-                                    }
-
-                                    Button {
-                                        triggerHaptic()
-                                        withAnimation(.spring()) {
-                                            filter = filter == .happened ? nil : .happened
-                                        }
-                                    } label: {
-                                        Label(String(localized: "Happened"), systemImage: filter == .happened ? "checkmark.circle" : "")
                                     }
                                 }
 
@@ -308,9 +323,9 @@ struct CountdownSheet: View {
                         ContentUnavailableView {
                             Label("No Countdowns", systemImage: "hourglass")
                         } description: {
-                            Text(filter == .happened
-                                ? String(localized: "No past countdowns.")
-                                : String(localized: "No upcoming countdowns."))
+                            if let filter {
+                                Text(filter.emptyMessage)
+                            }
                         }
                         .frame(maxHeight: .infinity)
                         .transition(.blurReplace)
@@ -500,6 +515,10 @@ struct CountdownSheet: View {
             return sorted.filter { !isPast($0, at: now) }
         case .happened:
             return sorted.filter { isPast($0, at: now) }
+        case .repeating:
+            return sorted.filter { $0.repeatFrequency != .never }
+        case .paused:
+            return sorted.filter { $0.pausedAt != nil }
         case nil:
             return sorted
         }
