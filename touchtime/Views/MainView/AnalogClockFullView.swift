@@ -1642,6 +1642,7 @@ struct AnalogClockFullView: View {
             } action: { isWide in
                 isLandscape = isWide
             }
+            .verticalBarBottomInset()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .principal) {

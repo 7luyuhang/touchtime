@@ -68,6 +68,36 @@ extension View {
     }
 }
 
+/// Next to a vertical bar (iPhone Duo) only the home indicator sits at the
+/// bottom edge, yet the tab you come back to from the Search tab keeps room
+/// for the search field in its bottom safe area until it's shown again.
+/// Taking the window's bottom inset instead keeps bottom controls in place.
+/// Has to be inside the navigation stack, which takes its insets from UIKit.
+@available(iOS 27.1, *)
+struct VerticalBarBottomInset: ViewModifier {
+    let isActive: Bool
+    @Environment(\.toolbarVerticalEdge) private var verticalBarEdge
+    @Environment(\.windowBottomInset) private var windowBottomInset
+
+    func body(content: Content) -> some View {
+        let applies = isActive && verticalBarEdge != nil
+        content
+            .safeAreaPadding(.bottom, applies ? windowBottomInset : 0)
+            .ignoresSafeArea(.container, edges: applies ? .bottom : [])
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func verticalBarBottomInset(isActive: Bool = true) -> some View {
+        if #available(iOS 27.1, *) {
+            modifier(VerticalBarBottomInset(isActive: isActive))
+        } else {
+            self
+        }
+    }
+}
+
 /// Fades scrolling content out over its last stretch before the fold between
 /// iPhone Duo's stacked panes, so it dissolves into the sky behind them
 /// instead of ending in a hard edge.
@@ -1802,6 +1832,7 @@ struct HomeView: View {
             .animation(.snappy(), value: selectedCollectionId) // Collection Animation
             
             .ignoresSafeArea(.keyboard, edges: .bottom)
+            .verticalBarBottomInset()
             // Lets the split's sky background show through the stack
             .containerBackground(usesSplitLayout ? .clear : Color(UIColor.systemGroupedBackground), for: .navigation)
             

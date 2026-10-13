@@ -1262,6 +1262,8 @@ struct SunriseSunsetSheet: View {
             // at its trailing edge, though the system draws that bar at the
             // window edge
             .ignoresSafeArea(.container, edges: splitAxis == .horizontal ? .trailing : [])
+            // Only beside the list does the pane reach the bottom edge
+            .verticalBarBottomInset(isActive: splitAxis == .horizontal)
             // The detail pane sits on HomeView's sky background
             .clearNavigationBackground(isEmbedded)
             .navigationBarTitleDisplayMode(.inline)

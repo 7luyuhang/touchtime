@@ -23,6 +23,9 @@ struct touchtimeApp: App {
     // Injected app-wide, so sheets that take only part of the window still
     // know which way up it is.
     @State private var isWindowLandscape = false
+    // The home indicator's inset, for tabs whose own bottom inset goes stale
+    // next to a vertical bar (iPhone Duo).
+    @State private var windowBottomInset: CGFloat = 0
 
     init() {
         // Initialize TipKit
@@ -47,6 +50,7 @@ struct touchtimeApp: App {
                 .environment(countdownStore)
                 .environment(\.colorScheme, .dark) // Force dark theme
                 .environment(\.isWindowLandscape, isWindowLandscape)
+                .environment(\.windowBottomInset, windowBottomInset)
                 .background {
                     // Measures the whole window, so the keyboard can't make a
                     // portrait screen look wide
@@ -56,6 +60,17 @@ struct touchtimeApp: App {
                             proxy.size.width > proxy.size.height
                         } action: { isWide in
                             isWindowLandscape = isWide
+                        }
+                }
+                .background {
+                    // Outside the tab view, so without any bar, and ignoring
+                    // the keyboard
+                    Color.clear
+                        .ignoresSafeArea(.keyboard)
+                        .onGeometryChange(for: CGFloat.self) { proxy in
+                            proxy.safeAreaInsets.bottom
+                        } action: { inset in
+                            windowBottomInset = inset
                         }
                 }
                 .onAppear {
@@ -120,4 +135,7 @@ extension EnvironmentValues {
     /// Whether the window is wider than it is tall. A sheet can't tell from
     /// its own size: on the iPhone Duo in landscape it takes only one half.
     @Entry var isWindowLandscape = false
+    /// The window's own bottom safe area inset (the home indicator), without
+    /// any bar or the keyboard.
+    @Entry var windowBottomInset: CGFloat = 0
 }
