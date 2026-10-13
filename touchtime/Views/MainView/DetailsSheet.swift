@@ -229,7 +229,7 @@ struct SunriseSunsetSheet: View {
     }
 
     /// The upcoming phase shown in the "Next ..." row. Tapping one of the
-    /// four phase cards below changes it; defaults to the full moon.
+    /// four phase columns below changes it; defaults to the full moon.
     private var selectedMoonPhase: UpcomingMoonPhase? {
         upcomingMoonPhases.first { $0.icon == selectedMoonPhaseIcon } ?? upcomingMoonPhases.first
     }
@@ -1106,8 +1106,8 @@ struct SunriseSunsetSheet: View {
 
                                     // Next phase section: shows the selected
                                     // upcoming phase (full moon by default).
-                                    // Tap expands the four phase cards below;
-                                    // tapping a card swaps the phase shown here
+                                    // Tap expands the four phase columns below;
+                                    // tapping a column swaps the phase shown here
                                     if let selectedPhase = selectedMoonPhase {
                                         HStack {
                                             HStack(spacing: 12){
@@ -1159,11 +1159,18 @@ struct SunriseSunsetSheet: View {
                                     }
 
                                     // Upcoming principal phases (expandable):
-                                    // weather-card styling, but the four cards
-                                    // share the full row width
+                                    // four columns sharing one card across
+                                    // the full row width
                                     if isMoonPhasesExpanded && !upcomingMoonPhases.isEmpty {
-                                        HStack(spacing: 8) {
-                                            ForEach(upcomingMoonPhases) { phase in
+                                        HStack(spacing: 0) {
+                                            ForEach(Array(upcomingMoonPhases.enumerated()), id: \.element.id) { index, phase in
+                                                if index > 0 {
+                                                    Divider()
+                                                        .overlay(.white.opacity(0.10))
+                                                        .blendMode(.plusLighter)
+                                                        .padding(.vertical, 12)
+                                                }
+
                                                 VStack(spacing: 8) {
                                                     // Phase name
                                                     Text(phase.name)
@@ -1188,7 +1195,6 @@ struct SunriseSunsetSheet: View {
                                                 }
                                                 .frame(maxWidth: .infinity)
                                                 .padding(.vertical, 12)
-                                                .detailsSheetCardChrome()
                                                 .contentShape(Rectangle())
                                                 .onTapGesture {
                                                     if hapticEnabled {
@@ -1200,6 +1206,7 @@ struct SunriseSunsetSheet: View {
                                                 }
                                             }
                                         }
+                                        .detailsSheetCardChrome()
                                         .padding(.horizontal, 16)
                                         .transition(.blurReplace())
                                     }

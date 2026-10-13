@@ -66,12 +66,15 @@ struct HomeCountdownSection: View {
 
                     shareMenu(for: item)
 
-                    Divider()
+                    // Arrange only reorders the cards, so a single one leaves it out
+                    if pinnedCountdowns.count > 1 {
+                        Divider()
 
-                    Button {
-                        onArrange()
-                    } label: {
-                        Label(String(localized: "Arrange"), systemImage: "list.bullet")
+                        Button {
+                            onArrange()
+                        } label: {
+                            Label(String(localized: "Arrange"), systemImage: "list.bullet")
+                        }
                     }
                 }
                 .listRowInsets(EdgeInsets())
