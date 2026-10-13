@@ -334,6 +334,7 @@ struct TimeZonePickerViewWrapper: View {
                 columnWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil
             )
             .searchable(text: $searchText, prompt: String(localized: "Cities & Countries"))
+            .searchPresentationToolbarBehavior(.avoidHidingContent)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .scrollEdgeEffectStyle(.soft, for: .top)
