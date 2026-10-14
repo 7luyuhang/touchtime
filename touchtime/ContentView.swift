@@ -64,14 +64,17 @@ struct ContentView: View {
                 )
             }
             
-            // tabViewSearchActivation and the search field in the tab bar
-            // only apply to a tab with the search role
-            Tab(String(localized: "Search"), systemImage: "plus", value: MainTab.search, role: .search) {
-                searchTab
+            if #available(iOS 27.0, *) {
+                Tab(String(localized: "Search"), systemImage: "plus", value: MainTab.search, role: .prominent) {
+                    searchTab
+                }
+            } else {
+                Tab(String(localized: "Search"), systemImage: "plus", value: MainTab.search, role: .search) {
+                    searchTab
+                }
             }
             }
             .tabViewStyle(.automatic)
-            .tabViewSearchActivation(.searchTabSelection)
             .onAppear {
                 loadWorldClocks()
             }

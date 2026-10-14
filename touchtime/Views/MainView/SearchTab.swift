@@ -328,13 +328,12 @@ struct TimeZonePickerViewWrapper: View {
                     .tint(.primary) // A-Z Colour
                 }
             }
+            .citySearchField(text: $searchText)
             .besideWorldMap(
                 worldMapPane,
                 isSplit: usesSplitLayout,
                 columnWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil
             )
-            .searchable(text: $searchText, prompt: String(localized: "Cities & Countries"))
-            .searchPresentationToolbarBehavior(.avoidHidingContent)
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .scrollEdgeEffectStyle(.soft, for: .top)
@@ -480,6 +479,60 @@ private extension View {
             frame(maxWidth: columnWidth)
                 .frame(maxWidth: .infinity)
         }
+    }
+
+    /// The city search field, at the bottom of the screen. A search tab
+    /// (iOS 26) turns the tab bar into it, but next to the prominent "+" tab
+    /// (iOS 27) `searchable` would put it at the top, so it sits above the
+    /// tab bar instead.
+    @ViewBuilder
+    func citySearchField(text: Binding<String>) -> some View {
+        let prompt = String(localized: "Cities & Countries")
+        if #available(iOS 27.0, *) {
+            safeAreaBar(edge: .bottom) {
+                BottomSearchField(text: text, prompt: prompt)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 8)
+            }
+            .scrollDismissesKeyboard(.immediately)
+        } else {
+            searchable(text: text, prompt: prompt)
+                .searchPresentationToolbarBehavior(.avoidHidingContent)
+        }
+    }
+}
+
+/// A search field in a glass capsule, for the bottom of the screen.
+private struct BottomSearchField: View {
+    @Binding var text: String
+    let prompt: String
+    @FocusState private var isFocused: Bool
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "magnifyingglass")
+                .font(.body.weight(.medium))
+
+            TextField(prompt, text: $text)
+                .focused($isFocused)
+                .submitLabel(.search)
+                .autocorrectionDisabled()
+
+            if !text.isEmpty {
+                Button(String(localized: "Clear"), systemImage: "xmark.circle.fill") {
+                    text = ""
+                }
+                .labelStyle(.iconOnly)
+                .buttonStyle(.plain)
+                .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 16)
+        .frame(minHeight: 48)
+        .contentShape(.capsule)
+        // Focuses from anywhere in the capsule, not only on the text
+        .onTapGesture { isFocused = true }
+        .glassEffect(.regular.interactive(), in: .capsule)
     }
 }
 
