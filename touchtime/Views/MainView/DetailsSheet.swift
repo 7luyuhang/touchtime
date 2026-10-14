@@ -27,6 +27,8 @@ struct SunriseSunsetSheet: View {
     /// in portrait. Always expanded, without a title or close button, and
     /// without its own sky, as HomeView draws one behind both panes.
     var splitAxis: Axis? = nil
+    /// Opens at the large detent, with no medium detent to shrink to.
+    let largeDetentOnly: Bool
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -43,7 +45,7 @@ struct SunriseSunsetSheet: View {
     @State private var weatherLoadAttempted = false // No Weather Data
     @State private var isWeatherExpanded = false // Track weather section expansion
     @State private var showDaylightSheet = false // Track daylight sheet
-    @State private var currentDetent: PresentationDetent = .medium // Track current sheet size
+    @State private var currentDetent: PresentationDetent // Track current sheet size
     @State private var showMoonPhaseView = false // Track moon phase view navigation
     @State private var showWidgetIntroSheet = false // Track widget intro sheet
     @State private var sunTimes: (sunrise: Date?, sunset: Date?)?
@@ -53,6 +55,23 @@ struct SunriseSunsetSheet: View {
     @State private var upcomingMoonPhases: [UpcomingMoonPhase] = []
     @State private var isMoonPhasesExpanded = false // Track upcoming phases expansion
     @State private var astronomyDayCacheKey: String = ""
+
+    init(
+        cityName: String,
+        timeZoneIdentifier: String,
+        initialDate: Date,
+        timeOffset: TimeInterval,
+        splitAxis: Axis? = nil,
+        largeDetentOnly: Bool = false
+    ) {
+        self.cityName = cityName
+        self.timeZoneIdentifier = timeZoneIdentifier
+        self.initialDate = initialDate
+        self.timeOffset = timeOffset
+        self.splitAxis = splitAxis
+        self.largeDetentOnly = largeDetentOnly
+        _currentDetent = State(initialValue: largeDetentOnly ? .large : .medium)
+    }
 
     private var isEmbedded: Bool {
         splitAxis != nil
@@ -1388,7 +1407,7 @@ struct SunriseSunsetSheet: View {
                     }
                 }
             }
-            .presentationDetents([.medium, .large], selection: $currentDetent)
+            .presentationDetents(largeDetentOnly ? [.large] : [.medium, .large], selection: $currentDetent)
             .presentationDragIndicator(.visible)
             .sheet(isPresented: $showMoonPhaseView) {
                 MoonPhaseView(

@@ -701,10 +701,10 @@ struct EarthView: View {
                     cityName: selectedCityName,
                     timeZoneIdentifier: selectedTimeZoneIdentifier,
                     initialDate: currentDate,
-                    timeOffset: timeOffset
+                    timeOffset: timeOffset,
+                    largeDetentOnly: true
                 )
                 .environmentObject(weatherManager)
-                .presentationDetents([.medium, .large])
                 .presentationDragIndicator(.hidden)
             }
         }
