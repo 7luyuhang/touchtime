@@ -41,6 +41,9 @@ struct touchtimeApp: App {
         CameraCaptureRouter.openCamera = {
             QuickActionsManager.shared.pendingAction = .camera
         }
+
+        // Before any view reads it, so Fahrenheit users keep mph
+        WindSpeedUnit.migrateFromTemperatureUnit()
     }
     
     var body: some Scene {

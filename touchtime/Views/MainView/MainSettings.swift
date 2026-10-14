@@ -25,6 +25,7 @@ struct SettingsView: View {
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
+    @AppStorage(WindSpeedUnit.storageKey) private var windSpeedUnit = WindSpeedUnit.kilometersPerHour
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
@@ -295,6 +296,24 @@ struct SettingsView: View {
                 } else {
                     hourlyNotificationEnabled = false
                     HourlyNotificationManager.shared.cancelAll()
+                }
+            }
+        )
+    }
+
+    // e.g. "Celsius · mph"
+    private var unitsSummary: String {
+        let temperatureUnit = useCelsius ? String(localized: "Celsius") : String(localized: "Fahrenheit")
+        return "\(temperatureUnit) · \(windSpeedUnit.localizedSymbol)"
+    }
+
+    // On while `option` is selected; tapping it again keeps it selected
+    private func selectionBinding<Value: Equatable>(_ selection: Binding<Value>, option: Value) -> Binding<Bool> {
+        Binding(
+            get: { selection.wrappedValue == option },
+            set: { isOn in
+                if isOn {
+                    selection.wrappedValue = option
                 }
             }
         )
@@ -610,16 +629,38 @@ struct SettingsView: View {
                         }
                     }
                     
-                    // Temperature Unit Picker - only show when weather is enabled
+                    // Units - only show when weather is enabled
                     if showWeather {
-                        Picker(selection: $useCelsius) {
-                            Text("Celsius").tag(true)
-                            Text("Fahrenheit").tag(false)
-                        } label: {
-                            Text("Temperature Units")
+                        HStack {
+                            Text("Units")
+
+                            Spacer()
+
+                            // A Picker loses its Section header inside a Menu,
+                            // so each option is a Toggle that stays on while selected.
+                            Menu {
+                                Section("Temperature") {
+                                    Toggle("Celsius", isOn: selectionBinding($useCelsius, option: true))
+                                    Toggle("Fahrenheit", isOn: selectionBinding($useCelsius, option: false))
+                                }
+
+                                Section("Speed") {
+                                    ForEach(WindSpeedUnit.allCases) { unit in
+                                        Toggle(unit.localizedSymbol, isOn: selectionBinding($windSpeedUnit, option: unit))
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: 4) {
+                                    Text(unitsSummary)
+                                        .contentTransition(.numericText())
+                                    Image(systemName: "chevron.up.chevron.down")
+                                        .font(.footnote.weight(.semibold))
+                                }
+                                .animation(.spring(), value: unitsSummary)
+                            }
+                            // The label takes the tint, as the menu picker did.
+                            .tint(.secondary)
                         }
-                        .pickerStyle(.menu)
-                        .tint(.secondary)
                     }} footer: {
                         Text("Data provided by  Weather.")
                     }

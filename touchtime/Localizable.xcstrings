@@ -3307,13 +3307,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "摄氏度（°C)"
+            "value" : "摄氏度"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "攝氏度（°C）"
+            "value" : "攝氏度"
           }
         }
       }
@@ -6111,13 +6111,13 @@
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "华氏度（°F)"
+            "value" : "华氏度"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "華氏度（°F）"
+            "value" : "華氏度"
           }
         }
       }
@@ -13988,6 +13988,22 @@
         }
       }
     },
+    "Speed" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "风速"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "風速"
+          }
+        }
+      }
+    },
     "Srednekolymsk" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14882,6 +14898,22 @@
         }
       }
     },
+    "Temperature" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "温度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "溫度"
+          }
+        }
+      }
+    },
     "Temperature Indicator" : {
       "localizations" : {
         "zh-Hans" : {
@@ -14910,22 +14942,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "溫度範圍"
-          }
-        }
-      }
-    },
-    "Temperature Units" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "温度单位"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "溫度單位"
           }
         }
       }
@@ -15785,6 +15801,22 @@
     },
     "Unit" : {
       "comment" : "Accessibility label of the week/month/year wheel in the custom repeat sheet.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "单位"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "單位"
+          }
+        }
+      }
+    },
+    "Units" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

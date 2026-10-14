@@ -34,6 +34,7 @@ struct SunriseSunsetSheet: View {
     @AppStorage("showSkyDot") private var showSkyDot = true
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("useCelsius") private var useCelsius = true
+    @AppStorage(WindSpeedUnit.storageKey) private var windSpeedUnit = WindSpeedUnit.kilometersPerHour
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("show10DaysWeather") private var storedWeatherExpanded = false
     @AppStorage("showUpcomingMoonPhases") private var storedMoonPhasesExpanded = false
@@ -630,11 +631,10 @@ struct SunriseSunsetSheet: View {
         .detailsSheetCard()
     }
 
-    // Wind speed in km/h, or in mph alongside Fahrenheit
+    // Wind speed in the unit picked in Settings → Units
     private func formatWindSpeed(_ speed: Measurement<UnitSpeed>?) -> String {
         guard let speed else { return "-" }
-        let unit: UnitSpeed = useCelsius ? .kilometersPerHour : .milesPerHour
-        return speed.converted(to: unit).formatted(
+        return speed.converted(to: windSpeedUnit.unit).formatted(
             .measurement(
                 width: .abbreviated,
                 usage: .asProvided,
