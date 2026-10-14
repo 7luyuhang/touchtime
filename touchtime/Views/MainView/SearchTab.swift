@@ -215,117 +215,118 @@ struct TimeZonePickerViewWrapper: View {
         let selectedIdentifiers = Set(worldClocks.map(\.timeZoneIdentifier))
         
         NavigationStack {
-            Group {
-                if displayedGroups.isEmpty {
-                    // Empty state when no search results
-                    ContentUnavailableView.search(text: searchText)
-                } else {
-                    List {
-                        // Dots world map, hidden while searching (beside the
-                        // list instead in the split layout)
-                        if searchText.isEmpty && !usesSplitLayout {
-                            Section {
-                                worldMap
-                                    .listRowBackground(Color.clear)
-                                    .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
-                            }
+            List {
+                // Dots world map, hidden while searching (beside the
+                // list instead in the split layout)
+                if searchText.isEmpty && !usesSplitLayout {
+                    Section {
+                        worldMap
+                            .listRowBackground(Color.clear)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 8, bottom: 8, trailing: 8))
+                    }
+                }
+                
+                // What's New Section, not shown under the no-results message
+                if showWhatsNewLongpressCity && !displayedGroups.isEmpty {
+                    Section {
+                        HStack(spacing: 16) {
+                            Image(systemName: "hand.tap.fill")
+                                .font(.headline)
+                                .foregroundStyle(.secondary)
+                                .blendMode(.plusLighter)
+                                .frame(width: 24, height: 24)
+                            
+                            Text(String(localized: "Press and hold to view more about the city"))
+                                .font(.subheadline)
+                                .foregroundStyle(.primary)
+                            
+                            Spacer()
+                            
+                            Image(systemName: "xmark")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(.primary)
+                                .frame(width: 24, height: 24)
                         }
-                        
-                        // What's New Section
-                        if showWhatsNewLongpressCity {
-                            Section {
-                                HStack(spacing: 16) {
-                                    Image(systemName: "hand.tap.fill")
-                                        .font(.headline)
-                                        .foregroundStyle(.secondary)
-                                        .blendMode(.plusLighter)
-                                        .frame(width: 24, height: 24)
-                                    
-                                    Text(String(localized: "Press and hold to view more about the city"))
-                                        .font(.subheadline)
-                                        .foregroundStyle(.primary)
-                                    
-                                    Spacer()
-                                    
-                                    Image(systemName: "xmark")
-                                        .font(.subheadline.weight(.semibold))
-                                        .foregroundStyle(.primary)
-                                        .frame(width: 24, height: 24)
-                                }
-                                .listRowBackground(
-                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                                        .fill(Color.black.opacity(0.10))
-                                        .glassEffect(.regular.interactive(),
-                                                     in: RoundedRectangle(cornerRadius: 26, style: .continuous))
-                                )
-                                .contentShape(Rectangle())
-                                .onTapGesture {
-                                    withAnimation(.spring()) {
-                                        showWhatsNewLongpressCity = false
-                                    }
-                                    if hapticEnabled {
-                                        let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                        impactFeedback.impactOccurred()
-                                    }
-                                }
+                        .listRowBackground(
+                            RoundedRectangle(cornerRadius: 26, style: .continuous)
+                                .fill(Color.black.opacity(0.10))
+                                .glassEffect(.regular.interactive(),
+                                             in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+                        )
+                        .contentShape(Rectangle())
+                        .onTapGesture {
+                            withAnimation(.spring()) {
+                                showWhatsNewLongpressCity = false
                             }
-                        }
-                        
-                        ForEach(displayedKeys, id: \.self) { key in
-                            Section(header: Text(key)) {
-                                ForEach(displayedGroups[key] ?? [], id: \.id) { timeZoneData in
-                                    TimeZoneCellView(
-                                        timeZoneData: timeZoneData,
-                                        isSelected: selectedIdentifiers.contains(timeZoneData.identifier),
-                                        currentDate: currentDate,
-                                        use24HourFormat: use24HourFormat,
-                                        collectionMenuItems: collectionMenuItems(for: timeZoneData.identifier),
-                                        onToggle: {
-                                            toggleClock(cityName: timeZoneData.cityName, identifier: timeZoneData.identifier)
-                                        },
-                                        onToggleCollectionMembership: { collectionId in
-                                            toggleCityInCollection(
-                                                cityName: timeZoneData.cityName,
-                                                identifier: timeZoneData.identifier,
-                                                collectionId: collectionId
-                                            )
-                                        }
-                                    )
-                                }
-                            }
-                            .sectionIndexLabel(searchText.isEmpty ? key : nil)
-                        }
-                        
-                        // Earth image at the bottom (only show when not searching)
-                        if searchText.isEmpty {
-                            Section {
-                                HStack {
-                                    Spacer()
-                                    VStack(spacing: 16) {
-                                        EarthImageView()
-                                        Text(String(format: String(localized: "Total %d Cities"), precomputedTimeZones.count))
-                                            .font(.system(.caption, design: .monospaced).weight(.medium))
-                                            .foregroundStyle(.secondary)
-                                            .textCase(.uppercase)
-                                    }
-                                    Spacer()
-                                }
-                                .listRowBackground(Color.clear)
-                                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 16, trailing: 0))
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                impactFeedback.impactOccurred()
                             }
                         }
                     }
-//                    .listStyle(.plain)
-                    .listSectionIndexVisibility(searchText.isEmpty ? .visible : .hidden)
-                    .safeAreaPadding(.bottom, searchText.isEmpty ? 0 : 48)
-                    // Keeps a margin beside the vertical bar in the split layout
-                    .verticalBarListMargin(usesSplitLayout ? 20 : 0)
-                    // In regular width the list drops its side margins; the
-                    // phone-wide column keeps a phone's, and in the split
-                    // layout the side at the fold matches the vertical bar's
-                    .safeAreaPadding(.horizontal, usesPhoneColumn ? 20 : 0)
-                    .safeAreaPadding(.leading, usesSplitLayout ? 20 : 0)
-                    .tint(.primary) // A-Z Colour
+                }
+                
+                ForEach(displayedKeys, id: \.self) { key in
+                    Section(header: Text(key)) {
+                        ForEach(displayedGroups[key] ?? [], id: \.id) { timeZoneData in
+                            TimeZoneCellView(
+                                timeZoneData: timeZoneData,
+                                isSelected: selectedIdentifiers.contains(timeZoneData.identifier),
+                                currentDate: currentDate,
+                                use24HourFormat: use24HourFormat,
+                                collectionMenuItems: collectionMenuItems(for: timeZoneData.identifier),
+                                onToggle: {
+                                    toggleClock(cityName: timeZoneData.cityName, identifier: timeZoneData.identifier)
+                                },
+                                onToggleCollectionMembership: { collectionId in
+                                    toggleCityInCollection(
+                                        cityName: timeZoneData.cityName,
+                                        identifier: timeZoneData.identifier,
+                                        collectionId: collectionId
+                                    )
+                                }
+                            )
+                        }
+                    }
+                    .sectionIndexLabel(searchText.isEmpty ? key : nil)
+                }
+                
+                // Earth image at the bottom (only show when not searching)
+                if searchText.isEmpty {
+                    Section {
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 16) {
+                                EarthImageView()
+                                Text(String(format: String(localized: "Total %d Cities"), precomputedTimeZones.count))
+                                    .font(.system(.caption, design: .monospaced).weight(.medium))
+                                    .foregroundStyle(.secondary)
+                                    .textCase(.uppercase)
+                            }
+                            Spacer()
+                        }
+                        .listRowBackground(Color.clear)
+                        .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 16, trailing: 0))
+                    }
+                }
+            }
+//            .listStyle(.plain)
+            .listSectionIndexVisibility(searchText.isEmpty ? .visible : .hidden)
+            .safeAreaPadding(.bottom, searchText.isEmpty ? 0 : 48)
+            // Keeps a margin beside the vertical bar in the split layout
+            .verticalBarListMargin(usesSplitLayout ? 20 : 0)
+            // In regular width the list drops its side margins; the
+            // phone-wide column keeps a phone's, and in the split
+            // layout the side at the fold matches the vertical bar's
+            .safeAreaPadding(.horizontal, usesPhoneColumn ? 20 : 0)
+            .safeAreaPadding(.leading, usesSplitLayout ? 20 : 0)
+            .tint(.primary) // A-Z Colour
+            // Empty state when no search results. Over the list, not instead
+            // of it: swapping the list out rebuilds the search field, which
+            // dismisses the keyboard
+            .overlay {
+                if displayedGroups.isEmpty {
+                    ContentUnavailableView.search(text: searchText)
                 }
             }
             .citySearchField(text: $searchText)
