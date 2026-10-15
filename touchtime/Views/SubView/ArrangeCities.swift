@@ -15,6 +15,7 @@ struct ArrangeListView: View {
     @AppStorage("customLocalName") private var customLocalName = ""
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("showWhatsNewLongpressCollection") private var showWhatsNewLongpressCollection = true
+    @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     
     let currentDate: Date
     let timeOffset: TimeInterval
@@ -32,10 +33,19 @@ struct ArrangeListView: View {
     @State private var showRenameCollectionAlert = false
     @State private var collectionToRename: CityCollection?
     @State private var renameCollectionName = ""
+    @State private var showLifetimeStore = false
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
     private let collectionsKey = "savedCityCollections"
+    
+    // Free users can keep up to this many collections; more requires
+    // lifetime access
+    private static let freeCollectionLimit = 3
+    
+    var hasReachedFreeCollectionLimit: Bool {
+        !hasLifetimeAccess && collections.count >= Self.freeCollectionLimit
+    }
     
     // Get local city name from timezone
     var localCityName: String {
@@ -753,13 +763,21 @@ struct ArrangeListView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button {
-                        showAddCollectionAlert = true
-                        if hapticEnabled {
-                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                            impactFeedback.impactOccurred()
+                        if hasReachedFreeCollectionLimit {
+                            showLifetimeStore = true
+                            if hapticEnabled {
+                                let notificationFeedback = UINotificationFeedbackGenerator()
+                                notificationFeedback.notificationOccurred(.error)
+                            }
+                        } else {
+                            showAddCollectionAlert = true
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.impactOccurred()
+                            }
                         }
                     } label: {
-                        Image(systemName: "plus")
+                        Image(systemName: hasReachedFreeCollectionLimit ? "lock.fill" : "plus")
                     }
                 }
                 
@@ -800,6 +818,11 @@ struct ArrangeListView: View {
                 .disabled(renameCollectionName.isEmpty)
             } message: {
                 Text(String(localized: "Enter a new name for your collection"))
+            }
+            .fullScreenCover(isPresented: $showLifetimeStore) {
+                NavigationStack {
+                    LifetimeStoreView()
+                }
             }
         }
         .presentationDragIndicator(.visible)
