@@ -26,12 +26,13 @@ class WeatherManager: ObservableObject {
     private var weatherCache: [String: (weather: CurrentWeather, daily: DayWeather?, weekly: [DayWeather], hourly: [HourWeather], timestamp: Date)] = [:]
     private let cacheExpiration: TimeInterval = 3600 // 1 hour
     
-    // Next 12 hours of forecast starting from the current hour
+    // Next 24 hours of forecast starting from the current hour, enough to
+    // cover the rest of the day in any city
     private func upcomingHours(from forecast: Forecast<HourWeather>) -> [HourWeather] {
         let currentHourStart = Date(
             timeIntervalSinceReferenceDate: (Date().timeIntervalSinceReferenceDate / 3600).rounded(.down) * 3600
         )
-        return Array(forecast.filter { $0.date >= currentHourStart }.prefix(12))
+        return Array(forecast.filter { $0.date >= currentHourStart }.prefix(24))
     }
     
     // Track in-flight fetches to avoid duplicate network requests
@@ -88,7 +89,7 @@ class WeatherManager: ObservableObject {
             let weeklyForecast = Array(weather.dailyForecast.prefix(10))
             self.weeklyWeatherData[timeZoneIdentifier] = weeklyForecast
             
-            // Get hourly forecast (next 12 hours)
+            // Get hourly forecast (next 24 hours)
             let hourlyForecast = upcomingHours(from: weather.hourlyForecast)
             self.hourlyWeatherData[timeZoneIdentifier] = hourlyForecast
             

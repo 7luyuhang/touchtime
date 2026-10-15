@@ -6106,6 +6106,23 @@
         }
       }
     },
+    "Extreme" : {
+      "comment" : "UV index exposure category for an index of 11 or higher, shown after the index, e.g. “11 · Extreme”.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "极高"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "極高"
+          }
+        }
+      }
+    },
     "Fahrenheit" : {
       "localizations" : {
         "zh-Hans" : {
@@ -7435,6 +7452,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "埃莫西約"
+          }
+        }
+      }
+    },
+    "High" : {
+      "comment" : "UV index exposure category for an index of 6–7, shown after the index, e.g. “7 · High”.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高"
           }
         }
       }
@@ -8963,6 +8997,57 @@
         }
       }
     },
+    "Low" : {
+      "comment" : "UV index exposure category for an index of 0–2, shown after the index, e.g. “1 · Low”.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低"
+          }
+        }
+      }
+    },
+    "Low for the rest of the day" : {
+      "comment" : "UV index outlook when the index stays low (0–2) from now until the end of the day, after being higher earlier.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天余下时间均为低水平"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今天餘下時間均為低水平"
+          }
+        }
+      }
+    },
+    "Low levels all day" : {
+      "comment" : "UV index outlook when the index stays low (0–2) for the whole day.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全天均为低水平"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "全天均為低水平"
+          }
+        }
+      }
+    },
     "Lower Princes" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -9802,6 +9887,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "密克隆島"
+          }
+        }
+      }
+    },
+    "Moderate" : {
+      "comment" : "UV index exposure category for an index of 3–5, shown after the index, e.g. “4 · Moderate”.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中等"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中等"
           }
         }
       }
@@ -15984,6 +16086,46 @@
         }
       }
     },
+    "Use sun protection %@–%@" : {
+      "comment" : "UV index outlook when the index reaches moderate or higher later today; the placeholders are the start and end times, e.g. “Use sun protection 10:00 am–5:00 pm”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use sun protection %1$@–%2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@–%2$@ 请注意防晒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@–%2$@ 請注意防曬"
+          }
+        }
+      }
+    },
+    "Use sun protection until %@" : {
+      "comment" : "UV index outlook when the index is moderate or higher now; the placeholder is the time it drops back to low, e.g. “Use sun protection until 4:00 pm”.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 前请注意防晒"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 前請注意防曬"
+          }
+        }
+      }
+    },
     "Use your current location" : {
       "localizations" : {
         "zh-Hans" : {
@@ -16172,6 +16314,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "版本"
+          }
+        }
+      }
+    },
+    "Very High" : {
+      "comment" : "UV index exposure category for an index of 8–10, shown after the index, e.g. “9 · Very High”.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "很高"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "很高"
           }
         }
       }
