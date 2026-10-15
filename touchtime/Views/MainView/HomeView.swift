@@ -1415,7 +1415,7 @@ struct HomeView: View {
                                         .blendMode(.plusLighter)
                                         .frame(width: 24, height: 24)
                                     
-                                    Text(String(localized: "Time zone updated"))
+                                    Text(String(localized: "Time Zone Updated"))
                                         .font(.subheadline)
                                         .foregroundStyle(.primary)
                                     
