@@ -8,7 +8,6 @@
 import SwiftUI
 import Combine
 import AVFoundation
-import Photos
 
 struct CameraBackgroundView: UIViewRepresentable {
     let session: AVCaptureSession
@@ -51,11 +50,12 @@ final class CameraSessionController: NSObject, ObservableObject {
     @Published private(set) var cameraPosition: AVCaptureDevice.Position = .back
 
     let session = AVCaptureSession()
-    private let photoOutput = AVCapturePhotoOutput()
     private let videoDataOutput = AVCaptureVideoDataOutput()
     private let videoOutputQueue = DispatchQueue(label: "com.touchtime.camera.videoOutput", qos: .userInteractive)
     private let videoFrameDelegate = VideoFrameDelegate()
-    @Published var didCapturePhoto = false
+    /// The video output has sent a frame since the session started, so there
+    /// is one to capture. It starts a little after the preview.
+    @Published private(set) var hasVideoFrame = false
     /// The zoom as the Camera app counts it: 1x on the main camera, 0.5x on
     /// the ultra wide
     @Published var zoomFactor: Double = 1 {
@@ -144,12 +144,14 @@ final class CameraSessionController: NSObject, ObservableObject {
                     }
 
                     self.session.addInput(input)
-                    if self.session.canAddOutput(self.photoOutput) {
-                        self.session.addOutput(self.photoOutput)
-                    }
 
                     if self.session.canAddOutput(self.videoDataOutput) {
                         self.session.addOutput(self.videoDataOutput)
+                        // Only capturing reads its frames, so the preview
+                        // shouldn't wait for it to start
+                        if self.videoDataOutput.isDeferredStartSupported {
+                            self.videoDataOutput.isDeferredStartEnabled = true
+                        }
                         if let connection = self.videoDataOutput.connection(with: .video) {
                             if connection.isVideoRotationAngleSupported(90) {
                                 connection.videoRotationAngle = 90
@@ -183,7 +185,7 @@ final class CameraSessionController: NSObject, ObservableObject {
 
     func startRunning() async -> Bool {
         await withCheckedContinuation { continuation in
-            sessionQueue.async {
+            sessionQueue.async { [self] in
                 if self.session.isRunning {
                     DispatchQueue.main.async {
                         self.isSessionRunning = true
@@ -203,7 +205,15 @@ final class CameraSessionController: NSObject, ObservableObject {
                     return
                 }
 
+                // Capturing waits for this run's first frame rather than
+                // saving the last run's
+                self.videoFrameDelegate.reset { [weak self] in
+                    DispatchQueue.main.async {
+                        self?.hasVideoFrame = true
+                    }
+                }
                 DispatchQueue.main.async {
+                    self.hasVideoFrame = false
                     self.sessionState = .starting
                 }
 
@@ -226,6 +236,7 @@ final class CameraSessionController: NSObject, ObservableObject {
             if !self.session.isRunning {
                 DispatchQueue.main.async {
                     self.isSessionRunning = false
+                    self.hasVideoFrame = false
                     self.sessionState = .idle
                 }
                 return
@@ -241,6 +252,7 @@ final class CameraSessionController: NSObject, ObservableObject {
 
             DispatchQueue.main.async {
                 self.isSessionRunning = false
+                self.hasVideoFrame = false
                 self.sessionState = .idle
             }
         }
@@ -340,19 +352,6 @@ final class CameraSessionController: NSObject, ObservableObject {
         return widest...max(widest, closest)
     }
 
-    func capturePhoto() {
-        guard session.isRunning else { return }
-        let handler = PhotoCaptureHandler { [weak self] in
-            DispatchQueue.main.async {
-                self?.didCapturePhoto = true
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    self?.didCapturePhoto = false
-                }
-            }
-        }
-        photoOutput.capturePhoto(with: AVCapturePhotoSettings(), delegate: handler)
-    }
-
     func getLatestFrameAsImage() -> UIImage? {
         videoFrameDelegate.getLatestFrameAsImage()
     }
@@ -363,12 +362,25 @@ final class CameraSessionController: NSObject, ObservableObject {
 private final class VideoFrameDelegate: NSObject, AVCaptureVideoDataOutputSampleBufferDelegate {
     private let lock = NSLock()
     private var _pixelBuffer: CVPixelBuffer?
+    private var onNextFrame: (@Sendable () -> Void)?
     private let ciContext = CIContext()
 
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         lock.lock()
         _pixelBuffer = pixelBuffer
+        let onFrame = onNextFrame
+        onNextFrame = nil
+        lock.unlock()
+        onFrame?()
+    }
+
+    /// Drops the latest frame, and calls `onNextFrame` on the video output
+    /// queue once the next one arrives
+    func reset(onNextFrame: @escaping @Sendable () -> Void) {
+        lock.lock()
+        _pixelBuffer = nil
+        self.onNextFrame = onNextFrame
         lock.unlock()
     }
 
@@ -380,24 +392,5 @@ private final class VideoFrameDelegate: NSObject, AVCaptureVideoDataOutputSample
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer)
         guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else { return nil }
         return UIImage(cgImage: cgImage)
-    }
-}
-
-// MARK: - Photo Capture Handler
-
-private final class PhotoCaptureHandler: NSObject, AVCapturePhotoCaptureDelegate {
-    private let onCapture: @Sendable () -> Void
-
-    init(onCapture: @escaping @Sendable () -> Void) {
-        self.onCapture = onCapture
-        super.init()
-    }
-
-    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
-        guard error == nil,
-              let imageData = photo.fileDataRepresentation(),
-              let image = UIImage(data: imageData) else { return }
-        UIImageWriteToSavedPhotosAlbum(image, nil, nil, nil)
-        onCapture()
     }
 }

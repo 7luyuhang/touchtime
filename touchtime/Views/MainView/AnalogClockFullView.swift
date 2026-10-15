@@ -1161,6 +1161,7 @@ struct AnalogClockFullView: View {
     }
 
     private func handleCapturePhoto() {
+        guard cameraSessionController.hasVideoFrame else { return }
         triggerLightHaptic()
 
         Task { @MainActor in
@@ -1392,7 +1393,7 @@ struct AnalogClockFullView: View {
         .padding(.bottom, 8)
         .overlay(alignment: .topTrailing) { // Capture Button
             AnalogClockCameraCaptureButton(
-                isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden,
+                isVisible: isCameraBackgroundEnabled && cameraSessionController.hasVideoFrame && !isCaptureButtonHidden,
                 isHardwareButtonPressed: isHardwareButtonPressed,
                 action: handleCapturePhoto
             )
@@ -1875,7 +1876,9 @@ struct AnalogClockFullView: View {
                         }
                     }
                     openCameraIfRequested()
-                } else {
+                } else if newValue == .background {
+                    // Not while just inactive, as under Control Center, a
+                    // banner or an alert: restarting after each takes a while
                     cameraSessionController.stopRunning()
                 }
             }

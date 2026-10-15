@@ -26,26 +26,25 @@ struct AnalogClockCameraBackgroundLayer: View {
     }
 
     var body: some View {
-        Group {
-            if isCameraBackgroundEnabled {
-                Group {
+        ZStack {
+            // Stays mounted while off, and under the captured frame, so the
+            // session starts with its preview attached instead of
+            // reconfiguring for it once running
+            CameraBackgroundView(session: cameraSession)
+                .overlay {
                     if let staticFrame = staticCameraFrame {
-                        Color.clear
-                            .overlay {
-                                Image(uiImage: staticFrame)
-                                    .resizable()
-                                    .scaledToFill()
-                            }
-                            .clipped()
-                            .ignoresSafeArea()
-                    } else {
-                        CameraBackgroundView(session: cameraSession)
-                            .ignoresSafeArea()
+                        Image(uiImage: staticFrame)
+                            .resizable()
+                            .scaledToFill()
                     }
                 }
+                .clipped()
                 .saturation(cameraSaturation)
                 .contrast(cameraContrast)
-            } else {
+                .ignoresSafeArea()
+                .opacity(isCameraBackgroundEnabled ? 1 : 0)
+
+            if !isCameraBackgroundEnabled {
                 if showSkyDot {
                     ZStack {
                         skyGradient.linearGradient()
