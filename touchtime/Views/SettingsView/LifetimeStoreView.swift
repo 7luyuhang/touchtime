@@ -26,6 +26,10 @@ struct LifetimeStoreView: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showWeather") private var showWeather = false
     @StateObject private var weatherManager = WeatherManager()
+    // `weatherManager` starts empty, so until its fetch lands the skies show
+    // the local weather the app last saved for the widget, rather than
+    // opening on a clear sky that then fades into the real weather.
+    @State private var savedWeatherCondition = SharedWidgetStore.weatherCondition(for: TimeZone.current.identifier)
     @State private var product: Product?
     @State private var purchaseState: PurchaseState = .loading
     @State private var isRestoring = false
@@ -150,9 +154,7 @@ struct LifetimeStoreView: View {
                 SkyBackgroundView(
                     date: skyBackgroundDate,
                     timeZoneIdentifier: TimeZone.current.identifier,
-                    weatherCondition: showWeather
-                        ? weatherManager.weatherData[TimeZone.current.identifier]?.condition
-                        : nil,
+                    weatherCondition: weatherConditionForSky,
                     appliesCardChrome: false
                 )
             }
@@ -317,10 +319,14 @@ struct LifetimeStoreView: View {
             .frame(maxWidth: .infinity)
             .frame(height: showcaseHeight)
             .overlay(alignment: .leading) {
-                LocalAvailableTimePreview(date: previewDate, skyDate: currentDate)
-                    .frame(width: cardWidth, alignment: .leading)
-                    .padding(.leading, 24)
-                    .padding(.bottom, 56)
+                LocalAvailableTimePreview(
+                    date: previewDate,
+                    skyDate: currentDate,
+                    skyWeatherCondition: weatherConditionForSky
+                )
+                .frame(width: cardWidth, alignment: .leading)
+                .padding(.leading, 24)
+                .padding(.bottom, 56)
             }
             .skyBackgroundCardChrome(cornerRadius: 20)
     }
@@ -336,6 +342,11 @@ struct LifetimeStoreView: View {
     private var skyBackgroundDate: Date {
         let interval = currentDate.timeIntervalSinceReferenceDate
         return Date(timeIntervalSinceReferenceDate: (interval / 60).rounded(.down) * 60)
+    }
+
+    private var weatherConditionForSky: WeatherCondition? {
+        guard showWeather else { return nil }
+        return weatherManager.weatherData[TimeZone.current.identifier]?.condition ?? savedWeatherCondition
     }
 
     private var complicationShowcase: some View {
@@ -756,6 +767,8 @@ private struct LocalAvailableTimePreview: View {
     let date: Date
     /// Drives only the sky gradient so it can follow the real current time.
     let skyDate: Date
+    /// The local weather the sky shows; nil keeps it clear.
+    let skyWeatherCondition: WeatherCondition?
 
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("dateStyle") private var dateStyle = "Relative"
@@ -829,7 +842,9 @@ private struct LocalAvailableTimePreview: View {
                         Color.black
                         SkyBackgroundView(
                             date: skyDate,
-                            timeZoneIdentifier: TimeZone.current.identifier
+                            timeZoneIdentifier: TimeZone.current.identifier,
+                            weatherCondition: skyWeatherCondition,
+                            showRainEffect: true
                         )
                     }
                 )
