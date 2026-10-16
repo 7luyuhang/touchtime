@@ -47,6 +47,7 @@ struct UVIndexCard: View {
                     .blendMode(.plusLighter)
 
                 Text(summary)
+                    .font(.subheadline)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                     .frame(maxWidth: .infinity, alignment: .leading)
