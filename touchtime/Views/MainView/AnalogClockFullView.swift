@@ -1289,7 +1289,7 @@ struct AnalogClockFullView: View {
     /// Under the clock: lap history or the local time, then Slide to Adjust.
     private var bottomControls: some View {
         VStack {
-            clockInfo
+            clockInfo(isAboveSlideToAdjust: true)
             scrollTimeControls
         }
         // As on a phone, the laps span Slide to Adjust and its 16pt side padding
@@ -1298,18 +1298,19 @@ struct AnalogClockFullView: View {
 
     /// Lap history on the Stopwatch page, the local time on the Time page.
     @ViewBuilder
-    private var clockInfo: some View {
+    private func clockInfo(isAboveSlideToAdjust: Bool) -> some View {
         if selectedDisplayPage == .stopwatch {
             // Lap history between the stopwatch face and its controls
             StopwatchLapHistoryView(laps: homeStopwatch.laps)
                 .padding(.bottom, 4)
         } else {
             Spacer()
-            // Local time display (hidden when continuous scroll reset button is
-            // showing, and for the camera's zoom slider)
+            // Local time display (hidden for the camera's zoom slider, and when
+            // continuous scroll reset button is showing in its place above
+            // Slide to Adjust)
             if selectedDisplayPage == .time,
                !isCameraBackgroundEnabled,
-               !showsTimeOffsetControls,
+               !(isAboveSlideToAdjust && showsTimeOffsetControls),
                selectedCityId != nil {
                 HStack(spacing: 4) {
                     Image(systemName: "location.fill")
@@ -1435,7 +1436,7 @@ struct AnalogClockFullView: View {
             digitalTimeDisplay(isInOwnPane: true, centeringHeight: centeringHeight)
                 .overlay(alignment: .bottom) {
                     VStack {
-                        clockInfo
+                        clockInfo(isAboveSlideToAdjust: false)
                     }
                     // Lines the laps up with the tab bar, which is as wide as
                     // the clock at its largest
