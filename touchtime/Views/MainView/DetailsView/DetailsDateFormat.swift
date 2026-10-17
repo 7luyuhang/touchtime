@@ -62,4 +62,19 @@ struct DetailsDateFormat {
 
         return formatter.string(from: date)
     }
+
+    /// e.g. "Oct 25, 2026"
+    func monthDayYear(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale.current
+
+        if Locale.current.language.languageCode?.identifier == "zh" {
+            formatter.dateFormat = "y年MMMd日"
+        } else {
+            formatter.dateFormat = "MMM d, y"
+        }
+
+        return formatter.string(from: date)
+    }
 }

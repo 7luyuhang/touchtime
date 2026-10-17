@@ -44,6 +44,9 @@ struct SunriseSunsetSheet: View {
     @State private var weatherLoadAttempted = false // No Weather Data
     @State private var isWeatherExpanded = false // Track weather section expansion
     @State private var showDaylightSheet = false // Track daylight sheet
+    @State private var showDSTSheet = false // Track DST sheet
+    @Namespace private var dstZoomNamespace // Pairs the DST pill with the sheet that zooms out of it
+    @State private var floatingDSTPillHeight: CGFloat = 0 // Rounds the zoom's start into the pill's capsule
     @State private var currentDetent: PresentationDetent // Track current sheet size
     @State private var showMoonPhaseView = false // Track moon phase view navigation
     @State private var showWidgetIntroSheet = false // Track widget intro sheet
@@ -80,6 +83,8 @@ struct SunriseSunsetSheet: View {
     private var floatsDSTPill: Bool {
         splitAxis == .horizontal
     }
+
+    private static let dstZoomSourceID = "dst"
 
     // Large detent layout: sticky time section and full-sheet sky
     private var isExpanded: Bool {
@@ -407,14 +412,27 @@ struct SunriseSunsetSheet: View {
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 if floatsDSTPill, let dst = dstInfo, let transitionDate = dst.transitionDate {
-                    DSTLabel(isStart: dst.isStart, transitionDate: transitionDate, offsetHours: dst.offsetHours, dateFormat: dateFormat)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .glassEffect(.regular, in: Capsule(style: .continuous))
-                        // Level with the list's Slide to Adjust bar: as tall as
-                        // ScrollTimeView's controls (52pt) and as far up (8pt)
-                        .frame(minHeight: 52)
-                        .padding(.bottom, 8)
+                    Button(action: openDSTSheet) {
+                        DSTLabel(isStart: dst.isStart, transitionDate: transitionDate, offsetHours: dst.offsetHours, dateFormat: dateFormat)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .contentShape(Capsule(style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                    .onGeometryChange(for: CGFloat.self) { proxy in
+                        proxy.size.height
+                    } action: { height in
+                        floatingDSTPillHeight = height
+                    }
+                    // Zoom sources only clip to rounded rectangles
+                    .matchedTransitionSource(id: Self.dstZoomSourceID, in: dstZoomNamespace) { source in
+                        source.clipShape(RoundedRectangle(cornerRadius: floatingDSTPillHeight / 2, style: .continuous))
+                    }
+                    // Level with the list's Slide to Adjust bar: as tall as
+                    // ScrollTimeView's controls (52pt) and as far up (8pt)
+                    .frame(minHeight: 52)
+                    .padding(.bottom, 8)
                 }
             }
             .background {
@@ -518,11 +536,14 @@ struct SunriseSunsetSheet: View {
                 // DST information in bottom bar
                 if !floatsDSTPill, let dst = dstInfo, let transitionDate = dst.transitionDate {
                     ToolbarItem(placement: .bottomBar) {
-                        DSTLabel(isStart: dst.isStart, transitionDate: transitionDate, offsetHours: dst.offsetHours, dateFormat: dateFormat)
-                            .frame(maxWidth: .infinity)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 8)
+                        Button(action: openDSTSheet) {
+                            DSTLabel(isStart: dst.isStart, transitionDate: transitionDate, offsetHours: dst.offsetHours, dateFormat: dateFormat)
+                                .frame(maxWidth: .infinity)
+                                .padding(.horizontal, 16)
+                                .padding(.vertical, 8)
+                        }
                     }
+                    .matchedTransitionSource(id: Self.dstZoomSourceID, in: dstZoomNamespace)
                 }
                 
                 if !isEmbedded && timeOffset != 0 {
@@ -569,7 +590,26 @@ struct SunriseSunsetSheet: View {
                     timeOffset: timeOffset
                 )
             }
+            .sheet(isPresented: $showDSTSheet) {
+                if let dst = dstInfo, let transitionDate = dst.transitionDate {
+                    DSTSheet(
+                        cityName: cityName,
+                        transitionDate: transitionDate,
+                        isStart: dst.isStart,
+                        timeOffset: timeOffset,
+                        dateFormat: dateFormat
+                    )
+                    .navigationTransition(.zoom(sourceID: Self.dstZoomSourceID, in: dstZoomNamespace))
+                }
+            }
         }
+    }
+
+    private func openDSTSheet() {
+        if hapticEnabled {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
+        showDSTSheet = true
     }
 }
 
