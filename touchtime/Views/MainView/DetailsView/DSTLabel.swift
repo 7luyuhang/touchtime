@@ -35,7 +35,8 @@ struct DSTLabel: View {
             }
 
             Image(systemName: "chevron.right")
-                .font(.caption.weight(.bold))
+                .font(.caption2.weight(.bold))
+                .imageScale(.medium)
                 .foregroundStyle(.tertiary)
         }
         .blendMode(.plusLighter)

@@ -7,6 +7,7 @@
 
 import SwiftUI
 import Combine
+import CoreLocation
 import WeatherKit
 
 /// One of the four principal moon phases with the instant it next occurs.
@@ -47,6 +48,8 @@ struct SunriseSunsetSheet: View {
     @State private var showDSTSheet = false // Track DST sheet
     @Namespace private var dstZoomNamespace // Pairs the DST pill with the sheet that zooms out of it
     @State private var floatingDSTPillHeight: CGFloat = 0 // Rounds the zoom's start into the pill's capsule
+    @State private var showMapSheet = false // Track map sheet
+    @Namespace private var mapZoomNamespace // Pairs the location button with the map sheet that zooms out of it
     @State private var currentDetent: PresentationDetent // Track current sheet size
     @State private var showMoonPhaseView = false // Track moon phase view navigation
     @State private var showWidgetIntroSheet = false // Track widget intro sheet
@@ -85,6 +88,7 @@ struct SunriseSunsetSheet: View {
     }
 
     private static let dstZoomSourceID = "dst"
+    private static let mapZoomSourceID = "map"
 
     // Large detent layout: sticky time section and full-sheet sky
     private var isExpanded: Bool {
@@ -294,14 +298,6 @@ struct SunriseSunsetSheet: View {
         return (nextTransition, isStart, offsetHours)
     }
     
-    private func openCityInMap() {
-        guard let coords = getCoordinatesForTimeZone(timeZoneIdentifier) else { return }
-        let encodedCity = cityName.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? cityName
-        let urlString = "https://maps.apple.com/?ll=\(coords.latitude),\(coords.longitude)&q=\(encodedCity)"
-        guard let url = URL(string: urlString) else { return }
-        UIApplication.shared.open(url)
-    }
-
     @ViewBuilder
     private var sheetSkyBackground: some View {
         if showSkyDot && currentDetent == .large {
@@ -522,11 +518,12 @@ struct SunriseSunsetSheet: View {
                             if hapticEnabled {
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             }
-                            openCityInMap()
+                            showMapSheet = true
                         } label: {
                             Image(systemName: "location.fill")
                         }
                     }
+                    .matchedTransitionSource(id: Self.mapZoomSourceID, in: mapZoomNamespace)
                 }
                 
                 if !floatsDSTPill && getCoordinatesForTimeZone(timeZoneIdentifier) != nil && dstInfo != nil {
@@ -599,6 +596,15 @@ struct SunriseSunsetSheet: View {
                         dateFormat: dateFormat
                     )
                     .navigationTransition(.zoom(sourceID: Self.dstZoomSourceID, in: dstZoomNamespace))
+                }
+            }
+            .sheet(isPresented: $showMapSheet) {
+                if let coords = getCoordinatesForTimeZone(timeZoneIdentifier) {
+                    CityMapSheet(
+                        cityName: cityName,
+                        coordinate: CLLocationCoordinate2D(latitude: coords.latitude, longitude: coords.longitude)
+                    )
+                    .navigationTransition(.zoom(sourceID: Self.mapZoomSourceID, in: mapZoomNamespace))
                 }
             }
         }
