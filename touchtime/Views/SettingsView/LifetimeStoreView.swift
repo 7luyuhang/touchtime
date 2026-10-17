@@ -54,8 +54,10 @@ struct LifetimeStoreView: View {
         case moonSunAzimuth
         case weatherCondition
         case temperature
+        case temperatureRange
         case uvIndex
         case windDirection
+        case pressure
 
         var id: Int { rawValue }
 
@@ -71,8 +73,10 @@ struct LifetimeStoreView: View {
             case .moonSunAzimuth: return String(localized: "Moon & Sun Azimuth")
             case .weatherCondition: return String(localized: "Weather Condition")
             case .temperature: return String(localized: "Temperature Indicator")
+            case .temperatureRange: return String(localized: "Temperature Range")
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
+            case .pressure: return String(localized: "Pressure")
             }
         }
     }
@@ -458,6 +462,13 @@ struct LifetimeStoreView: View {
                 size: size,
                 useMaterialBackground: false
             )
+        case .temperatureRange:
+            TemperatureRangeIndicator(
+                date: currentDate,
+                timeZone: .current,
+                size: size,
+                useMaterialBackground: false
+            )
         case .uvIndex:
             UVIndexIndicator(
                 timeZone: .current,
@@ -466,6 +477,12 @@ struct LifetimeStoreView: View {
             )
         case .windDirection:
             WindDirectionIndicator(
+                timeZone: .current,
+                size: size,
+                useMaterialBackground: false
+            )
+        case .pressure:
+            PressureIndicator(
                 timeZone: .current,
                 size: size,
                 useMaterialBackground: false

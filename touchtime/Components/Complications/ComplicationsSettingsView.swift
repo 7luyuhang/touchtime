@@ -98,7 +98,7 @@ struct ComplicationsSettingsView: View {
 
     private func isLocked(_ type: ComplicationType) -> Bool {
         switch type {
-        case .moonAzimuth, .moonSunAzimuth, .temperatureIndicator, .temperatureRange, .uvIndex, .windDirection, .daylight, .timeOverlay:
+        case .moonAzimuth, .moonSunAzimuth, .temperatureIndicator, .temperatureRange, .uvIndex, .windDirection, .pressure, .daylight, .timeOverlay:
             return !hasLifetimeAccess
         default:
             return false
@@ -107,7 +107,7 @@ struct ComplicationsSettingsView: View {
 
     private func enforceComplicationAvailability() {
         if !hasLifetimeAccess {
-            if showMoonAzimuth || showMoonSunAzimuth || showTemperatureIndicator || showTemperatureRange || showUVIndex || showWindDirection || showDaylight || showTimeOverlay {
+            if showMoonAzimuth || showMoonSunAzimuth || showTemperatureIndicator || showTemperatureRange || showUVIndex || showWindDirection || showPressure || showDaylight || showTimeOverlay {
                 selectComplication(nil)
             }
             return

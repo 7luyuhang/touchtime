@@ -276,6 +276,7 @@ struct OnboardingView: View {
             showTemperatureRange,
             showUVIndex,
             showWindDirection,
+            showPressure,
             showDaylight,
             showTimeOverlay
         ].contains(true)
@@ -685,7 +686,7 @@ struct OnboardingView: View {
                                     )
                                 }
 
-                                if showWeather && showPressure {
+                                if canShowLifetimeWeatherComplications && showPressure {
                                     PressureIndicator(
                                         timeZone: TimeZone.current,
                                         size: 64,
@@ -846,9 +847,7 @@ struct OnboardingView: View {
                                             )
                                             .environmentObject(weatherManager)
                                         }
-                                    }
 
-                                    if showWeather {
                                         complicationOption(type: .pressure, isSelected: showPressure) {
                                             PressureIndicator(
                                                 timeZone: TimeZone.current,

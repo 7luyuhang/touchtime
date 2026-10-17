@@ -238,7 +238,7 @@ struct SettingsView: View {
     }
 
     private var effectiveShowPressure: Bool {
-        showWeather && showPressure
+        hasLifetimeAccess && showWeather && showPressure
     }
 
     private var effectiveShowMoonAzimuth: Bool {

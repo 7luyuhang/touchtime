@@ -172,7 +172,7 @@ struct ShareCitiesSheet: View {
     }
 
     private var effectiveShowPressure: Bool {
-        showPressure
+        hasLifetimeAccess && showPressure
     }
 
     private var effectiveShowMoonAzimuth: Bool {
