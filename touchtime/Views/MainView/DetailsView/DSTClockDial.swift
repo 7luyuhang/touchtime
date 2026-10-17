@@ -93,15 +93,18 @@ struct DSTClockDial: View {
     private func secondHand(size: CGFloat) -> some View {
         let length = size * 0.445
         let tailLength = size * 0.08
+        // `.orange` (#FF9230 in dark mode) as plain RGB: the system color blends
+        // with the white hands and hub it passes over, making them show through
+        let color = Color(red: 1, green: 146 / 255, blue: 48 / 255)
 
         return ZStack {
             Capsule()
-                .fill(.orange)
+                .fill(color)
                 .frame(width: 1.5, height: length + tailLength)
                 .offset(y: -(length - tailLength) / 2)
 
             Circle()
-                .fill(.orange)
+                .fill(color)
                 .frame(width: size * 0.035, height: size * 0.035)
         }
         .rotationEffect(.degrees(secondAngle))
@@ -122,9 +125,9 @@ private struct DialFace: View {
                 let radians = (Double(hour) * 30 - 90) * .pi / 180
 
                 Text("\(hour)")
-                    .font(.system(size: size * 0.10, weight: .semibold, design: .rounded))
+                    .font(.system(size: size * 0.115, weight: .semibold, design: .rounded))
                     .foregroundStyle(.white)
-                    .offset(x: size * 0.36 * cos(radians), y: size * 0.36 * sin(radians))
+                    .offset(x: size * 0.375 * cos(radians), y: size * 0.375 * sin(radians))
             }
         }
         .frame(width: size, height: size)
