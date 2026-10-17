@@ -112,6 +112,10 @@ struct SunriseSunsetSheet: View {
         weatherManager.hourlyWeatherData[timeZoneIdentifier] ?? []
     }
 
+    private var recentPressureTrends: [PressureTrend] {
+        weatherManager.recentPressureTrendsData[timeZoneIdentifier] ?? []
+    }
+
     private var weatherConditionForSky: WeatherCondition? {
         guard showWeather else { return nil }
         return currentWeather?.condition
@@ -332,6 +336,7 @@ struct SunriseSunsetSheet: View {
                             dailyWeather: dailyWeather,
                             weeklyWeather: weeklyWeather,
                             hourlyWeather: hourlyWeather,
+                            recentPressureTrends: recentPressureTrends,
                             loadAttempted: weatherLoadAttempted,
                             timeZoneIdentifier: timeZoneIdentifier,
                             currentDate: currentDate,
@@ -460,6 +465,7 @@ struct SunriseSunsetSheet: View {
                 guard showWeather else { return }
                 await weatherManager.getWeather(for: timeZoneIdentifier)
                 weatherLoadAttempted = true
+                await weatherManager.getRecentPressureTrends(for: timeZoneIdentifier)
             }
             .onReceive(timer) { now in
                 let calendar = Calendar.current

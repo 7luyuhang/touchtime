@@ -18,6 +18,7 @@ class WeatherManager: ObservableObject {
     @Published var dailyWeatherData: [String: DayWeather] = [:]
     @Published var weeklyWeatherData: [String: [DayWeather]] = [:]
     @Published var hourlyWeatherData: [String: [HourWeather]] = [:]
+    @Published var recentPressureTrendsData: [String: [PressureTrend]] = [:]
     @Published var currentWeather: CurrentWeather?
     @Published var isLoading = false
     @Published var weatherError: Error?
@@ -26,17 +27,22 @@ class WeatherManager: ObservableObject {
     private var weatherCache: [String: (weather: CurrentWeather, daily: DayWeather?, weekly: [DayWeather], hourly: [HourWeather], timestamp: Date)] = [:]
     private let cacheExpiration: TimeInterval = 3600 // 1 hour
     
+    private var currentHourStart: Date {
+        Date(timeIntervalSinceReferenceDate: (Date().timeIntervalSinceReferenceDate / 3600).rounded(.down) * 3600)
+    }
+
     // Next 24 hours of forecast starting from the current hour, enough to
     // cover the rest of the day in any city
     private func upcomingHours(from forecast: Forecast<HourWeather>) -> [HourWeather] {
-        let currentHourStart = Date(
-            timeIntervalSinceReferenceDate: (Date().timeIntervalSinceReferenceDate / 3600).rounded(.down) * 3600
-        )
+        let currentHourStart = currentHourStart
         return Array(forecast.filter { $0.date >= currentHourStart }.prefix(24))
     }
     
     // Track in-flight fetches to avoid duplicate network requests
     private var inFlightFetches: Set<String> = []
+    private var inFlightPressureTrendFetches: Set<String> = []
+    // The hour each city's recent pressure trends lead up to
+    private var recentPressureTrendsHour: [String: Date] = [:]
     
     // Get weather for a specific timezone/city
     func getWeather(for timeZoneIdentifier: String) async {
@@ -109,6 +115,34 @@ class WeatherManager: ObservableObject {
         }
         
         isLoading = false
+    }
+
+    // Pressure trends 9, 6 and 3 hours before the current hour, oldest first:
+    // three-hour steps, as consecutive hours mostly share one trend.
+    // Past hours need their own request, so only the details sheet asks for
+    // them, at most once an hour per city.
+    func getRecentPressureTrends(for timeZoneIdentifier: String) async {
+        guard let location = getLocation(for: timeZoneIdentifier) else { return }
+
+        let currentHourStart = currentHourStart
+        guard recentPressureTrendsHour[timeZoneIdentifier] != currentHourStart,
+              !inFlightPressureTrendFetches.contains(timeZoneIdentifier) else { return }
+        inFlightPressureTrendFetches.insert(timeZoneIdentifier)
+        defer { inFlightPressureTrendFetches.remove(timeZoneIdentifier) }
+
+        let sampleDates = [9, 6, 3].map { currentHourStart.addingTimeInterval(-Double($0) * 3600) }
+        do {
+            let hours = try await weatherService.weather(
+                for: location,
+                including: .hourly(startDate: sampleDates[0], endDate: currentHourStart)
+            )
+            recentPressureTrendsData[timeZoneIdentifier] = sampleDates.compactMap { date in
+                hours.first { $0.date == date }?.pressureTrend
+            }
+            recentPressureTrendsHour[timeZoneIdentifier] = currentHourStart
+        } catch {
+            print("Failed to fetch recent pressure trends for \(timeZoneIdentifier): \(error)")
+        }
     }
     
     // Batch fetch weather for multiple cities - reduces @Published update notifications

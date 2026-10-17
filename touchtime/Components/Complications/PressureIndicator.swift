@@ -49,11 +49,7 @@ struct PressureIndicator: View {
     }
 
     private var trendSymbolName: String {
-        switch weather?.pressureTrend {
-        case .rising: return "arrow.up"
-        case .falling: return "arrow.down"
-        default: return "equal"
-        }
+        weather?.pressureTrend.symbolName ?? "equal"
     }
 
     var body: some View {
@@ -148,6 +144,16 @@ private struct PressureGlow: View {
             style: StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
         )
         .frame(width: size, height: size)
+    }
+}
+
+extension PressureTrend {
+    var symbolName: String {
+        switch self {
+        case .rising: return "arrow.up"
+        case .falling: return "arrow.down"
+        default: return "equal"
+        }
     }
 }
 

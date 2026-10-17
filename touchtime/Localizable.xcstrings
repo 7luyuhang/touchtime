@@ -6205,6 +6205,23 @@
         }
       }
     },
+    "Falling" : {
+      "comment" : "Air pressure trend shown under the pressure reading in a city’s details: pressure is dropping.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下降"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下降"
+          }
+        }
+      }
+    },
     "Famagusta" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -12945,6 +12962,23 @@
         }
       }
     },
+    "Rising" : {
+      "comment" : "Air pressure trend shown under the pressure reading in a city’s details: pressure is going up.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上升"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上升"
+          }
+        }
+      }
+    },
     "Riyadh" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14435,6 +14469,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "開始於"
+          }
+        }
+      }
+    },
+    "Steady" : {
+      "comment" : "Air pressure trend shown under the pressure reading in a city’s details: pressure is holding level.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "稳定"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "穩定"
           }
         }
       }

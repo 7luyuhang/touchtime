@@ -26,6 +26,7 @@ struct SettingsView: View {
     @AppStorage("showWeather") private var showWeather = false
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage(WindSpeedUnit.storageKey) private var windSpeedUnit = WindSpeedUnit.kilometersPerHour
+    @AppStorage(PressureUnit.storageKey) private var pressureUnit = PressureUnit.millibars
     @AppStorage("showAnalogClock") private var showAnalogClock = false
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showSunPosition") private var showSunPosition = false
@@ -311,10 +312,10 @@ struct SettingsView: View {
         )
     }
 
-    // e.g. "Celsius · mph"
+    // e.g. "Celsius · mph · mbar"
     private var unitsSummary: String {
         let temperatureUnit = useCelsius ? String(localized: "Celsius") : String(localized: "Fahrenheit")
-        return "\(temperatureUnit) · \(windSpeedUnit.localizedSymbol)"
+        return "\(temperatureUnit) · \(windSpeedUnit.localizedSymbol) · \(pressureUnit.localizedSymbol)"
     }
 
     // On while `option` is selected; tapping it again keeps it selected
@@ -668,6 +669,12 @@ struct SettingsView: View {
                                 Section("Speed") {
                                     ForEach(WindSpeedUnit.allCases) { unit in
                                         Toggle(unit.localizedSymbol, isOn: selectionBinding($windSpeedUnit, option: unit))
+                                    }
+                                }
+
+                                Section("Pressure") {
+                                    ForEach(PressureUnit.allCases) { unit in
+                                        Toggle(unit.localizedSymbol, isOn: selectionBinding($pressureUnit, option: unit))
                                     }
                                 }
                             } label: {

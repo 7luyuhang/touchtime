@@ -8,13 +8,14 @@
 import SwiftUI
 import WeatherKit
 
-/// Current conditions, the coming days' forecast, precipitation, wind and UV
-/// index, or a note when the weather couldn't be loaded.
+/// Current conditions, the coming days' forecast, precipitation, wind, UV
+/// index and pressure, or a note when the weather couldn't be loaded.
 struct WeatherSection: View {
     let weather: CurrentWeather?
     let dailyWeather: DayWeather?
     let weeklyWeather: [DayWeather]
     let hourlyWeather: [HourWeather]
+    let recentPressureTrends: [PressureTrend]
     let loadAttempted: Bool
     let timeZoneIdentifier: String
     let currentDate: Date
@@ -66,6 +67,15 @@ struct WeatherSection: View {
                     currentDate: currentDate,
                     timeZoneIdentifier: timeZoneIdentifier,
                     dateFormat: dateFormat
+                )
+                .padding(.horizontal, 16)
+
+                // Pressure section
+                PressureCard(
+                    pressure: weather.pressure,
+                    trend: weather.pressureTrend,
+                    recentTrends: recentPressureTrends,
+                    timeZoneIdentifier: timeZoneIdentifier
                 )
                 .padding(.horizontal, 16)
             }
