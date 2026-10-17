@@ -30,6 +30,7 @@ struct AvailableTimePicker: View {
     @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
+    @AppStorage("showPressure") private var showPressure = false
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
@@ -401,6 +402,7 @@ struct AvailableTimePicker: View {
                         showTemperatureRange: $showTemperatureRange,
                         showUVIndex: $showUVIndex,
                         showWindDirection: $showWindDirection,
+                        showPressure: $showPressure,
                         showDaylight: $showDaylight,
                         showTimeOverlay: $showTimeOverlay,
                         showSolarCurve: $showSolarCurve,

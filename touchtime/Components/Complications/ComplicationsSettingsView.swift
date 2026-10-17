@@ -19,6 +19,7 @@ struct ComplicationsSettingsView: View {
     @Binding var showTemperatureRange: Bool
     @Binding var showUVIndex: Bool
     @Binding var showWindDirection: Bool
+    @Binding var showPressure: Bool
     @Binding var showDaylight: Bool
     @Binding var showTimeOverlay: Bool
     @Binding var showSolarCurve: Bool
@@ -48,6 +49,7 @@ struct ComplicationsSettingsView: View {
         case temperatureRange
         case uvIndex
         case windDirection
+        case pressure
         case daylight
         case timeOverlay
         case solarCurve
@@ -65,6 +67,7 @@ struct ComplicationsSettingsView: View {
             case .temperatureRange: return String(localized: "Temperature Range")
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
+            case .pressure: return String(localized: "Pressure")
             case .daylight: return String(localized: "Daylight Curve")
             case .timeOverlay: return String(localized: "Time Overlay")
             case .solarCurve: return String(localized: "Solar Curve")
@@ -86,6 +89,7 @@ struct ComplicationsSettingsView: View {
             showTemperatureRange = type == .temperatureRange
             showUVIndex = type == .uvIndex
             showWindDirection = type == .windDirection
+            showPressure = type == .pressure
             showDaylight = type == .daylight
             showTimeOverlay = type == .timeOverlay
             showSolarCurve = type == .solarCurve
@@ -412,6 +416,18 @@ struct ComplicationsSettingsView: View {
                             isSelected: showWindDirection
                         ) {
                             WindDirectionIndicator(
+                                timeZone: TimeZone.current,
+                                size: 64,
+                                useMaterialBackground: false
+                            )
+                            .environmentObject(weatherManager)
+                        }
+
+                        complicationOption(
+                            type: .pressure,
+                            isSelected: showPressure
+                        ) {
+                            PressureIndicator(
                                 timeZone: TimeZone.current,
                                 size: 64,
                                 useMaterialBackground: false

@@ -95,6 +95,7 @@ struct ShareCitiesSheet: View {
     @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
+    @AppStorage("showPressure") private var showPressure = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
     @AppStorage("showMoonSunAzimuth") private var showMoonSunAzimuth = false
@@ -170,6 +171,10 @@ struct ShareCitiesSheet: View {
         hasLifetimeAccess && showWindDirection
     }
 
+    private var effectiveShowPressure: Bool {
+        showPressure
+    }
+
     private var effectiveShowMoonAzimuth: Bool {
         hasLifetimeAccess && showMoonAzimuth
     }
@@ -196,6 +201,7 @@ struct ShareCitiesSheet: View {
             showTemperatureRange: effectiveShowTemperatureRange,
             showUVIndex: effectiveShowUVIndex,
             showWindDirection: effectiveShowWindDirection,
+            showPressure: effectiveShowPressure,
             showSunAzimuth: showSunAzimuth,
             showMoonAzimuth: effectiveShowMoonAzimuth,
             showMoonSunAzimuth: effectiveShowMoonSunAzimuth,

@@ -92,6 +92,7 @@ struct OnboardingView: View {
     @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
+    @AppStorage("showPressure") private var showPressure = false
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
     @AppStorage("showSolarCurve") private var showSolarCurve = false
@@ -117,6 +118,7 @@ struct OnboardingView: View {
         case temperatureRange
         case uvIndex
         case windDirection
+        case pressure
         case daylight
         case timeOverlay
         case solarCurve
@@ -134,6 +136,7 @@ struct OnboardingView: View {
             case .temperatureRange: return String(localized: "Temperature Range")
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
+            case .pressure: return String(localized: "Pressure")
             case .daylight: return String(localized: "Daylight Curve")
             case .timeOverlay: return String(localized: "Time Overlay")
             case .solarCurve: return String(localized: "Solar Curve")
@@ -178,7 +181,7 @@ struct OnboardingView: View {
         showAnalogClock || showSunPosition || showSunAzimuth || effectiveShowMoonAzimuth
             || effectiveShowMoonSunAzimuth || showSunriseSunset || showWeatherCondition
             || showTemperatureIndicator || showTemperatureRange || showUVIndex || showWindDirection
-            || effectiveShowDaylight || effectiveShowTimeOverlay || showSolarCurve
+            || showPressure || effectiveShowDaylight || effectiveShowTimeOverlay || showSolarCurve
     }
 
     /// On a wide screen (the unfolded iPhone Duo, either way up) the
@@ -258,6 +261,7 @@ struct OnboardingView: View {
             showTemperatureRange = selectedType == .temperatureRange
             showUVIndex = selectedType == .uvIndex
             showWindDirection = selectedType == .windDirection
+            showPressure = selectedType == .pressure
             showDaylight = selectedType == .daylight
             showTimeOverlay = selectedType == .timeOverlay
             showSolarCurve = selectedType == .solarCurve
@@ -680,6 +684,20 @@ struct OnboardingView: View {
                                             .blendMode(.plusLighter)
                                     )
                                 }
+
+                                if showWeather && showPressure {
+                                    PressureIndicator(
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .environmentObject(weatherManager)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
                             }
                             .padding(.horizontal, 16)
 
@@ -822,6 +840,17 @@ struct OnboardingView: View {
 
                                         complicationOption(type: .windDirection, isSelected: showWindDirection) {
                                             WindDirectionIndicator(
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                            .environmentObject(weatherManager)
+                                        }
+                                    }
+
+                                    if showWeather {
+                                        complicationOption(type: .pressure, isSelected: showPressure) {
+                                            PressureIndicator(
                                                 timeZone: TimeZone.current,
                                                 size: 64,
                                                 useMaterialBackground: false
@@ -988,6 +1017,7 @@ struct OnboardingView: View {
                 showTemperatureRange = false
                 showUVIndex = false
                 showWindDirection = false
+                showPressure = false
             }
         }
         .onChange(of: hasLifetimeAccess) { _, _ in
