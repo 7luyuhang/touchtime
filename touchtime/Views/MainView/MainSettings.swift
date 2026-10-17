@@ -632,7 +632,10 @@ struct SettingsView: View {
                     // Units - only show when weather is enabled
                     if showWeather {
                         HStack {
-                            Text("Units")
+                            HStack(spacing: 12) {
+                                SystemIconImage(systemName: "base.unit", topColor: .gray, bottomColor: .gray, style: .plain)
+                                Text("Units")
+                            }
 
                             Spacer()
 

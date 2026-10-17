@@ -593,7 +593,6 @@ struct SunriseSunsetSheet: View {
             .sheet(isPresented: $showDSTSheet) {
                 if let dst = dstInfo, let transitionDate = dst.transitionDate {
                     DSTSheet(
-                        cityName: cityName,
                         transitionDate: transitionDate,
                         isStart: dst.isStart,
                         timeOffset: timeOffset,

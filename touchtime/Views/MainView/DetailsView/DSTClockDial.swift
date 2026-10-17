@@ -65,7 +65,8 @@ struct DSTClockDial: View {
                 .font(.footnote.weight(.semibold))
                 .fontDesign(.rounded)
                 .monospacedDigit()
-                .foregroundStyle(.white)
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
                 .contentTransition(.numericText())
                 .animation(.spring(), value: timeText)
                 .offset(y: size * 0.175)
@@ -75,7 +76,7 @@ struct DSTClockDial: View {
 
             Circle()
                 .fill(.white)
-                .frame(width: size * 0.05, height: size * 0.05)
+                .frame(width: size * 0.055, height: size * 0.055)
 
             secondHand(size: size)
         }
