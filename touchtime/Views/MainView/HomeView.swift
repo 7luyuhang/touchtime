@@ -1922,6 +1922,18 @@ struct HomeView: View {
                             Divider()
                         }
                         
+                        // Settings Section
+                        Button(action: {
+                            if hapticEnabled {
+                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                impactFeedback.prepare()
+                                impactFeedback.impactOccurred()
+                            }
+                            showSettingsSheet = true
+                        }) {
+                            Label("Settings", systemImage: "gear")
+                        }
+
                         // Share Section - entry stays even with nothing to share
                         Button(action: {
                             // Provide haptic feedback if enabled
@@ -1947,18 +1959,6 @@ struct HomeView: View {
                             }) {
                                 Label(String(localized: "Arrange"), systemImage: "list.bullet")
                             }
-                        }
-
-                        // Settings Section
-                        Button(action: {
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                            showSettingsSheet = true
-                        }) {
-                            Label("Settings", systemImage: "gear")
                         }
 
                         Section(String(localized: "Tools")) {

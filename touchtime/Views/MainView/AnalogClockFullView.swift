@@ -900,6 +900,14 @@ struct AnalogClockFullView: View {
             Divider()
         }
 
+        // Settings Section
+        Button(action: {
+            triggerMenuHaptic()
+            showSettingsSheet = true
+        }) {
+            Label("Settings", systemImage: "gear")
+        }
+
         // Share Section - entry stays even with nothing to share
         Button(action: {
             triggerMenuHaptic()
@@ -916,14 +924,6 @@ struct AnalogClockFullView: View {
             }) {
                 Label(String(localized: "Arrange"), systemImage: "list.bullet")
             }
-        }
-
-        // Settings Section
-        Button(action: {
-            triggerMenuHaptic()
-            showSettingsSheet = true
-        }) {
-            Label("Settings", systemImage: "gear")
         }
 
         Section(String(localized: "Tools")) {
