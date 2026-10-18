@@ -44,6 +44,10 @@ struct CoverPickerSheet: View {
     /// ...and by a grid emoji while a photo is set, for the same reason.
     @State private var pendingPick: PendingPick?
 
+    /// Scroll position of the emoji grid, which the category menu moves to
+    /// the title of the category picked.
+    @State private var gridPosition = ScrollPosition(idType: EmojiCatalog.Category.self)
+
     // Photo editor. `editingCrop` is the framing being edited; nil for a
     // photo not framed yet, which the editor shows just covering the
     // circle (see `EditorGeometry`) as soon as it is on screen. The
@@ -208,6 +212,11 @@ struct CoverPickerSheet: View {
                         }
                     }
 
+                    // Jump to a category, sharing the shuffle button's glass.
+                    ToolbarItem(placement: .bottomBar) {
+                        categoryMenu
+                    }
+
                     ToolbarSpacer(.flexible, placement: .bottomBar)
 
                     ToolbarItem(placement: .bottomBar) {
@@ -277,18 +286,46 @@ struct CoverPickerSheet: View {
                             emojiButton(option)
                         }
                     } header: {
+                        // Every title carries the space above it, so a jump
+                        // from the category menu lands it where the first
+                        // title sits.
                         Text(category.title)
                             .font(.subheadline.weight(.semibold))
                             .foregroundStyle(.secondary)
                             .blendMode(.plusLighter)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.top, category == .smileysAndPeople ? 0 : 16)
+                            .padding(.top, 16)
+                            .id(category)
                     }
                 }
             }
-            .padding()
+            .padding([.horizontal, .bottom])
         }
         .scrollIndicators(.visible)
+        .scrollPosition($gridPosition)
+    }
+
+    /// Category menu beside the shuffle button: jumps the grid to the
+    /// title of the category picked, the full list still there to scroll
+    /// through from it.
+    private var categoryMenu: some View {
+        Menu {
+            Section(String(localized: "Filter")) {
+                ForEach(EmojiCatalog.Category.allCases, id: \.self) { category in
+                    Button {
+                        triggerHaptic()
+                        gridPosition.scrollTo(id: category, anchor: .top)
+                    } label: {
+                        Text(verbatim: "\(category.icon) \(category.title)")
+                    }
+                }
+            }
+        } label: {
+            Image(systemName: "line.3.horizontal.decrease")
+        }
+        // Keyboard order top to bottom, rather than flipped to put the
+        // first category nearest the bottom bar.
+        .menuOrder(.fixed)
     }
 
     /// One emoji of the grid: a tap picks it, and a long press offers its

@@ -14,7 +14,7 @@ import UIKit
 
 enum EmojiCatalog {
     /// The emoji keyboard's categories, in its order.
-    enum Category: CaseIterable {
+    enum Category: nonisolated Hashable, CaseIterable {
         case smileysAndPeople
         case animalsAndNature
         case foodAndDrink
@@ -34,6 +34,21 @@ enum EmojiCatalog {
             case .objects: String(localized: "Objects")
             case .symbols: String(localized: "Symbols")
             case .flags: String(localized: "Flags")
+            }
+        }
+
+        /// An emoji standing for the category, like the emoji keyboard's
+        /// icon for it.
+        var icon: String {
+            switch self {
+            case .smileysAndPeople: "😀"
+            case .animalsAndNature: "🐻"
+            case .foodAndDrink: "🍔"
+            case .activity: "⚽"
+            case .travelAndPlaces: "🚗"
+            case .objects: "💡"
+            case .symbols: "🔣"
+            case .flags: "🏳️"
             }
         }
 
