@@ -47,7 +47,7 @@ struct CountdownDetailsView: View {
     /// Message for the contact, typed in the row under theirs; the Message
     /// button opens Messages with it filled in. Cleared with the contact.
     @State private var scheduledMessage: String
-    /// When counting was paused, set from the more menu; nil while it
+    /// When counting was paused, set from the bottom bar; nil while it
     /// counts. Kept as is while the date changes, and saved only while it
     /// still holds (see `draftPausedAt`).
     @State private var pausedAt: Date?
@@ -343,15 +343,17 @@ struct CountdownDetailsView: View {
         return date
     }
 
-    /// The pause as it will be saved, and as the preview card and the
-    /// Share menu show it.
+    /// The pause as it will be saved, and as the preview card, the Pause
+    /// menu and the Share menu show it.
     private var draftPausedAt: Date? {
         validPause(pausedAt)
     }
 
-    /// Pause toggle in the more menu. Turning it back on before the editor
-    /// closes resumes the saved pause, so switching it off and on again
-    /// keeps the count it was frozen at instead of freezing today's.
+    /// Paused state behind the bottom bar's Pause button, which pauses,
+    /// and the toggle in the menu it opens once paused, which resumes.
+    /// Pausing again before the editor closes resumes the saved pause, so
+    /// switching it off and on again keeps the count it was frozen at
+    /// instead of freezing today's.
     private var pauseBinding: Binding<Bool> {
         Binding(
             get: {
@@ -359,7 +361,9 @@ struct CountdownDetailsView: View {
             },
             set: { isPaused in
                 triggerHaptic()
-                pausedAt = isPaused ? (validPause(original?.pausedAt) ?? Date()) : nil
+                withAnimation(.spring()) {
+                    pausedAt = isPaused ? (validPause(original?.pausedAt) ?? Date()) : nil
+                }
             }
         )
     }
@@ -576,17 +580,6 @@ struct CountdownDetailsView: View {
                 }
             }
             .animation(.spring(), value: contact)
-
-            Section {
-                TouchTimeToggle(isOn: $isPinned) {
-                    HStack(spacing: 12) {
-                        SystemIconImage(systemName: "pin.fill", topColor: .gray, bottomColor: .gray, style: .plain)
-                        Text(String(localized: "Pin Countdown"))
-                    }
-                }
-            } footer: {
-                Text(String(localized: "Pinned countdowns will also appear on the Home screen."))
-            }
         }
         // The Reminder section slides in and out as the date picker
         // crosses today, rather than snapping.
@@ -1087,24 +1080,6 @@ struct CountdownDetailsView: View {
                                 // "Created on ..." as the section header so it
                                 // renders in the small secondary menu style.
                                 Section(String(format: String(localized: "Created on %@"), original.createdAt.formatted(.dateTime.year().month().day()))) {
-                                    shareMenu
-
-                                    // Only a countdown that has happened counts
-                                    // up, so only it has a count to pause.
-                                    if hasHappened {
-                                        Toggle(isOn: pauseBinding) {
-                                            if let draftPausedAt {
-                                                // Paused, with the day it paused as the subtitle.
-                                                Label(String(localized: "Paused"), systemImage: "pause.circle")
-                                                Text(draftPausedAt.formatted(.dateTime.year().month().day()))
-                                            } else {
-                                                Label(String(localized: "Pause"), systemImage: "pause.circle")
-                                            }
-                                        }
-                                    }
-
-                                    Divider()
-
                                     Menu {
                                         Button(role: .destructive) {
                                             onDelete?()
@@ -1128,6 +1103,28 @@ struct CountdownDetailsView: View {
                                 .foregroundStyle(.white)
                         }
                         .disabled(trimmedTitle.isEmpty)
+                    }
+                }
+
+                // Bottom bar, off the Space page: Share on the leading side,
+                // Pause and Pin sharing one glass capsule on the trailing side.
+                if !isShowingSpace {
+                    ToolbarItem(placement: .bottomBar) {
+                        shareMenu
+                    }
+
+                    ToolbarSpacer(.flexible, placement: .bottomBar)
+
+                    // Only a countdown that has happened counts up, so only
+                    // it has a count to pause.
+                    if hasHappened {
+                        ToolbarItem(placement: .bottomBar) {
+                            pauseButton
+                        }
+                    }
+
+                    ToolbarItem(placement: .bottomBar) {
+                        pinButton
                     }
                 }
             }
@@ -1225,8 +1222,8 @@ struct CountdownDetailsView: View {
         trimmedTitle.isEmpty ? String(localized: "Event Name") : trimmedTitle
     }
 
-    /// Share submenu at the top of the editor menu, sharing the countdown
-    /// as it is currently edited (unsaved values included).
+    /// Share menu in the bottom bar, sharing the countdown as it is
+    /// currently edited (unsaved values included).
     private var shareMenu: some View {
         Menu {
             Button {
@@ -1253,6 +1250,49 @@ struct CountdownDetailsView: View {
         } label: {
             Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // Editor Share
         }
+    }
+
+    /// Pause in the bottom bar: a tap pauses the count. Once paused it is
+    /// filled and opens a menu instead, with the day it paused and the
+    /// toggle that resumes it.
+    @ViewBuilder
+    private var pauseButton: some View {
+        if let draftPausedAt {
+            Menu {
+                // "Paused on ..." as the section header so it renders in
+                // the small secondary menu style, like "Created on ...".
+                Section(String(format: String(localized: "Paused on %@"), draftPausedAt.formatted(.dateTime.year().month().day()))) {
+                    Toggle(isOn: pauseBinding) {
+                        Label(String(localized: "Paused"), systemImage: "pause.circle")
+                    }
+                }
+            } label: {
+                Image(systemName: "pause.fill")
+            }
+            .accessibilityLabel(String(localized: "Paused"))
+        } else {
+            Button {
+                pauseBinding.wrappedValue = true
+            } label: {
+                Image(systemName: "pause")
+            }
+            .accessibilityLabel(String(localized: "Pause"))
+        }
+    }
+
+    /// Pin in the bottom bar, filled while the countdown is pinned. Pinned
+    /// countdowns also appear on the Home screen.
+    private var pinButton: some View {
+        Button {
+            triggerHaptic()
+            withAnimation(.spring()) {
+                isPinned.toggle()
+            }
+        } label: {
+            Image(systemName: isPinned ? "pin.fill" : "pin")
+                .contentTransition(.symbolEffect(.replace))
+        }
+        .accessibilityLabel(isPinned ? String(localized: "Unpin") : String(localized: "Pin"))
     }
 
     /// Opens the custom repeat sheet with the wheels on the current cadence:

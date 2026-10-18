@@ -11793,6 +11793,22 @@
         }
       }
     },
+    "Paused on %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂停于%@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫停於%@"
+          }
+        }
+      }
+    },
     "Perth" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -11894,6 +11910,7 @@
       }
     },
     "Pin Countdown" : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
@@ -11926,6 +11943,7 @@
       }
     },
     "Pinned countdowns will also appear on the Home screen." : {
+      "extractionState" : "stale",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
