@@ -302,19 +302,31 @@ struct SunriseSunsetSheet: View {
         return (nextTransition, isStart, offsetHours)
     }
     
+    // At medium the sheet floats as an inset card, and switching to large drops
+    // its bottom edge to the screen's. The sky stays in place, transparent, and
+    // fades in once that's mostly done, so the drop happens on the glass.
     @ViewBuilder
     private var sheetSkyBackground: some View {
-        if showSkyDot && currentDetent == .large {
+        if showSkyDot && !isEmbedded {
             SkyBackgroundView(
                 date: currentDate.addingTimeInterval(timeOffset),
                 timeZoneIdentifier: timeZoneIdentifier,
                 weatherCondition: weatherConditionForSky,
                 appliesCardChrome: false
             )
+            .animation(skyFadeAnimation) { sky in
+                sky.opacity(currentDetent == .large ? 1 : 0)
+            }
             .allowsHitTesting(false)
             .ignoresSafeArea()
-            .transition(.opacity)
         }
+    }
+
+    // Fades out quickly on the way back, before the sheet floats again
+    private var skyFadeAnimation: Animation {
+        currentDetent == .large
+            ? .easeInOut(duration: 0.35).delay(0.15)
+            : .easeOut(duration: 0.15)
     }
 
     var body: some View {
@@ -438,7 +450,6 @@ struct SunriseSunsetSheet: View {
             }
             .background {
                 sheetSkyBackground
-                    .animation(.bouncy(), value: currentDetent)
             }
             // Beside the list the stack still reserves a vertical bar's width
             // at its trailing edge, though the system draws that bar at the
