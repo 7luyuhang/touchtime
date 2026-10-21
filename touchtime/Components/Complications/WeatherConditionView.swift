@@ -51,12 +51,12 @@ struct WeatherConditionView: View {
             Group {
                 if weatherConditionUseColoredIcon {
                     Image(systemName: iconName)
-                        .font(.system(size: size * 0.325, weight: .regular))
+                        .font(.system(size: size * 0.375, weight: .regular))
                         .symbolRenderingMode(.multicolor)
                         .contentTransition(.symbolEffect(.replace))
                 } else {
                     Image(systemName: iconName)
-                        .font(.system(size: size * 0.325, weight: .regular))
+                        .font(.system(size: size * 0.375, weight: .regular))
                         .foregroundStyle(.white)
                         .symbolRenderingMode(.hierarchical)
                         .contentTransition(.symbolEffect(.replace))
