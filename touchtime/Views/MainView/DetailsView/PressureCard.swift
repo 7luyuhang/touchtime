@@ -58,7 +58,7 @@ struct PressureCard: View {
                     HStack(spacing: 8) {
                         ForEach(recentTrends.indices, id: \.self) { index in
                             Image(systemName: recentTrends[index].symbolName)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(.tertiary)
                                 .blendMode(.plusLighter)
                                 .contentTransition(.symbolEffect(.replace))
                         }
