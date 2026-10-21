@@ -86,15 +86,7 @@ struct WidgetIntroSheet: View {
 
     var body: some View {
         NavigationStack {
-            ZStack {
-                // Dot matrix background, same treatment as OnboardingView
-                DotMatrixOverlay()
-                    .ignoresSafeArea()
-                    .blendMode(.plusLighter)
-                    .opacity(0.75)
-                    .allowsHitTesting(false)
-
-                VStack(spacing: 0) {
+            VStack(spacing: 0) {
                 Spacer()
 
                 TimelineView(.everyMinute) { context in
@@ -308,7 +300,6 @@ struct WidgetIntroSheet: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal, 32)
-                }
             }
             .background {
                 // Full-screen local-time sky, same as LifetimeStoreView
