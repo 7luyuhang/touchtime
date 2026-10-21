@@ -25,11 +25,7 @@ struct LifetimeStoreView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showWeather") private var showWeather = false
-    @StateObject private var weatherManager = WeatherManager()
-    // `weatherManager` starts empty, so until its fetch lands the skies show
-    // the local weather the app last saved for the widget, rather than
-    // opening on a clear sky that then fades into the real weather.
-    @State private var savedWeatherCondition = SharedWidgetStore.weatherCondition(for: TimeZone.current.identifier)
+    @ObservedObject private var weatherManager = WeatherManager.shared
     @State private var product: Product?
     @State private var purchaseState: PurchaseState = .loading
     @State private var isRestoring = false
@@ -360,7 +356,7 @@ struct LifetimeStoreView: View {
 
     private var weatherConditionForSky: WeatherCondition? {
         guard showWeather else { return nil }
-        return weatherManager.weatherData[TimeZone.current.identifier]?.condition ?? savedWeatherCondition
+        return weatherManager.weatherData[TimeZone.current.identifier]?.condition
     }
 
     private var complicationShowcase: some View {

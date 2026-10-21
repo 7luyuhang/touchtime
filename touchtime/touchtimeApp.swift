@@ -114,6 +114,9 @@ struct touchtimeApp: App {
                 Task { await AlarmSupport.resyncCityAlarms() }
                 SharedWidgetStore.syncFromApp()
                 discardLockedCameraSessionContent()
+                // Screens fetch weather only as they appear, not when the
+                // app comes back, so expired conditions are replaced here
+                Task { await WeatherManager.shared.refreshExpiredWeather() }
             } else if newPhase == .background {
                 // Keep the widget's city list and time format up to date
                 SharedWidgetStore.syncFromApp()

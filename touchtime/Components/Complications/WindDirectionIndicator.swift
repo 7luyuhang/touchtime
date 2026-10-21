@@ -126,6 +126,6 @@ struct WindDirectionIndicator: View {
             size: 64,
             previewWindFromDegrees: 180
         )
-            .environmentObject(WeatherManager())
+            .environmentObject(WeatherManager.shared)
     }
 }

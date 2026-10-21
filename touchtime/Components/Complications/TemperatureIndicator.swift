@@ -165,6 +165,6 @@ struct TemperatureIndicator: View {
             .ignoresSafeArea()
 
         TemperatureIndicator(timeZone: .current, size: 64)
-            .environmentObject(WeatherManager())
+            .environmentObject(WeatherManager.shared)
     }
 }

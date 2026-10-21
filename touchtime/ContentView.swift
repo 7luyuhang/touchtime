@@ -17,7 +17,7 @@ struct ContentView: View {
     @State private var selectedTab: MainTab = .list
     @State private var worldClocks: [WorldClock] = []
     @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
-    @StateObject private var weatherManager = WeatherManager()
+    private let weatherManager = WeatherManager.shared
     
     // Shared time offset state for HomeView and AnalogClockFullView
     @State private var timeOffset: TimeInterval = 0

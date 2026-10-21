@@ -1175,7 +1175,7 @@ struct FeatureRow: View {
 #Preview {
     OnboardingView(
         hasCompletedOnboarding: .constant(false),
-        weatherManager: WeatherManager()
+        weatherManager: WeatherManager.shared
     )
         .preferredColorScheme(.dark)
 }

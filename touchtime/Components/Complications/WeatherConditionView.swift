@@ -80,7 +80,7 @@ struct WeatherConditionView: View {
                 timeZone: .current,
                 size: 64
             )
-            .environmentObject(WeatherManager())
+            .environmentObject(WeatherManager.shared)
             
             AnalogClockView(
                 date: Date(),

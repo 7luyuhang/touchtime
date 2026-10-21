@@ -86,6 +86,6 @@ struct UVIndexIndicator: View {
             .ignoresSafeArea()
 
         UVIndexIndicator(timeZone: .current, size: 64)
-            .environmentObject(WeatherManager())
+            .environmentObject(WeatherManager.shared)
     }
 }

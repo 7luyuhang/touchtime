@@ -382,6 +382,6 @@ extension URL: @retroactive Identifiable {
 #Preview {
     AboutView(
         worldClocks: .constant([]),
-        weatherManager: WeatherManager()
+        weatherManager: WeatherManager.shared
     )
 }

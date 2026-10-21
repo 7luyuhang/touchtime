@@ -163,6 +163,6 @@ extension PressureTrend {
             .ignoresSafeArea()
 
         PressureIndicator(timeZone: .current, size: 64)
-            .environmentObject(WeatherManager())
+            .environmentObject(WeatherManager.shared)
     }
 }

@@ -12,6 +12,11 @@ import Combine
 
 @MainActor
 class WeatherManager: ObservableObject {
+    // One instance app-wide: a second manager keeps its own cache and fetches
+    // at its own times, so its screens could show different weather.
+    static let shared = WeatherManager()
+    private init() {}
+
     private let weatherService = WeatherService.shared
     
     @Published var weatherData: [String: CurrentWeather] = [:]
@@ -228,6 +233,14 @@ class WeatherManager: ObservableObject {
         }
         
         isLoading = false
+    }
+
+    // Re-fetch every city shown so far whose weather has outlived the cache
+    func refreshExpiredWeather() async {
+        let expiredIdentifiers = weatherCache
+            .filter { Date().timeIntervalSince($0.value.timestamp) >= cacheExpiration }
+            .map(\.key)
+        await getWeatherForCities(expiredIdentifiers)
     }
     
     // Persist the latest conditions to the App Group so the widget can render
