@@ -34,6 +34,8 @@ struct LifetimeStoreView: View {
     @State private var purchaseState: PurchaseState = .loading
     @State private var isRestoring = false
     @State private var currentDate = Date()
+    /// Runs from 0 to 1 as the app icon emblem comes in.
+    @State private var emblemEntrance: Double = 0
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -239,7 +241,8 @@ struct LifetimeStoreView: View {
     /// 100 pt / 26 pt-corner metrics as the icon in `AboutView`) with the
     /// icon's circle subtracted from it (~77% of the side: the 0.8125 circle
     /// layer at 0.95 scale in `TouchTimeApp.icon`), so the sky glow shows
-    /// through the cut-out.
+    /// through the cut-out. It comes in a moment after the store opens, its
+    /// outline split into a rainbow that gathers into the glass's edge.
     private var appIconEmblem: some View {
         let plate = RoundedRectangle(cornerRadius: 26, style: .continuous)
             .subtracting(Circle().scale(0.8125 * 0.95))
@@ -248,6 +251,13 @@ struct LifetimeStoreView: View {
             .fill(Color.white.opacity(0.05))
             .glassEffect(.clear, in: plate)
             .frame(width: 100, height: 100)
+            .chromaticEntrance(progress: emblemEntrance, rim: plate)
+            .onAppear {
+                // As the store finishes sliding up
+                withAnimation(.smooth(duration: 1.0).delay(0.25)) {
+                    emblemEntrance = 1
+                }
+            }
     }
 
     // MARK: - Complication Showcase
