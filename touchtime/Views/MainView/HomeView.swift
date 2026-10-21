@@ -1845,6 +1845,7 @@ struct HomeView: View {
             // Navigation Title
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
+            .scrollEdgeEffectStyle(.soft, for: .top)
             
             .toolbar {
                 // Collection Name - Tappable to cycle through collections

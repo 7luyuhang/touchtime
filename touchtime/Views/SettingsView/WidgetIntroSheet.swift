@@ -11,6 +11,7 @@
 //
 
 import SwiftUI
+import WeatherKit
 
 // Mirrors WidgetComplicationKind from the widget extension (not visible to
 // the app target): the five complications the City Time widget supports.
@@ -52,6 +53,8 @@ struct WidgetIntroSheet: View {
     @Environment(\.layoutDirection) private var layoutDirection
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("showWeather") private var showWeather = false
+    @ObservedObject private var weatherManager = WeatherManager.shared
     @State private var animateIcon = false
     @State private var animateText = false
     // The later pages and the page dots come in after the small widget
@@ -226,13 +229,6 @@ struct WidgetIntroSheet: View {
                     } action: { frame in
                         carouselFrame = frame
                     }
-                    // One shared sky glow behind the carousel; it stays put
-                    // while the pages scroll over it.
-                    .background {
-                        skyGlow(date: context.date)
-                            .opacity(animateIcon ? 1.0 : 0.0)
-                            .animation(.bouncy(duration: 1.0), value: animateIcon)
-                    }
                 }
 
                 Text("Check the time in your favourite cities at a glance on the Home Screen.")
@@ -314,6 +310,23 @@ struct WidgetIntroSheet: View {
                 .padding(.horizontal, 32)
                 }
             }
+            .background {
+                // Full-screen local-time sky, same as LifetimeStoreView
+                ZStack {
+                    Color.black
+
+                    TimelineView(.everyMinute) { context in
+                        SkyBackgroundView(
+                            date: context.date,
+                            timeZoneIdentifier: TimeZone.current.identifier,
+                            weatherCondition: weatherConditionForSky,
+                            appliesCardChrome: false
+                        )
+                    }
+                }
+                .allowsHitTesting(false)
+                .ignoresSafeArea()
+            }
             // Whole sheet is swipeable, not just the carousel: horizontal
             // swipes anywhere else also turn the page. Swipes starting on
             // the carousel are left to the ScrollView itself.
@@ -373,6 +386,10 @@ struct WidgetIntroSheet: View {
                     animateTrailingWidgets = true
                 }
             }
+            .task {
+                guard showWeather else { return }
+                await weatherManager.getWeather(for: TimeZone.current.identifier)
+            }
             .sheet(isPresented: $showWidgetSupport) {
                 SafariView(url: widgetSupportURL)
                     .ignoresSafeArea()
@@ -391,18 +408,9 @@ struct WidgetIntroSheet: View {
         }
     }
 
-    // Blurred sky glow behind the widget previews, same treatment as
-    // the local time row at the top of HomeView
-    private func skyGlow(date: Date) -> some View {
-        SkyBackgroundView(
-            date: date,
-            timeZoneIdentifier: TimeZone.current.identifier,
-            appliesCardChrome: false
-        )
-        .frame(width: 300, height: 300)
-        .blur(radius: 100)
-        .opacity(0.60)
-        .allowsHitTesting(false)
+    private var weatherConditionForSky: WeatherCondition? {
+        guard showWeather else { return nil }
+        return weatherManager.weatherData[TimeZone.current.identifier]?.condition
     }
 }
 
