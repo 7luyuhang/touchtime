@@ -883,6 +883,36 @@ struct AnalogClockFullView: View {
             Divider()
         }
 
+        ControlGroup {
+            // Settings Section
+            Button(action: {
+                triggerMenuHaptic()
+                showSettingsSheet = true
+            }) {
+                Label("Settings", systemImage: "gear")
+            }
+
+            // Share Section - entry stays even with nothing to share
+            Button(action: {
+                triggerMenuHaptic()
+                showShareSheet = true
+            }) {
+                Label("Share", systemImage: "square.and.arrow.up")
+            }
+
+            // Arrange Section - show if there are world clocks or collections
+            if !worldClocks.isEmpty || !collections.isEmpty {
+                Button(action: {
+                    triggerMenuHaptic()
+                    showArrangeListSheet = true
+                }) {
+                    Label(String(localized: "Arrange"), systemImage: "list.bullet")
+                }
+            }
+        }
+
+        Divider()
+
         if !collections.isEmpty {
             Button {
                 selectCollection(nil)
@@ -898,32 +928,6 @@ struct AnalogClockFullView: View {
                 }
             }
             Divider()
-        }
-
-        // Settings Section
-        Button(action: {
-            triggerMenuHaptic()
-            showSettingsSheet = true
-        }) {
-            Label("Settings", systemImage: "gear")
-        }
-
-        // Share Section - entry stays even with nothing to share
-        Button(action: {
-            triggerMenuHaptic()
-            showShareSheet = true
-        }) {
-            Label("Share", systemImage: "square.and.arrow.up")
-        }
-
-        // Arrange Section - show if there are world clocks or collections
-        if !worldClocks.isEmpty || !collections.isEmpty {
-            Button(action: {
-                triggerMenuHaptic()
-                showArrangeListSheet = true
-            }) {
-                Label(String(localized: "Arrange"), systemImage: "list.bullet")
-            }
         }
 
         Section(String(localized: "Tools")) {

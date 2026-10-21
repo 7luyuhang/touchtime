@@ -1895,6 +1895,49 @@ struct HomeView: View {
                             Divider()
                         }
 
+                        ControlGroup {
+                            // Settings Section
+                            Button(action: {
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showSettingsSheet = true
+                            }) {
+                                Label("Settings", systemImage: "gear")
+                            }
+
+                            // Share Section - entry stays even with nothing to share
+                            Button(action: {
+                                // Provide haptic feedback if enabled
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
+                                showShareSheet = true
+                            }) {
+                                Label("Share", systemImage: "square.and.arrow.up")
+                            }
+
+                            // Arrange Section - only show if there are world clocks or collections
+                            if !worldClocks.isEmpty || !collections.isEmpty {
+                                Button(action: {
+                                    if hapticEnabled {
+                                        let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                                        impactFeedback.prepare()
+                                        impactFeedback.impactOccurred()
+                                    }
+                                    showArrangeListSheet = true
+                                }) {
+                                    Label(String(localized: "Arrange"), systemImage: "list.bullet")
+                                }
+                            }
+                        }
+
+                        Divider()
+
                         // Collections
                         if !collections.isEmpty {
                             Button {
@@ -1923,45 +1966,6 @@ struct HomeView: View {
                             Divider()
                         }
                         
-                        // Settings Section
-                        Button(action: {
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                            showSettingsSheet = true
-                        }) {
-                            Label("Settings", systemImage: "gear")
-                        }
-
-                        // Share Section - entry stays even with nothing to share
-                        Button(action: {
-                            // Provide haptic feedback if enabled
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
-                            }
-                            showShareSheet = true
-                        }) {
-                            Label("Share", systemImage: "square.and.arrow.up")
-                        }
-                        
-                        // Arrange Section - only show if there are world clocks or collections
-                        if !worldClocks.isEmpty || !collections.isEmpty {
-                            Button(action: {
-                                if hapticEnabled {
-                                    let impactFeedback = UIImpactFeedbackGenerator(style: .light)
-                                    impactFeedback.prepare()
-                                    impactFeedback.impactOccurred()
-                                }
-                                showArrangeListSheet = true
-                            }) {
-                                Label(String(localized: "Arrange"), systemImage: "list.bullet")
-                            }
-                        }
-
                         Section(String(localized: "Tools")) {
                             Button(action: {
                                 if hapticEnabled {
