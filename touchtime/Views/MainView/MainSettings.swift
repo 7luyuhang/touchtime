@@ -391,6 +391,13 @@ struct SettingsView: View {
             .transition(.identity)
     }
 
+    /// `false` gives the complication its glass, which the preview only uses
+    /// from iOS 27
+    private var previewComplicationUsesMaterialBackground: Bool {
+        guard #available(iOS 27.0, *) else { return true }
+        return false
+    }
+
     @ViewBuilder
     private func previewComplicationContent(for complication: PreviewComplication) -> some View {
         switch complication {
@@ -399,7 +406,7 @@ struct SettingsView: View {
                 date: currentDate,
                 size: 64,
                 timeZone: TimeZone.current,
-                useMaterialBackground: true,
+                useMaterialBackground: previewComplicationUsesMaterialBackground,
                 showScale: analogClockShowScale
             )
         case .sunElevation:
@@ -407,48 +414,48 @@ struct SettingsView: View {
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
         case .sunAzimuth:
             SunAzimuthIndicator(
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
         case .moonAzimuth:
             MoonAzimuthIndicator(
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
         case .moonSunAzimuth:
             MoonSunAzimuthIndicator(
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
         case .sunriseSunset:
             SunriseSunsetIndicator(
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
         case .weatherCondition:
             WeatherConditionView(
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
             .environmentObject(weatherManager)
         case .temperatureIndicator:
             TemperatureIndicator(
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
             .environmentObject(weatherManager)
         case .temperatureRange:
@@ -456,27 +463,27 @@ struct SettingsView: View {
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
         case .uvIndex:
             UVIndexIndicator(
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
             .environmentObject(weatherManager)
         case .windDirection:
             WindDirectionIndicator(
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
             .environmentObject(weatherManager)
         case .pressure:
             PressureIndicator(
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
             .environmentObject(weatherManager)
         case .daylight:
@@ -484,21 +491,21 @@ struct SettingsView: View {
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
         case .timeOverlay:
             TimeOverlayIndicator(
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true
+                useMaterialBackground: previewComplicationUsesMaterialBackground
             )
         case .solarCurve:
             SolarCurve(
                 date: currentDate,
                 timeZone: TimeZone.current,
                 size: 64,
-                useMaterialBackground: true,
+                useMaterialBackground: previewComplicationUsesMaterialBackground,
                 showSun: solarCurveShowSun
             )
         }
