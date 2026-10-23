@@ -197,11 +197,6 @@ struct LockScreenCard<Intent: LiveActivityIntent, Content: View>: View {
             Self.cardShape
                 .fill(.clear)
                 .glassEffect(.clear, in: Self.cardShape)
-                .overlay {
-                    Self.cardShape
-                        .fill(LinearGradient(colors: [.black, .black.opacity(0)], startPoint: .top, endPoint: .bottom))
-                        .opacity(0.75)
-                }
         }
         .environment(\.colorScheme, .dark)
     }
