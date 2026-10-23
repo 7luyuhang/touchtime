@@ -9,7 +9,26 @@ import SwiftUI
 import Combine
 import AVFoundation
 
-struct CameraBackgroundView: UIViewRepresentable {
+struct CameraBackgroundView: View {
+    let session: AVCaptureSession
+
+    var body: some View {
+        if CameraSessionController.simulatesCamera {
+            // Only fills the space it's given, as the preview does
+            Color.clear
+                .overlay {
+                    Image(uiImage: CameraSessionController.simulatedFrame)
+                        .resizable()
+                        .scaledToFill()
+                }
+                .clipped()
+        } else {
+            CameraPreview(session: session)
+        }
+    }
+}
+
+private struct CameraPreview: UIViewRepresentable {
     let session: AVCaptureSession
 
     func makeUIView(context: Context) -> CameraPreviewContainerView {
@@ -67,6 +86,29 @@ final class CameraSessionController: NSObject, ObservableObject {
     /// Past this the digital zoom is too soft for a background
     nonisolated private static let maximumZoomFactor: Double = 5
 
+    /// The simulator has no camera, so there the controller stands in for
+    /// one: it configures and starts without touching the session, and
+    /// `simulatedFrame` is what the camera sees, on screen and in captures
+    #if targetEnvironment(simulator)
+    static let simulatesCamera = true
+    #else
+    static let simulatesCamera = false
+    #endif
+
+    /// What the simulator's stand-in camera sees
+    static let simulatedFrame = ImageRenderer(
+        content: LinearGradient(
+            colors: [
+                Color(red: 136 / 255, green: 164 / 255, blue: 186 / 255),
+                Color(red: 112 / 255, green: 124 / 255, blue: 110 / 255)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        // Wider than any screen's shape, so filling one only crops the sides
+        .frame(width: 1920, height: 1080)
+    ).uiImage ?? UIImage()
+
     private let sessionQueue = DispatchQueue(label: "com.touchtime.camera.session")
     private var didConfigureSession = false
 
@@ -109,6 +151,13 @@ final class CameraSessionController: NSObject, ObservableObject {
                 self.sessionState = .idle
             }
             return false
+        }
+
+        if Self.simulatesCamera {
+            await MainActor.run {
+                self.isCameraAvailable = true
+            }
+            return true
         }
 
         await MainActor.run {
@@ -184,7 +233,16 @@ final class CameraSessionController: NSObject, ObservableObject {
     }
 
     func startRunning() async -> Bool {
-        await withCheckedContinuation { continuation in
+        if Self.simulatesCamera {
+            await MainActor.run {
+                self.isSessionRunning = true
+                self.hasVideoFrame = true
+                self.sessionState = .running
+            }
+            return true
+        }
+
+        return await withCheckedContinuation { continuation in
             sessionQueue.async { [self] in
                 if self.session.isRunning {
                     DispatchQueue.main.async {
@@ -353,7 +411,10 @@ final class CameraSessionController: NSObject, ObservableObject {
     }
 
     func getLatestFrameAsImage() -> UIImage? {
-        videoFrameDelegate.getLatestFrameAsImage()
+        if Self.simulatesCamera {
+            return Self.simulatedFrame
+        }
+        return videoFrameDelegate.getLatestFrameAsImage()
     }
 }
 
