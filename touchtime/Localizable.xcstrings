@@ -5431,6 +5431,22 @@
         }
       }
     },
+    "Double-tap the time slider to show quick actions." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "双击时间滑块即可显示快速操作。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "雙擊時間滑桿即可顯示快速動作。"
+          }
+        }
+      }
+    },
     "Double-tap to focus on the selected time." : {
       "localizations" : {
         "zh-Hans" : {

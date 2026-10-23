@@ -100,6 +100,8 @@ struct ScrollTimeQuickActionsPicker: View {
                     .buttonStyle(.plain)
                     .disabled(isLocked)
                 }
+            } footer: {
+                Text("Double-tap the time slider to show quick actions.")
             }
         }
         .scrollIndicators(.hidden)
