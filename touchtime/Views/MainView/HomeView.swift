@@ -249,8 +249,8 @@ struct HomeView: View {
     // rest, for the same reason.
     @State private var isCountdownStackUnfoldPending = false
     // Only a finger dragging the Home list (.interacting) folds the
-    // countdowns, not a flick bouncing off the top; the arrow in the
-    // toolbar follows the pull.
+    // countdowns, not a flick bouncing off the top; the pull hint's arrow
+    // follows the pull.
     @State private var homeListScroll = HomeListScroll()
     @State private var showComplicationsSheet = false
     @State private var showWidgetIntroSheet = false
@@ -1327,6 +1327,14 @@ struct HomeView: View {
         horizontalSizeClass == .regular && splitAxis != .horizontal
     }
 
+    /// Beside the details the bar's buttons move into the vertical bar, so
+    /// without a collection name the top bar would stay only for the pull
+    /// hint, pushing the list below the details' first card. The hint shows
+    /// over the list instead.
+    private var showsPullHintOverList: Bool {
+        splitAxis == .horizontal && selectedCollectionId == nil
+    }
+
     // Fades in from 20% of the way across the window to full at 80%.
     // Smoothstep opacity ramp: a linear one shows hard bands where the fade
     // starts and ends
@@ -1827,6 +1835,21 @@ struct HomeView: View {
                             impactFeedback.impactOccurred()
                         }
                     }
+                    .overlay(alignment: .top) {
+                        if showsPullHintOverList {
+                            CountdownStackPullHint(
+                                scroll: homeListScroll,
+                                foldDistance: Self.countdownStackPullDistance,
+                                canFold: !isCountdownStackCollapsed && displayedCountdowns.count > 1,
+                                willFold: isCountdownStackFoldPending,
+                                // Level with the details pane's first card
+                                listTop: 24
+                            ) {
+                                EmptyView()
+                            }
+                            .allowsHitTesting(false)
+                        }
+                    }
                     .id(selectedCollectionId?.uuidString ?? "default")
                     .transition(.identity) // Collection Animation
                     // Centralized batch weather prefetch for all displayed cities
@@ -1915,44 +1938,49 @@ struct HomeView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .scrollEdgeEffectStyle(.soft, for: .top)
+            // Beside the detail pane the bar's buttons sit in the vertical
+            // bar; the collection name and pull arrow bring their own glass
+            .scrollEdgeEffectHidden(splitAxis == .horizontal, for: .top)
             
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    CountdownStackPullHint(
-                        scroll: homeListScroll,
-                        foldDistance: Self.countdownStackPullDistance,
-                        canFold: !isCountdownStackCollapsed && displayedCountdowns.count > 1,
-                        willFold: isCountdownStackFoldPending
-                    ) {
-                        // Collection Name - Tappable to cycle through collections
-                        if selectedCollectionId != nil && collections.count > 1 {
-                            Button {
-                                cycleToNextCollection()
-                            } label: {
+                if !showsPullHintOverList {
+                    ToolbarItem(placement: .principal) {
+                        CountdownStackPullHint(
+                            scroll: homeListScroll,
+                            foldDistance: Self.countdownStackPullDistance,
+                            canFold: !isCountdownStackCollapsed && displayedCountdowns.count > 1,
+                            willFold: isCountdownStackFoldPending
+                        ) {
+                            // Collection Name - Tappable to cycle through collections
+                            if selectedCollectionId != nil && collections.count > 1 {
+                                Button {
+                                    cycleToNextCollection()
+                                } label: {
+                                    Text(currentCollectionName)
+                                        .font(.subheadline.weight(.semibold))
+                                        .contentTransition(.numericText())
+                                        .padding(.horizontal, 16)
+                                        .frame(height: 44)
+                                        .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                                        .lineLimit(1)
+                                        .animation(.snappy, value: currentCollectionName)
+                                }
+                                .buttonStyle(.plain)
+                            } else if selectedCollectionId != nil {
+                                // Show non-tappable collection name when only one collection exists
                                 Text(currentCollectionName)
                                     .font(.subheadline.weight(.semibold))
-                                    .contentTransition(.numericText())
                                     .padding(.horizontal, 16)
                                     .frame(height: 44)
-                                    .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                                    .glassEffect(.regular, in: Capsule(style: .continuous))
                                     .lineLimit(1)
-                                    .animation(.snappy, value: currentCollectionName)
                             }
-                            .buttonStyle(.plain)
-                        } else if selectedCollectionId != nil {
-                            // Show non-tappable collection name when only one collection exists
-                            Text(currentCollectionName)
-                                .font(.subheadline.weight(.semibold))
-                                .padding(.horizontal, 16)
-                                .frame(height: 44)
-                                .glassEffect(.regular, in: Capsule(style: .continuous))
-                                .lineLimit(1)
                         }
                     }
+                    // The name and the arrow bring their own glass, and without
+                    // either the item would leave an empty one behind
+                    .sharedBackgroundVisibility(.hidden)
                 }
-                // The name and the arrow bring their own glass, and without
-                // either the item would leave an empty one behind
-                .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         if !hasLifetimeAccess {
@@ -2623,6 +2651,11 @@ private struct CountdownStackPullHint<Content: View>: View {
     /// Let go of past `foldDistance`; the countdowns fold once the list
     /// comes to rest.
     let willFold: Bool
+    /// Set when the hint sits over the list instead of in the toolbar: how
+    /// far below the top of the screen the list starts, where its first row
+    /// rests. The arrow stays in the middle of the gap above that row as the
+    /// pull widens it.
+    var listTop: CGFloat? = nil
     @ViewBuilder let content: Content
 
     var body: some View {
@@ -2651,6 +2684,9 @@ private struct CountdownStackPullHint<Content: View>: View {
         // have to make room for it each time it comes back
         .frame(minWidth: 44, minHeight: 44)
         .animation(.smooth(duration: 0.25), value: isShown)
+        // Laid over the list, it reaches up from there to the top of the screen
+        .frame(height: listTop.map { $0 + scroll.pull })
+        .offset(y: -(listTop ?? 0))
     }
 }
 
