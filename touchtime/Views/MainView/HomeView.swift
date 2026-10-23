@@ -237,6 +237,21 @@ struct HomeView: View {
     @State private var editingHomeCountdown: CountdownItem? = nil
     // Pinned countdown being shared as an image from its card's context menu.
     @State private var countdownShareData: CountdownShareData? = nil
+    // Pinned countdowns folded into a stack after pulling Home down past
+    // its top; tapping the stack unfolds them.
+    @State private var isCountdownStackCollapsed = false
+    // Set when the finger lets go of a pull that's gone far enough; the
+    // stack folds when the list comes to rest, since changing its rows
+    // while it's still pulled down snaps it back to the top.
+    @State private var isCountdownStackFoldPending = false
+    // Set when the tapped stack's cards have slid back out while the list
+    // is still moving; they go back into their own rows once it comes to
+    // rest, for the same reason.
+    @State private var isCountdownStackUnfoldPending = false
+    // Only a finger dragging the Home list (.interacting) folds the
+    // countdowns, not a flick bouncing off the top; the arrow in the
+    // toolbar follows the pull.
+    @State private var homeListScroll = HomeListScroll()
     @State private var showComplicationsSheet = false
     @State private var showWidgetIntroSheet = false
     @State private var showEarthView = false
@@ -331,6 +346,10 @@ struct HomeView: View {
     private var hasPinnedCountdowns: Bool {
         !displayedCountdowns.isEmpty
     }
+
+    /// How far Home has to be pulled down past its top before its pinned
+    /// countdowns fold into a stack.
+    private static let countdownStackPullDistance: CGFloat = 60
 
     private var homeTimerDisplayName: String {
         let trimmedName = homeTimerName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1561,6 +1580,14 @@ struct HomeView: View {
                         HomeCountdownSection(
                             countdowns: displayedCountdowns,
                             now: currentDate.addingTimeInterval(timeOffset),
+                            isCollapsed: isCountdownStackCollapsed,
+                            onExpand: {
+                                if homeListScroll.phase == .idle {
+                                    isCountdownStackCollapsed = false
+                                } else {
+                                    isCountdownStackUnfoldPending = true
+                                }
+                            },
                             onTap: { item in
                                 if hapticEnabled {
                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -1758,6 +1785,48 @@ struct HomeView: View {
                     .safeAreaPadding(.horizontal, usesPhoneColumn ? 20 : 0)
                     // Below the details it fades in from the fold
                     .foldEdgeFade(.top, isActive: splitAxis == .vertical)
+                    // Letting go of the list pulled down past its top folds
+                    // the pinned countdowns into a stack once it comes to
+                    // rest; only tapping the stack unfolds them
+                    .onScrollPhaseChange { oldPhase, newPhase in
+                        homeListScroll.phase = newPhase
+                        if newPhase == .interacting {
+                            // Grabbed again while springing back: where it's
+                            // let go of this time decides
+                            isCountdownStackFoldPending = false
+                        } else if oldPhase == .interacting, homeListScroll.pull > Self.countdownStackPullDistance,
+                                  !isCountdownStackCollapsed, displayedCountdowns.count > 1 {
+                            // Let go of past the fold distance
+                            isCountdownStackFoldPending = true
+                        }
+                        guard newPhase == .idle else { return }
+                        // Neither animated; the stack slides the cards in
+                        // and out itself
+                        if isCountdownStackFoldPending {
+                            isCountdownStackFoldPending = false
+                            if displayedCountdowns.count > 1 {
+                                isCountdownStackCollapsed = true
+                            }
+                        }
+                        if isCountdownStackUnfoldPending {
+                            isCountdownStackUnfoldPending = false
+                            isCountdownStackCollapsed = false
+                        }
+                    }
+                    .onScrollGeometryChange(for: CGFloat.self) { geometry in
+                        max(-(geometry.contentOffset.y + geometry.contentInsets.top), 0)
+                    } action: { oldPull, pull in
+                        homeListScroll.pull = pull
+                        // A haptic tap each time the pull reaches the fold
+                        // distance
+                        guard pull > Self.countdownStackPullDistance, oldPull <= Self.countdownStackPullDistance,
+                              homeListScroll.phase == .interacting,
+                              !isCountdownStackCollapsed, displayedCountdowns.count > 1 else { return }
+                        if hapticEnabled {
+                            let impactFeedback = UIImpactFeedbackGenerator(style: .light)
+                            impactFeedback.impactOccurred()
+                        }
+                    }
                     .id(selectedCollectionId?.uuidString ?? "default")
                     .transition(.identity) // Collection Animation
                     // Centralized batch weather prefetch for all displayed cities
@@ -1848,34 +1917,42 @@ struct HomeView: View {
             .scrollEdgeEffectStyle(.soft, for: .top)
             
             .toolbar {
-                // Collection Name - Tappable to cycle through collections
-                if selectedCollectionId != nil && collections.count > 1 {
-                    ToolbarItem(placement: .principal) {
-                        Button {
-                            cycleToNextCollection()
-                        } label: {
+                ToolbarItem(placement: .principal) {
+                    CountdownStackPullHint(
+                        scroll: homeListScroll,
+                        foldDistance: Self.countdownStackPullDistance,
+                        canFold: !isCountdownStackCollapsed && displayedCountdowns.count > 1,
+                        willFold: isCountdownStackFoldPending
+                    ) {
+                        // Collection Name - Tappable to cycle through collections
+                        if selectedCollectionId != nil && collections.count > 1 {
+                            Button {
+                                cycleToNextCollection()
+                            } label: {
+                                Text(currentCollectionName)
+                                    .font(.subheadline.weight(.semibold))
+                                    .contentTransition(.numericText())
+                                    .padding(.horizontal, 16)
+                                    .frame(height: 44)
+                                    .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                                    .lineLimit(1)
+                                    .animation(.snappy, value: currentCollectionName)
+                            }
+                            .buttonStyle(.plain)
+                        } else if selectedCollectionId != nil {
+                            // Show non-tappable collection name when only one collection exists
                             Text(currentCollectionName)
                                 .font(.subheadline.weight(.semibold))
-                                .contentTransition(.numericText())
                                 .padding(.horizontal, 16)
                                 .frame(height: 44)
-                                .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                                .glassEffect(.regular, in: Capsule(style: .continuous))
                                 .lineLimit(1)
-                                .animation(.snappy, value: currentCollectionName)
                         }
-                        .buttonStyle(.plain)
-                    }
-                } else if selectedCollectionId != nil {
-                    // Show non-tappable collection name when only one collection exists
-                    ToolbarItem(placement: .principal) {
-                        Text(currentCollectionName)
-                            .font(.subheadline.weight(.semibold))
-                            .padding(.horizontal, 16)
-                            .frame(height: 44)
-                            .glassEffect(.regular, in: Capsule(style: .continuous))
-                            .lineLimit(1)
                     }
                 }
+                // The name and the arrow bring their own glass, and without
+                // either the item would leave an empty one behind
+                .sharedBackgroundVisibility(.hidden)
                 ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         if !hasLifetimeAccess {
@@ -2085,6 +2162,14 @@ struct HomeView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange).receive(on: DispatchQueue.main)) { _ in
                 checkForTimeZoneChange()
+            }
+
+            // With fewer than two pinned countdowns there's nothing to fold, so
+            // the next ones pinned show unfolded
+            .onChange(of: displayedCountdowns.count) { _, count in
+                if count < 2 {
+                    isCountdownStackCollapsed = false
+                }
             }
             
             // Listen for reset notification to reset scroll time
@@ -2512,6 +2597,60 @@ private final class ShakeDetectorViewController: UIViewController {
             return
         }
         onShake?()
+    }
+}
+
+// MARK: - Countdown stack pull hint
+
+/// How the Home list is scrolling, kept apart from Home's own state so the
+/// pull hint can follow a pull frame by frame without redrawing all of Home.
+@Observable
+private final class HomeListScroll {
+    var phase: ScrollPhase = .idle
+    /// How far the list is pulled down past its top.
+    var pull: CGFloat = 0
+}
+
+/// The middle of Home's toolbar, where pulling Home down to fold its pinned
+/// countdowns shows an arrow in place of `content`, the collection name.
+/// The arrow follows the pull, pointing down at first and up from
+/// `foldDistance` on, where letting go folds the countdowns.
+private struct CountdownStackPullHint<Content: View>: View {
+    let scroll: HomeListScroll
+    let foldDistance: CGFloat
+    /// Two or more pinned countdowns, not folded yet.
+    let canFold: Bool
+    /// Let go of past `foldDistance`; the countdowns fold once the list
+    /// comes to rest.
+    let willFold: Bool
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        // While a finger pulls the list down past its top, and after it lets
+        // go past `foldDistance` until the list has sprung back
+        let isShown = canFold && (willFold || (scroll.phase == .interacting && scroll.pull > 0))
+        // Stays up once let go of past `foldDistance`, rather than turning
+        // back down as the list springs back
+        let turn = willFold ? 1 : min(scroll.pull / foldDistance, 1)
+
+        ZStack {
+            content
+                .opacity(isShown ? 0 : 1)
+            if isShown {
+                Image(systemName: "arrow.down")
+                    .font(.body.weight(.semibold))
+                    .rotationEffect(.degrees(180 * turn))
+                    .frame(width: 44, height: 44)
+                    .glassEffect(.regular, in: Circle())
+                    .allowsHitTesting(false)
+                    .accessibilityHidden(true)
+                    .transition(.blurReplace)
+            }
+        }
+        // Holds the arrow's place while it's gone, so the toolbar doesn't
+        // have to make room for it each time it comes back
+        .frame(minWidth: 44, minHeight: 44)
+        .animation(.smooth(duration: 0.25), value: isShown)
     }
 }
 
