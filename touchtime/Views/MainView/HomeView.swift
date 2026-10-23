@@ -1938,9 +1938,9 @@ struct HomeView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .scrollEdgeEffectStyle(.soft, for: .top)
-            // Beside the detail pane the bar's buttons sit in the vertical
-            // bar; the collection name and pull arrow bring their own glass
-            .scrollEdgeEffectHidden(splitAxis == .horizontal, for: .top)
+            // Next to the details pane everything in the list's bar brings
+            // its own glass
+            .scrollEdgeEffectHidden(usesSplitLayout, for: .top)
             
             .toolbar {
                 if !showsPullHintOverList {
@@ -2658,6 +2658,16 @@ private struct CountdownStackPullHint<Content: View>: View {
     var listTop: CGFloat? = nil
     @ViewBuilder let content: Content
 
+    /// Over the list the arrow only has the gap above the first row, which
+    /// at rest is too small for it: it fades in from half its size as the
+    /// pull widens the gap, whole once it fits with 8pt above and below,
+    /// and shrinks away again as the list springs back.
+    private var arrowGrowth: CGFloat {
+        guard let listTop else { return 1 }
+        let fullSizeGap: CGFloat = 44 + 2 * 8
+        return min(scroll.pull / (fullSizeGap - listTop), 1)
+    }
+
     var body: some View {
         // While a finger pulls the list down past its top, and after it lets
         // go past `foldDistance` until the list has sprung back
@@ -2675,6 +2685,8 @@ private struct CountdownStackPullHint<Content: View>: View {
                     .rotationEffect(.degrees(180 * turn))
                     .frame(width: 44, height: 44)
                     .glassEffect(.regular, in: Circle())
+                    .scaleEffect(0.5 + 0.5 * arrowGrowth)
+                    .opacity(arrowGrowth)
                     .allowsHitTesting(false)
                     .accessibilityHidden(true)
                     .transition(.blurReplace)
