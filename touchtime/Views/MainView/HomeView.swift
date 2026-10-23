@@ -237,6 +237,9 @@ struct HomeView: View {
     @State private var editingHomeCountdown: CountdownItem? = nil
     // Pinned countdown being shared as an image from its card's context menu.
     @State private var countdownShareData: CountdownShareData? = nil
+    // Pinned countdowns folded into a stack from a card's context menu;
+    // tapping the stack unfolds them.
+    @State private var isCountdownStackCollapsed = false
     @State private var showComplicationsSheet = false
     @State private var showWidgetIntroSheet = false
     @State private var showEarthView = false
@@ -1561,6 +1564,17 @@ struct HomeView: View {
                         HomeCountdownSection(
                             countdowns: displayedCountdowns,
                             now: currentDate.addingTimeInterval(timeOffset),
+                            isCollapsed: isCountdownStackCollapsed,
+                            // Neither animated; the stack slides the cards in
+                            // and out itself
+                            onCollapse: {
+                                if displayedCountdowns.count > 1 {
+                                    isCountdownStackCollapsed = true
+                                }
+                            },
+                            onExpand: {
+                                isCountdownStackCollapsed = false
+                            },
                             onTap: { item in
                                 if hapticEnabled {
                                     let impactFeedback = UIImpactFeedbackGenerator(style: .light)
@@ -1846,6 +1860,9 @@ struct HomeView: View {
             .navigationTitle("")
             .navigationBarTitleDisplayMode(.inline)
             .scrollEdgeEffectStyle(.soft, for: .top)
+            // Next to the details pane everything in the list's bar brings
+            // its own glass
+            .scrollEdgeEffectHidden(usesSplitLayout, for: .top)
             
             .toolbar {
                 // Collection Name - Tappable to cycle through collections
@@ -2085,6 +2102,14 @@ struct HomeView: View {
             }
             .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange).receive(on: DispatchQueue.main)) { _ in
                 checkForTimeZoneChange()
+            }
+
+            // With fewer than two pinned countdowns there's nothing to fold, so
+            // the next ones pinned show unfolded
+            .onChange(of: displayedCountdowns.count) { _, count in
+                if count < 2 {
+                    isCountdownStackCollapsed = false
+                }
             }
             
             // Listen for reset notification to reset scroll time
