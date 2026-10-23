@@ -1413,6 +1413,8 @@ struct AnalogClockFullView: View {
             AnalogClockCameraZoomSlider(
                 // Gives way to the time offset controls, as the local time does
                 isVisible: isCameraBackgroundEnabled && !isCaptureButtonHidden && !showsTimeOffsetControls,
+                // The open iPhone Duo, either way up
+                alignsWithButtonBottoms: horizontalSizeClass == .regular,
                 zoomFactor: $cameraSessionController.zoomFactor,
                 zoomFactorRange: cameraSessionController.zoomFactorRange
             )
@@ -1492,6 +1494,7 @@ struct AnalogClockFullView: View {
 
             VStack(spacing: gapAboveControls) {
                 clockFace(size: size, isFolded: true)
+                    .mask { clockBelowFoldMask(clockFaceInset: clockFaceInset) }
                     .padding(.vertical, -clockFaceInset)
                     .frame(maxHeight: .infinity)
                 scrollTimeControls
@@ -1510,6 +1513,24 @@ struct AnalogClockFullView: View {
                 .buttonStyle(BarGlassCircleButtonStyle())
                 .padding(.horizontal, 20)
                 .padding(.top, 10)
+            }
+        }
+    }
+
+    /// Below the fold the zoom slider runs over the bottom of the face, so in
+    /// camera mode the face fades out under it, gone from just above its
+    /// ticks. `clockFaceInset` is the empty band around the face circle.
+    private func clockBelowFoldMask(clockFaceInset: CGFloat) -> some View {
+        ZStack {
+            Color.black
+                .opacity(isCameraBackgroundEnabled ? 0 : 1)
+            VStack(spacing: 0) {
+                Color.black
+                LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 48)
+                // The ticks reach about 27pt up the circle
+                Color.clear
+                    .frame(height: clockFaceInset + 32)
             }
         }
     }

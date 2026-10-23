@@ -143,6 +143,9 @@ struct AnalogClockCameraCloseButton: View {
 /// The ruler follows the finger, and the zoom is wherever its middle reads.
 struct AnalogClockCameraZoomSlider: View {
     let isVisible: Bool
+    /// Lines the bottom of the ruler, under the 1x dot, up with the buttons'
+    /// bottoms, rather than its ticks with their middles
+    let alignsWithButtonBottoms: Bool
     @Binding var zoomFactor: Double
     /// The camera's widest and closest zooms
     let zoomFactorRange: ClosedRange<Double>
@@ -180,7 +183,7 @@ struct AnalogClockCameraZoomSlider: View {
             if isVisible {
                 ruler
                     .frame(maxWidth: .infinity)
-                    .frame(height: 52)
+                    .frame(height: 52, alignment: alignsWithButtonBottoms ? .bottom : .center)
                     .contentShape(Rectangle())
                     .gesture(zoomGesture)
                     // Clear of the 52pt buttons 20pt in from the edges
@@ -238,8 +241,8 @@ struct AnalogClockCameraZoomSlider: View {
                 }
             }
         }
-        // Room for the 1x dot under the ticks, and as much over them so the
-        // ticks stay centered between the buttons
+        // Room for the 1x dot under the ticks, and as much over them, so
+        // centering the ruler centers the ticks
         .frame(height: ScrollTimeDotsIndicator.majorHeight + 2 * (Self.oneXDotGap + Self.oneXDotDiameter))
     }
 
