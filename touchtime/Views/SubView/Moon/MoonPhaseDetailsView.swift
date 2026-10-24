@@ -199,15 +199,16 @@ struct MoonPhaseDetailsView: View {
         HStack {
             Text(title)
                 .font(.headline)
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
 
             Spacer()
 
             Text(value)
                 .font(.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
                 .monospacedDigit()
                 .contentTransition(.numericText())
-                .blendMode(.plusLighter)
         }
     }
 
