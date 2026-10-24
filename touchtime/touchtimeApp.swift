@@ -19,7 +19,7 @@ struct touchtimeApp: App {
     @Environment(\.scenePhase) private var scenePhase
     // Shared countdown source of truth; injected app-wide so the Home
     // cards and the countdown sheet always observe the same data.
-    @State private var countdownStore = CountdownStore()
+    @State private var countdownStore: CountdownStore
     // Injected app-wide, so sheets that take only part of the window still
     // know which way up it is.
     @State private var isWindowLandscape = false
@@ -44,6 +44,12 @@ struct touchtimeApp: App {
 
         // Before any view reads it, so Fahrenheit users keep mph
         WindSpeedUnit.migrateFromTemperatureUnit()
+
+        // iCloud sync starts here rather than from a view, so it also runs
+        // when a sync push launches the app in the background
+        let countdownStore = CountdownStore()
+        _countdownStore = State(initialValue: countdownStore)
+        CountdownSyncManager.shared.start(with: countdownStore)
     }
     
     var body: some Scene {
@@ -109,6 +115,9 @@ struct touchtimeApp: App {
                 // Repeating countdown reminders roll forward to their next
                 // occurrence after one has fired.
                 CountdownReminderManager.shared.reschedule(for: countdownStore.countdowns)
+                // Countdowns edited on other devices, without waiting for
+                // their push
+                CountdownSyncManager.shared.fetchChanges()
                 // Daylight saving or travel may have shifted the device's
                 // clock against the cities alarms were set from
                 Task { await AlarmSupport.resyncCityAlarms() }

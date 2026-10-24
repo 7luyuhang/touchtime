@@ -7742,6 +7742,22 @@
         }
       }
     },
+    "iCloud Sync" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud 同步"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "iCloud 同步"
+          }
+        }
+      }
+    },
     "Illumination" : {
       "localizations" : {
         "zh-Hans" : {
@@ -14859,6 +14875,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "符號"
+          }
+        }
+      }
+    },
+    "Sync countdowns across devices signed in to the same Apple Account." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在登录同一 Apple 账户的设备之间同步倒计时。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在登入同一個 Apple 帳號的裝置之間同步倒數計時。"
           }
         }
       }

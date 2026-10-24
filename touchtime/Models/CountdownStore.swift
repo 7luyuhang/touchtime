@@ -29,6 +29,11 @@ final class CountdownStore {
             CountdownSpaceStore.shared.prune(keeping: countdowns.map(\.id))
             // ...and leave the collections they were added to.
             CollectionsStore.pruneCountdowns(keeping: countdowns.map(\.id))
+            // Edits fetched from iCloud aren't sent back, and their pinned
+            // order arrives on its own, possibly before the countdowns it
+            // lists.
+            guard !isApplyingRemoteChanges else { return }
+            CountdownSyncManager.shared.countdownsDidChange(from: oldValue, to: countdowns)
             // Unpinned and deleted countdowns give up their arranged spot,
             // so pinning one again lines it up after the arranged ones.
             let pinnedIds = Set(countdowns.filter(\.isPinned).map(\.id))
@@ -44,8 +49,14 @@ final class CountdownStore {
     var pinnedOrder: [UUID] {
         didSet {
             UserDefaults.standard.set(pinnedOrder.map(\.uuidString), forKey: Self.pinnedOrderKey)
+            if !isApplyingRemoteChanges && pinnedOrder != oldValue {
+                CountdownSyncManager.shared.pinnedOrderDidChange()
+            }
         }
     }
+
+    /// Set while edits from the user's other devices are written in.
+    @ObservationIgnored private var isApplyingRemoteChanges = false
 
     init() {
         countdowns = Self.load()
@@ -65,6 +76,31 @@ final class CountdownStore {
             .filter { !pinnedOrder.contains($0.id) }
             .sorted { $0.effectiveTargetDate(at: now) < $1.effectiveTargetDate(at: now) }
         return arranged + unarranged
+    }
+
+    /// Writes in countdowns added, edited or deleted on the user's other
+    /// devices, without reporting them back to iCloud as local edits.
+    func applyRemoteChanges(upserting items: [CountdownItem], deleting deletedIds: Set<UUID>) {
+        var updated = countdowns.filter { !deletedIds.contains($0.id) }
+        for item in items {
+            if let index = updated.firstIndex(where: { $0.id == item.id }) {
+                updated[index] = item
+            } else {
+                updated.append(item)
+            }
+        }
+        guard updated != countdowns else { return }
+        isApplyingRemoteChanges = true
+        countdowns = updated
+        isApplyingRemoteChanges = false
+    }
+
+    /// Home's pinned order as arranged on another device.
+    func applyRemotePinnedOrder(_ order: [UUID]) {
+        guard order != pinnedOrder else { return }
+        isApplyingRemoteChanges = true
+        pinnedOrder = order
+        isApplyingRemoteChanges = false
     }
 
     private static func load() -> [CountdownItem] {

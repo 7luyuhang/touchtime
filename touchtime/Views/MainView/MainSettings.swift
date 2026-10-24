@@ -55,6 +55,7 @@ struct SettingsView: View {
     @AppStorage(HourlyNotificationManager.timeWindowEnabledKey) private var chimeTimeWindowEnabled = false
     @AppStorage(HourlyNotificationManager.startTimeKey) private var chimeStartTime = HourlyNotificationManager.defaultStartTime
     @AppStorage(HourlyNotificationManager.endTimeKey) private var chimeEndTime = HourlyNotificationManager.defaultEndTime
+    @AppStorage(CountdownSyncManager.enabledKey) private var iCloudSyncEnabled = true
     @State private var hourlyNotificationCityIds: [UUID] = HourlyNotificationManager.loadSelectedCityIds()
     @State private var showNotificationPermissionAlert = false
     @State private var currentDate = Date()
@@ -308,6 +309,16 @@ struct SettingsView: View {
                     hourlyNotificationEnabled = false
                     HourlyNotificationManager.shared.cancelAll()
                 }
+            }
+        )
+    }
+
+    private var iCloudSyncBinding: Binding<Bool> {
+        Binding(
+            get: { iCloudSyncEnabled },
+            set: { newValue in
+                iCloudSyncEnabled = newValue
+                CountdownSyncManager.shared.setEnabled(newValue)
             }
         )
     }
@@ -997,6 +1008,18 @@ struct SettingsView: View {
                             Text("Custom Quick Actions")
                         }
                     }
+                }
+
+                // iCloud Sync
+                Section {
+                    TouchTimeToggle(isOn: iCloudSyncBinding) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "icloud", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("iCloud Sync")
+                        }
+                    }
+                } footer: {
+                    Text("Sync countdowns across devices signed in to the same Apple Account.")
                 }
                 
                 
