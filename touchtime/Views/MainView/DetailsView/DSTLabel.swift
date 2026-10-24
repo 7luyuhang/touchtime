@@ -40,5 +40,7 @@ struct DSTLabel: View {
                 .foregroundStyle(.tertiary)
         }
         .blendMode(.plusLighter)
+        .contentTransition(.numericText())
+        .animation(.spring(), value: transitionDate)
     }
 }

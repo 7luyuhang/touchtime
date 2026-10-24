@@ -35,7 +35,7 @@ struct LockedCameraView: View {
     }
 
     private var cameraBackground: some View {
-        CameraBackgroundView(session: cameraSessionController.session)
+        CameraBackgroundView(controller: cameraSessionController)
             .ignoresSafeArea()
             .background(.black)
     }

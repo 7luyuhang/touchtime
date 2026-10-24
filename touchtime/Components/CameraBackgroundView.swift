@@ -10,7 +10,7 @@ import Combine
 import AVFoundation
 
 struct CameraBackgroundView: View {
-    let session: AVCaptureSession
+    let controller: CameraSessionController
 
     var body: some View {
         if CameraSessionController.simulatesCamera {
@@ -23,26 +23,22 @@ struct CameraBackgroundView: View {
                 }
                 .clipped()
         } else {
-            CameraPreview(session: session)
+            CameraPreview(controller: controller)
         }
     }
 }
 
 private struct CameraPreview: UIViewRepresentable {
-    let session: AVCaptureSession
+    let controller: CameraSessionController
 
     func makeUIView(context: Context) -> CameraPreviewContainerView {
         let view = CameraPreviewContainerView()
         view.previewLayer.videoGravity = .resizeAspectFill
-        view.previewLayer.session = session
+        controller.attachPreview(view)
         return view
     }
 
-    func updateUIView(_ uiView: CameraPreviewContainerView, context: Context) {
-        if uiView.previewLayer.session !== session {
-            uiView.previewLayer.session = session
-        }
-    }
+    func updateUIView(_ uiView: CameraPreviewContainerView, context: Context) {}
 }
 
 final class CameraPreviewContainerView: UIView {
@@ -50,6 +46,21 @@ final class CameraPreviewContainerView: UIView {
 
     var previewLayer: AVCaptureVideoPreviewLayer {
         layer as! AVCaptureVideoPreviewLayer
+    }
+
+    /// The camera the preview shows, once the session has one
+    var camera: AVCaptureDevice? {
+        (previewLayer.connection?.inputPorts.first?.input as? AVCaptureDeviceInput)?.device
+    }
+
+    /// Called each time the view goes into a window
+    var onMoveToWindow: (() -> Void)?
+
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        if window != nil {
+            onMoveToWindow?()
+        }
     }
 }
 
@@ -111,6 +122,16 @@ final class CameraSessionController: NSObject, ObservableObject {
 
     private let sessionQueue = DispatchQueue(label: "com.touchtime.camera.session")
     private var didConfigureSession = false
+    /// How far the video output turns its frames: as far as the preview, so
+    /// a captured frame lines up with the preview it covers. On the session
+    /// queue
+    private var videoOutputRotationAngle: CGFloat = 90
+
+    /// Where the session shows, and what keeps it upright for whichever way
+    /// the preview's window faces; on the main queue
+    private weak var previewView: CameraPreviewContainerView?
+    private var rotationCoordinator: AVCaptureDevice.RotationCoordinator?
+    private var rotationCancellable: AnyCancellable?
 
     func requestAccess() async -> Bool {
         let currentStatus = AVCaptureDevice.authorizationStatus(for: .video)
@@ -201,11 +222,7 @@ final class CameraSessionController: NSObject, ObservableObject {
                         if self.videoDataOutput.isDeferredStartSupported {
                             self.videoDataOutput.isDeferredStartEnabled = true
                         }
-                        if let connection = self.videoDataOutput.connection(with: .video) {
-                            if connection.isVideoRotationAngleSupported(90) {
-                                connection.videoRotationAngle = 90
-                            }
-                        }
+                        self.applyVideoOutputRotationAngle()
                     }
 
                     self.didConfigureSession = true
@@ -226,6 +243,9 @@ final class CameraSessionController: NSObject, ObservableObject {
                     } else {
                         self.sessionState = .idle
                     }
+                    // Only now does the preview have a camera to turn, and
+                    // the video output turns with it before the session starts
+                    self.updateRotationCoordinator()
                     continuation.resume(returning: available)
                 }
             }
@@ -342,10 +362,8 @@ final class CameraSessionController: NSObject, ObservableObject {
                 appliedPosition = previousInput.device.position
             }
 
+            self.applyVideoOutputRotationAngle()
             if let connection = self.videoDataOutput.connection(with: .video) {
-                if connection.isVideoRotationAngleSupported(90) {
-                    connection.videoRotationAngle = 90
-                }
                 // Mirror captured frames from the front camera to match the preview.
                 if connection.isVideoMirroringSupported {
                     connection.automaticallyAdjustsVideoMirroring = false
@@ -363,8 +381,55 @@ final class CameraSessionController: NSObject, ObservableObject {
                 self.cameraPosition = appliedPosition
                 self.zoomFactorRange = zoomFactorRange
                 self.zoomFactor = 1
+                // Each camera can sit at its own angle to the screen
+                self.updateRotationCoordinator()
             }
         }
+    }
+
+    /// Shows the session in `preview`, upright for whichever way its window
+    /// faces
+    func attachPreview(_ preview: CameraPreviewContainerView) {
+        preview.previewLayer.session = session
+        preview.onMoveToWindow = { [weak self] in
+            self?.updateRotationCoordinator()
+        }
+        previewView = preview
+    }
+
+    /// Made again for each camera, and each time the preview goes into a
+    /// window, as only there can the coordinator tell which way it faces
+    private func updateRotationCoordinator() {
+        guard let previewView, previewView.window != nil,
+              let camera = previewView.camera else { return }
+        let coordinator = AVCaptureDevice.RotationCoordinator(device: camera, previewLayer: previewView.previewLayer)
+        rotationCoordinator = coordinator
+        rotationCancellable = coordinator.publisher(for: \.videoRotationAngleForHorizonLevelPreview)
+            .sink { [weak self] angle in
+                self?.applyPreviewRotationAngle(angle)
+            }
+    }
+
+    private func applyPreviewRotationAngle(_ angle: CGFloat) {
+        // Out of a window the coordinator gives 0°, whichever way it faces
+        guard let previewView, previewView.window != nil else { return }
+        if let connection = previewView.previewLayer.connection,
+           connection.isVideoRotationAngleSupported(angle) {
+            connection.videoRotationAngle = angle
+        }
+        sessionQueue.async {
+            self.videoOutputRotationAngle = angle
+            self.applyVideoOutputRotationAngle()
+        }
+    }
+
+    /// On the session queue
+    private func applyVideoOutputRotationAngle() {
+        // Turning the frames takes a lengthy reconfiguration, so only on a change
+        guard let connection = videoDataOutput.connection(with: .video),
+              connection.videoRotationAngle != videoOutputRotationAngle,
+              connection.isVideoRotationAngleSupported(videoOutputRotationAngle) else { return }
+        connection.videoRotationAngle = videoOutputRotationAngle
     }
 
     /// The camera at `position` with the most lenses, so the back one zooms

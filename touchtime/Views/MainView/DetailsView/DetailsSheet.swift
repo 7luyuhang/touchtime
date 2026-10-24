@@ -433,6 +433,8 @@ struct SunriseSunsetSheet: View {
                     }
                     .buttonStyle(.plain)
                     .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                    // DSTLabel's own animation doesn't reach the capsule around it
+                    .animation(.spring(), value: transitionDate)
                     .onGeometryChange(for: CGFloat.self) { proxy in
                         proxy.size.height
                     } action: { height in

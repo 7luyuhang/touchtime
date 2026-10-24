@@ -6,13 +6,12 @@
 //
 
 import SwiftUI
-import AVFoundation
 import UIKit
 
 struct AnalogClockCameraBackgroundLayer: View {
     let isCameraBackgroundEnabled: Bool
     let staticCameraFrame: UIImage?
-    let cameraSession: AVCaptureSession
+    let cameraSessionController: CameraSessionController
     let cameraSaturation: Double
     let cameraContrast: Double
     let isBlurFilterEnabled: Bool
@@ -30,7 +29,7 @@ struct AnalogClockCameraBackgroundLayer: View {
             // Stays mounted while off, and under the captured frame, so the
             // session starts with its preview attached instead of
             // reconfiguring for it once running
-            CameraBackgroundView(session: cameraSession)
+            CameraBackgroundView(controller: cameraSessionController)
                 .overlay {
                     if let staticFrame = staticCameraFrame {
                         Image(uiImage: staticFrame)

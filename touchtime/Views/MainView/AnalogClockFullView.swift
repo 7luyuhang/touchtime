@@ -1563,7 +1563,7 @@ struct AnalogClockFullView: View {
                     AnalogClockCameraBackgroundLayer(
                         isCameraBackgroundEnabled: isCameraBackgroundEnabled,
                         staticCameraFrame: staticCameraFrame,
-                        cameraSession: cameraSessionController.session,
+                        cameraSessionController: cameraSessionController,
                         cameraSaturation: cameraPreviewFilter == .blackAndWhite
                             ? CameraFilterParameters.blackAndWhiteSaturation
                             : 1,
