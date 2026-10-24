@@ -52,9 +52,6 @@ struct CountdownSheet: View {
         case oldestFirst
     }
 
-    /// Free users can keep up to this many countdowns; more requires lifetime access.
-    private static let freeCountdownLimit = 3
-
     @Environment(\.dismiss) private var dismiss
     @Environment(CountdownStore.self) private var countdownStore
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -80,7 +77,7 @@ struct CountdownSheet: View {
     }
 
     private var hasReachedFreeLimit: Bool {
-        !hasLifetimeAccess && countdowns.count >= Self.freeCountdownLimit
+        !hasLifetimeAccess && countdowns.count >= CountdownStore.freeCountdownLimit
     }
 
     private var unitOptions: CountdownUnitOptions {

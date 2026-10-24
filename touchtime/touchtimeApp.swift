@@ -91,6 +91,11 @@ struct touchtimeApp: App {
                 .onContinueUserActivity(NSUserActivityTypeLockedCameraCapture) { _ in
                     QuickActionsManager.shared.pendingAction = .camera
                 }
+                // Countdowns shared from another phone, opened from AirDrop,
+                // Messages, Mail or Files
+                .onOpenURL { url in
+                    SharedCountdownInbox.shared.open(url)
+                }
                 // Alarms set from a city's time follow that city's clock
                 // when the clocks change while the app is open
                 .onReceive(NotificationCenter.default.publisher(for: UIApplication.significantTimeChangeNotification)) { _ in

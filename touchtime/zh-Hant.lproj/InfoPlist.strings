@@ -9,3 +9,6 @@
 
 /* Home Screen quick actions - shown when user long-presses the app icon */
 "Set Timer" = "設定計時器";
+
+/* Countdown file type - shown for countdowns shared to another phone, e.g. in Files and AirDrop */
+"Touch Time Countdown" = "Touch Time 倒數計時";

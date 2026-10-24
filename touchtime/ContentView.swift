@@ -14,6 +14,7 @@ struct ContentView: View {
         case search
     }
 
+    @Environment(CountdownStore.self) private var countdownStore
     @State private var selectedTab: MainTab = .list
     @State private var worldClocks: [WorldClock] = []
     @State private var hasCompletedOnboarding = UserDefaults.standard.bool(forKey: "hasCompletedOnboarding")
@@ -98,6 +99,16 @@ struct ContentView: View {
                     case .camera:
                         clockOpensCamera = true
                     }
+                }
+            }
+            // A countdown shared from another phone opens in the New
+            // Countdown editor, over whatever is on screen. Delivered on
+            // subscription too, for a file that opened the app.
+            .onReceive(SharedCountdownInbox.shared.$received) { received in
+                guard let received else { return }
+                DispatchQueue.main.async {
+                    SharedCountdownInbox.shared.received = nil
+                    SharedCountdownInbox.present(received, addingTo: countdownStore)
                 }
             }
         } else {

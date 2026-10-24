@@ -694,10 +694,11 @@ struct CoverPickerSheet: View {
         return CGSize(width: image.size.width / shortSide, height: image.size.height / shortSide)
     }
 
-    /// Shrinks the picked photo to a size that comfortably covers the badge
-    /// and the blurred card background, so the countdown store never holds
-    /// multi-megabyte originals. Redrawing also bakes in the orientation.
-    private static func downsampledJPEGData(from data: Data, maxDimension: CGFloat = 800) -> Data? {
+    /// Shrinks the picked (or received) photo to a size that comfortably
+    /// covers the badge and the blurred card background, so the countdown
+    /// store never holds multi-megabyte originals. Redrawing also bakes in
+    /// the orientation.
+    static func downsampledJPEGData(from data: Data, maxDimension: CGFloat = 800) -> Data? {
         guard let image = UIImage(data: data) else { return nil }
         let largestSide = max(image.size.width, image.size.height)
         guard largestSide > 0 else { return nil }

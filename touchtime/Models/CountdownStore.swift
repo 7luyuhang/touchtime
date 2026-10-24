@@ -20,6 +20,9 @@ final class CountdownStore {
     private static let storageKey = SharedWidgetStore.countdownsKey
     private static let pinnedOrderKey = "pinnedCountdownOrder"
 
+    /// Free users can keep up to this many countdowns; more requires lifetime access.
+    static let freeCountdownLimit = 3
+
     var countdowns: [CountdownItem] {
         didSet {
             Self.persist(countdowns)

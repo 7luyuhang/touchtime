@@ -3129,6 +3129,22 @@
         }
       }
     },
+    "Can't Open Countdown" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "无法打开倒计时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "無法打開倒數計時"
+          }
+        }
+      }
+    },
     "Canary" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -13786,6 +13802,22 @@
         }
       }
     },
+    "Share with Touch Time Users" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享给 Touch Time 用户"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享給 Touch Time 使用者"
+          }
+        }
+      }
+    },
     "Shiprock" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -15345,6 +15377,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "廷布"
+          }
+        }
+      }
+    },
+    "This countdown was shared from a newer version of Touch Time. Update the app to open it." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此倒计时来自较新版本的 Touch Time，请更新应用后再打开。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此倒數計時來自較新版本的 Touch Time，請更新應用後再打開。"
+          }
+        }
+      }
+    },
+    "This file isn't a countdown Touch Time can open." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此文件不是 Touch Time 可以打开的倒计时。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "此檔案不是 Touch Time 可以打開的倒數計時。"
           }
         }
       }

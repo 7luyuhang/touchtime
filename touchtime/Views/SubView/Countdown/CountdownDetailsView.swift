@@ -15,10 +15,12 @@ import PhotosUI
 struct CountdownDetailsView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
+    @Environment(CountdownStore.self) private var countdownStore
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     /// Scheduled messages are a Lifetime feature: without it the row is
-    /// locked and opens the store.
+    /// locked and opens the store. So is adding a countdown past the free
+    /// limit (see `hasReachedFreeLimit`).
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
     // Time Display settings from the countdown sheet, used by the Share menu.
     @AppStorage("countdownShowYears") private var showYears = false
@@ -28,6 +30,9 @@ struct CountdownDetailsView: View {
     let onSave: (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, WorldClock?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?, Date?) -> Void
     let onDelete: (() -> Void)?
     private let original: CountdownItem?
+    /// A countdown shared from another phone, opened to be added here. It
+    /// has no bottom bar: Share, Pause and Pin come once it is added.
+    private let isReceived: Bool
 
     @State private var title: String
     @State private var targetDate: Date
@@ -96,6 +101,13 @@ struct CountdownDetailsView: View {
         original != nil
     }
 
+    /// A new countdown past the free limit, without Lifetime: the add
+    /// button opens the store instead. The countdown sheet doesn't open
+    /// the editor then, but a countdown shared from another phone does.
+    private var hasReachedFreeLimit: Bool {
+        !isEditing && !hasLifetimeAccess && countdownStore.countdowns.count >= CountdownStore.freeCountdownLimit
+    }
+
     private var isShowingSpace: Bool {
         isEditing && selectedTab == .space
     }
@@ -104,37 +116,42 @@ struct CountdownDetailsView: View {
         scrolledTab ?? .detail
     }
 
-    init(countdown: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, WorldClock?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?, Date?) -> Void) {
+    /// Edits `countdown`, or creates a new countdown when it is nil. A new
+    /// one starts from `draft` when given (a countdown shared from another
+    /// phone), otherwise from the defaults.
+    init(countdown: CountdownItem? = nil, draft: CountdownItem? = nil, onDelete: (() -> Void)? = nil, onSave: @escaping (String, Date, String?, Data?, CountdownItem.PhotoCrop?, Bool, CountdownItem.RepeatFrequency, Date?, WorldClock?, Int, CountdownItem.ReminderKind, CountdownItem.LinkedContact?, String?, Date?) -> Void) {
         self.onSave = onSave
         self.onDelete = onDelete
         self.original = countdown
-        _title = State(initialValue: countdown?.title ?? "")
+        self.isReceived = countdown == nil && draft != nil
+        let initial = countdown ?? draft
+        _title = State(initialValue: initial?.title ?? "")
 
         // New countdowns default to tomorrow at 10:00 AM.
         let calendar = Calendar.current
         let tomorrow = calendar.date(byAdding: .day, value: 1, to: .now) ?? .now
         let defaultDate = calendar.date(bySettingHour: 10, minute: 0, second: 0, of: tomorrow) ?? tomorrow
-        _targetDate = State(initialValue: countdown?.targetDate ?? defaultDate)
+        _targetDate = State(initialValue: initial?.targetDate ?? defaultDate)
 
         // Every countdown has a cover: a new one starts with a random common
         // event emoji.
-        let hasCover = countdown?.emoji != nil || countdown?.photoData != nil
-        _emoji = State(initialValue: hasCover ? countdown?.emoji : CountdownCoverEmojis.random)
-        _photoData = State(initialValue: countdown?.photoData)
-        _photoCrop = State(initialValue: countdown?.photoCrop)
-        _isPinned = State(initialValue: countdown?.isPinned ?? false)
-        _repeatFrequency = State(initialValue: countdown?.repeatFrequency ?? .never)
+        let hasCover = initial?.emoji != nil || initial?.photoData != nil
+        _emoji = State(initialValue: hasCover ? initial?.emoji : CountdownCoverEmojis.random)
+        _photoData = State(initialValue: initial?.photoData)
+        _photoCrop = State(initialValue: initial?.photoCrop)
+        _isPinned = State(initialValue: initial?.isPinned ?? false)
+        _repeatFrequency = State(initialValue: initial?.repeatFrequency ?? .never)
 
         // Reminders default to 9:00 AM on the day of the event.
         let defaultReminderTime = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: .now) ?? .now
-        _reminderEnabled = State(initialValue: countdown?.reminderTime != nil)
-        _reminderTime = State(initialValue: countdown?.reminderTime ?? defaultReminderTime)
-        _reminderCity = State(initialValue: countdown?.reminderCity)
-        _reminderLeadDays = State(initialValue: countdown?.reminderLeadDays ?? 0)
-        _reminderKind = State(initialValue: countdown?.reminderKind ?? .notification)
-        _contact = State(initialValue: countdown?.contact)
-        _scheduledMessage = State(initialValue: countdown?.scheduledMessage ?? "")
-        _pausedAt = State(initialValue: countdown?.pausedAt)
+        _reminderEnabled = State(initialValue: initial?.reminderTime != nil)
+        _reminderTime = State(initialValue: initial?.reminderTime ?? defaultReminderTime)
+        _reminderCity = State(initialValue: initial?.reminderCity)
+        _reminderLeadDays = State(initialValue: initial?.reminderLeadDays ?? 0)
+        _reminderKind = State(initialValue: initial?.reminderKind ?? .notification)
+        _contact = State(initialValue: initial?.contact)
+        _scheduledMessage = State(initialValue: initial?.scheduledMessage ?? "")
+        _pausedAt = State(initialValue: initial?.pausedAt)
     }
 
     private var trimmedTitle: String {
@@ -1095,6 +1112,16 @@ struct CountdownDetailsView: View {
                         } label: {
                             Image(systemName: "ellipsis")
                         }
+                    } else if hasReachedFreeLimit {
+                        Button {
+                            presentLifetimeStore()
+                        } label: {
+                            Image(systemName: "lock.fill")
+                                .foregroundStyle(.black)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(.yellow)
+                        .accessibilityLabel(String(localized: "Upgrade to add more countdowns"))
                     } else {
                         Button(role: .confirm) {
                             saveAndDismiss()
@@ -1108,7 +1135,8 @@ struct CountdownDetailsView: View {
 
                 // Bottom bar, off the Space page: Share on the leading side,
                 // Pause and Pin sharing one glass capsule on the trailing side.
-                if !isShowingSpace {
+                // A received countdown gets none of it until it is added.
+                if !isShowingSpace && !isReceived {
                     ToolbarItem(placement: .bottomBar) {
                         shareMenu
                     }
@@ -1247,9 +1275,25 @@ struct CountdownDetailsView: View {
             } label: {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
+            ShareLink(item: sharedCountdown, preview: SharePreview(shareTitle, image: Image("TouchTimeAppIcon"))) {
+                Label(String(localized: "Share with Touch Time Users"), systemImage: "person.2")
+            }
         } label: {
             Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // Editor Share
         }
+    }
+
+    /// The countdown as currently edited, as a file that opens in Touch
+    /// Time on another phone, ready to be added there.
+    private var sharedCountdown: SharedCountdown {
+        SharedCountdown(
+            title: trimmedTitle,
+            targetDate: targetDate,
+            repeatFrequency: repeatFrequency,
+            emoji: emoji,
+            photoData: photoData,
+            photoCrop: photoCrop
+        )
     }
 
     /// Pause in the bottom bar: a tap pauses the count. Once paused it is
@@ -1340,7 +1384,8 @@ struct CountdownDetailsView: View {
         showContactPicker = true
     }
 
-    /// Opens the Lifetime store from the locked scheduled message row.
+    /// Opens the Lifetime store from the locked scheduled message row or
+    /// add button.
     private func presentLifetimeStore() {
         triggerHaptic()
         // Drop the keyboard before the sheet comes up
