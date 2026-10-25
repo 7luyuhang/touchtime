@@ -16196,6 +16196,22 @@
         }
       }
     },
+    "Unlock All" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解锁全部"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解鎖全部"
+          }
+        }
+      }
+    },
     "Unlock all features" : {
       "localizations" : {
         "zh-Hans" : {

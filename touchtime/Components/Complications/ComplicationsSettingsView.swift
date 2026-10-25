@@ -213,6 +213,29 @@ struct ComplicationsSettingsView: View {
                     }
                 }
             }
+
+            if !hasLifetimeAccess {
+                ToolbarItem(placement: .bottomBar) {
+                    Button {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                        }
+                        showLifetimeStore = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "lock.fill")
+                                .font(.subheadline.weight(.semibold))
+                            Text(String(localized: "Unlock All"))
+                                .font(.headline)
+                        }
+                        .foregroundStyle(.black)
+                        .frame(height: 40)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.white)
+                    .padding(.horizontal, 8)
+                }
+            }
         }
         .onAppear {
             enforceComplicationAvailability()
