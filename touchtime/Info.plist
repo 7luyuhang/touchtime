@@ -22,8 +22,6 @@
 		<string>handstime</string>
 		<string>googlegmail</string>
 	</array>
-	<key>LSSupportsOpeningDocumentsInPlace</key>
-	<false/>
 	<key>NSAlarmKitUsageDescription</key>
 	<string>Allow alarm access to let you set local alarms.</string>
 	<key>UIApplicationShortcutItems</key>

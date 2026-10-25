@@ -1275,8 +1275,13 @@ struct CountdownDetailsView: View {
             } label: {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
+            Divider()
             ShareLink(item: sharedCountdown, preview: SharePreview(shareTitle, image: Image("TouchTimeAppIcon"))) {
-                Label(String(localized: "Share with Touch Time Users"), systemImage: "person.2")
+                // Title, subtitle and icon as separate views: a menu item
+                // shows no subtitle from a Label.
+                Text(String(localized: "Share Countdown"))
+                Text(String(localized: "Touch Time Users"))
+                Image(systemName: "sharedwithyou")
             }
         } label: {
             Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // Editor Share

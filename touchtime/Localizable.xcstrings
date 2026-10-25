@@ -13786,6 +13786,22 @@
         }
       }
     },
+    "Share Countdown" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享倒计时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享倒數計時"
+          }
+        }
+      }
+    },
     "Share with Friends" : {
       "localizations" : {
         "zh-Hans" : {
@@ -13798,22 +13814,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "分享給朋友"
-          }
-        }
-      }
-    },
-    "Share with Touch Time Users" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "分享给 Touch Time 用户"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "分享給 Touch Time 使用者"
           }
         }
       }
@@ -15922,6 +15922,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Touch Time"
+          }
+        }
+      }
+    },
+    "Touch Time Users" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch Time 用户"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch Time 使用者"
           }
         }
       }
