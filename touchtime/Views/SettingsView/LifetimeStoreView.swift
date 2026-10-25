@@ -55,6 +55,7 @@ struct LifetimeStoreView: View {
         case temperatureRange
         case uvIndex
         case windDirection
+        case windSpeed
         case pressure
 
         var id: Int { rawValue }
@@ -74,6 +75,7 @@ struct LifetimeStoreView: View {
             case .temperatureRange: return String(localized: "Temperature Range")
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
+            case .windSpeed: return String(localized: "Wind Speed")
             case .pressure: return String(localized: "Pressure")
             }
         }
@@ -483,6 +485,12 @@ struct LifetimeStoreView: View {
             )
         case .windDirection:
             WindDirectionIndicator(
+                timeZone: .current,
+                size: size,
+                useMaterialBackground: false
+            )
+        case .windSpeed:
+            WindSpeedIndicator(
                 timeZone: .current,
                 size: size,
                 useMaterialBackground: false

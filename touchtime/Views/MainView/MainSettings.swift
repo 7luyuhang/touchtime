@@ -35,6 +35,7 @@ struct SettingsView: View {
     @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
+    @AppStorage("showWindSpeed") private var showWindSpeed = false
     @AppStorage("showPressure") private var showPressure = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
@@ -104,6 +105,7 @@ struct SettingsView: View {
         case temperatureRange
         case uvIndex
         case windDirection
+        case windSpeed
         case pressure
         case daylight
         case timeOverlay
@@ -133,6 +135,8 @@ struct SettingsView: View {
                 return String(localized: "UV Index")
             case .windDirection:
                 return String(localized: "Wind Direction")
+            case .windSpeed:
+                return String(localized: "Wind Speed")
             case .pressure:
                 return String(localized: "Pressure")
             case .daylight:
@@ -201,6 +205,8 @@ struct SettingsView: View {
             return .uvIndex
         } else if effectiveShowWindDirection {
             return .windDirection
+        } else if effectiveShowWindSpeed {
+            return .windSpeed
         } else if effectiveShowPressure {
             return .pressure
         } else if effectiveShowDaylight {
@@ -236,6 +242,10 @@ struct SettingsView: View {
 
     private var effectiveShowWindDirection: Bool {
         hasLifetimeAccess && showWeather && showWindDirection
+    }
+
+    private var effectiveShowWindSpeed: Bool {
+        hasLifetimeAccess && showWeather && showWindSpeed
     }
 
     private var effectiveShowPressure: Bool {
@@ -479,6 +489,13 @@ struct SettingsView: View {
                 useMaterialBackground: previewComplicationUsesMaterialBackground
             )
             .environmentObject(weatherManager)
+        case .windSpeed:
+            WindSpeedIndicator(
+                timeZone: TimeZone.current,
+                size: 64,
+                useMaterialBackground: previewComplicationUsesMaterialBackground
+            )
+            .environmentObject(weatherManager)
         case .pressure:
             PressureIndicator(
                 timeZone: TimeZone.current,
@@ -645,6 +662,7 @@ struct SettingsView: View {
                                 showTemperatureRange = false
                                 showUVIndex = false
                                 showWindDirection = false
+                                showWindSpeed = false
                                 showPressure = false
                             }
                         }
@@ -1232,6 +1250,7 @@ struct SettingsView: View {
                         showTemperatureRange: $showTemperatureRange,
                         showUVIndex: $showUVIndex,
                         showWindDirection: $showWindDirection,
+                        showWindSpeed: $showWindSpeed,
                         showPressure: $showPressure,
                         showDaylight: $showDaylight,
                         showTimeOverlay: $showTimeOverlay,

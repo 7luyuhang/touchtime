@@ -294,6 +294,7 @@ struct HomeView: View {
     @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
+    @AppStorage("showWindSpeed") private var showWindSpeed = false
     @AppStorage("showPressure") private var showPressure = false
     @AppStorage("showSunAzimuth") private var showSunAzimuth = false
     @AppStorage("showMoonAzimuth") private var showMoonAzimuth = false
@@ -726,6 +727,10 @@ struct HomeView: View {
         hasLifetimeAccess && showWindDirection
     }
 
+    private var effectiveShowWindSpeed: Bool {
+        hasLifetimeAccess && showWindSpeed
+    }
+
     private var effectiveShowPressure: Bool {
         hasLifetimeAccess && showPressure
     }
@@ -756,6 +761,7 @@ struct HomeView: View {
             showTemperatureRange: effectiveShowTemperatureRange,
             showUVIndex: effectiveShowUVIndex,
             showWindDirection: effectiveShowWindDirection,
+            showWindSpeed: effectiveShowWindSpeed,
             showPressure: effectiveShowPressure,
             showSunAzimuth: showSunAzimuth,
             showMoonAzimuth: effectiveShowMoonAzimuth,
@@ -2362,6 +2368,7 @@ struct HomeView: View {
                         showTemperatureRange: $showTemperatureRange,
                         showUVIndex: $showUVIndex,
                         showWindDirection: $showWindDirection,
+                        showWindSpeed: $showWindSpeed,
                         showPressure: $showPressure,
                         showDaylight: $showDaylight,
                         showTimeOverlay: $showTimeOverlay,

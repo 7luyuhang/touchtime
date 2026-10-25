@@ -92,6 +92,7 @@ struct OnboardingView: View {
     @AppStorage("showTemperatureRange") private var showTemperatureRange = false
     @AppStorage("showUVIndex") private var showUVIndex = false
     @AppStorage("showWindDirection") private var showWindDirection = false
+    @AppStorage("showWindSpeed") private var showWindSpeed = false
     @AppStorage("showPressure") private var showPressure = false
     @AppStorage("showDaylight") private var showDaylight = false
     @AppStorage("showTimeOverlay") private var showTimeOverlay = false
@@ -118,6 +119,7 @@ struct OnboardingView: View {
         case temperatureRange
         case uvIndex
         case windDirection
+        case windSpeed
         case pressure
         case daylight
         case timeOverlay
@@ -136,6 +138,7 @@ struct OnboardingView: View {
             case .temperatureRange: return String(localized: "Temperature Range")
             case .uvIndex: return String(localized: "UV Index")
             case .windDirection: return String(localized: "Wind Direction")
+            case .windSpeed: return String(localized: "Wind Speed")
             case .pressure: return String(localized: "Pressure")
             case .daylight: return String(localized: "Daylight Curve")
             case .timeOverlay: return String(localized: "Time Overlay")
@@ -181,7 +184,7 @@ struct OnboardingView: View {
         showAnalogClock || showSunPosition || showSunAzimuth || effectiveShowMoonAzimuth
             || effectiveShowMoonSunAzimuth || showSunriseSunset || showWeatherCondition
             || showTemperatureIndicator || showTemperatureRange || showUVIndex || showWindDirection
-            || showPressure || effectiveShowDaylight || effectiveShowTimeOverlay || showSolarCurve
+            || showWindSpeed || showPressure || effectiveShowDaylight || effectiveShowTimeOverlay || showSolarCurve
     }
 
     /// On a wide screen (the unfolded iPhone Duo, either way up) the
@@ -261,6 +264,7 @@ struct OnboardingView: View {
             showTemperatureRange = selectedType == .temperatureRange
             showUVIndex = selectedType == .uvIndex
             showWindDirection = selectedType == .windDirection
+            showWindSpeed = selectedType == .windSpeed
             showPressure = selectedType == .pressure
             showDaylight = selectedType == .daylight
             showTimeOverlay = selectedType == .timeOverlay
@@ -276,6 +280,7 @@ struct OnboardingView: View {
             showTemperatureRange,
             showUVIndex,
             showWindDirection,
+            showWindSpeed,
             showPressure,
             showDaylight,
             showTimeOverlay
@@ -686,6 +691,20 @@ struct OnboardingView: View {
                                     )
                                 }
 
+                                if canShowLifetimeWeatherComplications && showWindSpeed {
+                                    WindSpeedIndicator(
+                                        timeZone: TimeZone.current,
+                                        size: 64,
+                                        useMaterialBackground: true
+                                    )
+                                    .environmentObject(weatherManager)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.white.opacity(0.25), lineWidth: 0.5)
+                                            .blendMode(.plusLighter)
+                                    )
+                                }
+
                                 if canShowLifetimeWeatherComplications && showPressure {
                                     PressureIndicator(
                                         timeZone: TimeZone.current,
@@ -841,6 +860,15 @@ struct OnboardingView: View {
 
                                         complicationOption(type: .windDirection, isSelected: showWindDirection) {
                                             WindDirectionIndicator(
+                                                timeZone: TimeZone.current,
+                                                size: 64,
+                                                useMaterialBackground: false
+                                            )
+                                            .environmentObject(weatherManager)
+                                        }
+
+                                        complicationOption(type: .windSpeed, isSelected: showWindSpeed) {
+                                            WindSpeedIndicator(
                                                 timeZone: TimeZone.current,
                                                 size: 64,
                                                 useMaterialBackground: false
@@ -1016,6 +1044,7 @@ struct OnboardingView: View {
                 showTemperatureRange = false
                 showUVIndex = false
                 showWindDirection = false
+                showWindSpeed = false
                 showPressure = false
             }
         }
