@@ -98,6 +98,8 @@ struct HomeCountdownSection: View {
                                     Label(String(localized: "Collapse"), systemImage: "rectangle.stack")
                                 }
 
+                                Divider()
+
                                 Button {
                                     onArrange()
                                 } label: {
