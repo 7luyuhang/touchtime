@@ -15,8 +15,7 @@ using namespace metal;
 // `strength`  amount of the split in [0, 1].
 // `maxShift`  how far, in points, red moves out and violet moves in at the
 //             edge of the layer's inscribed circle when `strength` is 1.
-[[ stitchable ]]
-half4 ChromaticDispersion(
+static half4 disperse(
     float2 position,
     SwiftUI::Layer layer,
     float2 layerSize,
@@ -61,4 +60,36 @@ half4 ChromaticDispersion(
     color = color / weight * half(1.0 + 1.2 * strength);
 
     return half4(color, alpha / 7.0);
+}
+
+[[ stitchable ]]
+half4 ChromaticDispersion(
+    float2 position,
+    SwiftUI::Layer layer,
+    float2 layerSize,
+    float strength,
+    float maxShift
+) {
+    return disperse(position, layer, layerSize, strength, maxShift);
+}
+
+// The split only around `spot`, a point in the layer: full within a
+// quarter of `reach` points of it and gone by `reach`, with the layer fading
+// out along with it so none of it shows further away.
+[[ stitchable ]]
+half4 ChromaticSpot(
+    float2 position,
+    SwiftUI::Layer layer,
+    float2 layerSize,
+    float2 spot,
+    float reach,
+    float maxShift
+) {
+    float falloff = 1.0 - smoothstep(reach * 0.25, reach, distance(position, spot));
+
+    if (falloff <= 0.0) {
+        return half4(0.0);
+    }
+
+    return disperse(position, layer, layerSize, falloff, maxShift) * half(falloff);
 }

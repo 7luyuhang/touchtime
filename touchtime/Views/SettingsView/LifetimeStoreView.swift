@@ -19,6 +19,10 @@ struct LifetimeStoreView: View {
     /// The widest iPhone's width, for the store's column on wider screens.
     private static let maximumColumnWidth: CGFloat = 440
 
+    /// Closes the store as soon as Lifetime is unlocked. Off when an owner
+    /// opens it from About, so it stays and thanks them instead.
+    private let dismissesWhenUnlocked: Bool
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     @AppStorage("hasLifetimeAccess") private var hasLifetimeAccess = false
@@ -34,6 +38,10 @@ struct LifetimeStoreView: View {
     @State private var emblemEntrance: Double = 0
 
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+
+    init(dismissesWhenUnlocked: Bool = true) {
+        self.dismissesWhenUnlocked = dismissesWhenUnlocked
+    }
 
     enum PurchaseState: Equatable {
         case idle
@@ -171,7 +179,9 @@ struct LifetimeStoreView: View {
         .task {
             await refreshLifetimeStatus()
             guard !hasLifetimeAccess else {
-                dismiss()
+                if dismissesWhenUnlocked {
+                    dismiss()
+                }
                 return
             }
             await loadProduct()
@@ -192,7 +202,7 @@ struct LifetimeStoreView: View {
             }
         }
         .onChange(of: hasLifetimeAccess) { _, newValue in
-            if newValue {
+            if newValue && dismissesWhenUnlocked {
                 dismiss()
             }
         }
@@ -216,40 +226,32 @@ struct LifetimeStoreView: View {
             }
 
             // Redeem Code
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    if hapticEnabled {
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+            if !hasLifetimeAccess {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                        }
+                        Task { @MainActor in
+                            await presentOfferCodeRedeemSheet()
+                        }
+                    } label: {
+                        Image(systemName: "infinity")
+                            .fontWeight(.semibold)
                     }
-                    Task { @MainActor in
-                        await presentOfferCodeRedeemSheet()
-                    }
-                } label: {
-                    Image(systemName: "infinity")
-                        .fontWeight(.semibold)
+                    .accessibilityLabel(Text("Redeem Code"))
                 }
-                .accessibilityLabel(Text("Redeem Code"))
             }
         }
     }
 
     // MARK: - App Icon Emblem
 
-    /// Liquid Glass plate in the app icon's shape: the rounded square (same
-    /// 100 pt / 26 pt-corner metrics as the icon in `AboutView`) with the
-    /// icon's circle subtracted from it (~77% of the side: the 0.8125 circle
-    /// layer at 0.95 scale in `TouchTimeApp.icon`), so the sky glow shows
-    /// through the cut-out. It comes in a moment after the store opens, its
+    /// The app icon emblem, coming in a moment after the store opens, its
     /// outline split into a rainbow that gathers into the glass's edge.
     private var appIconEmblem: some View {
-        let plate = RoundedRectangle(cornerRadius: 26, style: .continuous)
-            .subtracting(Circle().scale(0.8125 * 0.95))
-
-        return plate
-            .fill(Color.white.opacity(0.05))
-            .glassEffect(.clear, in: plate)
-            .frame(width: 100, height: 100)
-            .chromaticEntrance(progress: emblemEntrance, rim: plate)
+        AppIconEmblem()
+            .chromaticEntrance(progress: emblemEntrance, rim: AppIconEmblem.plate)
             .onAppear {
                 // As the store finishes sliding up
                 withAnimation(.smooth(duration: 1.0).delay(0.25)) {
@@ -515,7 +517,15 @@ struct LifetimeStoreView: View {
 
     private var purchaseButton: some View {
         Group {
-            if purchaseState == .purchasing || purchaseState == .loading {
+            if hasLifetimeAccess {
+                Text("Thanks for your purchase!")
+                    .font(.headline)
+                    .foregroundStyle(.black)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical)
+                    .glassEffect(.clear.interactive().tint(.white), in: Capsule(style: .continuous))
+                
+            } else if purchaseState == .purchasing || purchaseState == .loading {
                 ProgressView() // Purchasing / Loading Button
                     .frame(maxWidth: .infinity)
                     .padding(.vertical)
@@ -551,29 +561,31 @@ struct LifetimeStoreView: View {
             Link(String(localized: "Privacy Policy"), destination: URL(string: "https://www.handstime.app/privacy")!)
                 .buttonStyle(.plain)
 
-            Text("·")
-                .foregroundStyle(.secondary)
+            if !hasLifetimeAccess {
+                Text("·")
+                    .foregroundStyle(.secondary)
 
-            Button {
-                if hapticEnabled {
-                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                }
+                Button {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
 
-                Task {
-                    await restorePurchases()
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Text(String(localized: "Restore Purchases"))
+                    Task {
+                        await restorePurchases()
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Text(String(localized: "Restore Purchases"))
 
-                    if isRestoring {
-                        ProgressView()
-                            .controlSize(.small)
+                        if isRestoring {
+                            ProgressView()
+                                .controlSize(.small)
+                        }
                     }
                 }
+                .buttonStyle(.plain)
+                .disabled(isRestoring)
             }
-            .buttonStyle(.plain)
-            .disabled(isRestoring)
         }
         .font(.caption.weight(.medium))
         .foregroundStyle(.secondary)
@@ -648,11 +660,12 @@ struct LifetimeStoreView: View {
         do {
             try await AppStore.sync()
             await refreshLifetimeStatus()
-            if hasLifetimeAccess {
+            if !hasLifetimeAccess {
+                print("No lifetime purchase found.")
+            } else if dismissesWhenUnlocked {
                 dismiss()
                 return
             }
-            print("No lifetime purchase found.")
         } catch {
             print("Failed to restore purchases: \(error)")
         }

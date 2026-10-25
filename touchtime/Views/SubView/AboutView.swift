@@ -13,6 +13,7 @@ struct AboutView: View {
     @Binding var worldClocks: [WorldClock]
     @ObservedObject var weatherManager: WeatherManager
     @State private var showOnboarding = false
+    @State private var showLifetimeStore = false
     @State private var showResetConfirmation = false
     @State private var didResetSuccessfully = false
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -44,26 +45,33 @@ struct AboutView: View {
     var body: some View {
         List {
             VStack(spacing: 16) {
-                Image("TouchTimeAppIcon")
-                    .resizable()
-                    .scaledToFit()
-                    .glassEffect(.clear, in:
-                                    RoundedRectangle(cornerRadius: 26, style: .continuous)
-                    )
-                    .frame(width: 100, height: 100)
-                    .modifier(RippleEffect(at: rippleOrigin, trigger: rippleCounter))
-                    .modifier(PushEffect(trigger: rippleCounter))
-                    .onPressingChanged { point in
-                        if let point {
-                            rippleOrigin = point
-                            rippleCounter += 1
-                            if hapticEnabled {
-                                let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
-                                impactFeedback.prepare()
-                                impactFeedback.impactOccurred()
+                if hasLifetimeAccess {
+                    AppIconEmblem()
+                        .chromaticOrbit(rim: AppIconEmblem.plate)
+                        .accessibilityElement()
+                        .accessibilityLabel(Text("Lifetime"))
+                } else {
+                    Image("TouchTimeAppIcon")
+                        .resizable()
+                        .scaledToFit()
+                        .glassEffect(.clear, in:
+                                        RoundedRectangle(cornerRadius: 26, style: .continuous)
+                        )
+                        .frame(width: 100, height: 100)
+                        .modifier(RippleEffect(at: rippleOrigin, trigger: rippleCounter))
+                        .modifier(PushEffect(trigger: rippleCounter))
+                        .onPressingChanged { point in
+                            if let point {
+                                rippleOrigin = point
+                                rippleCounter += 1
+                                if hapticEnabled {
+                                    let impactFeedback = UIImpactFeedbackGenerator(style: .soft)
+                                    impactFeedback.prepare()
+                                    impactFeedback.impactOccurred()
+                                }
                             }
                         }
-                    }
+                }
 
                 VStack(spacing: 4) {
                     Text("Touch Time")
@@ -76,6 +84,30 @@ struct AboutView: View {
             }
             .frame(maxWidth: .infinity, alignment: .center)
             .listRowBackground(Color.clear)
+
+            // Lifetime
+            if hasLifetimeAccess {
+                Section {
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                        }
+                        showLifetimeStore = true
+                    }) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "heart.fill", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Lifetime")
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.footnote.weight(.semibold))
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
+            }
 
             // Local Time
             Section(footer: Text("System time shows at the top of the list with ambient background.")) {
@@ -299,6 +331,11 @@ struct AboutView: View {
                         }
                     }
                 ), weatherManager: weatherManager, isReviewing: true)
+            }
+        }
+        .fullScreenCover(isPresented: $showLifetimeStore) {
+            NavigationStack {
+                LifetimeStoreView(dismissesWhenUnlocked: false)
             }
         }
     }
