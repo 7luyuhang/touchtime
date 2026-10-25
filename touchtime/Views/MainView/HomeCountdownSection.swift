@@ -153,9 +153,30 @@ struct HomeCountdownSection: View {
             } label: {
                 Label(String(localized: "Share as Image"), systemImage: "camera.macro")
             }
+            Divider()
+            ShareLink(item: sharedCountdown(for: item), preview: SharePreview(item.title, image: Image("TouchTimeAppIcon"))) {
+                // Title, subtitle and icon as separate views: a menu item
+                // shows no subtitle from a Label.
+                Text(String(localized: "Share Countdown"))
+                Text(String(localized: "Touch Time Users"))
+                Image(systemName: "sharedwithyou")
+            }
         } label: {
             Label(String(localized: "Share"), systemImage: "square.and.arrow.up") // Countdown Share
         }
+    }
+
+    /// The countdown as a file that opens in Touch Time on another phone,
+    /// ready to be added there.
+    private func sharedCountdown(for item: CountdownItem) -> SharedCountdown {
+        SharedCountdown(
+            title: item.title,
+            targetDate: item.targetDate,
+            repeatFrequency: item.repeatFrequency,
+            emoji: item.emoji,
+            photoData: item.photoData,
+            photoCrop: item.photoCrop
+        )
     }
 }
 
