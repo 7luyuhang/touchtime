@@ -14,8 +14,6 @@ import WeatherKit
 import VariableBlur
 
 struct LifetimeStoreView: View {
-    private static let productID = "com.time.lifetime"
-
     /// The widest iPhone's width, for the store's column on wider screens.
     private static let maximumColumnWidth: CGFloat = 440
 
@@ -30,9 +28,6 @@ struct LifetimeStoreView: View {
     @AppStorage("analogClockShowScale") private var analogClockShowScale = false
     @AppStorage("showWeather") private var showWeather = false
     @ObservedObject private var weatherManager = WeatherManager.shared
-    @State private var product: Product?
-    @State private var purchaseState: PurchaseState = .loading
-    @State private var isRestoring = false
     @State private var currentDate = Date()
     /// Runs from 0 to 1 as the app icon emblem comes in.
     @State private var emblemEntrance: Double = 0
@@ -41,12 +36,6 @@ struct LifetimeStoreView: View {
 
     init(dismissesWhenUnlocked: Bool = true) {
         self.dismissesWhenUnlocked = dismissesWhenUnlocked
-    }
-
-    enum PurchaseState: Equatable {
-        case idle
-        case loading
-        case purchasing
     }
 
     private enum ShowcaseComplication: Int, CaseIterable, Identifiable {
@@ -175,36 +164,6 @@ struct LifetimeStoreView: View {
         }
         .onReceive(timer) { _ in
             currentDate = Date()
-        }
-        .task {
-            await refreshLifetimeStatus()
-            guard !hasLifetimeAccess else {
-                if dismissesWhenUnlocked {
-                    dismiss()
-                }
-                return
-            }
-            await loadProduct()
-        }
-        .task {
-            for await result in Transaction.updates {
-                do {
-                    let transaction = try checkVerified(result)
-
-                    if transaction.productID == Self.productID {
-                        await refreshLifetimeStatus()
-                    }
-
-                    await transaction.finish()
-                } catch {
-                    print("Failed to process transaction update: \(error)")
-                }
-            }
-        }
-        .onChange(of: hasLifetimeAccess) { _, newValue in
-            if newValue && dismissesWhenUnlocked {
-                dismiss()
-            }
         }
         .safeAreaInset(edge: .bottom) {
             bottomActions
@@ -507,170 +466,13 @@ struct LifetimeStoreView: View {
     }
 
     private var bottomActions: some View {
-        VStack(spacing: 16) {
-            purchaseButton
-            footerActions
+        LifetimePurchaseActions {
+            if dismissesWhenUnlocked {
+                dismiss()
+            }
         }
         .padding(.horizontal, 24)
         .frame(maxWidth: usesPhoneColumn ? Self.maximumColumnWidth : nil)
-    }
-
-    private var purchaseButton: some View {
-        Group {
-            if hasLifetimeAccess {
-                Text("Thanks for your purchase!")
-                    .font(.headline)
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-                    .glassEffect(.clear.interactive().tint(.white), in: Capsule(style: .continuous))
-                
-            } else if purchaseState == .purchasing || purchaseState == .loading {
-                ProgressView() // Purchasing / Loading Button
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical)
-                    .glassEffect(.clear.tint(.white.opacity(0.10)), in: Capsule(style: .continuous))
-                
-            } else if let product {
-                Button {
-                    if hapticEnabled {
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    }
-                    
-                    Task {
-                        await purchase(product)
-                    }
-                } label: {
-                    Text("Continue for \(product.displayPrice)")
-                        .font(.headline)
-                        .foregroundStyle(.black)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical)
-                        .contentShape(Capsule(style: .continuous))
-                        .glassEffect(.clear.interactive().tint(.white), in: Capsule(style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .disabled(purchaseState == .purchasing)
-            }
-        }
-    }
-
-    // Footer Actions
-    private var footerActions: some View {
-        HStack(spacing: 6) {
-            Link(String(localized: "Privacy Policy"), destination: URL(string: "https://www.handstime.app/privacy")!)
-                .buttonStyle(.plain)
-
-            if !hasLifetimeAccess {
-                Text("·")
-                    .foregroundStyle(.secondary)
-
-                Button {
-                    if hapticEnabled {
-                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    }
-
-                    Task {
-                        await restorePurchases()
-                    }
-                } label: {
-                    HStack(spacing: 4) {
-                        Text(String(localized: "Restore Purchases"))
-
-                        if isRestoring {
-                            ProgressView()
-                                .controlSize(.small)
-                        }
-                    }
-                }
-                .buttonStyle(.plain)
-                .disabled(isRestoring)
-            }
-        }
-        .font(.caption.weight(.medium))
-        .foregroundStyle(.secondary)
-        .blendMode(.plusLighter)
-    }
-
-    @MainActor
-    private func loadProduct() async {
-        purchaseState = .loading
-
-        do {
-            let products = try await Product.products(for: [Self.productID])
-            product = products.first
-            purchaseState = product == nil
-            ? .idle
-            : .idle
-            if product == nil {
-                print("Unable to load lifetime option.")
-            }
-        } catch {
-            print("Failed to load lifetime product: \(error)")
-            print("Unable to load lifetime option.")
-            purchaseState = .idle
-        }
-    }
-
-    @MainActor
-    private func purchase(_ product: Product) async {
-        guard purchaseState != .purchasing else { return }
-
-        purchaseState = .purchasing
-
-        do {
-            let result = try await product.purchase()
-
-            switch result {
-            case .success(let verification):
-                do {
-                    let transaction = try checkVerified(verification)
-                    await transaction.finish()
-                    await refreshLifetimeStatus()
-                    purchaseState = .idle
-                } catch {
-                    print("Transaction verification failed: \(error)")
-                    print("Transaction couldn't be verified.")
-                    purchaseState = .idle
-                }
-
-            case .pending:
-                print("Purchase is pending approval.")
-                purchaseState = .idle
-
-            case .userCancelled:
-                purchaseState = .idle
-
-            @unknown default:
-                purchaseState = .idle
-            }
-        } catch {
-            print("Purchase error: \(error)")
-            print("Purchase failed. Please try again.")
-            purchaseState = .idle
-        }
-    }
-
-    @MainActor
-    private func restorePurchases() async {
-        guard !isRestoring else { return }
-
-        isRestoring = true
-
-        do {
-            try await AppStore.sync()
-            await refreshLifetimeStatus()
-            if !hasLifetimeAccess {
-                print("No lifetime purchase found.")
-            } else if dismissesWhenUnlocked {
-                dismiss()
-                return
-            }
-        } catch {
-            print("Failed to restore purchases: \(error)")
-        }
-
-        isRestoring = false
     }
 
     // MARK: - Offer Code Redemption
@@ -683,8 +485,8 @@ struct LifetimeStoreView: View {
         return scenes.first(where: { $0.activationState == .foregroundActive }) ?? scenes.first
     }
 
-    // Redeemed transactions arrive through `Transaction.updates`, which then
-    // refreshes the lifetime status and dismisses the store.
+    // Redeemed transactions arrive through `Transaction.updates`, which the
+    // bottom actions watch to refresh the lifetime status and dismiss the store.
     @MainActor
     private func presentOfferCodeRedeemSheet() async {
         guard let windowScene = activeWindowScene else {
@@ -696,36 +498,6 @@ struct LifetimeStoreView: View {
             try await AppStore.presentOfferCodeRedeemSheet(in: windowScene)
         } catch {
             print("Failed to present offer code redemption sheet: \(error)")
-        }
-    }
-
-    @MainActor
-    private func refreshLifetimeStatus() async {
-        var isUnlocked = false
-
-        for await result in Transaction.currentEntitlements {
-            do {
-                let transaction = try checkVerified(result)
-                guard transaction.revocationDate == nil else { continue }
-
-                if transaction.productID == Self.productID {
-                    isUnlocked = true
-                    break
-                }
-            } catch {
-                print("Failed to verify lifetime entitlement: \(error)")
-            }
-        }
-
-        hasLifetimeAccess = isUnlocked
-    }
-
-    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
-        switch result {
-        case .unverified(_, let error):
-            throw error
-        case .verified(let safe):
-            return safe
         }
     }
 }

@@ -211,6 +211,7 @@ struct HomeView: View {
     @State private var showShareSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
+    @State private var showLifetimePromo = false
     @State private var eventStore = EKEventStore()
     @State private var showEventEditor = false
     @State private var eventToEdit: EKEvent?
@@ -309,6 +310,10 @@ struct HomeView: View {
     @AppStorage("hasTriggeredShakeToResetTip") private var hasTriggeredShakeToResetTip = false
     @AppStorage("showTimeZoneUpdatedTip") private var showTimeZoneUpdatedTip = false
     @AppStorage("lastKnownTimeZoneIdentifier") private var lastKnownTimeZoneIdentifier = ""
+    // Pacing of the Unlock All Features sheet, see showLifetimePromoIfDue()
+    @AppStorage("lifetimePromoStartTime") private var lifetimePromoStartTime: Double = 0
+    @AppStorage("lifetimePromoLastShownTime") private var lifetimePromoLastShownTime: Double = 0
+    @AppStorage("lifetimePromoShownCount") private var lifetimePromoShownCount = 0
     @AppStorage("homeTimerConfiguredSeconds") private var homeTimerConfiguredSeconds = 0
     @AppStorage("homeTimerEndDateEpoch") private var homeTimerEndDateEpoch: Double = 0
     @AppStorage("homeTimerCompletionHandled") private var homeTimerCompletionHandled = false
@@ -2106,6 +2111,13 @@ struct HomeView: View {
                     checkForTimeZoneChange()
                 }
             }
+            .task(id: scenePhase) {
+                guard scenePhase == .active else { return }
+                // Lets Home settle first, rather than the sheet greeting the user
+                try? await Task.sleep(for: .seconds(3))
+                guard !Task.isCancelled else { return }
+                showLifetimePromoIfDue()
+            }
             .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange).receive(on: DispatchQueue.main)) { _ in
                 checkForTimeZoneChange()
             }
@@ -2256,6 +2268,9 @@ struct HomeView: View {
                 NavigationStack {
                     LifetimeStoreView()
                 }
+            }
+            .sheet(isPresented: $showLifetimePromo) {
+                LifetimePromoSheet()
             }
             
             // Event Editor Sheet
@@ -2506,6 +2521,48 @@ struct HomeView: View {
         withAnimation(.spring()) {
             showTimeZoneUpdatedTip = true
         }
+    }
+
+    // Show the Unlock All Features sheet to non-owners: not in their first
+    // days with the app, then at most once a week, and only a few times in all
+    private func showLifetimePromoIfDue() {
+        guard !hasLifetimeAccess else { return }
+
+        let day: TimeInterval = 24 * 60 * 60
+        let now = Date.now.timeIntervalSince1970
+        // The first check starts the clock
+        if lifetimePromoStartTime == 0 {
+            lifetimePromoStartTime = now
+        }
+
+        guard now - lifetimePromoStartTime >= 3 * day,
+              now - lifetimePromoLastShownTime >= 7 * day,
+              lifetimePromoShownCount < 4,
+              // Not while the user is scrolling through time or in a sheet
+              timeOffset == 0,
+              !isPresentingAnything else { return }
+
+        lifetimePromoLastShownTime = now
+        lifetimePromoShownCount += 1
+        showLifetimePromo = true
+    }
+
+    // Whether a sheet, cover or alert is up, from Home or anywhere else in the
+    // window, which the promo sheet would fail to present over. Any view
+    // controller in the tree may be the presenter, such as the tab bar's.
+    private var isPresentingAnything: Bool {
+        func isPresenting(_ viewController: UIViewController) -> Bool {
+            viewController.presentedViewController != nil
+                || viewController.children.contains(where: isPresenting)
+        }
+
+        let windowScene = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first { $0.activationState == .foregroundActive }
+        guard let rootViewController = windowScene?.keyWindow?.rootViewController else {
+            return false
+        }
+        return isPresenting(rootViewController)
     }
 }
 
