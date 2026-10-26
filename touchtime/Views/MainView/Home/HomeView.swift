@@ -264,16 +264,15 @@ struct HomeView: View {
         complicationOptions.hasVisibleComplication
     }
     
-    /// On iPhone Duo a city's details share the screen with the list instead
-    /// of opening as a sheet: side by side in landscape, and stacked on the
-    /// unfolded screen in portrait, flat or partially open, the details above
-    /// the fold and the list below it.
+    /// On the unfolded iPhone Duo a city's details share the screen with the
+    /// list instead of opening as a sheet: side by side in landscape, and
+    /// stacked in portrait, flat or partially open, the details above the
+    /// fold and the list below it. Only at regular width: the keyboard can
+    /// leave the folded iPhone Duo's window wider than it is tall, and
+    /// switching layouts rebuilds the list along with every sheet it presents.
     var splitAxis: Axis? {
-        guard #available(iOS 27.1, *) else { return nil }
-        if isLandscape {
-            return .horizontal
-        }
-        return horizontalSizeClass == .regular ? .vertical : nil
+        guard #available(iOS 27.1, *), horizontalSizeClass == .regular else { return nil }
+        return isLandscape ? .horizontal : .vertical
     }
 
     var usesSplitLayout: Bool {

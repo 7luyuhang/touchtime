@@ -827,13 +827,11 @@ struct AnalogClockFullView: View {
 
     /// On the open iPhone Duo the digital time takes a pane of its own:
     /// beside the clock in landscape, and above the fold in portrait, flat or
-    /// partially open.
+    /// partially open. Only at regular width: the keyboard can leave the
+    /// folded iPhone Duo's window wider than it is tall.
     private var splitAxis: Axis? {
-        guard #available(iOS 27.1, *) else { return nil }
-        if isLandscape {
-            return .horizontal
-        }
-        return horizontalSizeClass == .regular ? .vertical : nil
+        guard #available(iOS 27.1, *), horizontalSizeClass == .regular else { return nil }
+        return isLandscape ? .horizontal : .vertical
     }
 
     /// The open iPhone Duo in portrait, flat or partially open, where the

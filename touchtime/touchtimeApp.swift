@@ -146,8 +146,9 @@ extension EnvironmentValues {
 private struct WindowOrientationReader: ViewModifier {
     func body(content: Content) -> some View {
         GeometryReader { proxy in
-            // The safe area added back, so the keyboard can't make a portrait
-            // window look wide
+            // The safe area added back, so a keyboard inset can't make a
+            // portrait window look wide. On the folded iPhone Duo the keyboard
+            // shortens the window instead, so there it still can
             let insets = proxy.safeAreaInsets
             let width = proxy.size.width + insets.leading + insets.trailing
             let height = proxy.size.height + insets.top + insets.bottom
