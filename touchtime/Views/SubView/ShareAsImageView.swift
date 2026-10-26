@@ -9,6 +9,7 @@ import SwiftUI
 import UIKit
 import CoreHaptics
 import Photos
+import UniformTypeIdentifiers
 
 /// Frame of a share image. The width is fixed so the card keeps the
 /// same size in every ratio; only the backdrop around it grows or
@@ -381,5 +382,20 @@ private struct GlassActionButtonStyle<S: Shape>: ButtonStyle {
     private var glass: Glass {
         guard let tint else { return .regular.interactive() }
         return .regular.tint(tint).interactive()
+    }
+}
+
+// MARK: - Lazy Card Image (deferred rendering for ShareLink)
+struct LazyCardImage: Transferable {
+    let render: () -> UIImage
+    
+    static var transferRepresentation: some TransferRepresentation {
+        DataRepresentation(exportedContentType: .png) { lazy in
+            let image = lazy.render()
+            guard let data = image.pngData() else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+            return data
+        }
     }
 }
