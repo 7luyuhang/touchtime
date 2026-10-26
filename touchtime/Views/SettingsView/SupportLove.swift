@@ -14,16 +14,17 @@ import Shimmer
 struct CircularTipIcon: View {
     let systemName: String
     var fill: Color = .clear
+    var size: CGFloat = 28
     
     var body: some View {
         ZStack {
             Circle()
                 .fill(fill)
-                .frame(width: 28, height: 28)
+                .frame(width: size, height: size)
                 .glassEffect(.clear, in: Circle())
                 
             Image(systemName: systemName)
-                .font(.system(size: 15))
+                .font(.system(size: 17))
                 .fontWeight(.medium)
                 .foregroundStyle(.white)
         }
@@ -36,6 +37,9 @@ struct TipJarView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showExpandedFeatures = false
     @State private var heartBurst = 0
+    /// The price buttons' height, which the tip icons beside them match;
+    /// starts at its height at the default text size.
+    @State private var priceButtonHeight: CGFloat = 36
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
@@ -80,7 +84,7 @@ struct TipJarView: View {
                         if let smallTip = iapManager.products.first(where: { $0.id == "com.time.tip.small" }) {
                             HStack {
                                 HStack(spacing: 12) {
-                                    CircularTipIcon(systemName: "heart.fill")
+                                    CircularTipIcon(systemName: "heart.fill", size: priceButtonHeight)
                                     Text(String(localized: "Small Tip"))
                                         .foregroundStyle(.primary)
                                 }
@@ -102,7 +106,7 @@ struct TipJarView: View {
                         if let mediumTip = iapManager.products.first(where: { $0.id == "com.time.tip.medium" }) {
                             HStack {
                                 HStack(spacing: 12) {
-                                    CircularTipIcon(systemName: "heart.fill")
+                                    CircularTipIcon(systemName: "heart.fill", size: priceButtonHeight)
                                     Text(String(localized: "Medium Tip"))
                                         .foregroundStyle(.primary)
                                 }
@@ -125,7 +129,7 @@ struct TipJarView: View {
                             if let largeTip = iapManager.products.first(where: { $0.id == "com.time.tip.large" }) {
                                 HStack {
                                     HStack(spacing: 12) {
-                                        CircularTipIcon(systemName: "heart.fill", fill: .pink.opacity(1.0))
+                                        CircularTipIcon(systemName: "heart.fill", fill: .pink.opacity(1.0), size: priceButtonHeight)
                                         Text(String(localized: "Large Tip"))
                                             .foregroundStyle(.primary)
                                     }
@@ -266,6 +270,11 @@ struct TipJarView: View {
                 .padding(.horizontal, 12)
                 .padding(.vertical, 8)
                 .glassEffect(.clear.interactive())
+                .onGeometryChange(for: CGFloat.self) { proxy in
+                    proxy.size.height
+                } action: { height in
+                    priceButtonHeight = height
+                }
         }
         .disabled(isPurchasing)
         .opacity(isPurchasing ? 0 : 1)
