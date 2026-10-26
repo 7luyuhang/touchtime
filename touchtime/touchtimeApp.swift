@@ -20,9 +20,6 @@ struct touchtimeApp: App {
     // Shared countdown source of truth; injected app-wide so the Home
     // cards and the countdown sheet always observe the same data.
     @State private var countdownStore = CountdownStore()
-    // Injected app-wide, so sheets that take only part of the window still
-    // know which way up it is.
-    @State private var isWindowLandscape = false
     // The home indicator's inset, for tabs whose own bottom inset goes stale
     // next to a vertical bar (iPhone Duo).
     @State private var windowBottomInset: CGFloat = 0
@@ -52,19 +49,7 @@ struct touchtimeApp: App {
                 .syncsLiveActivities()
                 .environment(countdownStore)
                 .environment(\.colorScheme, .dark) // Force dark theme
-                .environment(\.isWindowLandscape, isWindowLandscape)
                 .environment(\.windowBottomInset, windowBottomInset)
-                .background {
-                    // Measures the whole window, so the keyboard can't make a
-                    // portrait screen look wide
-                    Color.clear
-                        .ignoresSafeArea()
-                        .onGeometryChange(for: Bool.self) { proxy in
-                            proxy.size.width > proxy.size.height
-                        } action: { isWide in
-                            isWindowLandscape = isWide
-                        }
-                }
                 .background {
                     // Outside the tab view, so without any bar, and ignoring
                     // the keyboard
@@ -104,6 +89,9 @@ struct touchtimeApp: App {
                 .onReceive(NotificationCenter.default.publisher(for: .NSSystemTimeZoneDidChange).receive(on: DispatchQueue.main)) { _ in
                     Task { await AlarmSupport.resyncCityAlarms() }
                 }
+                // Injected app-wide, so sheets that take only part of the
+                // window still know which way up it is
+                .readsWindowOrientation()
         }
         .onChange(of: scenePhase) { _, newPhase in
             // Keep the rolling 24-hour window of on-the-hour notifications topped up,
@@ -149,4 +137,27 @@ extension EnvironmentValues {
     /// The window's own bottom safe area inset (the home indicator), without
     /// any bar or the keyboard.
     @Entry var windowBottomInset: CGFloat = 0
+}
+
+/// Sets `isWindowLandscape` from the window's geometry as it's laid out, so
+/// on a rotation the views get the new orientation in the same layout pass
+/// as the new size. Measured after the fact, it would land one update late,
+/// and for that update the views would lay out the new size the old way.
+private struct WindowOrientationReader: ViewModifier {
+    func body(content: Content) -> some View {
+        GeometryReader { proxy in
+            // The safe area added back, so the keyboard can't make a portrait
+            // window look wide
+            let insets = proxy.safeAreaInsets
+            let width = proxy.size.width + insets.leading + insets.trailing
+            let height = proxy.size.height + insets.top + insets.bottom
+            content.environment(\.isWindowLandscape, width > height)
+        }
+    }
+}
+
+private extension View {
+    func readsWindowOrientation() -> some View {
+        modifier(WindowOrientationReader())
+    }
 }

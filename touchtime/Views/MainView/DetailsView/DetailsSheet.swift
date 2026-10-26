@@ -401,7 +401,7 @@ struct SunriseSunsetSheet: View {
             }
             .scrollIndicators(.hidden)
             // Above the list it fades out toward the fold
-            .foldEdgeFade(.bottom, isActive: splitAxis == .vertical)
+            .foldEdgeFade(.bottom, splitAxis: splitAxis)
             .safeAreaInset(edge: .top, spacing: 0) {
                 Group {
                     if isExpanded {

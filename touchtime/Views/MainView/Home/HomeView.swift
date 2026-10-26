@@ -82,7 +82,7 @@ struct HomeView: View {
     @State var selectedTimeZone: String = ""
     @State var selectedCityName: String = ""
     // iPhone Duo landscape: the list and a city's details side by side
-    @State private var isLandscape = false
+    @Environment(\.isWindowLandscape) private var isLandscape
     // City shown in the detail pane; nil means the local time
     @State var detailPaneCityId: UUID? = nil
     @State var showArrangeListSheet = false
@@ -309,17 +309,6 @@ struct HomeView: View {
             } else {
                 homeContent
             }
-        }
-        .background {
-            // Measures the whole window, so the keyboard can't make a portrait
-            // screen look wide
-            Color.clear
-                .ignoresSafeArea()
-                .onGeometryChange(for: Bool.self) { proxy in
-                    proxy.size.width > proxy.size.height
-                } action: { isWide in
-                    isLandscape = isWide
-                }
         }
         // The detail pane takes over from the details sheet
         .onChange(of: usesSplitLayout) { _, usesSplitLayout in

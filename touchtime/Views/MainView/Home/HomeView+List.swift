@@ -63,7 +63,7 @@ extension HomeView {
         // phone-wide column keeps a phone's
         .safeAreaPadding(.horizontal, usesPhoneColumn ? 20 : 0)
         // Below the details it fades in from the fold
-        .foldEdgeFade(.top, isActive: splitAxis == .vertical)
+        .foldEdgeFade(.top, splitAxis: splitAxis)
         .id(selectedCollectionId?.uuidString ?? "default")
         .transition(.identity) // Collection Animation
         // Centralized batch weather prefetch for all displayed cities

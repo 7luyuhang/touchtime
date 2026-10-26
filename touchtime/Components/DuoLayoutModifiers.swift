@@ -64,9 +64,11 @@ extension View {
 
 /// Fades scrolling content out over its last stretch before the fold between
 /// iPhone Duo's stacked panes, so it dissolves into the sky behind them
-/// instead of ending in a hard edge.
+/// instead of ending in a hard edge. Inactive, the fade closes up and the
+/// content shows in full.
 struct FoldEdgeFade: ViewModifier {
     let edge: VerticalEdge
+    let isActive: Bool
 
     private static let length: CGFloat = 40
 
@@ -82,12 +84,12 @@ struct FoldEdgeFade: ViewModifier {
             VStack(spacing: 0) {
                 if edge == .top {
                     LinearGradient(stops: Self.stops, startPoint: .top, endPoint: .bottom)
-                        .frame(height: Self.length)
+                        .frame(height: isActive ? Self.length : 0)
                 }
                 Color.black
                 if edge == .bottom {
                     LinearGradient(stops: Self.stops, startPoint: .bottom, endPoint: .top)
-                        .frame(height: Self.length)
+                        .frame(height: isActive ? Self.length : 0)
                 }
             }
             // Also covers what the scroll view draws under its bars
@@ -97,10 +99,15 @@ struct FoldEdgeFade: ViewModifier {
 }
 
 extension View {
+    /// For a pane of a split along `splitAxis`: the fade shows while the
+    /// panes are stacked, with the fold between them.
     @ViewBuilder
-    func foldEdgeFade(_ edge: VerticalEdge, isActive: Bool) -> some View {
-        if isActive {
-            modifier(FoldEdgeFade(edge: edge))
+    func foldEdgeFade(_ edge: VerticalEdge, splitAxis: Axis?) -> some View {
+        if splitAxis != nil {
+            // Kept on either way the panes split: adding or removing it would
+            // rebuild the content on every turn of the iPhone, which then
+            // vanishes and fades back in during the rotation
+            modifier(FoldEdgeFade(edge: edge, isActive: splitAxis == .vertical))
         } else {
             self
         }

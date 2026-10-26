@@ -81,8 +81,8 @@ struct AnalogClockFullView: View {
     @State private var staticCameraFrame: UIImage?
     @State private var cameraPreviewFilter: CameraPreviewFilter = .standard
     @StateObject private var cameraSessionController = CameraSessionController()
-    /// The clock's space is wider than tall: the open iPhone Duo in landscape
-    @State private var isLandscape = false
+    /// The window is wider than tall: the open iPhone Duo in landscape
+    @Environment(\.isWindowLandscape) private var isLandscape
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     
@@ -825,13 +825,22 @@ struct AnalogClockFullView: View {
         }
     }
 
+    /// On the open iPhone Duo the digital time takes a pane of its own:
+    /// beside the clock in landscape, and above the fold in portrait, flat or
+    /// partially open.
+    private var splitAxis: Axis? {
+        guard #available(iOS 27.1, *) else { return nil }
+        if isLandscape {
+            return .horizontal
+        }
+        return horizontalSizeClass == .regular ? .vertical : nil
+    }
+
     /// The open iPhone Duo in portrait, flat or partially open, where the
     /// ellipsis and camera buttons leave the navigation bar for the top of
     /// the clock's half below the fold, as on the List tab
     private var usesPortraitSplit: Bool {
-        guard #available(iOS 27.1, *) else { return false }
-        return horizontalSizeClass == .regular && !isLandscape
-            && !(displayedClocks.isEmpty && !showLocalTime)
+        splitAxis == .vertical && !(displayedClocks.isEmpty && !showLocalTime)
     }
 
     private var moreMenu: some View {
@@ -1454,65 +1463,61 @@ struct AnalogClockFullView: View {
         }
     }
 
-    /// iPhone Duo landscape's right column: the face centered, level with the
-    /// digits in the left column, and Slide to Adjust under it.
-    private var clockColumn: some View {
-        GeometryReader { column in
-            let size = min(column.size.width, column.size.height, Self.maximumClockWidth)
-
-            VStack(spacing: 0) {
-                Spacer(minLength: 0)
-                clockFace(size: size, isFolded: false)
-                scrollTimeControls
-                    .frame(height: (column.size.height - size) / 2, alignment: .bottom)
-            }
-            .frame(width: column.size.width, height: column.size.height)
-        }
-    }
-
-    /// The open iPhone Duo's half below the fold in portrait: the face as
-    /// large as fits above Slide to Adjust. That's about the size of the
-    /// folded screen's, so it takes the folded screen's numbers and labels.
-    /// There's no room left for the reset button that floats above Slide to
-    /// Adjust once the time is adjusted, so it covers the bottom of the face.
-    /// The ellipsis and camera buttons sit in its top corners.
-    private var clockBelowFold: some View {
+    /// The open iPhone Duo's clock pane. Beside the digits in landscape: the
+    /// face centered, level with the digits, and Slide to Adjust under it.
+    /// Below the fold in portrait: the face as large as fits above Slide to
+    /// Adjust. That's about the size of the folded screen's, so it takes the
+    /// folded screen's numbers and labels. There's no room left for the reset
+    /// button that floats above Slide to Adjust once the time is adjusted, so
+    /// it covers the bottom of the face. The ellipsis and camera buttons sit
+    /// in its top corners.
+    ///
+    /// The same views both ways up, so turning the iPhone moves the face and
+    /// Slide to Adjust instead of building them anew mid-rotation.
+    private func clockPane(isBelowFold: Bool) -> some View {
         GeometryReader { pane in
             // Slide to Adjust is 52pt tall and 8pt off the bottom
             let controlsHeight: CGFloat = 60
             // Between the face circle and Slide to Adjust
-            let gapAboveControls: CGFloat = 16
-            // The face circle is drawn 12pt inside the face's frame. That empty
-            // band can run up past the top of the pane, toward the fold, and
-            // down into the gap above Slide to Adjust.
-            let clockFaceInset: CGFloat = 12
+            let gapAboveControls: CGFloat = isBelowFold ? 16 : 0
+            // The face circle is drawn 12pt inside the face's frame. Below the
+            // fold that empty band can run up past the top of the pane, toward
+            // the fold, and down into the gap above Slide to Adjust.
+            let clockFaceInset: CGFloat = isBelowFold ? 12 : 0
             let size = min(
                 pane.size.width,
-                max(pane.size.height - controlsHeight - gapAboveControls + 2 * clockFaceInset, 0),
+                isBelowFold
+                    ? max(pane.size.height - controlsHeight - gapAboveControls + 2 * clockFaceInset, 0)
+                    : pane.size.height,
                 Self.maximumClockWidth
             )
 
             VStack(spacing: gapAboveControls) {
-                clockFace(size: size, isFolded: true)
-                    .mask { clockBelowFoldMask(clockFaceInset: clockFaceInset) }
+                clockFace(size: size, isFolded: isBelowFold)
+                    .mask { clockPaneMask(isBelowFold: isBelowFold, clockFaceInset: clockFaceInset) }
                     .padding(.vertical, -clockFaceInset)
-                    .frame(maxHeight: .infinity)
+                    // Beside the digits Slide to Adjust takes as much room
+                    // below the face as is left above it, so it's centered
+                    .frame(maxHeight: .infinity, alignment: isBelowFold ? .center : .bottom)
                 scrollTimeControls
+                    .frame(height: isBelowFold ? nil : (pane.size.height - size) / 2, alignment: .bottom)
             }
             .frame(width: pane.size.width, height: pane.size.height)
             .overlay(alignment: .top) {
-                // Where the List tab's navigation bar below the fold puts its
-                // buttons
-                HStack {
-                    moreMenu
-                    Spacer()
-                    if !displayedClocks.isEmpty {
-                        cameraControls
+                if isBelowFold {
+                    // Where the List tab's navigation bar below the fold puts
+                    // its buttons
+                    HStack {
+                        moreMenu
+                        Spacer()
+                        if !displayedClocks.isEmpty {
+                            cameraControls
+                        }
                     }
+                    .buttonStyle(BarGlassCircleButtonStyle())
+                    .padding(.horizontal, 20)
+                    .padding(.top, 10)
                 }
-                .buttonStyle(BarGlassCircleButtonStyle())
-                .padding(.horizontal, 20)
-                .padding(.top, 10)
             }
         }
     }
@@ -1520,10 +1525,11 @@ struct AnalogClockFullView: View {
     /// Below the fold the zoom slider runs over the bottom of the face, so in
     /// camera mode the face fades out under it, gone from just above its
     /// ticks. `clockFaceInset` is the empty band around the face circle.
-    private func clockBelowFoldMask(clockFaceInset: CGFloat) -> some View {
+    /// Beside the digits the face shows in full.
+    private func clockPaneMask(isBelowFold: Bool, clockFaceInset: CGFloat) -> some View {
         ZStack {
             Color.black
-                .opacity(isCameraBackgroundEnabled ? 0 : 1)
+                .opacity(isBelowFold && isCameraBackgroundEnabled ? 0 : 1)
             VStack(spacing: 0) {
                 Color.black
                 LinearGradient(colors: [.black, .clear], startPoint: .top, endPoint: .bottom)
@@ -1604,39 +1610,34 @@ struct AnalogClockFullView: View {
                                 addCitiesButton
                             }
                         }
-                    } else if #available(iOS 27.1, *), geometry.size.width > geometry.size.height {
-                        // iPhone Duo landscape: the digital time and the clock
-                        // side by side. The columns span the full height so the
-                        // digits and the face center on the screen; the bottom
-                        // inset given back at both ends keeps the dots and
-                        // controls off the home indicator.
+                    } else if #available(iOS 27.1, *), let splitAxis {
+                        // The open iPhone Duo. In landscape the digital time
+                        // and the clock side by side: the columns span the
+                        // full height so the digits and the face center on the
+                        // screen, and the bottom inset given back at both ends
+                        // keeps the dots and controls off the home indicator.
+                        // In portrait, flat or partially open, the digital
+                        // time above the fold, and the clock and Slide to
+                        // Adjust below it: the split spans the full height so
+                        // it stays even about the fold, the digits center on
+                        // the whole screen above it, under the navigation bar,
+                        // and the bottom inset is given back below the fold.
+                        // One arrangement both ways up, so turning the iPhone
+                        // moves the panes instead of building them anew
+                        // mid-rotation.
+                        let isSideBySide = splitAxis == .horizontal
                         let bottomInset = geometry.safeAreaInsets.bottom
-                        ArrangementView {
-                            digitsPane()
-                                .padding(.vertical, bottomInset)
-                        } secondary: {
-                            clockColumn
-                                .padding(.vertical, bottomInset)
-                        }
-                        .arrangementViewStyle(.split.axes(.horizontal))
-                        .ignoresSafeArea(.container, edges: .vertical)
-                    } else if #available(iOS 27.1, *), isRegularWidth {
-                        // iPhone Duo open in portrait, flat or partially open:
-                        // the digital time above the fold, and the clock and
-                        // Slide to Adjust below it. The split spans the full
-                        // height so it stays even about the fold, and the
-                        // digits center on the whole screen above it, under
-                        // the navigation bar; the bottom inset is given back
-                        // below the fold.
                         let screenHeight = geometry.size.height
                             + geometry.safeAreaInsets.top + geometry.safeAreaInsets.bottom
                         ArrangementView {
-                            digitsPane(centeringHeight: screenHeight / 2)
+                            digitsPane(centeringHeight: isSideBySide ? nil : screenHeight / 2)
+                                .padding(.vertical, isSideBySide ? bottomInset : 0)
                         } secondary: {
-                            clockBelowFold
-                                .padding(.bottom, geometry.safeAreaInsets.bottom)
+                            clockPane(isBelowFold: !isSideBySide)
+                                .padding(.top, isSideBySide ? bottomInset : 0)
+                                .padding(.bottom, bottomInset)
                         }
-                        .arrangementViewStyle(.split.axes(.vertical))
+                        .arrangementViewStyle(.split.axes(isSideBySide ? .horizontal : .vertical))
                         .ignoresSafeArea(.container, edges: .vertical)
                     } else {
                         // Analog Clock - always centered
@@ -1664,11 +1665,6 @@ struct AnalogClockFullView: View {
                 }
             }
             .ignoresSafeArea(.keyboard, edges: .bottom)
-            .onGeometryChange(for: Bool.self) { proxy in
-                proxy.size.width > proxy.size.height
-            } action: { isWide in
-                isLandscape = isWide
-            }
             .verticalBarBottomInset()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
