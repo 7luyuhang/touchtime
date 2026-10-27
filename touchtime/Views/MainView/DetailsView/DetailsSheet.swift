@@ -541,6 +541,7 @@ struct SunriseSunsetSheet: View {
                         } label: {
                             Image(systemName: "location.fill")
                         }
+                        .verticalBarItemRebuild()
                     }
                     .matchedTransitionSource(id: Self.mapZoomSourceID, in: mapZoomNamespace)
                 }
