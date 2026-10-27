@@ -28,6 +28,7 @@ struct ContentView: View {
     @State private var clockOpensCamera = false
     
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @AppStorage("dateStyle") private var dateStyle = "Relative"
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
@@ -78,6 +79,13 @@ struct ContentView: View {
             .tabViewStyle(.automatic)
             .onAppear {
                 loadWorldClocks()
+            }
+            // The Apple Watch app shows the same cities, in the same date style
+            .onChange(of: worldClocks) { _, clocks in
+                WatchSyncManager.shared.sync(clocks: clocks)
+            }
+            .onChange(of: dateStyle) {
+                WatchSyncManager.shared.sync()
             }
             // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)
             // land on the List tab, where HomeView presents the matching sheet;

@@ -41,6 +41,9 @@ struct touchtimeApp: App {
 
         // Before any view reads it, so Fahrenheit users keep mph
         WindSpeedUnit.migrateFromTemperatureUnit()
+
+        // The Apple Watch app gets its cities from here
+        WatchSyncManager.shared.activate()
     }
     
     var body: some Scene {
@@ -114,6 +117,9 @@ struct touchtimeApp: App {
                 // Keep the widget's city list and time format up to date
                 SharedWidgetStore.syncFromApp()
                 WidgetCenter.shared.reloadAllTimelines()
+                // And the Apple Watch app's cities and date style, whichever
+                // screen changed them
+                WatchSyncManager.shared.sync()
             }
         }
     }

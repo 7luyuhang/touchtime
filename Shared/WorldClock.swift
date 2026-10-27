@@ -74,12 +74,16 @@ struct WorldClock: Identifiable, Codable, Equatable {
     }
     
     var timeDifference: String {
-        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier),
-              let localTimeZone = TimeZone.current as TimeZone? else {
+        guard let targetTimeZone = TimeZone(identifier: timeZoneIdentifier) else {
             return ""
         }
         
-        let difference = (targetTimeZone.secondsFromGMT() - localTimeZone.secondsFromGMT()) / 3600
+        return Self.timeDifference(to: targetTimeZone)
+    }
+    
+    // Whole hours a time zone is ahead of or behind the local one (e.g., "+8h", "-5h"), or "" when they're less than an hour apart
+    static func timeDifference(to targetTimeZone: TimeZone, at date: Date = Date()) -> String {
+        let difference = (targetTimeZone.secondsFromGMT(for: date) - TimeZone.current.secondsFromGMT(for: date)) / 3600
         
         if difference == 0 {
             return ""
