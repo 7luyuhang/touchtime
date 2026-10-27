@@ -19,7 +19,7 @@ struct ClockTimeText: View {
     let timeZone: TimeZone
     var size: Size = .large
 
-    @ScaledMetric(relativeTo: .largeTitle) private var largeDigitsSize: CGFloat = 34
+    @ScaledMetric(relativeTo: .largeTitle) private var largeDigitsSize: CGFloat = 40
     /// The watch's region settings, 24-Hour Time included.
     @Environment(\.locale) private var locale
 

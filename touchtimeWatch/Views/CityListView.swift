@@ -24,6 +24,7 @@ struct CityListView: View {
                     }
                 } footer: {
                     Text("Add and arrange cities in Touch Time on iPhone.")
+                        .multilineTextAlignment(.center)
                 }
             }
         }
@@ -36,27 +37,46 @@ private struct CityRow: View {
     let dateStyle: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            HStack(alignment: .firstTextBaseline) {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
                 Text(city.name)
+                    .fontWeight(.medium)
                     .lineLimit(1)
+                
                 Spacer(minLength: 4)
-                if city.isLocal {
-                    Image(systemName: "location.fill")
-                        .font(.footnote)
-                        .accessibilityHidden(true)
-                }
+                
+                Text(date.formattedDate(style: dateStyle, timeZone: city.timeZone, relativeTo: date))
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .blendMode(.plusLighter)
+                    .lineLimit(1)
+                    .layoutPriority(1)
             }
 
-            ClockTimeText(date: date, timeZone: city.timeZone)
-
-            Text(WatchTimeFormat.dayAndOffset(date, in: city.timeZone, now: date, dateStyle: dateStyle))
-                .font(.footnote)
+            HStack(alignment: .lastTextBaseline) {
+                Group {
+                    if city.isLocal {
+                        Image(systemName: "location.fill")
+                            .accessibilityHidden(true)
+                    } else {
+                        Text(WorldClock.timeDifference(to: city.timeZone, at: date))
+                            .lineLimit(1)
+                    }
+                }
+                .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .blendMode(.plusLighter)
-                .lineLimit(1)
+                .layoutPriority(1)
+
+                Spacer(minLength: 4)
+
+                ClockTimeText(date: date, timeZone: city.timeZone)
+            }
         }
-        .padding(.vertical, 6)
+        // Less below, as the time's digits leave the space under their
+        // baseline empty
+        .padding(.top, 12)
+        .padding(.bottom, 4)
         .accessibilityElement(children: .combine)
     }
 }

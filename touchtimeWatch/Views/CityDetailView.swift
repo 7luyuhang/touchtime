@@ -85,17 +85,16 @@ struct CityDetailView: View {
             let time = ClockTimeText(date: date, timeZone: city.timeZone)
                 .foregroundStyle(isScrubbing ? Color.accentColor : .white)
 
-            if !isScrubbing, let sunTimes = sunTimes(on: date) {
-                // The sun's times give way on screens too narrow for both
-                ViewThatFits(in: .horizontal) {
-                    HStack(spacing: 4) {
-                        time
-                        Spacer(minLength: 0)
-                        SunTimesView(sunrise: sunTimes.sunrise, sunset: sunTimes.sunset, timeZone: city.timeZone)
-                    }
+            // The sun's times give way on screens too narrow for both
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 4) {
                     time
+                    Spacer(minLength: 0)
+                    if !isScrubbing, let sunTimes = sunTimes(on: date) {
+                        SunTimesView(sunrise: sunTimes.sunrise, sunset: sunTimes.sunset, timeZone: city.timeZone)
+                            .transition(.blurReplace)
+                    }
                 }
-            } else {
                 time
             }
 
