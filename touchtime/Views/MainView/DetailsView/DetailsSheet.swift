@@ -7,7 +7,6 @@
 
 import SwiftUI
 import Combine
-import CoreLocation
 import WeatherKit
 
 /// One of the four principal moon phases with the instant it next occurs.
@@ -48,8 +47,6 @@ struct SunriseSunsetSheet: View {
     @State private var showDSTSheet = false // Track DST sheet
     @Namespace private var dstZoomNamespace // Pairs the DST pill with the sheet that zooms out of it
     @State private var floatingDSTPillHeight: CGFloat = 0 // Rounds the zoom's start into the pill's capsule
-    @State private var showMapSheet = false // Track map sheet
-    @Namespace private var mapZoomNamespace // Pairs the location button with the map sheet that zooms out of it
     @State private var currentDetent: PresentationDetent // Track current sheet size
     @State private var showMoonPhaseView = false // Track moon phase view navigation
     @State private var showWidgetIntroSheet = false // Track widget intro sheet
@@ -88,7 +85,6 @@ struct SunriseSunsetSheet: View {
     }
 
     private static let dstZoomSourceID = "dst"
-    private static let mapZoomSourceID = "map"
 
     // Large detent layout: sticky time section and full-sheet sky
     private var isExpanded: Bool {
@@ -527,29 +523,9 @@ struct SunriseSunsetSheet: View {
                     }
                 }
                 
-                // Bottom bar: location + DST (if any) + reset (if time is scrolled).
+                // Bottom bar: DST (if any) + reset (if time is scrolled).
                 // The detail pane leaves the reset to the list's Slide to Adjust
                 // bar, and beside the list its DST pill floats over the content.
-                // Open in Map
-                if getCoordinatesForTimeZone(timeZoneIdentifier) != nil {
-                    ToolbarItem(placement: .bottomBar) {
-                        Button {
-                            if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
-                            showMapSheet = true
-                        } label: {
-                            Image(systemName: "location.fill")
-                        }
-                        .verticalBarItemRebuild()
-                    }
-                    .matchedTransitionSource(id: Self.mapZoomSourceID, in: mapZoomNamespace)
-                }
-                
-                if !floatsDSTPill && getCoordinatesForTimeZone(timeZoneIdentifier) != nil && dstInfo != nil {
-                    ToolbarSpacer(.fixed, placement: .bottomBar)
-                }
-                
                 // DST information in bottom bar
                 if !floatsDSTPill, let dst = dstInfo, let transitionDate = dst.transitionDate {
                     ToolbarItem(placement: .bottomBar) {
@@ -568,7 +544,7 @@ struct SunriseSunsetSheet: View {
                     // a flexible spacer pushes the reset button to the far right.
                     if dstInfo != nil {
                         ToolbarSpacer(.fixed, placement: .bottomBar)
-                    } else if getCoordinatesForTimeZone(timeZoneIdentifier) != nil {
+                    } else {
                         ToolbarSpacer(.flexible, placement: .bottomBar)
                     }
                     
@@ -616,15 +592,6 @@ struct SunriseSunsetSheet: View {
                         dateFormat: dateFormat
                     )
                     .navigationTransition(.zoom(sourceID: Self.dstZoomSourceID, in: dstZoomNamespace))
-                }
-            }
-            .sheet(isPresented: $showMapSheet) {
-                if let coords = getCoordinatesForTimeZone(timeZoneIdentifier) {
-                    CityMapSheet(
-                        cityName: cityName,
-                        coordinate: CLLocationCoordinate2D(latitude: coords.latitude, longitude: coords.longitude)
-                    )
-                    .navigationTransition(.zoom(sourceID: Self.mapZoomSourceID, in: mapZoomNamespace))
                 }
             }
         }

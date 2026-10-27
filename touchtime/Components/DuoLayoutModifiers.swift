@@ -62,29 +62,6 @@ extension View {
     }
 }
 
-/// A bottom bar item that iPhone Duo moves into a vertical bar as it turns
-/// keeps its glass but loses what's drawn on it. Rebuilt whenever the bar
-/// moves to another edge, the item is drawn afresh in its new place.
-@available(iOS 27.1, *)
-struct VerticalBarItemRebuild: ViewModifier {
-    @Environment(\.toolbarVerticalEdge) private var verticalBarEdge
-
-    func body(content: Content) -> some View {
-        content.id(verticalBarEdge)
-    }
-}
-
-extension View {
-    @ViewBuilder
-    func verticalBarItemRebuild() -> some View {
-        if #available(iOS 27.1, *) {
-            modifier(VerticalBarItemRebuild())
-        } else {
-            self
-        }
-    }
-}
-
 /// Fades scrolling content out over its last stretch before the fold between
 /// iPhone Duo's stacked panes, so it dissolves into the sky behind them
 /// instead of ending in a hard edge. Inactive, the fade closes up and the
