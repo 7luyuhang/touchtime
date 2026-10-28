@@ -9,22 +9,62 @@ import SwiftUI
 struct CityListView: View {
     let cities: [ClockCity]
     @Binding var selection: String?
+    /// The time every clock shows in place of now, or nil for now.
+    @Binding var adjustedDate: Date?
 
     @Environment(WatchCityStore.self) private var cityStore
+    /// The slide under way on the Scroll Time bar, or nil while it's at rest.
+    @State private var timeSlide: ScrollTimeSlide?
+    /// The list's bottom edge and the Scroll Time bar's top, on screen. How
+    /// far apart they are differs from watch to watch.
+    @State private var listBottom: CGFloat = 0
+    @State private var scrollTimeBarTop: CGFloat = 0
+
+    /// Whether the button that brings the clocks back to now shows. A slide
+    /// leaves it as it was until the finger lifts.
+    private var showsResetButton: Bool {
+        timeSlide.map { $0.start != nil } ?? (adjustedDate != nil)
+    }
+
+    /// Room below the last city, so it scrolls clear of the Scroll Time bar
+    /// and the button above it, with a little to spare.
+    private var bottomClearance: CGFloat {
+        let controlsTop = scrollTimeBarTop - (showsResetButton ? ScrollTimeResetButton.reach : 0)
+        return listBottom - controlsTop + 8
+    }
 
     var body: some View {
         TimelineView(.everyMinute) { context in
+            let date = adjustedDate ?? context.date
+
             List(selection: $selection) {
                 Section {
                     ForEach(cities) { city in
                         NavigationLink(value: city.id) {
-                            CityRow(city: city, date: context.date, dateStyle: cityStore.dateStyle)
+                            CityRow(city: city, date: date, now: context.date, dateStyle: cityStore.dateStyle)
                         }
-                        .listRowBackground(CityRowBackground(date: context.date, timeZone: city.timeZone))
+                        .listRowBackground(CityRowBackground(date: date, timeZone: city.timeZone))
                     }
                 } footer: {
-                    Text("Add and arrange cities in Touch Time on iPhone.")
-                        .multilineTextAlignment(.center)
+                    Color.clear
+                        .frame(height: bottomClearance)
+                }
+            }
+            .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { listBottom = $0 }
+            // Resting on the Scroll Time bar rather than in the bottom bar with
+            // it, which would push the bar down to keep what it holds centered
+            .overlay(alignment: .bottom) {
+                if showsResetButton {
+                    ScrollTimeResetButton(adjustedDate: $adjustedDate)
+                        .offset(y: scrollTimeBarTop - listBottom)
+                        .transition(.blurReplace.combined(with: .scale).combined(with: .move(edge: .bottom)))
+                }
+            }
+            .animation(.smooth, value: adjustedDate)
+            .toolbar {
+                ToolbarItem(placement: .bottomBar) {
+                    ScrollTimeBar(adjustedDate: $adjustedDate, slide: $timeSlide, now: context.date)
+                        .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { scrollTimeBarTop = $0 }
                 }
             }
         }
@@ -34,6 +74,7 @@ struct CityListView: View {
 private struct CityRow: View {
     let city: ClockCity
     let date: Date
+    let now: Date
     let dateStyle: String
 
     var body: some View {
@@ -45,7 +86,7 @@ private struct CityRow: View {
                 
                 Spacer(minLength: 4)
                 
-                Text(date.formattedDate(style: dateStyle, timeZone: city.timeZone, relativeTo: date))
+                Text(date.formattedDate(style: dateStyle, timeZone: city.timeZone, relativeTo: now))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)

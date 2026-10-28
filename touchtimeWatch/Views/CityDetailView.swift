@@ -12,10 +12,15 @@ struct CityDetailView: View {
     let city: ClockCity
     /// Every clock, each dotted on the map.
     let mapCities: [ClockCity]
+    /// The time every clock shows in place of now, or nil for now.
+    @Binding var adjustedDate: Date?
 
     @Environment(WatchCityStore.self) private var cityStore
     /// How far the Digital Crown has moved the time, in hours.
     @State private var crownHours: Double = 0
+    /// The time the Digital Crown's hours count from: the clocks' time when
+    /// it last rested at zero, or nil for now.
+    @State private var crownStart: Date?
     @FocusState private var isCrownFocused: Bool
 
     /// How many hours the Digital Crown can move the time, either way.
@@ -25,13 +30,13 @@ struct CityDetailView: View {
         Int(crownHours.rounded())
     }
 
-    private var isScrubbing: Bool {
-        hourOffset != 0
+    private var isAdjusted: Bool {
+        adjustedDate != nil
     }
 
     var body: some View {
         TimelineView(.everyMinute) { context in
-            let date = displayedDate(now: context.date)
+            let date = adjustedDate ?? context.date
 
             VStack(alignment: .leading, spacing: 4) {
                 CityMapView(
@@ -50,7 +55,10 @@ struct CityDetailView: View {
                 CitySkyBackground(date: date, timeZone: city.timeZone)
             }
             .navigationTitle(city.name)
-            .animation(.smooth, value: hourOffset)
+            .animation(.smooth, value: adjustedDate)
+            .onChange(of: hourOffset) { _, hours in
+                adjustedDate = hours == 0 ? crownStart : wholeHour(hours, from: crownStart ?? context.date)
+            }
         }
         .focusable()
         .focused($isCrownFocused)
@@ -63,19 +71,23 @@ struct CityDetailView: View {
             isContinuous: false,
             isHapticFeedbackEnabled: true
         )
-        .navigationBarBackButtonHidden(isScrubbing)
         .toolbar {
-            if isScrubbing {
-                ToolbarItem(placement: .topBarLeading) {
+            // The list button keeps the leading corner, so the time can be
+            // taken back to the list
+            if isAdjusted {
+                ToolbarItem(placement: .topBarTrailing) {
                     Button("Current Time", systemImage: "xmark") {
                         withAnimation(.smooth) {
+                            crownStart = nil
                             crownHours = 0
+                            adjustedDate = nil
                         }
                     }
                 }
             }
         }
         .onAppear {
+            crownStart = adjustedDate
             isCrownFocused = true
         }
     }
@@ -83,14 +95,14 @@ struct CityDetailView: View {
     private func summary(date: Date, now: Date) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             let time = ClockTimeText(date: date, timeZone: city.timeZone)
-                .foregroundStyle(isScrubbing ? Color.accentColor : .white)
+                .foregroundStyle(.white)
 
             // The sun's times give way on screens too narrow for both
             ViewThatFits(in: .horizontal) {
                 HStack(spacing: 4) {
                     time
                     Spacer(minLength: 0)
-                    if !isScrubbing, let sunTimes = sunTimes(on: date) {
+                    if let sunTimes = sunTimes(on: date) {
                         SunTimesView(sunrise: sunTimes.sunrise, sunset: sunTimes.sunset, timeZone: city.timeZone)
                             .transition(.blurReplace)
                     }
@@ -98,11 +110,18 @@ struct CityDetailView: View {
                 time
             }
 
-            Text(WatchTimeFormat.dayAndOffset(date, in: city.timeZone, now: now, dateStyle: cityStore.dateStyle))
-                .foregroundStyle(.secondary)
-                .blendMode(.plusLighter)
-                .lineLimit(1)
-                .minimumScaleFactor(0.8)
+            let dayAndOffset = WatchTimeFormat.dayAndOffset(date, in: city.timeZone, now: now, dateStyle: cityStore.dateStyle)
+            // Changing within the stack keeps the blend mode outside the
+            // blur, which would otherwise grey the date mid-change
+            ZStack(alignment: .leading) {
+                Text(dayAndOffset)
+                    .transition(.blurReplace)
+                    .id(dayAndOffset)
+            }
+            .foregroundStyle(.secondary)
+            .blendMode(.plusLighter)
+            .lineLimit(1)
+            .minimumScaleFactor(0.8)
         }
         // The time can shrink to fit, so the outer stack would otherwise
         // squeeze it to make room for the map
@@ -114,16 +133,15 @@ struct CityDetailView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// Now, or the whole hour on the city's clock the Digital Crown has moved
-    /// to, counting from the hour under way.
-    private func displayedDate(now: Date) -> Date {
-        guard isScrubbing else { return now }
+    /// The whole hour on the city's clock `hours` hours from `date`, counting
+    /// from the hour under way.
+    private func wholeHour(_ hours: Int, from date: Date) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = city.timeZone
-        let hourStart = calendar.dateInterval(of: .hour, for: now)?.start ?? now
+        let hourStart = calendar.dateInterval(of: .hour, for: date)?.start ?? date
         // Turning back, the start of the hour under way is the first stop
-        let hours = hourOffset < 0 && hourStart < now ? hourOffset + 1 : hourOffset
-        return hourStart.addingTimeInterval(TimeInterval(hours) * 3600)
+        let steps = hours < 0 && hourStart < date ? hours + 1 : hours
+        return hourStart.addingTimeInterval(TimeInterval(steps) * 3600)
     }
 
     /// The city's sunrise and sunset on `date`'s day, or nil when the sun

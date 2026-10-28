@@ -13,15 +13,18 @@ struct WorldClockView: View {
     /// The city whose details are showing, or empty for the list. Kept
     /// across launches; the watch's own time zone the first time.
     @AppStorage("selectedCityID") private var selectedCityID = ClockCity.localID
+    /// The time every clock shows in place of now, once moved by the list's
+    /// Scroll Time bar or the Digital Crown on a city's details.
+    @State private var adjustedDate: Date?
 
     var body: some View {
         let cities = [ClockCity.local] + cityStore.cities.map { ClockCity($0) }
 
         NavigationSplitView {
-            CityListView(cities: cities, selection: selection(among: cities))
+            CityListView(cities: cities, selection: selection(among: cities), adjustedDate: $adjustedDate)
         } detail: {
             if let city = cities.first(where: { $0.id == selectedCityID }) {
-                CityDetailView(city: city, mapCities: cities)
+                CityDetailView(city: city, mapCities: cities, adjustedDate: $adjustedDate)
                     .id(city.id)
             }
         }
