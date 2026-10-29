@@ -23,8 +23,9 @@ struct CityDetailView: View {
     @State private var crownStart: Date?
     @FocusState private var isCrownFocused: Bool
 
-    /// How many hours the Digital Crown can move the time, either way.
-    private static let crownRange: Double = 24
+    /// How many hours the Digital Crown can move the time, either way: a
+    /// year, as its hourly stops need a limit, but one too far to turn to.
+    private static let crownRange: Double = 24 * 365
 
     private var hourOffset: Int {
         Int(crownHours.rounded())
