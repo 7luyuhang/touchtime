@@ -94,7 +94,7 @@ struct CityDetailView: View {
 
     private func summary(date: Date, now: Date) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            let time = ClockTimeText(date: date, timeZone: city.timeZone)
+            let time = ClockTimeText(date: date, timeZone: city.timeZone, alignsLeadingInk: true)
                 .foregroundStyle(.white)
 
             // The sun's times give way on screens too narrow for both
@@ -176,12 +176,10 @@ private struct SunTimesView: View {
         Grid(alignment: .leading, horizontalSpacing: 3, verticalSpacing: 1) {
             GridRow {
                 Image(systemName: "sunrise.fill")
-                    .foregroundStyle(.tint)
                 ClockTimeText(date: sunrise, timeZone: timeZone, size: .small)
             }
             GridRow {
                 Image(systemName: "sunset.fill")
-                    .foregroundStyle(.tint)
                 ClockTimeText(date: sunset, timeZone: timeZone, size: .small)
             }
         }
