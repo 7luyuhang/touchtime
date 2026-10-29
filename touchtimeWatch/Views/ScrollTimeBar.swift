@@ -132,9 +132,6 @@ struct ScrollTimeResetButton: View {
     /// The time every clock shows in place of now, or nil for now.
     @Binding var adjustedDate: Date?
 
-    /// How far above the bar the button reaches, the gap between them
-    /// included.
-    static let reach = ScrollTimeBar.height + spacing
     private static let spacing: CGFloat = 6
 
     var body: some View {

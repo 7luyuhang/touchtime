@@ -26,11 +26,11 @@ struct CityListView: View {
         timeSlide.map { $0.start != nil } ?? (adjustedDate != nil)
     }
 
-    /// Room below the last city, so it scrolls clear of the Scroll Time bar
-    /// and the button above it, with a little to spare.
+    /// Room below the last city, so it scrolls clear of the Scroll Time bar,
+    /// with a little to spare. The button above the bar covers the list
+    /// rather than adding room, which would shift the rows as it comes and goes.
     private var bottomClearance: CGFloat {
-        let controlsTop = scrollTimeBarTop - (showsResetButton ? ScrollTimeResetButton.reach : 0)
-        return listBottom - controlsTop + 8
+        listBottom - scrollTimeBarTop + 8
     }
 
     var body: some View {
