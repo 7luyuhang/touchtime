@@ -21,6 +21,7 @@ struct WeatherSection: View {
     let currentDate: Date
     let dateFormat: DetailsDateFormat
     @Binding var isExpanded: Bool
+    @AppStorage("showHourlyWeather") private var isHourlyForecastExpanded = false
 
     // Today's precipitation chance, rounded to whole percent
     private var precipitationChancePercent: Int {
@@ -37,11 +38,27 @@ struct WeatherSection: View {
                 )
                 .padding(.horizontal, 16)
 
-                // Weekly weather section (expandable)
+                // Today's daily card replaces this row with the next 24 hours;
+                // tapping Now in that row returns to the daily forecast.
                 if isExpanded && !weeklyWeather.isEmpty {
-                    WeeklyForecastRow(days: weeklyWeather, timeZoneIdentifier: timeZoneIdentifier)
-                        .padding(.horizontal, 16)
-                        .transition(.blurReplace())
+                    Group {
+                        if isHourlyForecastExpanded && !hourlyWeather.isEmpty {
+                            HourlyForecastRow(
+                                hours: hourlyWeather,
+                                dateFormat: dateFormat,
+                                isHourlyForecastShown: $isHourlyForecastExpanded
+                            )
+                        } else {
+                            WeeklyForecastRow(
+                                days: weeklyWeather,
+                                timeZoneIdentifier: timeZoneIdentifier,
+                                currentDate: currentDate,
+                                isHourlyForecastShown: $isHourlyForecastExpanded
+                            )
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                    .transition(.blurReplace())
                 }
 
                 // Precipitation section (expandable), hidden when chance is 0%

@@ -47,6 +47,19 @@ struct DetailsDateFormat {
         return formatter.string(from: date)
     }
 
+    /// e.g. "19" or "7 pm", for a single hourly forecast card
+    func forecastHour(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.timeZone = TimeZone(identifier: timeZoneIdentifier)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = use24HourFormat ? "HH" : "h a"
+        formatter.amSymbol = "am"
+        formatter.pmSymbol = "pm"
+
+        return formatter.string(from: date)
+            .replacingOccurrences(of: " ", with: "\u{202F}")
+    }
+
     /// e.g. "Oct 25"
     func monthDay(_ date: Date) -> String {
         let formatter = DateFormatter()
