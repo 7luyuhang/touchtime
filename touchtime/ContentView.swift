@@ -120,10 +120,12 @@ struct ContentView: View {
                 }
             }
         } else {
-            OnboardingView(
-                hasCompletedOnboarding: $hasCompletedOnboarding,
-                weatherManager: weatherManager
-            )
+            NavigationStack {
+                OnboardingView(
+                    hasCompletedOnboarding: $hasCompletedOnboarding,
+                    weatherManager: weatherManager
+                )
+            }
         }
     }
     

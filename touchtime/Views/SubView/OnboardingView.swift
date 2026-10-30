@@ -195,6 +195,14 @@ struct OnboardingView: View {
         }
     }
 
+    private var pageTitle: String {
+        switch currentPage {
+        case 3: return String(localized: "Time Format")
+        case 4: return String(localized: "Complications")
+        default: return ""
+        }
+    }
+
     /// On a wide screen (the unfolded iPhone Duo, either way up) the
     /// onboarding keeps to a phone-wide column.
     private var usesPhoneColumn: Bool {
@@ -480,13 +488,6 @@ struct OnboardingView: View {
                     
                     // Time Format (3) & Complications (4) — share one stable city card
                         VStack(spacing: 24) {
-
-                            Text(currentPage == 3 ? String(localized: "Time Format") : String(localized: "Complications"))
-                                .font(.headline)
-                                .foregroundStyle(.primary)
-                                .id(currentPage == 3 ? "onbHeaderTitleFormat" : "onbHeaderTitleComplication")
-                                .transition(.blurReplace())
-
                             Spacer()
 
                             Text(currentPage == 3 ? String(localized: "Choose your preferred time format") : String(localized: "Choose a complication to display more"))
@@ -1012,7 +1013,9 @@ struct OnboardingView: View {
         } action: { width in
             containerWidth = width
         }
+        .navigationTitle(pageTitle)
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(isReviewing || currentPage >= 3 ? .visible : .hidden, for: .navigationBar)
         .toolbar {
             if isReviewing {
                 ToolbarItem(placement: .topBarLeading) {
@@ -1210,9 +1213,11 @@ struct FeatureRow: View {
 }
 
 #Preview {
-    OnboardingView(
-        hasCompletedOnboarding: .constant(false),
-        weatherManager: WeatherManager.shared
-    )
-        .preferredColorScheme(.dark)
+    NavigationStack {
+        OnboardingView(
+            hasCompletedOnboarding: .constant(false),
+            weatherManager: WeatherManager.shared
+        )
+    }
+    .preferredColorScheme(.dark)
 }
