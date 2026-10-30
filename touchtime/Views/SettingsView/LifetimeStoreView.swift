@@ -206,17 +206,25 @@ struct LifetimeStoreView: View {
 
     // MARK: - App Icon Emblem
 
-    /// The app icon emblem, coming in a moment after the store opens, its
-    /// outline split into a rainbow that gathers into the glass's edge.
+    /// Before purchase the emblem enters as the store opens. Lifetime owners
+    /// get the continuous chromatic orbit used by AboutView instead.
+    @ViewBuilder
     private var appIconEmblem: some View {
-        AppIconEmblem()
-            .chromaticEntrance(progress: emblemEntrance, rim: AppIconEmblem.plate)
-            .onAppear {
-                // As the store finishes sliding up
-                withAnimation(.smooth(duration: 1.0).delay(0.25)) {
-                    emblemEntrance = 1
+        if hasLifetimeAccess {
+            AppIconEmblem()
+                .chromaticOrbit(rim: AppIconEmblem.plate)
+                .accessibilityElement()
+                .accessibilityLabel(Text("Lifetime"))
+        } else {
+            AppIconEmblem()
+                .chromaticEntrance(progress: emblemEntrance, rim: AppIconEmblem.plate)
+                .onAppear {
+                    // As the store finishes sliding up
+                    withAnimation(.smooth(duration: 1.0).delay(0.25)) {
+                        emblemEntrance = 1
+                    }
                 }
-            }
+        }
     }
 
     // MARK: - Complication Showcase
