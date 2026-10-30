@@ -62,20 +62,28 @@ struct HourlyForecastRow: View {
                 .blendMode(.plusLighter)
                 .frame(height: 28)
 
-            VStack(spacing: 0) {
+            // Mirror the daily card's rows so the temperature has the same
+            // vertical position, whether or not precipitation is shown.
+            VStack(spacing: 5) {
                 Text("\(Int(temperature.value))°")
                     .font(.subheadline.weight(.medium))
                     .monospacedDigit()
 
-                if precipitationChance > 0 {
-                    Text("\(precipitationChance)%")
-                        .font(.caption2.weight(.medium))
-                        .foregroundStyle(.cyan)
-                        .monospacedDigit()
-                        .padding(.top, 2)
-                }
+                // Reserve the daily low-temperature line using its font metrics.
+                Text("0°")
+                    .font(.subheadline.weight(.medium))
+                    .hidden()
+                    .overlay {
+                        if precipitationChance > 0 {
+                            Text("\(precipitationChance)%")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(.cyan)
+                                .monospacedDigit()
+                        }
+                    }
 
-                Spacer(minLength: 0)
+                Color.clear
+                    .frame(height: 28)
 
                 HStack(spacing: 3) {
                     if isCurrentHour {
@@ -90,6 +98,7 @@ struct HourlyForecastRow: View {
                 .blendMode(.plusLighter)
                 .lineLimit(1)
                 .minimumScaleFactor(0.75)
+                .padding(.top, 5)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }

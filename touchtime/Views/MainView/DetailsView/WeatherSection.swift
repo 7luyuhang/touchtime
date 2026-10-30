@@ -28,6 +28,10 @@ struct WeatherSection: View {
         Int(((dailyWeather?.precipitationChance ?? 0) * 100).rounded())
     }
 
+    private var showsHourlyForecast: Bool {
+        isHourlyForecastExpanded && !hourlyWeather.isEmpty
+    }
+
     var body: some View {
         if let weather {
             VStack(alignment: .leading, spacing: 8) {
@@ -41,22 +45,29 @@ struct WeatherSection: View {
                 // Today's daily card replaces this row with the next 24 hours;
                 // tapping Now in that row returns to the daily forecast.
                 if isExpanded && !weeklyWeather.isEmpty {
-                    Group {
-                        if isHourlyForecastExpanded && !hourlyWeather.isEmpty {
-                            HourlyForecastRow(
-                                hours: hourlyWeather,
-                                dateFormat: dateFormat,
-                                isHourlyForecastShown: $isHourlyForecastExpanded
-                            )
-                        } else {
-                            WeeklyForecastRow(
-                                days: weeklyWeather,
-                                timeZoneIdentifier: timeZoneIdentifier,
-                                currentDate: currentDate,
-                                isHourlyForecastShown: $isHourlyForecastExpanded
-                            )
+                    ZStack {
+                        // Give the replacement a stable container and a new
+                        // identity so both rows transition in the same space.
+                        Group {
+                            if showsHourlyForecast {
+                                HourlyForecastRow(
+                                    hours: hourlyWeather,
+                                    dateFormat: dateFormat,
+                                    isHourlyForecastShown: $isHourlyForecastExpanded
+                                )
+                            } else {
+                                WeeklyForecastRow(
+                                    days: weeklyWeather,
+                                    timeZoneIdentifier: timeZoneIdentifier,
+                                    currentDate: currentDate,
+                                    isHourlyForecastShown: $isHourlyForecastExpanded
+                                )
+                            }
                         }
+                        .id(showsHourlyForecast)
+                        .transition(.blurReplace())
                     }
+                    .animation(.snappy(duration: 0.5), value: showsHourlyForecast)
                     .padding(.horizontal, 16)
                     .transition(.blurReplace())
                 }
