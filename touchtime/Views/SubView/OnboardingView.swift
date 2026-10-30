@@ -187,6 +187,14 @@ struct OnboardingView: View {
             || showWindSpeed || showPressure || effectiveShowDaylight || effectiveShowTimeOverlay || showSolarCurve
     }
 
+    private var useMaterialComplicationBackground: Bool {
+        if #available(iOS 27.0, *) {
+            return false
+        } else {
+            return true
+        }
+    }
+
     /// On a wide screen (the unfolded iPhone Duo, either way up) the
     /// onboarding keeps to a phone-wide column.
     private var usesPhoneColumn: Bool {
@@ -498,7 +506,7 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         size: 64,
                                         timeZone: TimeZone.current,
-                                        useMaterialBackground: true,
+                                        useMaterialBackground: useMaterialComplicationBackground,
                                         showScale: analogClockShowScale
                                     )
                                     .overlay(
@@ -513,7 +521,7 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .overlay(
                                         Circle()
@@ -527,7 +535,7 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .overlay(
                                         Circle()
@@ -541,7 +549,7 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .overlay(
                                         Circle()
@@ -555,7 +563,7 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .overlay(
                                         Circle()
@@ -569,7 +577,7 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .overlay(
                                         Circle()
@@ -583,7 +591,7 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true,
+                                        useMaterialBackground: useMaterialComplicationBackground,
                                         showSun: solarCurveShowSun
                                     )
                                     .overlay(
@@ -598,7 +606,7 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .overlay(
                                         Circle()
@@ -612,7 +620,7 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .overlay(
                                         Circle()
@@ -625,7 +633,7 @@ struct OnboardingView: View {
                                     WeatherConditionView(
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .environmentObject(weatherManager)
                                     .overlay(
@@ -639,7 +647,7 @@ struct OnboardingView: View {
                                     TemperatureIndicator(
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .environmentObject(weatherManager)
                                     .overlay(
@@ -654,7 +662,7 @@ struct OnboardingView: View {
                                         date: currentDate,
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .overlay(
                                         Circle()
@@ -667,7 +675,7 @@ struct OnboardingView: View {
                                     UVIndexIndicator(
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .environmentObject(weatherManager)
                                     .overlay(
@@ -681,7 +689,7 @@ struct OnboardingView: View {
                                     WindDirectionIndicator(
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .environmentObject(weatherManager)
                                     .overlay(
@@ -695,7 +703,7 @@ struct OnboardingView: View {
                                     WindSpeedIndicator(
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .environmentObject(weatherManager)
                                     .overlay(
@@ -709,7 +717,7 @@ struct OnboardingView: View {
                                     PressureIndicator(
                                         timeZone: TimeZone.current,
                                         size: 64,
-                                        useMaterialBackground: true
+                                        useMaterialBackground: useMaterialComplicationBackground
                                     )
                                     .environmentObject(weatherManager)
                                     .overlay(
