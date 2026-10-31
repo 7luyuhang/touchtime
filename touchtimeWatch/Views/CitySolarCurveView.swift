@@ -58,7 +58,7 @@ struct CitySolarCurveView: View {
     private var information: some View {
         let events = sunTimes
 
-        return VStack(spacing: 3) {
+        return VStack(spacing: 6) {
             eventRow("Sunrise", date: events.sunrise)
             eventRow("Sunset", date: events.sunset)
 
@@ -70,7 +70,7 @@ struct CitySolarCurveView: View {
             )))
             .foregroundStyle(.secondary)
             .contentTransition(.numericText())
-            .padding(.top, 3)
+            .padding(.top, 4)
         }
         .font(.body)
         .lineLimit(1)

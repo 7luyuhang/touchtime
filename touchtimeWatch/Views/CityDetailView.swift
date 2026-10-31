@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import WatchKit
 
 struct CityDetailView: View {
     let city: ClockCity
@@ -23,6 +24,8 @@ struct CityDetailView: View {
     /// The time the Digital Crown's hours count from: the clocks' time when
     /// it last rested at zero, or nil for now.
     @State private var crownStart: Date?
+    /// Freeze "now" on the first step so minute ticks cannot shift the adjustment.
+    @State private var crownReferenceDate: Date?
     @FocusState private var isCrownFocused: Bool
 
     /// How many hours the Digital Crown can move the time, either way: a
@@ -75,8 +78,18 @@ struct CityDetailView: View {
             .toolbarForegroundStyle(.primary, for: .navigationBar)
             .animation(.smooth, value: adjustedDate)
             .onChange(of: hourOffset) { _, hours in
-                adjustedDate = hours == 0 ? crownStart : wholeHour(hours, from: crownStart ?? context.date)
+                if hours == 0 {
+                    adjustedDate = crownStart
+                    crownReferenceDate = nil
+                } else {
+                    let referenceDate = crownReferenceDate ?? crownStart ?? .now
+                    crownReferenceDate = referenceDate
+                    adjustedDate = wholeHour(hours, from: referenceDate)
+                }
             }
+        }
+        .overlay {
+            crownTimeOverlay
         }
         .tint(.primary)
         .focusable()
@@ -90,6 +103,7 @@ struct CityDetailView: View {
             isContinuous: false,
             isHapticFeedbackEnabled: true
         )
+        .scrollIndicators(.hidden)
         .navigationBarBackButtonHidden(isAdjusted)
         .toolbar {
             // While adjusting time, replace the list button with a reset
@@ -99,6 +113,7 @@ struct CityDetailView: View {
                     Button("Current Time", systemImage: "xmark") {
                         withAnimation(.smooth) {
                             crownStart = nil
+                            crownReferenceDate = nil
                             crownHours = 0
                             adjustedDate = nil
                         }
@@ -125,6 +140,27 @@ struct CityDetailView: View {
             crownStart = adjustedDate
             isCrownFocused = true
         }
+    }
+
+    private var crownTimeOverlay: some View {
+        GeometryReader { geometry in
+            let crownOnLeft = WKInterfaceDevice.current().crownOrientation == .left
+
+            Color.clear
+                .overlay(alignment: crownOnLeft ? .leading : .trailing) {
+                    CrownTimePill(date: $adjustedDate, timeZone: city.timeZone)
+                        .padding(.horizontal, 8)
+                        // The Crown sits one third down the display; rotating
+                        // the watch puts it two thirds down on the left.
+                        .offset(y: geometry.size.height / 6 * (crownOnLeft ? 1 : -1))
+                        .opacity(isAdjusted ? 1 : 0)
+                        .accessibilityHidden(!isAdjusted)
+                }
+        }
+        .ignoresSafeArea()
+        // Crown placement is physical, independent of the text direction.
+        .environment(\.layoutDirection, .leftToRight)
+        .allowsHitTesting(false)
     }
 
     private func summary(date: Date, now: Date) -> some View {
@@ -174,7 +210,7 @@ struct CityDetailView: View {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = city.timeZone
         let hourStart = calendar.dateInterval(of: .hour, for: date)?.start ?? date
-        // Turning back, the start of the hour under way is the first stop
+        // Turning back, the start of the hour under way is the first stop.
         let steps = hours < 0 && hourStart < date ? hours + 1 : hours
         return hourStart.addingTimeInterval(TimeInterval(steps) * 3600)
     }
@@ -198,6 +234,35 @@ struct CityDetailView: View {
               events.sunrise > day.start,
               events.sunset < day.end.addingTimeInterval(-1) else { return nil }
         return (events.sunrise, events.sunset)
+    }
+}
+
+/// Keep one glass surface in the overlay throughout time adjustment.
+private struct CrownTimePill: View {
+    @Binding var date: Date?
+    let timeZone: TimeZone
+
+    @Environment(\.locale) private var locale
+
+    var body: some View {
+        let formattedTime = WatchTimeFormat.time(date ?? .now, in: timeZone, hourCycle: locale.hourCycle)
+
+        // Reserve five characters even when 12-hour time has one hour digit.
+        // The glass keeps its size while only the overlaid digits animate.
+        Text("00:00")
+            .hidden()
+            .overlay {
+                Text(formattedTime.digits)
+                    .contentTransition(.numericText())
+                    .animation(.smooth(duration: 0.25), value: formattedTime.digits)
+                    .accessibilityLabel([formattedTime.digits, formattedTime.period].compactMap { $0 }.joined(separator: " "))
+            }
+            .font(.system(.caption2, design: .rounded, weight: .medium).monospacedDigit())
+            .fixedSize()
+            .padding(.horizontal, 10)
+            .padding(.vertical, 6)
+            .glassEffect(.regular, in: .capsule)
+            .transaction { $0.animation = nil }
     }
 }
 
