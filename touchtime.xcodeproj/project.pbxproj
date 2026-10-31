@@ -135,6 +135,7 @@
 				MoonPhase.swift,
 				SkyColorGradient.swift,
 				SolarCalculator.swift,
+				SolarCurve.swift,
 				StarParticle.swift,
 				StarsView.swift,
 				TimeZoneCoordinates.swift,

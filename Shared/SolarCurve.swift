@@ -11,6 +11,9 @@ struct SolarCurve: View {
     let date: Date
     let timeZone: TimeZone
     let size: CGFloat
+    let height: CGFloat
+    let sunDiameter: CGFloat
+    private let clipsToCircle: Bool
     let useMaterialBackground: Bool
     let showBackground: Bool
     let showSun: Bool
@@ -21,7 +24,10 @@ struct SolarCurve: View {
     
     // Cache the Path to avoid recreating it on every body update
     @State private var cachedPath: Path?
-    @State private var cachedDayKey: String = ""
+    private struct PathKey: Equatable {
+        let day: String
+        let size: CGSize
+    }
     
     // Cache daily sun times per timezone to avoid repeated calculations
     private struct SunTimes {
@@ -63,10 +69,15 @@ struct SolarCurve: View {
         return cache
     }()
     
-    init(date: Date, timeZone: TimeZone, size: CGFloat, useMaterialBackground: Bool = false, showBackground: Bool = true, showSun: Bool = false) {
+    /// Omit `height` for the circular complication, or supply it for a
+    /// rectangular chart. Both layouts use the same curve and sun position.
+    init(date: Date, timeZone: TimeZone, size: CGFloat, height: CGFloat? = nil, useMaterialBackground: Bool = false, showBackground: Bool = true, showSun: Bool = false, sunDiameter: CGFloat? = nil) {
         self.date = date
         self.timeZone = timeZone
         self.size = size
+        self.height = height ?? size
+        self.sunDiameter = sunDiameter ?? size * 0.15
+        self.clipsToCircle = height == nil
         self.useMaterialBackground = useMaterialBackground
         self.showBackground = showBackground
         self.showSun = showSun
@@ -86,7 +97,7 @@ struct SolarCurve: View {
     // with continuous tangents, avoiding visible kinks at the hourly sample points.
     private func createPath(from curveData: CurveData) -> Path {
         var path = Path()
-        let points = curveData.curvePoints.map { CGPoint(x: $0.x * size, y: $0.y * size) }
+        let points = curveData.curvePoints.map { CGPoint(x: $0.x * size, y: $0.y * height) }
         guard points.count > 1 else { return path }
         
         path.move(to: points[0])
@@ -267,8 +278,8 @@ struct SolarCurve: View {
                 .blendMode(.plusLighter)
                 .mask {
                     Rectangle()
-                        .frame(width: size * 2, height: size / 2)
-                        .offset(y: -size / 4)
+                        .frame(width: size * 2, height: height / 2)
+                        .offset(y: -height / 4)
                 }
             
             // Curve below horizon (opacity 0.3)
@@ -279,8 +290,8 @@ struct SolarCurve: View {
                 .stroke(Color.white.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
                 .mask {
                     Rectangle()
-                        .frame(width: size * 2, height: size / 2)
-                        .offset(y: size / 4)
+                        .frame(width: size * 2, height: height / 2)
+                        .offset(y: height / 4)
                 }
                 .drawingGroup() // Optimize rendering with Metal
                 .blendMode(.plusLighter)
@@ -295,17 +306,15 @@ struct SolarCurve: View {
             // Sun indicator at the current time position on the curve:
             // filled above the horizon, outlined below (like SunriseSunsetIndicator)
             if showSun {
-                let sunDiameter = size * 0.15
-                
                 // Filled portion (above horizon) - masked by the day half
                 Circle()
                     .fill(.white)
                     .frame(width: sunDiameter + 1.5, height: sunDiameter + 1.5)
-                    .modifier(SunAlongCurveModifier(date: date, timeZone: timeZone, size: size))
+                    .modifier(SunAlongCurveModifier(date: date, timeZone: timeZone, size: size, height: height))
                     .mask {
                         Rectangle()
-                            .frame(width: size * 2, height: size / 2)
-                            .offset(y: -size / 4)
+                            .frame(width: size * 2, height: height / 2)
+                            .offset(y: -height / 4)
                     }
                     .blendMode(.plusLighter)
                 
@@ -313,36 +322,21 @@ struct SolarCurve: View {
                 Circle()
                     .stroke(.white, lineWidth: 1.5)
                     .frame(width: sunDiameter, height: sunDiameter)
-                    .modifier(SunAlongCurveModifier(date: date, timeZone: timeZone, size: size))
+                    .modifier(SunAlongCurveModifier(date: date, timeZone: timeZone, size: size, height: height))
                     .mask {
                         Rectangle()
-                            .frame(width: size * 2, height: size / 2)
-                            .offset(y: size / 4)
+                            .frame(width: size * 2, height: height / 2)
+                            .offset(y: height / 4)
                     }
                     .opacity(0.5)
                     .blendMode(.plusLighter)
             }
         }
-        .frame(width: size, height: size)
-        .clipShape(Circle()) // Ensure all content is clipped to circle boundary
-        .onChange(of: date) { oldDate, newDate in
-            // Only update path when day actually changes (not just time)
-            let oldDayKey = dayKey(for: oldDate)
-            let newDayKey = dayKey(for: newDate)
-            if oldDayKey != newDayKey {
-                let curveData = cachedCurveData(for: newDate)
-                cachedPath = createPath(from: curveData)
-                cachedDayKey = newDayKey
-            }
-        }
-        .onAppear {
-            // Initialize cached path on first appearance
-            let currentDayKey = dayKey(for: date)
-            if cachedPath == nil || cachedDayKey != currentDayKey {
-                let curveData = cachedCurveData(for: date)
-                cachedPath = createPath(from: curveData)
-                cachedDayKey = currentDayKey
-            }
+        .frame(width: size, height: height)
+        .clipShape(RoundedRectangle(cornerRadius: clipsToCircle ? size / 2 : 0))
+        .onChange(of: PathKey(day: dayKey(for: date), size: CGSize(width: size, height: height)), initial: true) { _, _ in
+            // Rebuild only for a new local day, timezone, or layout size.
+            cachedPath = createPath(from: cachedCurveData(for: date))
         }
     }
 }
@@ -362,10 +356,11 @@ private struct SunAlongCurveModifier: ViewModifier, Animatable {
     let startOfDay: Date
     let timeZone: TimeZone
     let size: CGFloat
+    let height: CGFloat
     
     private static let dayInSeconds: Double = 24 * 60 * 60
     
-    init(date: Date, timeZone: TimeZone, size: CGFloat) {
+    init(date: Date, timeZone: TimeZone, size: CGFloat, height: CGFloat) {
         var calendar = Calendar.current
         calendar.timeZone = timeZone
         let startOfDay = calendar.startOfDay(for: date)
@@ -374,6 +369,7 @@ private struct SunAlongCurveModifier: ViewModifier, Animatable {
         self.startOfDay = startOfDay
         self.timeZone = timeZone
         self.size = size
+        self.height = height
     }
     
     var animatableData: AnimatablePair<Double, Double> {
@@ -392,7 +388,7 @@ private struct SunAlongCurveModifier: ViewModifier, Animatable {
     
     func body(content: Content) -> some View {
         let point = sunPoint
-        content.position(x: point.x * size, y: point.y * size)
+        content.position(x: point.x * size, y: point.y * height)
     }
 }
 

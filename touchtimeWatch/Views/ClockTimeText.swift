@@ -12,6 +12,8 @@ struct ClockTimeText: View {
     enum Size {
         /// A clock's main time.
         case large
+        /// A time in a full-width detail row.
+        case medium
         /// A time beside a clock, like its sunrise.
         case small
     }
@@ -47,6 +49,7 @@ struct ClockTimeText: View {
     private var font: Font {
         switch size {
         case .large: .system(size: largeDigitsSize, design: .rounded).monospacedDigit()
+        case .medium: .system(.body, design: .rounded, weight: .medium).monospacedDigit()
         case .small: .system(.caption2, design: .rounded, weight: .medium).monospacedDigit()
         }
     }

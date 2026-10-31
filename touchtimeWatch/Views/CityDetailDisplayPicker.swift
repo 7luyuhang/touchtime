@@ -8,6 +8,7 @@ import SwiftUI
 enum CityDetailDisplay: String, CaseIterable, Identifiable {
     case worldClock
     case moonPhase
+    case solarCurve
 
     var id: Self { self }
 
@@ -15,6 +16,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         switch self {
         case .worldClock: "World Clock"
         case .moonPhase: "Moon Phase"
+        case .solarCurve: "Solar Curve"
         }
     }
 
@@ -22,6 +24,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         switch self {
         case .worldClock: "globe"
         case .moonPhase: "moonphase.waning.gibbous"
+        case .solarCurve: "sun.horizon"
         }
     }
 }
