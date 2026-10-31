@@ -131,6 +131,8 @@
 			membershipExceptions = (
 				DateFormatting.swift,
 				DotsWorldMap.swift,
+				MoonAstronomy.swift,
+				MoonPhase.swift,
 				SkyColorGradient.swift,
 				SolarCalculator.swift,
 				StarParticle.swift,

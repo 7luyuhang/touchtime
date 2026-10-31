@@ -2,8 +2,8 @@
 //  CityDetailView.swift
 //  touchtimeWatch
 //
-//  A city's clock over its sky, below the day/night world map. Turning the
-//  Digital Crown moves the time an hour at a time.
+//  A city's world clock or moon phase over its sky. Turning the Digital
+//  Crown moves the time an hour at a time in either view.
 //
 
 import SwiftUI
@@ -16,6 +16,8 @@ struct CityDetailView: View {
     @Binding var adjustedDate: Date?
 
     @Environment(WatchCityStore.self) private var cityStore
+    @AppStorage("watchDetailDisplay") private var display: CityDetailDisplay = .worldClock
+    @State private var showsDisplayPicker = false
     /// How far the Digital Crown has moved the time, in hours.
     @State private var crownHours: Double = 0
     /// The time the Digital Crown's hours count from: the clocks' time when
@@ -39,21 +41,33 @@ struct CityDetailView: View {
         TimelineView(.everyMinute) { context in
             let date = adjustedDate ?? context.date
 
-            VStack(alignment: .leading, spacing: 4) {
-                CityMapView(
-                    date: date,
-                    timeZoneIdentifiers: mapCities.map(\.timeZone.identifier),
-                    highlightedTimeZoneIdentifier: city.timeZone.identifier
-                )
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            Group {
+                switch display {
+                case .worldClock:
+                    VStack(alignment: .leading, spacing: 4) {
+                        CityMapView(
+                            date: date,
+                            timeZoneIdentifiers: mapCities.map(\.timeZone.identifier),
+                            highlightedTimeZoneIdentifier: city.timeZone.identifier
+                        )
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-                summary(date: date, now: context.date)
+                        summary(date: date, now: context.date)
+                    }
+                case .moonPhase:
+                    CityMoonPhaseView(date: date, timeZone: city.timeZone)
+                }
             }
             // Like World Clock, the clock sits low enough to leave the map
             // the screen's full width
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
-                CitySkyBackground(date: date, timeZone: city.timeZone)
+                switch display {
+                case .worldClock:
+                    CitySkyBackground(date: date, timeZone: city.timeZone)
+                case .moonPhase:
+                    Color.black
+                }
             }
             .navigationTitle(city.name)
             .animation(.smooth, value: adjustedDate)
@@ -87,6 +101,21 @@ struct CityDetailView: View {
                     }
                 }
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    isCrownFocused = false
+                    showsDisplayPicker = true
+                } label: {
+                    Image(systemName: display.symbolName)
+                }
+                .accessibilityLabel("Choose View")
+                .accessibilityValue(Text(display.title))
+            }
+        }
+        .sheet(isPresented: $showsDisplayPicker, onDismiss: {
+            isCrownFocused = true
+        }) {
+            CityDetailDisplayPicker(selection: $display)
         }
         .onAppear {
             crownStart = adjustedDate

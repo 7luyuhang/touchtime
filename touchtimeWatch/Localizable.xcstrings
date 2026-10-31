@@ -183,6 +183,22 @@
         }
       }
     },
+    "Choose View" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "选择视图"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "選擇視圖"
+          }
+        }
+      }
+    },
     "Clear" : {
       "localizations" : {
         "zh-Hans" : {
@@ -195,6 +211,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "晴朗"
+          }
+        }
+      }
+    },
+    "Close" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "关闭"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "關閉"
           }
         }
       }
@@ -249,6 +281,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "細雨"
+          }
+        }
+      }
+    },
+    "First Quarter" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上弦月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上弦月"
           }
         }
       }
@@ -329,6 +377,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "極寒"
+          }
+        }
+      }
+    },
+    "Full Moon" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "满月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滿月"
           }
         }
       }
@@ -445,6 +509,22 @@
         }
       }
     },
+    "Last Quarter" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下弦月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下弦月"
+          }
+        }
+      }
+    },
     "Local" : {
       "localizations" : {
         "zh-Hans" : {
@@ -495,6 +575,22 @@
         }
       }
     },
+    "Moon Phase" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月相"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "月相"
+          }
+        }
+      }
+    },
     "Mostly Clear" : {
       "localizations" : {
         "zh-Hans" : {
@@ -523,6 +619,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "大部多雲"
+          }
+        }
+      }
+    },
+    "New Moon" : {
+      "comment" : "Moon Phases",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新月"
           }
         }
       }
@@ -836,6 +949,86 @@
         }
       }
     },
+    "View" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "视图"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "視圖"
+          }
+        }
+      }
+    },
+    "Waning Crescent" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "残月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "殘月"
+          }
+        }
+      }
+    },
+    "Waning Gibbous" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "亏凸月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "虧凸月"
+          }
+        }
+      }
+    },
+    "Waxing Crescent" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "娥眉月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "娥眉月"
+          }
+        }
+      }
+    },
+    "Waxing Gibbous" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "盈凸月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "盈凸月"
+          }
+        }
+      }
+    },
     "Windy" : {
       "localizations" : {
         "zh-Hans" : {
@@ -864,6 +1057,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "混合降水"
+          }
+        }
+      }
+    },
+    "World Clock" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "世界时钟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "世界時鐘"
           }
         }
       }
