@@ -115,7 +115,7 @@ struct CitySolarCurveView: View {
     }
 }
 
-/// Sky above the horizon, reflected and progressively softened beneath it.
+/// Sky above the horizon, reflected and darkened beneath it.
 private struct SolarCurveSkyBackground: View {
     let date: Date
     let timeZone: TimeZone
@@ -123,7 +123,7 @@ private struct SolarCurveSkyBackground: View {
 
     var body: some View {
         let sky = SkyColorGradient(date: date, timeZoneIdentifier: timeZone.identifier)
-        let colors = sky.colorsOverBlack(opacity: 0.65)
+        let colors = sky.colorsOverBlack(opacity: 0.75)
         let reflection = LinearGradient(colors: colors.reversed(), startPoint: .top, endPoint: .bottom)
 
         GeometryReader { geometry in
@@ -136,21 +136,8 @@ private struct SolarCurveSkyBackground: View {
                 ZStack {
                     reflection
 
-                    // Blend successively softer layers down the reflection.
-                    // This works on watchOS without a UIKit backdrop filter.
-                    ForEach(1...3, id: \.self) { step in
-                        reflection
-                            .blur(radius: CGFloat(step * step) * 1.5, opaque: true)
-                            .mask {
-                                LinearGradient(stops: [
-                                    .init(color: .clear, location: CGFloat(step - 1) / 3),
-                                    .init(color: .black, location: CGFloat(step) / 3)
-                                ], startPoint: .top, endPoint: .bottom)
-                            }
-                    }
-
                     LinearGradient(
-                        colors: [.black.opacity(0.12), .black.opacity(0.85)],
+                        colors: [.black.opacity(0.15), .black.opacity(0.85)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
