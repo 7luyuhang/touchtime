@@ -80,6 +80,16 @@ struct ContentView: View {
             .onAppear {
                 loadWorldClocks()
             }
+            .task(priority: .utility) {
+                // Let the first Home frame settle before preparing the optional
+                // watch preview off the main thread, ahead of either menu entry.
+                do {
+                    try await Task.sleep(for: .seconds(1))
+                } catch {
+                    return
+                }
+                await AppleWatchMockupView.preload()
+            }
             // The Apple Watch app shows the same cities, in the same date style
             .onChange(of: worldClocks) { _, clocks in
                 WatchSyncManager.shared.sync(clocks: clocks)

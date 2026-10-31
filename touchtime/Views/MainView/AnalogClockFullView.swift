@@ -55,6 +55,7 @@ struct AnalogClockFullView: View {
     @State private var showStopwatchRecordsSheet = false
     @State private var showCountdownSheet = false
     @State private var showWidgetIntroSheet = false
+    @State private var showAppleWatchIntroSheet = false
     @State private var showSettingsSheet = false
     @State private var showLifetimeStore = false
     @State private var collections: [CityCollection] = []
@@ -975,6 +976,13 @@ struct AnalogClockFullView: View {
         }) {
             Label(String(localized: "Widgets"), systemImage: "widget.small")
         }
+
+        Button(action: {
+            triggerMenuHaptic()
+            showAppleWatchIntroSheet = true
+        }) {
+            Label("Apple Watch", systemImage: "applewatch")
+        }
     }
 
     private var addCitiesButton: some View {
@@ -1789,6 +1797,9 @@ struct AnalogClockFullView: View {
             }
             .sheet(isPresented: $showWidgetIntroSheet) {
                 WidgetIntroSheet()
+            }
+            .sheet(isPresented: $showAppleWatchIntroSheet) {
+                AppleWatchIntroSheet()
             }
             .sheet(isPresented: $showSettingsSheet) {
                 SettingsView(

@@ -280,5 +280,8 @@ extension HomeView {
             .sheet(isPresented: $showWidgetIntroSheet) {
                 WidgetIntroSheet()
             }
+            .sheet(isPresented: $showAppleWatchIntroSheet) {
+                AppleWatchIntroSheet()
+            }
     }
 }

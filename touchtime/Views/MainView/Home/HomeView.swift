@@ -105,6 +105,7 @@ struct HomeView: View {
     @State var isCountdownStackCollapsed = false
     @State var showComplicationsSheet = false
     @State var showWidgetIntroSheet = false
+    @State var showAppleWatchIntroSheet = false
     @State var showEarthView = false
     @State var cityTimeAdjustmentData: CityTimeAdjustmentData? = nil
     // City card being shared as an image from its context menu.

@@ -218,5 +218,14 @@ extension HomeView {
         }) {
             Label(String(localized: "Widgets"), systemImage: "widget.small")
         }
+
+        Button(action: {
+            if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+            showAppleWatchIntroSheet = true
+        }) {
+            Label("Apple Watch", systemImage: "applewatch")
+        }
     }
 }
