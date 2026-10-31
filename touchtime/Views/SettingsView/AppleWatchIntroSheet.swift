@@ -39,7 +39,7 @@ struct AppleWatchIntroSheet: View {
             .navigationTitle("Apple Watch")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -73,7 +73,7 @@ struct AppleWatchIntroSheet: View {
                 UIApplication.shared.open(url)
             }
         } label: {
-            Text("Open Watch App")
+            Label("Open Watch App", systemImage: "applewatch.watchface")
                 .font(.headline)
                 .foregroundStyle(.black)
                 .frame(maxWidth: .infinity)
