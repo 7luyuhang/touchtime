@@ -299,9 +299,9 @@ private struct AppleWatchSceneView: UIViewRepresentable {
         screenMaterial.diffuse.contents = screenshot
         screenMaterial.diffuse.mipFilter = .linear
         screenMaterial.diffuse.maxAnisotropy = 8
-        // Retain the mesh's original full-screen UVs and rounded outline.
+        // Retain the mesh's original full-screen UVs and rounded outline;
+        // all other meshes keep the USDZ's original materials and colors.
         displayGeometry.materials = [screenMaterial]
-        applyBlackTitanium(to: scene.rootNode)
 
         let source = SCNNode()
         for child in scene.rootNode.childNodes {
@@ -372,27 +372,6 @@ private struct AppleWatchSceneView: UIViewRepresentable {
             watch.eulerAngles = restingAngles
         }
         return renderer
-    }
-
-    nonisolated private static func applyBlackTitanium(to root: SCNNode) {
-        // Exterior metal material names in the supplied USDZ: case, bezel,
-        // crown, mesh band and clasp. Keep the display, glass, sensors and
-        // orange accents in their original materials.
-        let exteriorMetalNames: Set<String> = [
-            "QhDiGKCLygjflEJ", "nvGUNsZokLKkYNE", "EdRMiTuJtjEbTqD",
-            "OrkvOpfEqsTXAPR", "LqpzWVEGHmdPrjf", "HxWhmpLqfdXlNaj",
-            "WmAEsGqmPfbjLQR", "HnhZLEvUrmwFjsr", "hYgYJoDokszsatK",
-            "lADxTjzpyhHhnOR"
-        ]
-
-        root.enumerateChildNodes { node, _ in
-            for material in node.geometry?.materials ?? [] {
-                guard let name = material.name, exteriorMetalNames.contains(name) else { continue }
-                // Change only the base color, retaining the original metalness,
-                // roughness and normal maps for the brushed metal highlights.
-                material.diffuse.contents = UIColor(red: 0.10, green: 0.105, blue: 0.115, alpha: 1)
-            }
-        }
     }
 
     nonisolated private static func addLight(to scene: SCNScene, type: SCNLight.LightType, intensity: CGFloat, position: SCNVector3) {
