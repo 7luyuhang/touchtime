@@ -72,11 +72,12 @@ struct CityDetailView: View {
             isContinuous: false,
             isHapticFeedbackEnabled: true
         )
+        .navigationBarBackButtonHidden(isAdjusted)
         .toolbar {
-            // The list button keeps the leading corner, so the time can be
-            // taken back to the list
+            // While adjusting time, replace the list button with a reset
+            // button in the same leading corner.
             if isAdjusted {
-                ToolbarItem(placement: .topBarTrailing) {
+                ToolbarItem(placement: .topBarLeading) {
                     Button("Current Time", systemImage: "xmark") {
                         withAnimation(.smooth) {
                             crownStart = nil
