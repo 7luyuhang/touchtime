@@ -43,7 +43,7 @@ struct CityDetailDisplayPicker: View {
                         Spacer(minLength: 4)
                         if selection == display {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(.tint)
+                                .foregroundStyle(.primary)
                                 .accessibilityHidden(true)
                         }
                     }
@@ -51,6 +51,7 @@ struct CityDetailDisplayPicker: View {
                 .accessibilityAddTraits(selection == display ? .isSelected : [])
             }
             .navigationTitle("View")
+            .toolbarForegroundStyle(.primary, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", systemImage: "xmark") {

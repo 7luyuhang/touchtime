@@ -18,6 +18,7 @@ struct CitySkyBackground: View {
         ZStack {
             Rectangle()
                 .fill(sky.linearGradientOverBlack(opacity: 0.65))
+                .animation(.easeInOut(duration: 0.5), value: sky.animationValue)
 
             if sky.starOpacity > 0 {
                 StarsView(starCount: starCount)

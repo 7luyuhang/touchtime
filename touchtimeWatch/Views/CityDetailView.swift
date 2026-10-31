@@ -70,11 +70,13 @@ struct CityDetailView: View {
                 }
             }
             .navigationTitle(city.name)
+            .toolbarForegroundStyle(.primary, for: .navigationBar)
             .animation(.smooth, value: adjustedDate)
             .onChange(of: hourOffset) { _, hours in
                 adjustedDate = hours == 0 ? crownStart : wholeHour(hours, from: crownStart ?? context.date)
             }
         }
+        .tint(.primary)
         .focusable()
         .focused($isCrownFocused)
         .digitalCrownRotation(
