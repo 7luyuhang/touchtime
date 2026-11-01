@@ -3,7 +3,7 @@
 //  touchtimeWatch
 //
 //  A city's world clock, moon phase, solar curve, or daylight. Turning the Digital
-//  Crown moves the time an hour at a time in every view.
+//  Crown moves a day at a time in Moon Phase, and an hour in the other views.
 //
 
 import SwiftUI
@@ -18,21 +18,22 @@ struct CityDetailView: View {
     @Environment(WatchCityStore.self) private var cityStore
     @AppStorage("watchDetailDisplay") private var display: CityDetailDisplay = .worldClock
     @State private var showsDisplayPicker = false
-    /// How far the Digital Crown has moved the time, in hours.
-    @State private var crownHours: Double = 0
-    /// The time the Digital Crown's hours count from: the clocks' time when
+    /// How far the Digital Crown has moved: days in Moon Phase, hours otherwise.
+    @State private var crownSteps: Double = 0
+    /// The time the Digital Crown's steps count from: the clocks' time when
     /// it last rested at zero, or nil for now.
     @State private var crownStart: Date?
     /// Freeze "now" on the first step so minute ticks cannot shift the adjustment.
     @State private var crownReferenceDate: Date?
     @FocusState private var isCrownFocused: Bool
 
-    /// How many hours the Digital Crown can move the time, either way: a
-    /// year, as its hourly stops need a limit, but one too far to turn to.
-    private static let crownRange: Double = 24 * 365
+    /// Keep the Crown's range at a year in either direction for both step sizes.
+    private var crownRange: Double {
+        display == .moonPhase ? 365 : 24 * 365
+    }
 
-    private var hourOffset: Int {
-        Int(crownHours.rounded())
+    private var stepOffset: Int {
+        Int(crownSteps.rounded())
     }
 
     private var isAdjusted: Bool {
@@ -102,14 +103,14 @@ struct CityDetailView: View {
             .toolbarTitleDisplayMode(.inline)
             .toolbarForegroundStyle(.primary, for: .navigationBar)
             .animation(.smooth, value: adjustedDate)
-            .onChange(of: hourOffset) { _, hours in
-                if hours == 0 {
+            .onChange(of: stepOffset) { _, steps in
+                if steps == 0 {
                     adjustedDate = crownStart
                     crownReferenceDate = nil
                 } else {
                     let referenceDate = crownReferenceDate ?? crownStart ?? .now
                     crownReferenceDate = referenceDate
-                    adjustedDate = wholeHour(hours, from: referenceDate)
+                    adjustedDate = crownDate(steps, from: referenceDate)
                 }
             }
         }
@@ -117,9 +118,9 @@ struct CityDetailView: View {
         .focusable()
         .focused($isCrownFocused)
         .digitalCrownRotation(
-            $crownHours,
-            from: -Self.crownRange,
-            through: Self.crownRange,
+            $crownSteps,
+            from: -crownRange,
+            through: crownRange,
             by: 1,
             sensitivity: .medium,
             isContinuous: false,
@@ -136,7 +137,7 @@ struct CityDetailView: View {
                         withAnimation(.smooth) {
                             crownStart = nil
                             crownReferenceDate = nil
-                            crownHours = 0
+                            crownSteps = 0
                             adjustedDate = nil
                         }
                     }
@@ -161,6 +162,12 @@ struct CityDetailView: View {
         .onAppear {
             crownStart = adjustedDate
             isCrownFocused = true
+        }
+        .onChange(of: display) { _, _ in
+            // Start the new step size at the displayed date without moving it.
+            crownStart = adjustedDate
+            crownReferenceDate = nil
+            crownSteps = 0
         }
     }
 
@@ -205,15 +212,18 @@ struct CityDetailView: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// The whole hour on the city's clock `hours` hours from `date`, counting
-    /// from the hour under way.
-    private func wholeHour(_ hours: Int, from date: Date) -> Date {
+    /// Move by calendar days for Moon Phase, preserving the local time across
+    /// daylight-saving changes; other views stop on whole hours as before.
+    private func crownDate(_ steps: Int, from date: Date) -> Date {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = city.timeZone
+        if display == .moonPhase {
+            return calendar.date(byAdding: .day, value: steps, to: date) ?? date
+        }
         let hourStart = calendar.dateInterval(of: .hour, for: date)?.start ?? date
         // Turning back, the start of the hour under way is the first stop.
-        let steps = hours < 0 && hourStart < date ? hours + 1 : hours
-        return hourStart.addingTimeInterval(TimeInterval(steps) * 3600)
+        let hours = steps < 0 && hourStart < date ? steps + 1 : steps
+        return hourStart.addingTimeInterval(TimeInterval(hours) * 3600)
     }
 
     /// The city's sunrise and sunset on `date`'s day, or nil when the sun
