@@ -133,6 +133,7 @@ struct ScrollTimeResetButton: View {
     @Binding var adjustedDate: Date?
 
     private static let diameter: CGFloat = 40
+    private static let hitTarget: CGFloat = 48
     private static let spacing: CGFloat = 6
 
     var body: some View {
@@ -146,10 +147,13 @@ struct ScrollTimeResetButton: View {
                 .font(.subheadline)
                 .fontWeight(.semibold)
                 .frame(width: Self.diameter, height: Self.diameter)
-                .contentShape(.circle)
+                .glassEffect(.regular.interactive(), in: .circle)
+                // Catch taps near the circle's edge before the city row below.
+                .frame(width: Self.hitTarget, height: Self.hitTarget)
+                .contentShape(.rect)
         }
         .buttonStyle(.plain)
-        .glassEffect(.regular.interactive(), in: .circle)
-        .padding(.bottom, Self.spacing)
+        // Keep the visible circle the same distance above the Scroll Time bar.
+        .padding(.bottom, Self.spacing - (Self.hitTarget - Self.diameter) / 2)
     }
 }
