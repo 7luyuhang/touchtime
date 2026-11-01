@@ -152,7 +152,7 @@ private struct SolarCurveSkyBackground: View {
                     reflection
 
                     LinearGradient(
-                        colors: [.black.opacity(0.25), .black.opacity(0.5)],
+                        colors: [.black.opacity(0.25), .black.opacity(1.0)],
                         startPoint: .top,
                         endPoint: .bottom
                     )
