@@ -12,6 +12,8 @@ struct ClockTimeText: View {
     enum Size {
         /// A clock's main time.
         case large
+        /// A clock's time in the city list.
+        case list
         /// A prominent time inside a chart or ring.
         case title
         /// A time in a full-width detail row.
@@ -29,6 +31,7 @@ struct ClockTimeText: View {
     var alignsLeadingInk = false
 
     @ScaledMetric(relativeTo: .largeTitle) private var largeDigitsSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .largeTitle) private var listDigitsSize: CGFloat = 36
     /// The watch's region settings, 24-Hour Time included.
     @Environment(\.locale) private var locale
     @Environment(\.fontResolutionContext) private var fontResolutionContext
@@ -51,6 +54,7 @@ struct ClockTimeText: View {
     private var font: Font {
         switch size {
         case .large: .system(size: largeDigitsSize, design: .rounded).monospacedDigit()
+        case .list: .system(size: listDigitsSize, design: .rounded).monospacedDigit()
         case .title: .system(.title3, design: .rounded, weight: .medium).monospacedDigit()
         case .medium: .system(.body, design: .rounded, weight: .medium).monospacedDigit()
         case .small: .system(.caption2, design: .rounded, weight: .medium).monospacedDigit()

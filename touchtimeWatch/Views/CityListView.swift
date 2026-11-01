@@ -95,7 +95,7 @@ private struct CityRow: View {
             }
 
             HStack(alignment: .lastTextBaseline) {
-                ClockTimeText(date: date, timeZone: city.timeZone, alignsLeadingInk: true)
+                ClockTimeText(date: date, timeZone: city.timeZone, size: .list, alignsLeadingInk: true)
 
                 Spacer(minLength: 4)
 
