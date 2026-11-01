@@ -36,24 +36,27 @@ struct CityDetailDisplayPicker: View {
 
     var body: some View {
         NavigationStack {
-            List(CityDetailDisplay.allCases) { display in
-                Button {
-                    selection = display
-                    dismiss()
-                } label: {
-                    HStack {
-                        Label(display.title, systemImage: display.symbolName)
-                        Spacer(minLength: 4)
-                        if selection == display {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(.primary)
-                                .accessibilityHidden(true)
+            List {
+                Section("View") {
+                    ForEach(CityDetailDisplay.allCases) { display in
+                        Button {
+                            selection = display
+                            dismiss()
+                        } label: {
+                            HStack {
+                                Label(display.title, systemImage: display.symbolName)
+                                Spacer(minLength: 4)
+                                if selection == display {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(.primary)
+                                        .accessibilityHidden(true)
+                                }
+                            }
                         }
+                        .accessibilityAddTraits(selection == display ? .isSelected : [])
                     }
                 }
-                .accessibilityAddTraits(selection == display ? .isSelected : [])
             }
-            .navigationTitle("View")
             .toolbarForegroundStyle(.primary, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
