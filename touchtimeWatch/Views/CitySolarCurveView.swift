@@ -9,10 +9,10 @@ import SwiftUI
 struct CitySolarCurveView: View {
     let date: Date
     let timeZone: TimeZone
+    let dateLabel: String
     /// The current time to keep marked while another time is selected.
     var referenceDate: Date? = nil
 
-    @Environment(\.locale) private var locale
     @ScaledMetric(relativeTo: .body) private var informationHeight: CGFloat = 76
 
     var body: some View {
@@ -66,12 +66,7 @@ struct CitySolarCurveView: View {
             eventRow("Sunrise", systemImage: "sunrise.fill", date: events.sunrise)
             eventRow("Sunset", systemImage: "sunset.fill", date: events.sunset)
 
-            Text(date.formatted(Date.FormatStyle(
-                date: .abbreviated,
-                time: .omitted,
-                locale: locale,
-                timeZone: timeZone
-            )))
+            Text(dateLabel)
             .font(.subheadline)
             .foregroundStyle(.secondary)
             .contentTransition(.numericText())
@@ -168,8 +163,13 @@ private struct SolarCurveSkyBackground: View {
 }
 
 #Preview {
+    let date = Date.now
     NavigationStack {
-        CitySolarCurveView(date: .now, timeZone: .current)
+        CitySolarCurveView(
+            date: date,
+            timeZone: .current,
+            dateLabel: date.formattedDate(style: "Relative", timeZone: .current, relativeTo: date)
+        )
             .ignoresSafeArea(edges: .bottom)
             .navigationTitle("Local")
     }

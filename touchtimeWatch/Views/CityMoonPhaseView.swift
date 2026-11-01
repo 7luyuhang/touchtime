@@ -9,9 +9,8 @@ import SwiftUI
 struct CityMoonPhaseView: View {
     let date: Date
     let timeZone: TimeZone
+    let dateLabel: String
     let onMoonTap: () -> Void
-
-    @Environment(\.locale) private var locale
 
     private var phase: MoonPhase {
         var calendar = Calendar(identifier: .gregorian)
@@ -55,12 +54,7 @@ struct CityMoonPhaseView: View {
                     .foregroundStyle(.white)
                     .animation(.smooth, value: phaseName)
 
-                    Text(date, format: Date.FormatStyle(
-                        date: .abbreviated,
-                        time: .omitted,
-                        locale: locale,
-                        timeZone: timeZone
-                    ))
+                    Text(dateLabel)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)

@@ -45,6 +45,9 @@ struct CityDetailView: View {
     var body: some View {
         TimelineView(.everyMinute) { context in
             let date = adjustedDate ?? context.date
+            let dateLabel = date.formattedDate(
+                style: cityStore.dateStyle, timeZone: city.timeZone, relativeTo: context.date
+            )
 
             Group {
                 switch display {
@@ -57,10 +60,12 @@ struct CityDetailView: View {
                         )
                         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
 
-                        summary(date: date, now: context.date)
+                        summary(date: date, dateLabel: WatchTimeFormat.dayAndOffset(
+                            date, in: city.timeZone, now: context.date, dateStyle: cityStore.dateStyle
+                        ))
                     }
                 case .moonPhase:
-                    CityMoonPhaseView(date: date, timeZone: city.timeZone) {
+                    CityMoonPhaseView(date: date, timeZone: city.timeZone, dateLabel: dateLabel) {
                         moonInfoDate = date
                         isCrownFocused = false
                         showsMoonInfo = true
@@ -74,6 +79,7 @@ struct CityDetailView: View {
                     CitySolarCurveView(
                         date: date,
                         timeZone: city.timeZone,
+                        dateLabel: dateLabel,
                         referenceDate: isAdjusted ? context.date : nil
                     )
                 case .daylight:
@@ -186,7 +192,7 @@ struct CityDetailView: View {
         }
     }
 
-    private func summary(date: Date, now: Date) -> some View {
+    private func summary(date: Date, dateLabel: String) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             let time = ClockTimeText(date: date, timeZone: city.timeZone, alignsLeadingInk: true)
                 .foregroundStyle(.white)
@@ -204,13 +210,12 @@ struct CityDetailView: View {
                 time
             }
 
-            let dayAndOffset = WatchTimeFormat.dayAndOffset(date, in: city.timeZone, now: now, dateStyle: cityStore.dateStyle)
             // Changing within the stack keeps the blend mode outside the
             // blur, which would otherwise grey the date mid-change
             ZStack(alignment: .leading) {
-                Text(dayAndOffset)
+                Text(dateLabel)
                     .transition(.blurReplace)
-                    .id(dayAndOffset)
+                    .id(dateLabel)
             }
             .foregroundStyle(.secondary)
             .blendMode(.plusLighter)
