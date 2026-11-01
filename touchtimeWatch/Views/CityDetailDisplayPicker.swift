@@ -25,7 +25,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     var symbolName: String {
         switch self {
         case .worldClock: "globe"
-        case .moonPhase: "moonphase.waning.gibbous"
+        case .moonPhase: "moonphase.waxing.gibbous"
         case .solarCurve: "sun.max"
         case .daylight: "rays"
         }
@@ -49,6 +49,7 @@ struct CityDetailDisplayPicker: View {
                         } label: {
                             HStack {
                                 Label(display.title, systemImage: display.symbolName)
+                                    .symbolRenderingMode(.monochrome)
                                 Spacer(minLength: 4)
                                 if selection == display {
                                     Image(systemName: "checkmark")

@@ -155,6 +155,7 @@ struct CityDetailView: View {
                     showsDisplayPicker = true
                 } label: {
                     Image(systemName: display.symbolName)
+                        .symbolRenderingMode(.monochrome)
                 }
                 .accessibilityLabel("Choose View")
                 .accessibilityValue(Text(display.title))
