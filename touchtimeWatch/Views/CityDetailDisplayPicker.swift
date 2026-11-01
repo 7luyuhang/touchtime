@@ -26,7 +26,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         switch self {
         case .worldClock: "globe"
         case .moonPhase: "moonphase.waning.gibbous"
-        case .solarCurve: "sun.horizon"
+        case .solarCurve: "sun.max"
         case .daylight: "rays"
         }
     }
