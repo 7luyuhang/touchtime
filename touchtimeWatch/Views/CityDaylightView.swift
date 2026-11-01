@@ -65,10 +65,10 @@ struct CityDaylightView: View {
                     .accessibilityHidden(true)
 
                     VStack(spacing: 0) {
-                        ClockTimeText(date: date, timeZone: timeZone, size: .medium)
+                        ClockTimeText(date: date, timeZone: timeZone, size: .title)
 
                         Text(dateString)
-                            .font(.body)
+                            .font(.title3)
                             .foregroundStyle(.secondary)
                             .contentTransition(.numericText())
                     }
@@ -83,7 +83,7 @@ struct CityDaylightView: View {
             Text(daylightDuration)
                 .font(.subheadline)
                 .monospacedDigit()
-                .foregroundStyle(.secondary)
+                .foregroundStyle(.primary)
                 .blendMode(.plusLighter)
                 .contentTransition(.numericText())
                 .multilineTextAlignment(.center)
