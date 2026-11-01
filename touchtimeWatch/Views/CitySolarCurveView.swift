@@ -137,10 +137,10 @@ private struct SolarCurveSkyBackground: View {
                     reflection
 
                     LinearGradient(
-                        colors: [.black.opacity(0.15), .black.opacity(0.85)],
+                        colors: [.black.opacity(0.25), .black.opacity(0.5)],
                         startPoint: .top,
                         endPoint: .bottom
-                    )
+                    ).blendMode(.plusDarker)
                 }
                 .frame(height: max(0, geometry.size.height - upperHeight))
                 .clipped()
