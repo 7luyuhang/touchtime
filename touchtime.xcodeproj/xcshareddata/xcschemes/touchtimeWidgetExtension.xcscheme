@@ -31,6 +31,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "5A42D3772E82CDCE0048963E"
                BuildableName = "touchtime.app"
+               BlueprintName = "touchtime"
                ReferencedContainer = "container:touchtime.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -62,6 +63,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "5A42D3772E82CDCE0048963E"
             BuildableName = "touchtime.app"
+            BlueprintName = "touchtime"
             ReferencedContainer = "container:touchtime.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -97,6 +99,7 @@
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "5A42D3772E82CDCE0048963E"
             BuildableName = "touchtime.app"
+            BlueprintName = "touchtime"
             ReferencedContainer = "container:touchtime.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
