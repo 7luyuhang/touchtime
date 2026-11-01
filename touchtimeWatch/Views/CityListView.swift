@@ -95,6 +95,10 @@ private struct CityRow: View {
             }
 
             HStack(alignment: .lastTextBaseline) {
+                ClockTimeText(date: date, timeZone: city.timeZone, alignsLeadingInk: true)
+
+                Spacer(minLength: 4)
+
                 Group {
                     if city.isLocal {
                         Image(systemName: "location.fill")
@@ -108,10 +112,6 @@ private struct CityRow: View {
                 .foregroundStyle(.secondary)
                 .blendMode(.plusLighter)
                 .layoutPriority(1)
-
-                Spacer(minLength: 4)
-
-                ClockTimeText(date: date, timeZone: city.timeZone)
             }
         }
         // Less below, as the time's digits leave the space under their
