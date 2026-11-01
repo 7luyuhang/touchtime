@@ -132,6 +132,15 @@ private struct SolarCurveSkyBackground: View {
             VStack(spacing: 0) {
                 LinearGradient(colors: colors, startPoint: .top, endPoint: .bottom)
                     .frame(height: upperHeight)
+                    .overlay {
+                        if sky.starOpacity > 0 {
+                            StarsView(starCount: 25)
+                                .opacity(sky.starOpacity)
+                                .blendMode(.plusLighter)
+                                .animation(.easeInOut(duration: 0.5), value: sky.starOpacity)
+                        }
+                    }
+                    .clipped()
 
                 ZStack {
                     reflection
