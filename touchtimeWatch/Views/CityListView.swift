@@ -78,6 +78,8 @@ private struct CityRow: View {
     let dateStyle: String
 
     var body: some View {
+        let dateLabel = date.formattedDate(style: dateStyle, timeZone: city.timeZone, relativeTo: now)
+
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
                 Text(city.name)
@@ -86,11 +88,13 @@ private struct CityRow: View {
                 
                 Spacer(minLength: 4)
                 
-                Text(date.formattedDate(style: dateStyle, timeZone: city.timeZone, relativeTo: now))
+                Text(dateLabel)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)
                     .lineLimit(1)
+                    .contentTransition(.numericText())
+                    .animation(.smooth, value: dateLabel)
                     .layoutPriority(1)
             }
 
