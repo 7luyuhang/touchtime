@@ -270,6 +270,24 @@ struct SolarCurve: View {
         let y = horizonY - (normalizedAltitude / 90.0) * amplitude
         return CGPoint(x: x, y: y)
     }
+
+    private var sunCutoutMask: some View {
+        Rectangle()
+            .fill(.white)
+            .overlay {
+                if showSun {
+                    // Cut out to the stroke's outer edge: its 1.5-point
+                    // width adds 0.75 points to the radius. The lines
+                    // meet the ring without adding light beneath it.
+                    Circle()
+                        .fill(.white)
+                        .frame(width: sunDiameter + 1.5, height: sunDiameter + 1.5)
+                        .modifier(SunAlongCurveModifier(date: date, timeZone: timeZone, size: size, height: height))
+                        .blendMode(.destinationOut)
+                }
+            }
+            .compositingGroup()
+    }
     
     var body: some View {
         // Use cached path if available, otherwise create empty path (will be set in onAppear/onChange)
@@ -293,36 +311,37 @@ struct SolarCurve: View {
                 }
             }
             
-            // Curve above horizon (opacity 1.0)
+            // Blend the white daylight stroke normally so its antialiased
+            // edge does not saturate against a bright sky.
             curvePath
-                .stroke(Color.white.opacity(1.0), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-                .blendMode(.plusLighter)
+                .stroke(Color.white, style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
                 .mask {
                     Rectangle()
                         .frame(width: size * 2, height: height / 2)
                         .offset(y: -height / 4)
                 }
-            
-            // Curve below horizon (opacity 0.3)
-            // blendMode must come after drawingGroup: the offscreen Metal texture
-            // flattens any blend applied inside it, so applying plusLighter outside
-            // keeps the additive blend against the background.
-            curvePath
-                .stroke(Color.white.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
-                .mask {
-                    Rectangle()
-                        .frame(width: size * 2, height: height / 2)
-                        .offset(y: height / 4)
-                }
-                .drawingGroup() // Optimize rendering with Metal
-                .blendMode(.plusLighter)
-            
-            // Horizon line (horizontal line at center)
-            Capsule()
-                .fill(.white.opacity(0.25))
-                .frame(width: size, height: 1)
-                .offset(y: 0)
-                .blendMode(.plusLighter)
+                .mask { sunCutoutMask }
+
+            ZStack {
+                // Curve below horizon (opacity 0.3)
+                curvePath
+                    .stroke(Color.white.opacity(0.3), style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round))
+                    .mask {
+                        Rectangle()
+                            .frame(width: size * 2, height: height / 2)
+                            .offset(y: height / 4)
+                    }
+
+                // Horizon line (horizontal line at center)
+                Capsule()
+                    .fill(.white.opacity(0.25))
+                    .frame(width: size, height: 1)
+            }
+            .mask { sunCutoutMask }
+            // Keep the additive blend outside the offscreen texture so it
+            // still blends against the sky after the cutout is rendered.
+            .drawingGroup()
+            .blendMode(.plusLighter)
 
             if let referenceSunDate {
                 Circle()
