@@ -35,6 +35,7 @@ struct DaylightRing: View {
 
     @Environment(\.colorScheme) private var colorScheme
     @State private var interactiveSunTurns: Double?
+    @State private var lastReferenceSunAngle: Angle = .zero
 
     private static let sampleCount = 288 // one sky sample every 5 minutes
     // Gaussian smoothing window (±30 min) applied to the sampled sky colors
@@ -262,6 +263,9 @@ struct DaylightRing: View {
         case .interactive: interactiveSunTurns ?? sunTurns
         }
         let sunAngle = Angle(degrees: displayedTurns * 360)
+        let referenceSunAngle = referenceSunDate.map {
+            Angle.degrees(dayFraction(of: $0) * 360)
+        }
 
         ZStack {
             if monochrome {
@@ -270,15 +274,22 @@ struct DaylightRing: View {
                 fullColorRing
             }
 
-            if let referenceSunDate {
-                Circle()
-                    .fill(.white)
-                    .frame(width: 6, height: 6)
-                    .offset(y: -ringRadius)
-                    .rotationEffect(.degrees(dayFraction(of: referenceSunDate) * 360))
-                    .position(x: size / 2, y: size / 2)
-                    .blendMode(.plusLighter)
+            // Keep the transition inside the dot's own bounds so its scale
+            // stays centered on the dot rather than moving it around the ring.
+            ZStack {
+                if referenceSunAngle != nil {
+                    Circle()
+                        .fill(.white)
+                        .transition(.blurReplace)
+                }
             }
+            .frame(width: 6, height: 6)
+            .animation(.smooth(duration: 0.25), value: referenceSunAngle != nil)
+            .offset(y: -ringRadius)
+            .rotationEffect(referenceSunAngle ?? lastReferenceSunAngle)
+            .position(x: size / 2, y: size / 2)
+            .blendMode(.plusLighter)
+            .transaction { $0.animation = nil }
 
             // Sun position indicator: filled disc by day, outline at night,
             // like the app's DaylightIndicator complication. Positioned via
@@ -318,6 +329,10 @@ struct DaylightRing: View {
             .animation(.smooth, value: interactiveSunTurns)
         }
         .frame(width: size, height: size)
+        .onChange(of: referenceSunAngle, initial: true) { _, angle in
+            // Hold the last position while the reference dot fades out.
+            if let angle { lastReferenceSunAngle = angle }
+        }
         .onChange(of: sunTurns, initial: true) { oldTurns, newTurns in
             guard case let .interactive(isAdjusting) = sunAnimation else { return }
             let delta = newTurns - oldTurns

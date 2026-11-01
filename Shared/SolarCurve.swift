@@ -26,6 +26,7 @@ struct SolarCurve: View {
     
     // Cache the Path to avoid recreating it on every body update
     @State private var cachedPath: Path?
+    @State private var lastReferenceSunPoint: CGPoint = .zero
     private struct PathKey: Equatable {
         let day: String
         let size: CGSize
@@ -292,6 +293,10 @@ struct SolarCurve: View {
     var body: some View {
         // Use cached path if available, otherwise create empty path (will be set in onAppear/onChange)
         let curvePath = cachedPath ?? Path()
+        let referenceSunPoint = referenceSunDate.map {
+            Self.sunUnitPosition(for: $0, timeZone: timeZone)
+        }
+        let referencePosition = referenceSunPoint ?? lastReferenceSunPoint
         
         ZStack {
             // Background circle
@@ -343,13 +348,20 @@ struct SolarCurve: View {
             .drawingGroup()
             .blendMode(.plusLighter)
 
-            if let referenceSunDate {
-                Circle()
-                    .fill(.white)
-                    .frame(width: 6, height: 6)
-                    .modifier(SunAlongCurveModifier(date: referenceSunDate, timeZone: timeZone, size: size, height: height))
-                    .blendMode(.plusLighter)
+            // Animate visibility inside a small, persistent container so the
+            // blur's scale cannot move the dot relative to the chart's center.
+            ZStack {
+                if referenceSunPoint != nil {
+                    Circle()
+                        .fill(.white)
+                        .transition(.blurReplace)
+                }
             }
+            .frame(width: 6, height: 6)
+            .animation(.smooth(duration: 0.25), value: referenceSunPoint != nil)
+            .position(x: referencePosition.x * size, y: referencePosition.y * height)
+            .blendMode(.plusLighter)
+            .transaction { $0.animation = nil }
             
             // Sun indicator at the current time position on the curve:
             // filled above the horizon, outlined below (like SunriseSunsetIndicator)
@@ -382,6 +394,10 @@ struct SolarCurve: View {
         }
         .frame(width: size, height: height)
         .clipShape(RoundedRectangle(cornerRadius: clipsToCircle ? size / 2 : 0))
+        .onChange(of: referenceSunPoint, initial: true) { _, point in
+            // Reset can change the displayed day; finish fading at the old point.
+            if let point { lastReferenceSunPoint = point }
+        }
         .onChange(of: PathKey(day: dayKey(for: date), size: CGSize(width: size, height: height)), initial: true) { _, _ in
             // Rebuild only for a new local day, timezone, or layout size.
             cachedPath = createPath(from: cachedCurveData(for: date))
