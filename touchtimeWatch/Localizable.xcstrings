@@ -28,6 +28,29 @@
         }
       }
     },
+    "%lldD" : {
+      "comment" : "Calendar days remaining until an upcoming moon phase.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldD"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld天"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 天"
+          }
+        }
+      }
+    },
     "%02dm" : {
       "comment" : "How far the Scroll Time bar has moved the time, under an hour, e.g. \"-45m\"",
       "localizations" : {
@@ -327,6 +350,23 @@
         }
       }
     },
+    "First" : {
+      "comment" : "Short label for the first quarter moon in the upcoming phases cards.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上弦"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上弦"
+          }
+        }
+      }
+    },
     "First Quarter" : {
       "localizations" : {
         "zh-Hans" : {
@@ -419,6 +459,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "極寒"
+          }
+        }
+      }
+    },
+    "Full" : {
+      "comment" : "Short label for the full moon in the upcoming phases cards.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "满月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "滿月"
           }
         }
       }
@@ -551,6 +608,23 @@
         }
       }
     },
+    "Last" : {
+      "comment" : "Short label for the last quarter moon in the upcoming phases cards.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下弦"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下弦"
+          }
+        }
+      }
+    },
     "Last Quarter" : {
       "localizations" : {
         "zh-Hans" : {
@@ -661,6 +735,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "大部多雲"
+          }
+        }
+      }
+    },
+    "New" : {
+      "comment" : "Short label for the new moon in the upcoming phases cards.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "新月"
           }
         }
       }

@@ -18,6 +18,8 @@ struct CityDetailView: View {
     @Environment(WatchCityStore.self) private var cityStore
     @AppStorage("watchDetailDisplay") private var display: CityDetailDisplay = .worldClock
     @State private var showsDisplayPicker = false
+    @State private var showsMoonInfo = false
+    @State private var moonInfoDate = Date()
     /// How far the Digital Crown has moved: days in Moon Phase, hours otherwise.
     @State private var crownSteps: Double = 0
     /// The time the Digital Crown's steps count from: the clocks' time when
@@ -58,12 +60,16 @@ struct CityDetailView: View {
                         summary(date: date, now: context.date)
                     }
                 case .moonPhase:
-                    CityMoonPhaseView(date: date, timeZone: city.timeZone)
-                        // The list row's sky stays behind the content during
-                        // navigation. Fade in the moon's black backing with it.
-                        .background {
-                            Color.black.ignoresSafeArea()
-                        }
+                    CityMoonPhaseView(date: date, timeZone: city.timeZone) {
+                        moonInfoDate = date
+                        isCrownFocused = false
+                        showsMoonInfo = true
+                    }
+                    // The list row's sky stays behind the content during
+                    // navigation. Fade in the moon's black backing with it.
+                    .background {
+                        Color.black.ignoresSafeArea()
+                    }
                 case .solarCurve:
                     CitySolarCurveView(
                         date: date,
@@ -83,7 +89,7 @@ struct CityDetailView: View {
                 }
             }
             // Like World Clock, the clock sits low enough to leave the map
-            // the screen's full width
+            // the screen's full width.
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 switch display {
@@ -159,9 +165,17 @@ struct CityDetailView: View {
         }) {
             CityDetailDisplayPicker(cityName: city.name, selection: $display)
         }
-        .onAppear {
-            crownStart = adjustedDate
+        .sheet(isPresented: $showsMoonInfo, onDismiss: {
             isCrownFocused = true
+        }) {
+            CityMoonPhasesSheet(date: moonInfoDate, timeZone: city.timeZone)
+        }
+        .onAppear {
+            // Returning from a sheet must keep an in-progress Crown adjustment's anchor.
+            if crownSteps == 0 {
+                crownStart = adjustedDate
+            }
+            isCrownFocused = !showsMoonInfo && !showsDisplayPicker
         }
         .onChange(of: display) { _, _ in
             // Start the new step size at the displayed date without moving it.

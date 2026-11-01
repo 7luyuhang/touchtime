@@ -183,6 +183,53 @@ enum MoonAstronomy {
         return MoonPosition(azimuth: azimuth, altitude: deg(altitude))
     }
 
+    /// Finds the exact instant the moon's age next reaches `targetAgeDays`
+    /// (0 = new moon, then quarter-cycle steps for first quarter, full moon
+    /// and last quarter). Uses the same MoonAstronomy age as the moon phase
+    /// calendar's day dots, so the dates always match them.
+    static func nextPhaseDate(targetAgeDays: Double, startingFrom date: Date) -> Date? {
+        let cycle = MoonAstronomy.synodicMonthDays
+        let dayInSeconds: TimeInterval = 86400
+
+        // Days left until the target age, wrapping at the cycle boundary:
+        // counts down to zero at the phase instant, then jumps back up.
+        func remainingDays(at date: Date) -> Double {
+            let diff = (targetAgeDays - MoonAstronomy.snapshot(for: date).ageDays)
+                .truncatingRemainder(dividingBy: cycle)
+            return diff < 0 ? diff + cycle : diff
+        }
+
+        // Scan forward in 24h windows for the one containing the countdown wrap;
+        // one must occur within a synodic month (~29.5 days).
+        var windowStart = date
+        var remainingAtStart = remainingDays(at: windowStart)
+
+        for _ in 0..<31 {
+            let windowEnd = windowStart.addingTimeInterval(dayInSeconds)
+            let remainingAtEnd = remainingDays(at: windowEnd)
+
+            if remainingAtEnd > remainingAtStart {
+                // Bisect the window down to ~1s to pin the crossing instant
+                var lowerBound = windowStart
+                var upperBound = windowEnd
+                for _ in 0..<17 {
+                    let midpoint = lowerBound.addingTimeInterval(upperBound.timeIntervalSince(lowerBound) / 2)
+                    if remainingDays(at: midpoint) <= remainingAtStart {
+                        lowerBound = midpoint
+                    } else {
+                        upperBound = midpoint
+                    }
+                }
+                return upperBound
+            }
+
+            windowStart = windowEnd
+            remainingAtStart = remainingAtEnd
+        }
+
+        return nil
+    }
+
     /// Moonrise and moonset for the local day containing `date` in `timeZone`.
     ///
     /// Samples the altitude hourly across the day and bisects each horizon
