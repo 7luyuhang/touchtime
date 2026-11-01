@@ -17,8 +17,8 @@ struct ScrollTimeBar: View {
     /// How far a slide moves the time a quarter hour.
     private static let pointsPerQuarterHour: CGFloat = 6
     private static let quarterHour: TimeInterval = 15 * 60
-    /// The bar's height, which the round button above it matches.
-    fileprivate static let height: CGFloat = 40
+    /// The height of the bar and its sliding area.
+    private static let height: CGFloat = 48
 
     var body: some View {
         let isAdjusted = adjustedDate != nil
@@ -132,6 +132,7 @@ struct ScrollTimeResetButton: View {
     /// The time every clock shows in place of now, or nil for now.
     @Binding var adjustedDate: Date?
 
+    private static let diameter: CGFloat = 40
     private static let spacing: CGFloat = 6
 
     var body: some View {
@@ -144,7 +145,7 @@ struct ScrollTimeResetButton: View {
                 .labelStyle(.iconOnly)
                 .font(.subheadline)
                 .fontWeight(.semibold)
-                .frame(width: ScrollTimeBar.height, height: ScrollTimeBar.height)
+                .frame(width: Self.diameter, height: Self.diameter)
                 .contentShape(.circle)
         }
         .buttonStyle(.plain)
