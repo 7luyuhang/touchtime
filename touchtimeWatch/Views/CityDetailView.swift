@@ -89,7 +89,9 @@ struct CityDetailView: View {
             }
         }
         .overlay {
-            crownTimeOverlay
+            if display == .solarCurve {
+                crownTimeOverlay
+            }
         }
         .tint(.primary)
         .focusable()
