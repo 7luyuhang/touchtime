@@ -48,6 +48,7 @@ struct CityDetailDisplayPicker: View {
                                 Spacer(minLength: 4)
                                 if selection == display {
                                     Image(systemName: "checkmark")
+                                        .fontWeight(.semibold)
                                         .foregroundStyle(.primary)
                                         .accessibilityHidden(true)
                                 }

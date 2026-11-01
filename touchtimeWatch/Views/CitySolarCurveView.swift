@@ -39,7 +39,8 @@ struct CitySolarCurveView: View {
                 .accessibilityHidden(true)
 
                 information
-                    .frame(height: informationHeight, alignment: .top)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(height: informationHeight, alignment: .bottom)
             }
             .background(alignment: .top) {
                 // Extend the upper sky behind the toolbar while keeping its
@@ -71,7 +72,9 @@ struct CitySolarCurveView: View {
                 locale: locale,
                 timeZone: timeZone
             )))
+            .font(.subheadline)
             .foregroundStyle(.secondary)
+            .blendMode(.plusLighter)
             .contentTransition(.numericText())
             .padding(.top, 4)
         }
