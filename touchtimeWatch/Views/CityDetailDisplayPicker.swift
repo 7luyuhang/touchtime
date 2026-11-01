@@ -7,9 +7,9 @@ import SwiftUI
 
 enum CityDetailDisplay: String, CaseIterable, Identifiable {
     case worldClock
-    case moonPhase
     case solarCurve
     case daylight
+    case moonPhase
 
     var id: Self { self }
 
