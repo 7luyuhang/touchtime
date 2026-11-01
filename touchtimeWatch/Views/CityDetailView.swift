@@ -7,7 +7,6 @@
 //
 
 import SwiftUI
-import WatchKit
 
 struct CityDetailView: View {
     let city: ClockCity
@@ -88,7 +87,14 @@ struct CityDetailView: View {
                     Color.black
                 }
             }
-            .navigationTitle("")
+            .navigationTitle {
+                if display == .solarCurve, let adjustedDate {
+                    CrownTimeTitle(date: adjustedDate, timeZone: city.timeZone)
+                        .transition(.blurReplace)
+                        .allowsHitTesting(false)
+                }
+            }
+            .toolbarTitleDisplayMode(.inline)
             .toolbarForegroundStyle(.primary, for: .navigationBar)
             .animation(.smooth, value: adjustedDate)
             .onChange(of: hourOffset) { _, hours in
@@ -100,11 +106,6 @@ struct CityDetailView: View {
                     crownReferenceDate = referenceDate
                     adjustedDate = wholeHour(hours, from: referenceDate)
                 }
-            }
-        }
-        .overlay {
-            if display == .solarCurve {
-                crownTimeOverlay
             }
         }
         .tint(.primary)
@@ -156,29 +157,6 @@ struct CityDetailView: View {
             crownStart = adjustedDate
             isCrownFocused = true
         }
-    }
-
-    private var crownTimeOverlay: some View {
-        GeometryReader { geometry in
-            let crownOnLeft = WKInterfaceDevice.current().crownOrientation == .left
-
-            Color.clear
-                .overlay(alignment: crownOnLeft ? .leading : .trailing) {
-                    if let adjustedDate {
-                        CrownTimePill(date: adjustedDate, timeZone: city.timeZone)
-                            .padding(.horizontal, 8)
-                            // The Crown sits one third down the display; rotating
-                            // the watch puts it two thirds down on the left.
-                            .offset(y: geometry.size.height / 6 * (crownOnLeft ? 1 : -1))
-                            .transition(.blurReplace)
-                    }
-                }
-                .animation(.smooth, value: isAdjusted)
-        }
-        .ignoresSafeArea()
-        // Crown placement is physical, independent of the text direction.
-        .environment(\.layoutDirection, .leftToRight)
-        .allowsHitTesting(false)
     }
 
     private func summary(date: Date, now: Date) -> some View {
@@ -255,8 +233,8 @@ struct CityDetailView: View {
     }
 }
 
-/// Keep one glass surface in the overlay throughout time adjustment.
-private struct CrownTimePill: View {
+/// Show the selected time as a plain navigation title while adjusting it.
+private struct CrownTimeTitle: View {
     let date: Date
     let timeZone: TimeZone
 
@@ -265,22 +243,13 @@ private struct CrownTimePill: View {
     var body: some View {
         let formattedTime = WatchTimeFormat.time(date, in: timeZone, hourCycle: locale.hourCycle)
 
-        // Reserve five characters even when 12-hour time has one hour digit.
-        // The glass keeps its size while only the overlaid digits animate.
-        Text("00:00")
-            .hidden()
-            .overlay {
-                Text(formattedTime.digits)
-                    .contentTransition(.numericText())
-                    .animation(.smooth(duration: 0.25), value: formattedTime.digits)
-                    .accessibilityLabel([formattedTime.digits, formattedTime.period].compactMap { $0 }.joined(separator: " "))
-            }
-            .font(.system(.caption2, design: .rounded, weight: .medium).monospacedDigit())
+        Text(formattedTime.digits)
+            .foregroundStyle(.white)
+            .monospacedDigit()
             .fixedSize()
-            .padding(.horizontal, 10)
-            .padding(.vertical, 6)
-            .glassEffect(.regular, in: .capsule)
-            .transaction { $0.animation = nil }
+            .contentTransition(.numericText())
+            .animation(.smooth(duration: 0.25), value: formattedTime.digits)
+            .accessibilityLabel([formattedTime.digits, formattedTime.period].compactMap { $0 }.joined(separator: " "))
     }
 }
 
