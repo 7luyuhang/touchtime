@@ -74,7 +74,6 @@ struct CitySolarCurveView: View {
             )))
             .font(.subheadline)
             .foregroundStyle(.secondary)
-            .blendMode(.plusLighter)
             .contentTransition(.numericText())
             .padding(.top, 4)
         }
