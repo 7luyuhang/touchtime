@@ -59,6 +59,11 @@ struct CityDetailView: View {
                     }
                 case .moonPhase:
                     CityMoonPhaseView(date: date, timeZone: city.timeZone)
+                        // The list row's sky stays behind the content during
+                        // navigation. Fade in the moon's black backing with it.
+                        .background {
+                            Color.black.ignoresSafeArea()
+                        }
                 case .solarCurve:
                     CitySolarCurveView(
                         date: date,
