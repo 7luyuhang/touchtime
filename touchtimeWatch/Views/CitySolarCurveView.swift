@@ -9,6 +9,8 @@ import SwiftUI
 struct CitySolarCurveView: View {
     let date: Date
     let timeZone: TimeZone
+    /// The current time to keep marked while another time is selected.
+    var referenceDate: Date? = nil
 
     @Environment(\.locale) private var locale
     @ScaledMetric(relativeTo: .body) private var informationHeight: CGFloat = 76
@@ -28,7 +30,8 @@ struct CitySolarCurveView: View {
                     height: chartHeight,
                     showBackground: false,
                     showSun: true,
-                    sunDiameter: 16
+                    sunDiameter: 16,
+                    referenceDate: referenceDate
                 )
                 // Convert the screen's midpoint to this content area's
                 // coordinates, below the navigation bar.
@@ -59,8 +62,8 @@ struct CitySolarCurveView: View {
         let events = sunTimes
 
         return VStack(spacing: 6) {
-            eventRow("Sunrise", date: events.sunrise)
-            eventRow("Sunset", date: events.sunset)
+            eventRow("Sunrise", systemImage: "sunrise.fill", date: events.sunrise)
+            eventRow("Sunset", systemImage: "sunset.fill", date: events.sunset)
 
             Text(date.formatted(Date.FormatStyle(
                 date: .abbreviated,
@@ -78,9 +81,10 @@ struct CitySolarCurveView: View {
         .scenePadding(.navigationBar, edges: .horizontal)
     }
 
-    private func eventRow(_ title: LocalizedStringKey, date: Date?) -> some View {
+    private func eventRow(_ title: LocalizedStringKey, systemImage: String, date: Date?) -> some View {
         HStack {
-            Text(title)
+            Label(title, systemImage: systemImage)
+                .labelStyle(.titleAndIcon)
             Spacer(minLength: 8)
             if let date {
                 ClockTimeText(date: date, timeZone: timeZone, size: .medium)

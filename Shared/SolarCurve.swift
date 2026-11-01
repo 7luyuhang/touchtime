@@ -17,6 +17,8 @@ struct SolarCurve: View {
     let useMaterialBackground: Bool
     let showBackground: Bool
     let showSun: Bool
+    /// An optional second instant, marked by a small dot on the displayed curve.
+    let referenceDate: Date?
     
     // Layout constants shared by the curve and the sun indicator (unit space)
     private static let horizonY = 0.5 // Horizon line at center
@@ -71,7 +73,7 @@ struct SolarCurve: View {
     
     /// Omit `height` for the circular complication, or supply it for a
     /// rectangular chart. Both layouts use the same curve and sun position.
-    init(date: Date, timeZone: TimeZone, size: CGFloat, height: CGFloat? = nil, useMaterialBackground: Bool = false, showBackground: Bool = true, showSun: Bool = false, sunDiameter: CGFloat? = nil) {
+    init(date: Date, timeZone: TimeZone, size: CGFloat, height: CGFloat? = nil, useMaterialBackground: Bool = false, showBackground: Bool = true, showSun: Bool = false, sunDiameter: CGFloat? = nil, referenceDate: Date? = nil) {
         self.date = date
         self.timeZone = timeZone
         self.size = size
@@ -81,6 +83,25 @@ struct SolarCurve: View {
         self.useMaterialBackground = useMaterialBackground
         self.showBackground = showBackground
         self.showSun = showSun
+        self.referenceDate = referenceDate
+    }
+
+    /// Keep the reference clock time on the displayed day's curve when scrubbing
+    /// across dates, instead of using another day's solar altitude.
+    private var referenceSunDate: Date? {
+        guard let referenceDate else { return nil }
+        var calendar = Calendar.current
+        calendar.timeZone = timeZone
+        if calendar.isDate(referenceDate, inSameDayAs: date) {
+            return referenceDate
+        }
+        let time = calendar.dateComponents([.hour, .minute, .second], from: referenceDate)
+        return calendar.date(
+            bySettingHour: time.hour ?? 0,
+            minute: time.minute ?? 0,
+            second: time.second ?? 0,
+            of: date
+        )
     }
     
     // Generate day key for caching (only changes when date changes, not time)
@@ -302,6 +323,14 @@ struct SolarCurve: View {
                 .frame(width: size, height: 1)
                 .offset(y: 0)
                 .blendMode(.plusLighter)
+
+            if let referenceSunDate {
+                Circle()
+                    .fill(.white)
+                    .frame(width: 6, height: 6)
+                    .modifier(SunAlongCurveModifier(date: referenceSunDate, timeZone: timeZone, size: size, height: height))
+                    .blendMode(.plusLighter)
+            }
             
             // Sun indicator at the current time position on the curve:
             // filled above the horizon, outlined below (like SunriseSunsetIndicator)

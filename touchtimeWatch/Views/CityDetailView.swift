@@ -60,7 +60,11 @@ struct CityDetailView: View {
                 case .moonPhase:
                     CityMoonPhaseView(date: date, timeZone: city.timeZone)
                 case .solarCurve:
-                    CitySolarCurveView(date: date, timeZone: city.timeZone)
+                    CitySolarCurveView(
+                        date: date,
+                        timeZone: city.timeZone,
+                        referenceDate: isAdjusted ? context.date : nil
+                    )
                 }
             }
             // Like World Clock, the clock sits low enough to leave the map
