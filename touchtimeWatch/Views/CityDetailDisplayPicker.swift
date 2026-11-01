@@ -34,13 +34,14 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
 
 /// A full-screen list of detail views, with the current choice checked.
 struct CityDetailDisplayPicker: View {
+    let cityName: String
     @Binding var selection: CityDetailDisplay
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             List {
-                Section("View") {
+                Section("Viewing") {
                     ForEach(CityDetailDisplay.allCases) { display in
                         Button {
                             selection = display
@@ -61,6 +62,7 @@ struct CityDetailDisplayPicker: View {
                     }
                 }
             }
+            .navigationTitle(cityName)
             .toolbarForegroundStyle(.primary, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -150,7 +150,7 @@ struct CityDetailView: View {
         .sheet(isPresented: $showsDisplayPicker, onDismiss: {
             isCrownFocused = true
         }) {
-            CityDetailDisplayPicker(selection: $display)
+            CityDetailDisplayPicker(cityName: city.name, selection: $display)
         }
         .onAppear {
             crownStart = adjustedDate
