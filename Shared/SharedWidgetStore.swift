@@ -148,7 +148,8 @@ enum SharedWidgetStore {
         }
     }
 
-    private static func loadStoredWeatherConditions() -> [String: StoredWeatherCondition] {
+    // Also read by the iPhone's Watch sync, including after an app relaunch.
+    static func loadStoredWeatherConditions() -> [String: StoredWeatherCondition] {
         guard let data = sharedDefaults?.data(forKey: weatherConditionsKey),
               let conditions = try? JSONDecoder().decode([String: StoredWeatherCondition].self, from: data) else {
             return [:]

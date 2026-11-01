@@ -2,13 +2,14 @@
 //  WatchCityStore.swift
 //  touchtimeWatch
 //
-//  The iPhone app's saved cities and date style, received over
+//  The iPhone app's saved cities, date style and weather, received over
 //  WatchConnectivity.
 //
 
 import Foundation
 import Observation
 import WatchConnectivity
+import WeatherKit
 
 /// The cities the watch shows: the iPhone app's saved list, kept in the
 /// watch's own defaults so it's there right away on the next launch, even
@@ -18,9 +19,13 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     private(set) var cities: [WatchCity]
     /// The iPhone app's date style, for `Date.formattedDate(style:)`.
     private(set) var dateStyle: String
+    private(set) var showWeather: Bool
+    private var weatherConditions: [String: WatchWeatherCondition]
 
     private static let citiesKey = "cities"
     private static let dateStyleKey = "dateStyle"
+    private static let showWeatherKey = "showWeather"
+    private static let weatherConditionsKey = "weatherConditions"
 
     override init() {
         let defaults = UserDefaults.standard
@@ -29,6 +34,9 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         // Until the iPhone first syncs, the cities the iPhone app starts with
         cities = savedCities ?? WorldClockData.defaultClocks.map { WatchCity($0) }
         dateStyle = defaults.string(forKey: Self.dateStyleKey) ?? "Relative"
+        showWeather = defaults.bool(forKey: Self.showWeatherKey)
+        weatherConditions = defaults.data(forKey: Self.weatherConditionsKey)
+            .flatMap { try? JSONDecoder().decode([String: WatchWeatherCondition].self, from: $0) } ?? [:]
         super.init()
 
         if savedCities == nil {
@@ -42,7 +50,15 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         }
     }
 
-    private func apply(citiesData: Data?, dateStyle: String?) {
+    /// Missing or expired weather falls back to the solar sky, like the widgets.
+    func weatherCondition(for identifier: String, now: Date = .now) -> WeatherCondition? {
+        guard showWeather,
+              let stored = weatherConditions[identifier],
+              now.timeIntervalSince(stored.fetchedAt) < WatchWeatherCondition.maxAge else { return nil }
+        return WeatherCondition(rawValue: stored.conditionRawValue)
+    }
+
+    private func apply(citiesData: Data?, dateStyle: String?, showWeather: Bool?, weatherData: Data?) {
         let defaults = UserDefaults.standard
         if let citiesData,
            let receivedCities = try? JSONDecoder().decode([WatchCity].self, from: citiesData) {
@@ -57,13 +73,24 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             }
             defaults.set(dateStyle, forKey: Self.dateStyleKey)
         }
+        if let showWeather {
+            self.showWeather = showWeather
+            defaults.set(showWeather, forKey: Self.showWeatherKey)
+        }
+        if let weatherData,
+           let receivedConditions = try? JSONDecoder().decode([String: WatchWeatherCondition].self, from: weatherData) {
+            weatherConditions = receivedConditions
+            defaults.set(weatherData, forKey: Self.weatherConditionsKey)
+        }
     }
 
     nonisolated private func receive(_ context: [String: Any]) {
         let citiesData = context[WatchSyncKeys.cities] as? Data
         let dateStyle = context[WatchSyncKeys.dateStyle] as? String
+        let showWeather = context[WatchSyncKeys.showWeather] as? Bool
+        let weatherData = context[WatchSyncKeys.weatherConditions] as? Data
         Task { @MainActor in
-            self.apply(citiesData: citiesData, dateStyle: dateStyle)
+            self.apply(citiesData: citiesData, dateStyle: dateStyle, showWeather: showWeather, weatherData: weatherData)
         }
     }
 

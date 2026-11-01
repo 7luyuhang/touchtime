@@ -243,8 +243,7 @@ class WeatherManager: ObservableObject {
         await getWeatherForCities(expiredIdentifiers)
     }
     
-    // Persist the latest conditions to the App Group so the widget can render
-    // rainy skies for its configured city.
+    // Persist the latest conditions for widget skies and send them to the watch.
     private func syncConditionsToWidget() {
         let conditions = weatherCache.mapValues { cached in
             SharedWidgetStore.StoredWeatherCondition(
@@ -253,6 +252,7 @@ class WeatherManager: ObservableObject {
             )
         }
         SharedWidgetStore.saveWeatherConditions(conditions)
+        WatchSyncManager.shared.sync()
     }
     
     // Get location (CLLocation) from timezone identifier

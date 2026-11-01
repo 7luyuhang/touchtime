@@ -23,9 +23,22 @@ extension WatchCity {
     }
 }
 
+/// A city's latest condition, kept with its fetch time so the watch can discard
+/// stale weather while the iPhone is out of reach.
+struct WatchWeatherCondition: Codable {
+    let conditionRawValue: String
+    let fetchedAt: Date
+
+    static let maxAge: TimeInterval = 3 * 60 * 60
+}
+
 nonisolated enum WatchSyncKeys {
     /// JSON-encoded `[WatchCity]`, in the iPhone's order.
     static let cities = "cities"
     /// The iPhone's date style: "Relative", "With Weekday" or "Date Only".
     static let dateStyle = "dateStyle"
+    /// Whether Weather is enabled on the iPhone.
+    static let showWeather = "showWeather"
+    /// JSON-encoded `[String: WatchWeatherCondition]`, keyed by time zone.
+    static let weatherConditions = "weatherConditions"
 }

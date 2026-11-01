@@ -2,7 +2,7 @@
 //  WatchSyncManager.swift
 //  touchtime
 //
-//  Sends the saved cities and the date style to the Apple Watch app.
+//  Sends saved cities, date style and weather to the Apple Watch app.
 //
 
 import Foundation
@@ -32,11 +32,18 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
               session.isWatchAppInstalled else { return }
 
         let cities = (clocks ?? Self.savedClocks()).map { WatchCity($0) }
-        guard let citiesData = try? JSONEncoder().encode(cities) else { return }
+        let showWeather = UserDefaults.standard.bool(forKey: "showWeather")
+        let conditions = showWeather ? SharedWidgetStore.loadStoredWeatherConditions().mapValues {
+            WatchWeatherCondition(conditionRawValue: $0.conditionRawValue, fetchedAt: $0.fetchedAt)
+        } : [:]
+        guard let citiesData = try? JSONEncoder().encode(cities),
+              let weatherData = try? JSONEncoder().encode(conditions) else { return }
 
         try? session.updateApplicationContext([
             WatchSyncKeys.cities: citiesData,
-            WatchSyncKeys.dateStyle: UserDefaults.standard.string(forKey: "dateStyle") ?? "Relative"
+            WatchSyncKeys.dateStyle: UserDefaults.standard.string(forKey: "dateStyle") ?? "Relative",
+            WatchSyncKeys.showWeather: showWeather,
+            WatchSyncKeys.weatherConditions: weatherData
         ])
     }
 

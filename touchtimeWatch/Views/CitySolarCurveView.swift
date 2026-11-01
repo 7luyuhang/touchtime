@@ -127,8 +127,11 @@ private struct SolarCurveSkyBackground: View {
     let timeZone: TimeZone
     let horizon: CGFloat
 
+    @Environment(WatchCityStore.self) private var cityStore
+
     var body: some View {
-        let sky = SkyColorGradient(date: date, timeZoneIdentifier: timeZone.identifier)
+        let condition = cityStore.weatherCondition(for: timeZone.identifier)
+        let sky = SkyColorGradient(date: date, timeZoneIdentifier: timeZone.identifier, weatherCondition: condition)
         let colors = sky.colorsOverBlack(opacity: 0.75)
         let reflection = LinearGradient(colors: colors.reversed(), startPoint: .top, endPoint: .bottom)
 
@@ -145,6 +148,9 @@ private struct SolarCurveSkyBackground: View {
                                 .blendMode(.plusLighter)
                                 .animation(.easeInOut(duration: 0.5), value: sky.starOpacity)
                         }
+                    }
+                    .overlay {
+                        CityRainOverlay(intensity: condition?.rainIntensity ?? 0)
                     }
                     .clipped()
 
@@ -170,6 +176,7 @@ private struct SolarCurveSkyBackground: View {
 #Preview {
     NavigationStack {
         CitySolarCurveView(date: .now, timeZone: .current)
+            .environment(WatchCityStore())
             .ignoresSafeArea(edges: .bottom)
             .navigationTitle("Local")
     }

@@ -29,6 +29,7 @@ struct ContentView: View {
     
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("dateStyle") private var dateStyle = "Relative"
+    @AppStorage("showWeather") private var showWeather = false
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
@@ -95,6 +96,9 @@ struct ContentView: View {
                 WatchSyncManager.shared.sync(clocks: clocks)
             }
             .onChange(of: dateStyle) {
+                WatchSyncManager.shared.sync()
+            }
+            .onChange(of: showWeather) {
                 WatchSyncManager.shared.sync()
             }
             // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)
