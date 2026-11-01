@@ -154,14 +154,16 @@ struct CityDetailView: View {
 
             Color.clear
                 .overlay(alignment: crownOnLeft ? .leading : .trailing) {
-                    CrownTimePill(date: $adjustedDate, timeZone: city.timeZone)
-                        .padding(.horizontal, 8)
-                        // The Crown sits one third down the display; rotating
-                        // the watch puts it two thirds down on the left.
-                        .offset(y: geometry.size.height / 6 * (crownOnLeft ? 1 : -1))
-                        .opacity(isAdjusted ? 1 : 0)
-                        .accessibilityHidden(!isAdjusted)
+                    if let adjustedDate {
+                        CrownTimePill(date: adjustedDate, timeZone: city.timeZone)
+                            .padding(.horizontal, 8)
+                            // The Crown sits one third down the display; rotating
+                            // the watch puts it two thirds down on the left.
+                            .offset(y: geometry.size.height / 6 * (crownOnLeft ? 1 : -1))
+                            .transition(.blurReplace)
+                    }
                 }
+                .animation(.smooth, value: isAdjusted)
         }
         .ignoresSafeArea()
         // Crown placement is physical, independent of the text direction.
@@ -245,13 +247,13 @@ struct CityDetailView: View {
 
 /// Keep one glass surface in the overlay throughout time adjustment.
 private struct CrownTimePill: View {
-    @Binding var date: Date?
+    let date: Date
     let timeZone: TimeZone
 
     @Environment(\.locale) private var locale
 
     var body: some View {
-        let formattedTime = WatchTimeFormat.time(date ?? .now, in: timeZone, hourCycle: locale.hourCycle)
+        let formattedTime = WatchTimeFormat.time(date, in: timeZone, hourCycle: locale.hourCycle)
 
         // Reserve five characters even when 12-hour time has one hour digit.
         // The glass keeps its size while only the overlaid digits animate.
