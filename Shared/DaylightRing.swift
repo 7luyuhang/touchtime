@@ -20,7 +20,19 @@ struct DaylightRing: View {
     // modes draw an opacity-only ring instead.
     let monochrome: Bool
 
+    enum SunAnimation {
+        case timeline
+        case interactive(isAdjusting: Bool)
+    }
+
+    // Widgets follow elapsed time. Interactive views can return to now
+    // along the shortest arc while still following Crown movement normally.
+    var sunAnimation: SunAnimation = .timeline
+    var borderWidth: CGFloat = 1
+    var borderOpacity: Double = 0.025
+
     @Environment(\.colorScheme) private var colorScheme
+    @State private var interactiveSunTurns: Double?
 
     private static let sampleCount = 288 // one sky sample every 5 minutes
     // Gaussian smoothing window (±30 min) applied to the sampled sky colors
@@ -225,7 +237,11 @@ struct DaylightRing: View {
     var body: some View {
         let ringRadius = (size - ringWidth) / 2
         let sunSize = ringWidth * 0.60
-        let sunAngle = Angle(degrees: sunTurns * 360)
+        let displayedTurns: Double = switch sunAnimation {
+        case .timeline: sunTurns
+        case .interactive: interactiveSunTurns ?? sunTurns
+        }
+        let sunAngle = Angle(degrees: displayedTurns * 360)
 
         ZStack {
             if monochrome {
@@ -269,8 +285,18 @@ struct DaylightRing: View {
             .offset(y: -ringRadius)
             .rotationEffect(sunAngle)
             .position(x: size / 2, y: size / 2)
+            .animation(.smooth, value: interactiveSunTurns)
         }
         .frame(width: size, height: size)
+        .onChange(of: sunTurns, initial: true) { oldTurns, newTurns in
+            guard case let .interactive(isAdjusting) = sunAnimation else { return }
+            let delta = newTurns - oldTurns
+            // Removing the nearest whole turn limits a reset to half a
+            // revolution. Keep the accumulated angle for subsequent updates
+            // so the next Crown step or minute tick cannot reintroduce spins.
+            let step = isAdjusting ? delta : delta - delta.rounded()
+            interactiveSunTurns = (interactiveSunTurns ?? oldTurns) + step
+        }
     }
 
     private var fullColorRing: some View {
@@ -316,17 +342,16 @@ struct DaylightRing: View {
             }
             .blendMode(.plusLighter)
 
-            // Hairline edges, like the bar's subtle border in the sheet:
-            // darkening on light backgrounds, lightening on dark ones.
+            // Edges darken light backgrounds and lighten dark ones.
             let edgeColor: Color = colorScheme == .dark ? .white : .black
             let edgeBlend: BlendMode = colorScheme == .dark ? .plusLighter : .plusDarker
 
             Circle()
-                .strokeBorder(edgeColor.opacity(0.025), lineWidth: 1.0)
+                .strokeBorder(edgeColor.opacity(borderOpacity), lineWidth: borderWidth)
                 .blendMode(edgeBlend)
             Circle()
                 .inset(by: ringWidth)
-                .stroke(edgeColor.opacity(0.025), lineWidth: 1.0)
+                .stroke(edgeColor.opacity(borderOpacity), lineWidth: borderWidth)
                 .blendMode(edgeBlend)
         }
     }

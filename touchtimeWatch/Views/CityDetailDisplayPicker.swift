@@ -9,6 +9,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     case worldClock
     case moonPhase
     case solarCurve
+    case daylight
 
     var id: Self { self }
 
@@ -17,6 +18,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .worldClock: "World Clock"
         case .moonPhase: "Moon Phase"
         case .solarCurve: "Solar Curve"
+        case .daylight: "Daylight"
         }
     }
 
@@ -25,6 +27,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .worldClock: "globe"
         case .moonPhase: "moonphase.waning.gibbous"
         case .solarCurve: "sun.horizon"
+        case .daylight: "rays"
         }
     }
 }

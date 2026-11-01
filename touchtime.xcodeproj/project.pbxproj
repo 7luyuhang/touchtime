@@ -130,6 +130,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				DateFormatting.swift,
+				DaylightRing.swift,
 				DotsWorldMap.swift,
 				MoonAstronomy.swift,
 				MoonPhase.swift,
