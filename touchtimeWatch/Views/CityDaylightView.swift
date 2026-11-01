@@ -94,6 +94,9 @@ struct CityDaylightView: View {
                 .accessibilityLabel("Daylight")
                 .accessibilityValue(daylightDuration)
         }
+        // The circle's narrow top fits between the toolbar controls,
+        // reclaiming the former city-title row without moving the footer.
+        .padding(.top, -20)
         .padding(.bottom, 8)
     }
 }

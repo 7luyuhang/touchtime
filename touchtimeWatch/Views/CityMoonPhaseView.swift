@@ -34,7 +34,7 @@ struct CityMoonPhaseView: View {
         let moonImageName = imageName
 
         GeometryReader { geometry in
-            let diameter = geometry.size.width * 0.72
+            let diameter = geometry.size.width * 0.86
 
             VStack(spacing: 8) {
                 Image(moonImageName)
@@ -80,5 +80,7 @@ struct CityMoonPhaseView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        // Use the former city-title row, as the Daylight ring does.
+        .padding(.top, -20)
     }
 }

@@ -88,7 +88,7 @@ struct CityDetailView: View {
                     Color.black
                 }
             }
-            .navigationTitle(city.name)
+            .navigationTitle("")
             .toolbarForegroundStyle(.primary, for: .navigationBar)
             .animation(.smooth, value: adjustedDate)
             .onChange(of: hourOffset) { _, hours in
