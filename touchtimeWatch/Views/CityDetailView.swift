@@ -70,10 +70,15 @@ struct CityDetailView: View {
                         referenceDate: isAdjusted ? context.date : nil
                     )
                 case .daylight:
-                    CityDaylightView(date: date, timeZone: city.timeZone, isAdjusting: isAdjusted)
-                        .background {
-                            Color.black.ignoresSafeArea()
-                        }
+                    CityDaylightView(
+                        date: date,
+                        timeZone: city.timeZone,
+                        isAdjusting: isAdjusted,
+                        referenceDate: isAdjusted ? context.date : nil
+                    )
+                    .background {
+                        Color.black.ignoresSafeArea()
+                    }
                 }
             }
             // Like World Clock, the clock sits low enough to leave the map

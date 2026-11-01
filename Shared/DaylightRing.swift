@@ -28,6 +28,8 @@ struct DaylightRing: View {
     // Widgets follow elapsed time. Interactive views can return to now
     // along the shortest arc while still following Crown movement normally.
     var sunAnimation: SunAnimation = .timeline
+    /// An optional second instant, marked by a small dot on the displayed day.
+    var referenceDate: Date? = nil
     var borderWidth: CGFloat = 1
     var borderOpacity: Double = 0.025
 
@@ -142,6 +144,24 @@ struct DaylightRing: View {
         dayFraction(of: date)
     }
 
+    // Keep the reference clock time on the displayed day's ring, including
+    // when scrubbing across dates or daylight-saving changes.
+    private var referenceSunDate: Date? {
+        guard let referenceDate else { return nil }
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
+        if calendar.isDate(referenceDate, inSameDayAs: date) {
+            return referenceDate
+        }
+        let time = calendar.dateComponents([.hour, .minute, .second], from: referenceDate)
+        return calendar.date(
+            bySettingHour: time.hour ?? 0,
+            minute: time.minute ?? 0,
+            second: time.second ?? 0,
+            of: date
+        )
+    }
+
     // Sun angle as continuous turns: whole local days since the reference
     // epoch plus today's fraction. Rendering is identical modulo full turns,
     // but keeping the value monotonic (instead of resetting at midnight)
@@ -248,6 +268,16 @@ struct DaylightRing: View {
                 monochromeRing
             } else {
                 fullColorRing
+            }
+
+            if let referenceSunDate {
+                Circle()
+                    .fill(.white)
+                    .frame(width: 6, height: 6)
+                    .offset(y: -ringRadius)
+                    .rotationEffect(.degrees(dayFraction(of: referenceSunDate) * 360))
+                    .position(x: size / 2, y: size / 2)
+                    .blendMode(.plusLighter)
             }
 
             // Sun position indicator: filled disc by day, outline at night,

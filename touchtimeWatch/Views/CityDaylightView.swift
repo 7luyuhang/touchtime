@@ -10,6 +10,7 @@ struct CityDaylightView: View {
     let date: Date
     let timeZone: TimeZone
     let isAdjusting: Bool
+    var referenceDate: Date? = nil
 
     @Environment(\.locale) private var locale
 
@@ -59,6 +60,7 @@ struct CityDaylightView: View {
                         ringWidth: ringWidth,
                         monochrome: false,
                         sunAnimation: .interactive(isAdjusting: isAdjusting),
+                        referenceDate: referenceDate,
                         borderWidth: 1.5,
                         borderOpacity: 0.10
                     )
