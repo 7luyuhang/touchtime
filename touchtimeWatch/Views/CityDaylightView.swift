@@ -28,6 +28,14 @@ struct CityDaylightView: View {
         )
     }
 
+    /// The city's hour now. While the Crown shows another time, now is the
+    /// reference date.
+    private var currentHour: Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        return calendar.component(.hour, from: referenceDate ?? date)
+    }
+
     private var daylightDuration: String {
         guard let coordinates = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) else {
             return "—"
@@ -66,6 +74,7 @@ struct CityDaylightView: View {
                     DaylightRingHours(
                         ringDiameter: diameter,
                         isVisible: showsHours,
+                        currentHour: currentHour,
                         borderWidth: Self.borderWidth,
                         borderOpacity: Self.borderOpacity
                     )
@@ -131,25 +140,41 @@ struct CityDaylightView: View {
     }
 }
 
-/// Every other hour around the outside of the daylight ring, inside a border
-/// like the ring's edges. The border comes out from under the ring's edge as
-/// the hours blur in, like the footer they replace.
+/// Every other hour around the outside of the daylight ring, and the current
+/// hour on a pill, inside a border like the ring's edges. The border comes out
+/// from under the ring's edge as the hours blur in, like the footer they
+/// replace.
 private struct DaylightRingHours: View {
     /// How far past the ring the hours and their border reach.
     static let bandWidth: CGFloat = 16
+    /// The current hour's pill, end to end along the ring.
+    private static let pillLength: CGFloat = 24
+    /// Half a two-digit hour's width, plus space between it and the pill.
+    private static let hourClearance: CGFloat = 10
 
     let ringDiameter: CGFloat
     let isVisible: Bool
+    let currentHour: Int
     let borderWidth: CGFloat
     let borderOpacity: Double
 
     @Environment(\.locale) private var locale
+
+    /// Across the ring's bottom half, an hour turns over to read left to right
+    /// rather than upside down.
+    static func isTurnedOver(_ hour: Int) -> Bool {
+        hour > 6 && hour < 18
+    }
 
     var body: some View {
         let bandWidth = isVisible ? Self.bandWidth : 0
         let diameter = ringDiameter + bandWidth * 2
         // Halfway between the ring's edge and the border.
         let radius = (ringDiameter + bandWidth - borderWidth) / 2
+        // An odd hour's pill sits between two marked hours, which make way
+        // for it where the ring is too small for all three.
+        let hourSpacing = radius * 2 * sin(.pi / 24)
+        let makesWayForPill = hourSpacing < Self.pillLength / 2 + Self.hourClearance
 
         ZStack {
             Circle()
@@ -158,27 +183,74 @@ private struct DaylightRingHours: View {
                 .frame(width: diameter, height: diameter)
                 .opacity(isVisible ? 1 : 0)
 
+            // Transitioning inside the placement scales each hour, and the
+            // pill, about itself rather than the ring's center.
             ForEach(0..<12, id: \.self) { index in
                 let hour = index * 2
-                // Midnight at the top, clockwise, as on the ring.
-                let angle = Double(hour) / 24 * 2 * .pi
-                // Along the ring, with the bottom half turned to read left
-                // to right rather than upside down.
-                let rotation = hour > 6 && hour < 18 ? angle - .pi : angle
+                let distance = abs(hour - currentHour)
+                let yieldsToPill = distance == 0 || makesWayForPill && min(distance, 24 - distance) == 1
 
-                // Transitioning inside the offset scales each hour about
-                // itself rather than the ring's center.
                 ZStack {
-                    if isVisible {
+                    if isVisible, !yieldsToPill {
                         Text(WatchTimeFormat.dialHour(hour, hourCycle: locale.hourCycle))
                             .transition(.blurReplace)
                     }
                 }
-                .rotationEffect(.radians(rotation))
-                .offset(x: radius * sin(angle), y: -radius * cos(angle))
+                .placed(atHour: hour, radius: radius)
             }
+
+            ZStack {
+                if isVisible {
+                    Text(WatchTimeFormat.dialHour(currentHour, hourCycle: locale.hourCycle))
+                        .foregroundStyle(.black)
+                        .background(.white, in: HourPill(
+                            radius: radius,
+                            length: Self.pillLength,
+                            // From the ring's edge to the border, overlapping
+                            // each a little so no seam shows between them.
+                            thickness: Self.bandWidth - borderWidth + 1,
+                            isTurnedOver: Self.isTurnedOver(currentHour)
+                        ))
+                        .transition(.blurReplace)
+                }
+            }
+            .placed(atHour: currentHour, radius: radius)
         }
         .font(.system(size: 11, weight: .semibold, design: .rounded))
         .foregroundStyle(.secondary)
+    }
+}
+
+private extension View {
+    /// At an hour around a circle of `radius`, turned along it.
+    func placed(atHour hour: Int, radius: CGFloat) -> some View {
+        // Midnight at the top, clockwise, as on the ring.
+        let angle = Double(hour) / 24 * 2 * .pi
+        return rotationEffect(.radians(DaylightRingHours.isTurnedOver(hour) ? angle - .pi : angle))
+            .offset(x: radius * sin(angle), y: -radius * cos(angle))
+    }
+}
+
+/// A pill bent along a circle through its middle, centered below it, or
+/// above it once turned over across the ring's bottom.
+private struct HourPill: Shape {
+    let radius: CGFloat
+    let length: CGFloat
+    let thickness: CGFloat
+    let isTurnedOver: Bool
+
+    func path(in rect: CGRect) -> Path {
+        let side: CGFloat = isTurnedOver ? -1 : 1
+        let center = CGPoint(x: rect.midX, y: rect.midY + side * radius)
+        // The round ends reach half the thickness past each end of the arc.
+        let sweep = (length - thickness) / radius
+        var arc = Path()
+        arc.addRelativeArc(
+            center: center,
+            radius: radius,
+            startAngle: .radians(-side * .pi / 2 - sweep / 2),
+            delta: .radians(sweep)
+        )
+        return arc.strokedPath(StrokeStyle(lineWidth: thickness, lineCap: .round))
     }
 }
