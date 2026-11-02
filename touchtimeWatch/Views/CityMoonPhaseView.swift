@@ -35,6 +35,9 @@ struct CityMoonPhaseView: View {
                         .frame(maxWidth: diameter, maxHeight: diameter)
                         .clipShape(.circle)
                         .grayscale(1)
+                        .shadow(color: .white.opacity(0.25), radius: 75)
+                        // Last so opacity/shadow don't flatten it into an isolated layer.
+                        .blendMode(.plusLighter)
                         // Keep frames stable independently of text animations.
                         .transaction { $0.animation = nil }
                         .contentShape(.circle)

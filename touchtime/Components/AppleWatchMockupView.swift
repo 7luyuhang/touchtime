@@ -157,13 +157,12 @@ private struct AppleWatchSceneView: UIViewRepresentable {
         }
 
         if !reduceMotion {
-            watch.opacity = 0
             watch.position.y = -3
             watch.eulerAngles = Self.entranceAngles
             watch.scale = SCNVector3(0.85, 0.85, 0.85)
         }
 
-        // The shared cache has already drawn opaque and fading frames. Prepare
+        // The shared cache has already drawn resting and entrance poses. Prepare
         // this view's resources before starting its independent entrance.
         view.prepare([scene]) { [weak view, weak coordinator] _ in
             DispatchQueue.main.async {
@@ -194,7 +193,7 @@ private struct AppleWatchSceneView: UIViewRepresentable {
                     node.scale = SCNVector3(1, 1, 1)
                 }
                 view.isPlaying = true
-                watch.runAction(.group([.sequence([movement, settle]), .fadeIn(duration: 0.8)])) { [weak view, weak coordinator] in
+                watch.runAction(.sequence([movement, settle])) { [weak view, weak coordinator] in
                     DispatchQueue.main.async {
                         view?.isPlaying = false
                         coordinator?.isReady = true
@@ -209,7 +208,6 @@ private struct AppleWatchSceneView: UIViewRepresentable {
         context.coordinator.reduceMotion = reduceMotion
         if reduceMotion, let watch = scene.rootNode.childNode(withName: Self.watchNodeName, recursively: false) {
             watch.removeAllActions()
-            watch.opacity = 1
             watch.position = SCNVector3Zero
             watch.eulerAngles = Self.restingAngles
             watch.scale = SCNVector3(1, 1, 1)
@@ -378,18 +376,16 @@ private struct AppleWatchSceneView: UIViewRepresentable {
         _ = renderer.prepare(scene, shouldAbortBlock: nil)
 
         // Actual draws also warm lazy shader/pipeline variants, beyond texture
-        // upload. Match the view's antialiasing and exercise the entrance fade.
+        // upload. Match the view's antialiasing and exercise the entrance pose.
         let size = CGSize(width: 400, height: 300)
         autoreleasepool {
             _ = renderer.snapshot(atTime: 0, with: size, antialiasingMode: .multisampling4X)
         }
         if let watch = scene.rootNode.childNode(withName: watchNodeName, recursively: false) {
-            watch.opacity = 0.5
             watch.eulerAngles = entranceAngles
             autoreleasepool {
                 _ = renderer.snapshot(atTime: 0, with: size, antialiasingMode: .multisampling4X)
             }
-            watch.opacity = 1
             watch.eulerAngles = restingAngles
         }
         return renderer
