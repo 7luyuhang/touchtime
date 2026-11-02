@@ -136,7 +136,7 @@ struct CityDaylightView: View {
 /// the hours blur in, like the footer they replace.
 private struct DaylightRingHours: View {
     /// How far past the ring the hours and their border reach.
-    static let bandWidth: CGFloat = 20
+    static let bandWidth: CGFloat = 16
 
     let ringDiameter: CGFloat
     let isVisible: Bool
@@ -148,8 +148,7 @@ private struct DaylightRingHours: View {
     var body: some View {
         let bandWidth = isVisible ? Self.bandWidth : 0
         let diameter = ringDiameter + bandWidth * 2
-        // Halfway between the ring's edge and the border. Beside the ring the
-        // hours lie lengthwise across the band, which is sized to clear them there.
+        // Halfway between the ring's edge and the border.
         let radius = (ringDiameter + bandWidth - borderWidth) / 2
 
         ZStack {
@@ -163,6 +162,9 @@ private struct DaylightRingHours: View {
                 let hour = index * 2
                 // Midnight at the top, clockwise, as on the ring.
                 let angle = Double(hour) / 24 * 2 * .pi
+                // Along the ring, with the bottom half turned to read left
+                // to right rather than upside down.
+                let rotation = hour > 6 && hour < 18 ? angle - .pi : angle
 
                 // Transitioning inside the offset scales each hour about
                 // itself rather than the ring's center.
@@ -172,6 +174,7 @@ private struct DaylightRingHours: View {
                             .transition(.blurReplace)
                     }
                 }
+                .rotationEffect(.radians(rotation))
                 .offset(x: radius * sin(angle), y: -radius * cos(angle))
             }
         }
