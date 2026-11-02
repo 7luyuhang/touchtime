@@ -132,8 +132,8 @@ struct CityDaylightView: View {
 }
 
 /// Every other hour around the outside of the daylight ring, inside a border
-/// like the ring's edges. Hidden, they tuck in behind the ring's edge, so
-/// they come out from under it.
+/// like the ring's edges. The border comes out from under the ring's edge as
+/// the hours blur in, like the footer they replace.
 private struct DaylightRingHours: View {
     /// How far past the ring the hours and their border reach.
     static let bandWidth: CGFloat = 20
@@ -157,18 +157,25 @@ private struct DaylightRingHours: View {
                 .strokeBorder(.white.opacity(borderOpacity), lineWidth: borderWidth)
                 .blendMode(.plusLighter)
                 .frame(width: diameter, height: diameter)
+                .opacity(isVisible ? 1 : 0)
 
             ForEach(0..<12, id: \.self) { index in
                 let hour = index * 2
                 // Midnight at the top, clockwise, as on the ring.
                 let angle = Double(hour) / 24 * 2 * .pi
 
-                Text(WatchTimeFormat.dialHour(hour, hourCycle: locale.hourCycle))
-                    .offset(x: radius * sin(angle), y: -radius * cos(angle))
+                // Transitioning inside the offset scales each hour about
+                // itself rather than the ring's center.
+                ZStack {
+                    if isVisible {
+                        Text(WatchTimeFormat.dialHour(hour, hourCycle: locale.hourCycle))
+                            .transition(.blurReplace)
+                    }
+                }
+                .offset(x: radius * sin(angle), y: -radius * cos(angle))
             }
         }
         .font(.system(size: 11, weight: .semibold, design: .rounded))
         .foregroundStyle(.secondary)
-        .opacity(isVisible ? 1 : 0)
     }
 }
