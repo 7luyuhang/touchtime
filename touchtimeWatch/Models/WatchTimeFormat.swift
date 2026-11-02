@@ -23,6 +23,17 @@ enum WatchTimeFormat {
         }
     }
 
+    /// An hour of the day (0–23) as a 24-hour dial marks it: "06" and "18"
+    /// in 24-hour time, and "6" for both in 12-hour time, like `time`'s hours.
+    static func dialHour(_ hour: Int, hourCycle: Locale.HourCycle) -> String {
+        switch hourCycle {
+        case .zeroToTwentyThree, .oneToTwentyFour:
+            return String(format: "%02d", hour)
+        default:
+            return String(hour % 12 == 0 ? 12 : hour % 12)
+        }
+    }
+
     /// The city's date in the iPhone app's date style ("Tomorrow",
     /// "Wed, 28 Oct", …) and the iPhone app's time difference, e.g.
     /// "Tomorrow, +8h". Just the date when the clocks are less than an hour

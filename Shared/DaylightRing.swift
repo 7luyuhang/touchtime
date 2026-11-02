@@ -289,7 +289,9 @@ struct DaylightRing: View {
             .rotationEffect(referenceSunAngle ?? lastReferenceSunAngle)
             .position(x: size / 2, y: size / 2)
             .blendMode(.plusLighter)
-            .transaction { $0.animation = nil }
+            // Jump to a new reference time rather than sweeping around the
+            // ring, but still follow the ring as it resizes.
+            .animation(nil, value: referenceSunAngle)
 
             // Sun position indicator: filled disc by day, outline at night,
             // like the app's DaylightIndicator complication. Positioned via
