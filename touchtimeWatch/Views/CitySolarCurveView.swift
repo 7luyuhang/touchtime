@@ -10,8 +10,6 @@ struct CitySolarCurveView: View {
     let date: Date
     let timeZone: TimeZone
     let dateLabel: String
-    /// The current time to keep marked while another time is selected.
-    var referenceDate: Date? = nil
 
     @ScaledMetric(relativeTo: .body) private var informationHeight: CGFloat = 76
 
@@ -30,8 +28,7 @@ struct CitySolarCurveView: View {
                     height: chartHeight,
                     showBackground: false,
                     showSun: true,
-                    sunDiameter: 16,
-                    referenceDate: referenceDate
+                    sunDiameter: 16
                 )
                 // Convert the screen's midpoint to this content area's
                 // coordinates, below the navigation bar.

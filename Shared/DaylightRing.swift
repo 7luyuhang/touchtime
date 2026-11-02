@@ -28,14 +28,11 @@ struct DaylightRing: View {
     // Widgets follow elapsed time. Interactive views can return to now
     // along the shortest arc while still following Crown movement normally.
     var sunAnimation: SunAnimation = .timeline
-    /// An optional second instant, marked by a small dot on the displayed day.
-    var referenceDate: Date? = nil
     var borderWidth: CGFloat = 1
     var borderOpacity: Double = 0.025
 
     @Environment(\.colorScheme) private var colorScheme
     @State private var interactiveSunTurns: Double?
-    @State private var lastReferenceSunAngle: Angle = .zero
 
     private static let sampleCount = 288 // one sky sample every 5 minutes
     // Gaussian smoothing window (±30 min) applied to the sampled sky colors
@@ -145,24 +142,6 @@ struct DaylightRing: View {
         dayFraction(of: date)
     }
 
-    // Keep the reference clock time on the displayed day's ring, including
-    // when scrubbing across dates or daylight-saving changes.
-    private var referenceSunDate: Date? {
-        guard let referenceDate else { return nil }
-        var calendar = Calendar.current
-        calendar.timeZone = TimeZone(identifier: timeZoneIdentifier) ?? .current
-        if calendar.isDate(referenceDate, inSameDayAs: date) {
-            return referenceDate
-        }
-        let time = calendar.dateComponents([.hour, .minute, .second], from: referenceDate)
-        return calendar.date(
-            bySettingHour: time.hour ?? 0,
-            minute: time.minute ?? 0,
-            second: time.second ?? 0,
-            of: date
-        )
-    }
-
     // Sun angle as continuous turns: whole local days since the reference
     // epoch plus today's fraction. Rendering is identical modulo full turns,
     // but keeping the value monotonic (instead of resetting at midnight)
@@ -263,9 +242,6 @@ struct DaylightRing: View {
         case .interactive: interactiveSunTurns ?? sunTurns
         }
         let sunAngle = Angle(degrees: displayedTurns * 360)
-        let referenceSunAngle = referenceSunDate.map {
-            Angle.degrees(dayFraction(of: $0) * 360)
-        }
 
         ZStack {
             if monochrome {
@@ -273,25 +249,6 @@ struct DaylightRing: View {
             } else {
                 fullColorRing
             }
-
-            // Keep the transition inside the dot's own bounds so its scale
-            // stays centered on the dot rather than moving it around the ring.
-            ZStack {
-                if referenceSunAngle != nil {
-                    Circle()
-                        .fill(.white)
-                        .transition(.blurReplace)
-                }
-            }
-            .frame(width: 6, height: 6)
-            .animation(.smooth(duration: 0.25), value: referenceSunAngle != nil)
-            .offset(y: -ringRadius)
-            .rotationEffect(referenceSunAngle ?? lastReferenceSunAngle)
-            .position(x: size / 2, y: size / 2)
-            .blendMode(.plusLighter)
-            // Jump to a new reference time rather than sweeping around the
-            // ring, but still follow the ring as it resizes.
-            .animation(nil, value: referenceSunAngle)
 
             // Sun position indicator: filled disc by day, outline at night,
             // like the app's DaylightIndicator complication. Positioned via
@@ -331,10 +288,6 @@ struct DaylightRing: View {
             .animation(.smooth, value: interactiveSunTurns)
         }
         .frame(width: size, height: size)
-        .onChange(of: referenceSunAngle, initial: true) { _, angle in
-            // Hold the last position while the reference dot fades out.
-            if let angle { lastReferenceSunAngle = angle }
-        }
         .onChange(of: sunTurns, initial: true) { oldTurns, newTurns in
             guard case let .interactive(isAdjusting) = sunAnimation else { return }
             let delta = newTurns - oldTurns

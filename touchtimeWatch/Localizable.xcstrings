@@ -112,6 +112,29 @@
         }
       }
     },
+    "%d minutes" : {
+      "comment" : "Minutes until daylight ends or starts, under an hour, e.g. \"25m\"",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dm"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d分钟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d 分鐘"
+          }
+        }
+      }
+    },
     "%dh %02dm" : {
       "comment" : "How far the Scroll Time bar has moved the time, e.g. \"+2h 15m\"",
       "localizations" : {
@@ -346,6 +369,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "細雨"
+          }
+        }
+      }
+    },
+    "Ends in %@" : {
+      "comment" : "How long until the day's daylight ends, e.g. \"Ends in 2h 15m\"",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@后结束"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@後結束"
           }
         }
       }
@@ -932,6 +972,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "太陽曲線"
+          }
+        }
+      }
+    },
+    "Starts in %@" : {
+      "comment" : "How long until daylight next starts, e.g. \"Starts in 9h 48m\"",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@后开始"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@後開始"
           }
         }
       }

@@ -79,8 +79,7 @@ struct CityDetailView: View {
                     CitySolarCurveView(
                         date: date,
                         timeZone: city.timeZone,
-                        dateLabel: dateLabel,
-                        referenceDate: isAdjusted ? context.date : nil
+                        dateLabel: dateLabel
                     )
                 case .daylight:
                     CityDaylightView(

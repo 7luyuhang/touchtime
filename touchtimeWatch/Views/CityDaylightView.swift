@@ -5,8 +5,9 @@
 
 import SwiftUI
 
-/// The widget's full-color sky ring and the city's daylight duration.
-/// Tapping the ring's center trades the duration for the hours around it.
+/// The widget's full-color sky ring, and how long until the city's daylight
+/// ends or starts. Tapping the ring's center trades the countdown for the
+/// hours around it.
 struct CityDaylightView: View {
     let date: Date
     let timeZone: TimeZone
@@ -36,19 +37,50 @@ struct CityDaylightView: View {
         return calendar.component(.hour, from: referenceDate ?? date)
     }
 
-    private var daylightDuration: String {
+    /// How long until the city's daylight ends, or until it next starts.
+    private var daylightCountdown: String {
         guard let coordinates = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) else {
             return "—"
         }
-        let events = SolarCalculator.events(
-            latitude: coordinates.latitude,
-            longitude: coordinates.longitude,
-            date: date,
-            timeZone: timeZone
-        )
-        // Elapsed time also handles daylight-saving changes. Rounding to
-        // minutes preserves the calculator's full-day and zero-day polar cases.
-        let minutes = max(0, Int((events.sunset.timeIntervalSince(events.sunrise) / 60).rounded()))
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        guard let day = calendar.dateInterval(of: .day, for: date),
+              let tomorrow = calendar.date(byAdding: .day, value: 1, to: date) else {
+            return "—"
+        }
+        func events(on moment: Date) -> SolarCalculator.DayEvents {
+            SolarCalculator.events(
+                latitude: coordinates.latitude,
+                longitude: coordinates.longitude,
+                date: moment,
+                timeZone: timeZone
+            )
+        }
+
+        let today = events(on: date)
+        // The calculator collapses a polar night's sunrise and sunset into
+        // noon, and pins a polar day's to the day's edges. Neither is a
+        // crossing to count down to.
+        let isPolarDay = today.sunrise <= day.start && today.sunset >= day.end.addingTimeInterval(-1)
+        guard today.sunrise < today.sunset, !isPolarDay else { return "—" }
+
+        if date < today.sunrise {
+            return String(format: String(localized: "Starts in %@", locale: locale), countdown(to: today.sunrise))
+        }
+        if date < today.sunset {
+            return String(format: String(localized: "Ends in %@", locale: locale), countdown(to: today.sunset))
+        }
+        let next = events(on: tomorrow)
+        guard next.sunrise < next.sunset else { return "—" }
+        return String(format: String(localized: "Starts in %@", locale: locale), countdown(to: next.sunrise))
+    }
+
+    /// Rounded up to whole minutes, so it never reads zero before the event.
+    private func countdown(to event: Date) -> String {
+        let minutes = max(0, Int((event.timeIntervalSince(date) / 60).rounded(.up)))
+        if minutes < 60 {
+            return String(format: String(localized: "%d minutes", locale: locale), minutes)
+        }
         if minutes % 60 == 0 {
             return String(format: String(localized: "%d hours", locale: locale), minutes / 60)
         }
@@ -87,7 +119,6 @@ struct CityDaylightView: View {
                         ringWidth: ringWidth,
                         monochrome: false,
                         sunAnimation: .interactive(isAdjusting: isAdjusting),
-                        referenceDate: referenceDate,
                         borderWidth: Self.borderWidth,
                         borderOpacity: Self.borderOpacity
                     )
@@ -117,12 +148,12 @@ struct CityDaylightView: View {
             }
 
             if !showsHours {
-                Text(daylightDuration)
+                Text(daylightCountdown)
                     .font(.subheadline)
                     .monospacedDigit()
                     .foregroundStyle(.primary)
                     .blendMode(.plusLighter)
-                    .contentTransition(.numericText())
+                    .contentTransition(.numericText(countsDown: true))
                     .multilineTextAlignment(.center)
                     .lineLimit(1)
                     .minimumScaleFactor(0.75)
@@ -130,7 +161,7 @@ struct CityDaylightView: View {
                     .scenePadding(.navigationBar, edges: .horizontal)
                     .transition(.blurReplace)
                     .accessibilityLabel("Daylight")
-                    .accessibilityValue(daylightDuration)
+                    .accessibilityValue(daylightCountdown)
             }
         }
         // The circle's narrow top fits between the toolbar controls,
@@ -217,7 +248,7 @@ private struct DaylightRingHours: View {
             .placed(atHour: currentHour, radius: radius)
         }
         .font(.system(size: 11, weight: .semibold, design: .rounded))
-        .foregroundStyle(.secondary)
+        .foregroundStyle(.primary)
     }
 }
 
