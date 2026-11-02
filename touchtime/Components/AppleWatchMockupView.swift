@@ -86,7 +86,7 @@ private final class AppleWatchSceneCache {
             #if DEBUG
             let start = CFAbsoluteTimeGetCurrent()
             #endif
-            guard let url = Bundle.main.url(forResource: "apple-watch-ultra-2", withExtension: "usdz") else {
+            guard let url = Bundle.main.url(forResource: "apple-watch-series-10-titanium-gold", withExtension: "usdz") else {
                 throw WatchSceneError.missingAsset
             }
             let scene = try AppleWatchSceneView.configure(SCNScene(url: url))
@@ -289,7 +289,7 @@ private struct AppleWatchSceneView: UIViewRepresentable {
 
     nonisolated static func configure(_ scene: SCNScene) throws -> SCNScene {
         guard let screenshot = UIImage(named: "AppleWatchIntroScreen"),
-              let display = scene.rootNode.childNode(withName: "EoJqLMCyQtOSdnP", recursively: true),
+              let display = scene.rootNode.childNode(withName: "rJeLKgtaspBNkmI", recursively: true),
               let displayGeometry = display.geometry else {
             throw WatchSceneError.missingAsset
         }
@@ -299,15 +299,15 @@ private struct AppleWatchSceneView: UIViewRepresentable {
         screenMaterial.diffuse.contents = screenshot
         screenMaterial.diffuse.mipFilter = .linear
         screenMaterial.diffuse.maxAnisotropy = 8
-        // Retain the mesh's original full-screen UVs and rounded outline;
-        // all other meshes keep the USDZ's original materials and colors.
+        // Retain the mesh's original full-screen UVs and rounded outline.
         displayGeometry.materials = [screenMaterial]
+        applyWhiteAluminum(to: scene)
 
         let source = SCNNode()
         for child in scene.rootNode.childNodes {
             source.addChildNode(child)
         }
-        // The USDZ is tilted 55° about X; another 35° makes the face upright.
+        // Rotate the USDZ's tilted display upright.
         source.eulerAngles.x = .pi * 35 / 180
         let centered = SCNNode()
         centered.addChildNode(source)
@@ -348,6 +348,27 @@ private struct AppleWatchSceneView: UIViewRepresentable {
         addLight(to: scene, type: .directional, intensity: 1400, position: SCNVector3(1, 4, -6))
         scene.background.contents = UIColor.clear
         return scene
+    }
+
+    nonisolated private static func applyWhiteAluminum(to scene: SCNScene) {
+        // The Series 10 asset's case, crown, buttons and metal trim.
+        let metalMaterialNames: Set<String> = [
+            "LWJHeYYQMRZxZCG", "KMfhfHsSQFxApYe", "tetEWTOUCivgKZc",
+            "HsVxdnblPfZrHgy", "EGNcJKGscUKkYej", "KJKkRClRaugvehP",
+            "ujcnrIOZEjyiFMV", "NkcEzuWLLNYoZWe", "PiEVCjonPhxlRAO",
+            "sgaomdeDGcIyeqa"
+        ]
+        let aluminumColor = UIColor(white: 0.85, alpha: 1)
+
+        scene.rootNode.enumerateChildNodes { node, _ in
+            for material in node.geometry?.materials ?? [] {
+                guard let name = material.name, metalMaterialNames.contains(name) else { continue }
+                material.lightingModel = .physicallyBased
+                material.diffuse.contents = aluminumColor
+                material.metalness.contents = 0.85
+                material.roughness.contents = 0.5
+            }
+        }
     }
 
     nonisolated static func warmUp(_ scene: SCNScene) -> SCNRenderer {
