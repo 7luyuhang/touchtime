@@ -87,7 +87,7 @@ struct WeeklyForecastRow: View {
 
             // Weather icon
             Image(systemName: day.condition.icon)
-                .symbolRenderingMode(.multicolor)
+                .symbolRenderingMode(.monochrome)
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .blendMode(.plusLighter)

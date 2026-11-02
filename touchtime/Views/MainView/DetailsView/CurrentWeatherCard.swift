@@ -23,7 +23,7 @@ struct CurrentWeatherCard: View {
         HStack {
             HStack(spacing: 12){
                 Image(systemName: weather.condition.icon)
-                    .symbolRenderingMode(.multicolor)
+                    .symbolRenderingMode(.monochrome)
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.secondary)
                     .blendMode(.plusLighter)

@@ -53,17 +53,30 @@ struct HourlyForecastRow: View {
         let temperature = useCelsius ?
         hour.temperature.converted(to: .celsius) :
         hour.temperature.converted(to: .fahrenheit)
-        let precipitationChance = Int((hour.precipitationChance * 100).rounded())
+        let chance = hour.precipitationChance
+        let precipitationChance = chance.isFinite && (0...1).contains(chance)
+            ? Int((chance * 100).rounded())
+            : 0
 
         return ZStack {
-            // Kept at the card's geometric center; the optional precipitation
-            // label no longer pushes the condition down.
+            // Keep the icon centered, with precipitation below it in an
+            // overlay so the label cannot move the icon or the time.
             Image(systemName: hour.condition.icon)
-                .symbolRenderingMode(.multicolor)
+                .symbolRenderingMode(.monochrome)
                 .font(.title3)
                 .foregroundStyle(.secondary)
                 .blendMode(.plusLighter)
                 .frame(height: 28)
+                .overlay(alignment: .top) {
+                    if precipitationChance > 0 {
+                        Text("\(precipitationChance)%")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(.cyan)
+                            .monospacedDigit()
+                            .fixedSize()
+                            .padding(.top, 32) // Below the 28pt icon row, with a 4pt gap.
+                    }
+                }
 
             // Mirror the daily card's rows so the temperature has the same
             // vertical position, whether or not precipitation is shown.
@@ -76,14 +89,6 @@ struct HourlyForecastRow: View {
                 Text("0°")
                     .font(.subheadline.weight(.medium))
                     .hidden()
-                    .overlay {
-                        if precipitationChance > 0 {
-                            Text("\(precipitationChance)%")
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(.cyan)
-                                .monospacedDigit()
-                        }
-                    }
 
                 Color.clear
                     .frame(height: 28)
