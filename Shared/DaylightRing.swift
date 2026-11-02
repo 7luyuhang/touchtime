@@ -160,8 +160,7 @@ struct DaylightRing: View {
 
     // Outline sun only in the ring's night band, i.e. before civil dawn or
     // past civil dusk; twilight, sunrise/sunset, golden hour and day all
-    // keep the filled disc. Hard switch, no cross-fade: WidgetKit's implicit
-    // entry animation already softens the flip at the boundary minute.
+    // keep the filled disc.
     private var isSunFilled: Bool {
         guard let coords = TimeZoneCoordinates.getCoordinate(for: timeZoneIdentifier) else {
             let fraction = dayFraction(of: date)
@@ -256,36 +255,32 @@ struct DaylightRing: View {
             // animation between timeline entries interpolates the angle,
             // sweeping the sun along the ring instead of cutting straight
             // across it (visible when the widget catches up after unlock).
-            let filled = isSunFilled
-            ZStack {
-                Circle()
-                    .fill(.white)
-                    .background {
-                        if !monochrome {
-                            // Shadow lives on its own layer: plusDarker on the
-                            // white disc itself would make it vanish.
-                            Circle()
-                                .fill(.black.opacity(0.05))
-                                .blur(radius: 5)
-                                .offset(y: 2.5)
-                                .blendMode(.plusDarker)
-                        }
+            let fill: CGFloat = isSunFilled ? 1 : 0
+            SunDisc(fill: fill, lineWidth: 2)
+                .fill(.white, style: FillStyle(eoFill: true))
+                .opacity(0.35 + 0.65 * fill)
+                .blendMode(.plusLighter)
+                .background {
+                    if !monochrome {
+                        // Shadow lives on its own layer: plusDarker on the
+                        // white disc itself would make it vanish.
+                        Circle()
+                            .fill(.black.opacity(0.05))
+                            .blur(radius: 5)
+                            .offset(y: 2.5)
+                            .blendMode(.plusDarker)
+                            .opacity(fill)
                     }
-                    .opacity(filled ? 1 : 0)
-
-                Circle()
-                    .stroke(.white, lineWidth: 2.0)
-                    .opacity(filled ? 0 : 0.35)
-                    .blendMode(.plusLighter)
-            }
-            .frame(width: sunSize, height: sunSize)
-            // Counter-spin so the disc's drop shadow keeps pointing down
-            // while the outer rotation carries it around the ring.
-            .rotationEffect(-sunAngle)
-            .offset(y: -ringRadius)
-            .rotationEffect(sunAngle)
-            .position(x: size / 2, y: size / 2)
-            .animation(.smooth, value: interactiveSunTurns)
+                }
+                .animation(.smooth, value: fill)
+                .frame(width: sunSize, height: sunSize)
+                // Counter-spin so the disc's drop shadow keeps pointing down
+                // while the outer rotation carries it around the ring.
+                .rotationEffect(-sunAngle)
+                .offset(y: -ringRadius)
+                .rotationEffect(sunAngle)
+                .position(x: size / 2, y: size / 2)
+                .animation(.smooth, value: interactiveSunTurns)
         }
         .frame(width: size, height: size)
         .onChange(of: sunTurns, initial: true) { oldTurns, newTurns in
@@ -370,5 +365,35 @@ struct DaylightRing: View {
                 ),
                 lineWidth: ringWidth
             )
+    }
+}
+
+/// The sun as an outline that closes into a disc: `fill` 0 is a `lineWidth`
+/// ring inside the frame, 1 is solid. The outer edge never moves, so night
+/// and day suns are the same size. Fill it even-odd to keep the hole.
+private struct SunDisc: Shape {
+    var fill: CGFloat
+    let lineWidth: CGFloat
+
+    var animatableData: CGFloat {
+        get { fill }
+        set { fill = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path(ellipseIn: rect)
+        // Shut the hole at 90%: a spring's slow tail would otherwise leave a
+        // pinhole in the disc.
+        let opening = max(0, 1 - fill / 0.9)
+        let hole = (min(rect.width, rect.height) / 2 - lineWidth) * opening
+        if hole > 0 {
+            path.addEllipse(in: CGRect(
+                x: rect.midX - hole,
+                y: rect.midY - hole,
+                width: hole * 2,
+                height: hole * 2
+            ))
+        }
+        return path
     }
 }
