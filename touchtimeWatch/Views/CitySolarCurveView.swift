@@ -83,7 +83,7 @@ struct CitySolarCurveView: View {
             if let date {
                 ClockTimeText(date: date, timeZone: timeZone, size: .medium)
             } else {
-                Text("—")
+                Text(verbatim: "-")
             }
         }
         .accessibilityElement(children: .combine)

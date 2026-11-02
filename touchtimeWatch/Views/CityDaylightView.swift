@@ -40,13 +40,13 @@ struct CityDaylightView: View {
     /// How long until the city's daylight ends, or until it next starts.
     private var daylightCountdown: String {
         guard let coordinates = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) else {
-            return "—"
+            return "-"
         }
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
         guard let day = calendar.dateInterval(of: .day, for: date),
               let tomorrow = calendar.date(byAdding: .day, value: 1, to: date) else {
-            return "—"
+            return "-"
         }
         func events(on moment: Date) -> SolarCalculator.DayEvents {
             SolarCalculator.events(
@@ -62,7 +62,7 @@ struct CityDaylightView: View {
         // noon, and pins a polar day's to the day's edges. Neither is a
         // crossing to count down to.
         let isPolarDay = today.sunrise <= day.start && today.sunset >= day.end.addingTimeInterval(-1)
-        guard today.sunrise < today.sunset, !isPolarDay else { return "—" }
+        guard today.sunrise < today.sunset, !isPolarDay else { return "-" }
 
         if date < today.sunrise {
             return String(format: String(localized: "Starts in %@", locale: locale), countdown(to: today.sunrise))
@@ -71,7 +71,7 @@ struct CityDaylightView: View {
             return String(format: String(localized: "Ends in %@", locale: locale), countdown(to: today.sunset))
         }
         let next = events(on: tomorrow)
-        guard next.sunrise < next.sunset else { return "—" }
+        guard next.sunrise < next.sunset else { return "-" }
         return String(format: String(localized: "Starts in %@", locale: locale), countdown(to: next.sunrise))
     }
 

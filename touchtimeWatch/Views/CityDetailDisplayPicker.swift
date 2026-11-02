@@ -64,7 +64,7 @@ struct CityDetailDisplayPicker: View {
                 }
             }
             .navigationTitle(cityName)
-            .toolbarForegroundStyle(.blue, for: .navigationBar)
+            .toolbarForegroundStyle(.yellow, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", systemImage: "xmark") {
