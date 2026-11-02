@@ -18,31 +18,34 @@ struct HourlyForecastRow: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(Array(hours.prefix(24).enumerated()), id: \.offset) { index, hour in
-                    if index == 0 {
-                        Button {
-                            if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                            }
-                            withAnimation(.snappy(duration: 0.5)) {
-                                isHourlyForecastShown = false
-                            }
-                        } label: {
-                            hourCard(hour, isCurrentHour: true)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(Text("Now"))
-                    } else {
+        HStack(spacing: 8) {
+            // Keep Now available to switch back after scrolling ahead.
+            if let currentHour = hours.first {
+                Button {
+                    if hapticEnabled {
+                        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                    }
+                    withAnimation(.snappy(duration: 0.5)) {
+                        isHourlyForecastShown = false
+                    }
+                } label: {
+                    hourCard(currentHour, isCurrentHour: true)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(Text("Now"))
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(hours.prefix(24).dropFirst().enumerated()), id: \.offset) { _, hour in
                         hourCard(hour, isCurrentHour: false)
                     }
                 }
             }
+            .horizontalScrollEdgeFade()
         }
-        .horizontalScrollEdgeFade()
-        // The fade mask composites the row offscreen, so the cards'
-        // plusLighter blend is reapplied to the whole row.
+        // The scroll mask composites its cards offscreen, so reapply
+        // their plusLighter blend to the whole row.
         .blendMode(.plusLighter)
     }
 

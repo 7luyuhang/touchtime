@@ -25,34 +25,44 @@ struct WeeklyForecastRow: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(Array(days.enumerated()), id: \.offset) { _, day in
-                    let showsHourlyDisclosure = isToday(day.date)
+        HStack(spacing: 8) {
+            // Keep the daily/hourly switch visible while later days scroll.
+            if let firstDay = days.first {
+                forecastCard(firstDay)
+            }
 
-                    if showsHourlyDisclosure {
-                        Button {
-                            if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                            }
-                            withAnimation(.snappy(duration: 0.5)) {
-                                isHourlyForecastShown = true
-                            }
-                        } label: {
-                            dayCard(day, isToday: true)
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(Text("Today"))
-                    } else {
-                        dayCard(day, isToday: false)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Array(days.dropFirst().enumerated()), id: \.offset) { _, day in
+                        forecastCard(day)
                     }
                 }
             }
+            .horizontalScrollEdgeFade()
         }
-        .horizontalScrollEdgeFade()
-        // The fade mask composites the row offscreen, so the cards'
-        // plusLighter blend is reapplied to the whole row
+        // The scroll mask composites its cards offscreen, so reapply
+        // their plusLighter blend to the whole row.
         .blendMode(.plusLighter)
+    }
+
+    @ViewBuilder
+    private func forecastCard(_ day: DayWeather) -> some View {
+        if isToday(day.date) {
+            Button {
+                if hapticEnabled {
+                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                }
+                withAnimation(.snappy(duration: 0.5)) {
+                    isHourlyForecastShown = true
+                }
+            } label: {
+                dayCard(day, isToday: true)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(Text("Today"))
+        } else {
+            dayCard(day, isToday: false)
+        }
     }
 
     private func dayCard(_ day: DayWeather, isToday: Bool) -> some View {
