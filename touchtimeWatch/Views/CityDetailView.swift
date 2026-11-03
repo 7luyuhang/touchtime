@@ -83,7 +83,18 @@ struct CityDetailView: View {
                         dateLabel: dateLabel
                     )
                 case .sunPosition:
-                    CitySunPositionView(date: date, timeZone: city.timeZone, isAdjusting: isAdjusted)
+                    CitySunPositionView(
+                        date: date,
+                        timeZone: city.timeZone,
+                        // Short enough to curve along the sun's track.
+                        dateLabel: date.formattedDate(
+                            style: cityStore.dateStyle,
+                            timeZone: city.timeZone,
+                            relativeTo: context.date,
+                            allowsWeekday: false
+                        ),
+                        isAdjusting: isAdjusted
+                    )
                 case .daylight:
                     CityDaylightView(
                         date: date,

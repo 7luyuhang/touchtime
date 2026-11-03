@@ -11,6 +11,7 @@ import SwiftUI
 struct CitySunPositionView: View {
     let date: Date
     let timeZone: TimeZone
+    let dateLabel: String
     /// While the Digital Crown shows another time, the time shows under the
     /// triangle.
     let isAdjusting: Bool
@@ -51,8 +52,8 @@ struct CitySunPositionView: View {
                     .animation(.smooth, value: displayedAzimuth)
 
                     SunPositionLabel(
+                        dateLabel: dateLabel,
                         azimuth: azimuth,
-                        altitude: position.altitude,
                         isSunInTopHalf: cos(position.azimuth * .pi / 180) > 0,
                         layout: layout
                     )
@@ -104,11 +105,12 @@ struct CitySunPositionView: View {
             usage: .asProvided,
             numberFormatStyle: .number.precision(.fractionLength(0))
         )
-        return String(
+        let sunPosition = String(
             format: String(localized: "Azimuth %@, altitude %@", locale: locale),
             Measurement(value: position.azimuth, unit: UnitAngle.degrees).formatted(degrees),
             Measurement(value: position.altitude, unit: UnitAngle.degrees).formatted(degrees)
         )
+        return "\(dateLabel), \(sunPosition)"
     }
 }
 
@@ -241,53 +243,56 @@ private struct SunOrbit: View, Animatable {
     }
 }
 
-/// The sun's direction, in degrees and on the compass, and its altitude,
-/// along its track: across the top while the sun is in the bottom half, and
-/// across the bottom while it's in the top half. The degrees count along as
-/// the sun moves.
+/// The day and the sun's direction, in degrees and on the compass, along its
+/// track: across the top while the sun is in the bottom half, and across the
+/// bottom while it's in the top half. The degrees count along as the sun
+/// moves.
 private struct SunPositionLabel: View, Animatable {
     private static let directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     private static let font = Font.system(.footnote, weight: .medium).monospacedDigit()
+    /// Clear of the sun, which is always in the other half.
+    private static let maxAngle = Angle.degrees(140)
 
+    let dateLabel: String
     /// Degrees clockwise from north.
     var azimuth: Double
-    /// Degrees above the horizon.
-    var altitude: Double
     /// Where the sun is headed, rather than where it is on the way, sets the
     /// side.
     let isSunInTopHalf: Bool
     let layout: SunDialLayout
 
-    var animatableData: AnimatablePair<Double, Double> {
-        get { AnimatablePair(azimuth, altitude) }
-        set {
-            azimuth = newValue.first
-            altitude = newValue.second
-        }
+    var animatableData: Double {
+        get { azimuth }
+        set { azimuth = newValue }
     }
 
     var body: some View {
-        let azimuthDegrees = (Int(azimuth.rounded()) % 360 + 360) % 360
-        let altitudeDegrees = Int(altitude.rounded())
-        let direction = Self.directions[(azimuthDegrees + 22) / 45 % 8]
-        // A minus sign, rather than a hyphen, below the horizon.
-        let altitudeText = (altitudeDegrees < 0 ? "−" : "") + "\(abs(altitudeDegrees))°"
-        let text = "\(azimuthDegrees)°\(direction) · \(altitudeText)"
+        let degrees = (Int(azimuth.rounded()) % 360 + 360) % 360
+        let text = "\(dateLabel) · \(degrees)°\(Self.directions[(degrees + 22) / 45 % 8])"
 
         ZStack {
             // Two views, so the label blurs from one side to the other.
             if isSunInTopHalf {
-                CurvedText(text: text, font: Self.font, radius: layout.orbitRadius, isAtBottom: true)
-                    .transition(.blurReplace)
+                curvedText(text, isAtBottom: true)
             } else {
-                CurvedText(text: text, font: Self.font, radius: layout.orbitRadius, isAtBottom: false)
-                    .transition(.blurReplace)
+                curvedText(text, isAtBottom: false)
             }
         }
         .frame(width: layout.diameter, height: layout.diameter)
         // Any larger and it spills out of the sun's track.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
         .blendMode(.plusLighter)
+    }
+
+    private func curvedText(_ text: String, isAtBottom: Bool) -> some View {
+        CurvedText(
+            text: text,
+            font: Self.font,
+            radius: layout.orbitRadius,
+            maxAngle: Self.maxAngle,
+            isAtBottom: isAtBottom
+        )
+        .transition(.blurReplace)
     }
 }
 
@@ -439,6 +444,8 @@ private struct CurvedText: View {
     let text: String
     let font: Font
     let radius: CGFloat
+    /// The most of the circle the text spans, shrinking to fit beyond it.
+    let maxAngle: Angle
     let isAtBottom: Bool
 
     var body: some View {
@@ -451,19 +458,22 @@ private struct CurvedText: View {
                 )
             }
             let widths = characters.map { $0.measure(in: size).width }
+            let length = widths.reduce(0, +)
+            let scale = min(1, radius * maxAngle.radians / length)
 
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
             // Along the circle from the text's middle to the character's.
-            var distance = -widths.reduce(0, +) / 2
+            var distance = -length * scale / 2
             for (character, width) in zip(characters, widths) {
-                let angle = (distance + width / 2) / radius
-                distance += width
+                let angle = (distance + width * scale / 2) / radius
+                distance += width * scale
                 // Clockwise from north: left to right runs clockwise across
                 // the top, and counterclockwise across the bottom.
                 let position = isAtBottom ? .pi - angle : angle
                 var glyph = context
                 glyph.translateBy(x: center.x + radius * sin(position), y: center.y - radius * cos(position))
                 glyph.rotate(by: .radians(isAtBottom ? -angle : angle))
+                glyph.scaleBy(x: scale, y: scale)
                 glyph.draw(character, at: .zero)
             }
         }
@@ -486,7 +496,12 @@ private func smoothstep(from edge0: Double, to edge1: Double, value: Double) -> 
 #Preview {
     let date = Date.now
     NavigationStack {
-        CitySunPositionView(date: date, timeZone: .current, isAdjusting: false)
+        CitySunPositionView(
+            date: date,
+            timeZone: .current,
+            dateLabel: date.formattedDate(style: "Relative", timeZone: .current, relativeTo: date),
+            isAdjusting: false
+        )
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 CitySkyBackground(date: date, timeZone: .current)

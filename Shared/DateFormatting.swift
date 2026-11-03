@@ -40,11 +40,13 @@ extension Date {
     ///   - dateStyle: "Relative", "With Weekday", or "Date Only" style preference
     ///   - timeZone: TimeZone to use for formatting (defaults to current)
     ///   - referenceDate: The reference date to compare against (defaults to Date())
+    ///   - allowsWeekday: Whether the style's weekday may show, rather than just the day and month (defaults to true)
     /// - Returns: Formatted date string
     func formattedDate(
         style dateStyle: String,
         timeZone: TimeZone = TimeZone.current,
-        relativeTo referenceDate: Date = Date()
+        relativeTo referenceDate: Date = Date(),
+        allowsWeekday: Bool = true
     ) -> String {
         // If Relative date style is selected, use Today/Yesterday/Tomorrow
         if dateStyle == "Relative" {
@@ -91,7 +93,7 @@ extension Date {
         }
         
         // Keep supporting the old persisted "Absolute" value as "With Weekday".
-        let includesWeekday = dateStyle != "Date Only"
+        let includesWeekday = allowsWeekday && dateStyle != "Date Only"
         let formatter = DateFormatterCache.dateFormatter(for: timeZone, includesWeekday: includesWeekday)
         return formatter.string(from: self)
     }
