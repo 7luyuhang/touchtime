@@ -293,8 +293,8 @@ private struct SunPositionLabel: View, Animatable {
 
 /// The triangle's shadow on the ground, as if it stood `triangleHeight` tall:
 /// each side facing away from the sun swept along the shadow, darkest and
-/// sharpest where it leaves the triangle. Short and dark under a high sun,
-/// long, faint and soft under a low one, and gone once the sun sets.
+/// sharpest where it leaves the triangle. Short under a high sun, long and
+/// fading under a low one, and gone once the sun sets.
 private struct TriangleShadow: View, Animatable {
     private static let opacity = 0.24
 
@@ -321,8 +321,10 @@ private struct TriangleShadow: View, Animatable {
         return layout.maxShadowLength * tanh(length / layout.maxShadowLength)
     }
 
+    /// Fading in as the sun's disc, about half a degree across, clears the
+    /// horizon at sunrise, and out as it goes down at sunset.
     private var strength: Double {
-        smoothstep(from: SunDialLayout.horizonAltitude, to: 6, value: altitude)
+        smoothstep(from: SunDialLayout.horizonAltitude, to: SunDialLayout.horizonAltitude + 0.53, value: altitude)
     }
 
     var body: some View {
