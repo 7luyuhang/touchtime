@@ -168,9 +168,10 @@ private struct SunDialLayout {
         }
     }
     /// How tall the triangle stands, which sets how far its shadow falls.
-    var triangleHeight: CGFloat { triangleRadius * 0.6 }
-    /// The shadow's length with the sun on the horizon, short of the sun's track.
-    var maxShadowLength: CGFloat { max(trackInnerRadius - triangleRadius, 1) }
+    var triangleHeight: CGFloat { triangleRadius * 0.78 }
+    /// The shadow's length with the sun on the horizon. Off a corner it runs a
+    /// little past the inside of the sun's track, faded out by then.
+    var maxShadowLength: CGFloat { max(trackInnerRadius - triangleRadius, 1) * 1.3 }
 }
 
 /// The dial's rings: N, E, S and W and the degrees between them around the
