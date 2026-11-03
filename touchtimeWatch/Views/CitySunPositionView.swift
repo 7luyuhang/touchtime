@@ -198,6 +198,7 @@ private struct CompassDial: View {
                 }
             }
             .stroke(.white.opacity(0.1), lineWidth: SunDialLayout.lineWidth)
+            .blendMode(.plusLighter)
 
             ForEach(Array(stride(from: 0, to: 360, by: 30)), id: \.self) { degrees in
                 Text(verbatim: degrees.isMultiple(of: 90) ? ["N", "E", "S", "W"][degrees / 90] : String(degrees))
@@ -210,7 +211,6 @@ private struct CompassDial: View {
             .foregroundStyle(.white)
         }
         .frame(width: layout.diameter, height: layout.diameter)
-        .blendMode(.plusLighter)
     }
 }
 
@@ -288,7 +288,6 @@ private struct SunPositionLabel: View, Animatable {
         .frame(width: layout.diameter, height: layout.diameter)
         // Any larger and it spills out of the sun's track.
         .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-        .blendMode(.plusLighter)
     }
 
     private func curvedText(_ text: String, isAtBottom: Bool) -> some View {
