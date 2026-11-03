@@ -71,12 +71,7 @@ struct CityDetailView: View {
                             highlightedTimeZoneIdentifier: city.timeZone.identifier,
                             isGlobe: $showsGlobe
                         ) {
-                            // Gives way to the globe, the time moving down
-                            // beside the date
-                            if !showsGlobe {
-                                clock(date: date)
-                                    .transition(.blurReplace)
-                            }
+                            clock(date: date)
                         }
 
                         dateRow(date: date, label: WatchTimeFormat.dayAndOffset(

@@ -6,12 +6,12 @@
 import SwiftUI
 
 /// The iPhone app's dotted world map with the day/night line, every clock's
-/// city dotted on it and the shown city's dot in the accent color, above
-/// `footer`. A tap wraps the map up into the Search tab's dotted globe,
-/// facing the spot tapped and taking the room `footer` leaves once it gives
-/// way to the globe. The globe spins slowly and follows a drag, and a tap
-/// turns it back into the map. With Reduce Motion the map and the globe
-/// cross-fade instead, and the globe holds still.
+/// city dotted on it and the shown city's dot in the accent color, centered
+/// above `footer`. A tap wraps the map up into the Search tab's dotted globe,
+/// facing the spot tapped, and `footer` blurs away to make room for it. The
+/// globe spins slowly and follows a drag, and a tap turns it back into the
+/// map. With Reduce Motion the map and the globe cross-fade instead, and the
+/// globe holds still.
 struct CityMapView<Footer: View>: View {
     let date: Date
     let timeZoneIdentifiers: [String]
@@ -74,9 +74,19 @@ struct CityMapView<Footer: View>: View {
                     .opacity(showsGlobeCanvas ? 0 : 1)
                     .allowsHitTesting(!showsGlobeCanvas)
                     .accessibilityHidden(true)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-                footer
+                // Holds its room while the globe shows, so the map, centered
+                // above it, stays put
+                ZStack(alignment: .leading) {
+                    footer
+                        .hidden()
+                        .accessibilityHidden(true)
+                    if !isGlobe {
+                        footer
+                            .transition(.blurReplace)
+                    }
+                }
             }
         }
         .coordinateSpace(Self.globeRoom)
