@@ -247,7 +247,7 @@ private struct SunOrbit: View, Animatable {
 /// the sun moves.
 private struct SunPositionLabel: View, Animatable {
     private static let directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
-    private static let font = Font.system(.footnote, design: .rounded, weight: .semibold).monospacedDigit()
+    private static let font = Font.system(.footnote, weight: .medium).monospacedDigit()
 
     /// Degrees clockwise from north.
     var azimuth: Double
