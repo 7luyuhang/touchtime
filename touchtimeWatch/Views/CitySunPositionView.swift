@@ -72,11 +72,13 @@ struct CitySunPositionView: View {
                             TriangleShadow(azimuth: azimuth, altitude: position.altitude, layout: layout)
                                 .animation(.smooth, value: displayedAzimuth)
                         }
-                        // Laid out by the triangle itself: its rounded point is a
-                        // corner radius below its frame's top, and its base halfway
-                        // from the middle to the bottom.
-                        .padding(.top, -layout.triangleCornerRadius)
-                        .padding(.bottom, -layout.triangleRadius / 2)
+                        // Alone, centered on its middle and lowered a little. With
+                        // the time, laid out by the triangle itself: its rounded
+                        // point is a corner radius below its frame's top, and its
+                        // base halfway from the middle to the bottom.
+                        .padding(.top, isAdjusting ? -layout.triangleCornerRadius : 0)
+                        .padding(.bottom, isAdjusting ? -layout.triangleRadius / 2 : 0)
+                        .offset(y: isAdjusting ? 0 : layout.triangleDrop)
                         .accessibilityHidden(true)
 
                     if isAdjusting {
@@ -144,6 +146,10 @@ private struct SunDialLayout {
     /// From the triangle's center to where its sides would meet.
     var triangleRadius: CGFloat { diameter * 0.18 }
     var triangleCornerRadius: CGFloat { diameter * 0.025 }
+    /// How far below the middle the triangle sits on its own to look centered:
+    /// centered on its bounds it looks low under its wide base, and on its
+    /// middle a little high.
+    var triangleDrop: CGFloat { diameter * 0.0105 }
     var triangleFrame: CGRect {
         CGRect(
             x: center.x - triangleRadius,
