@@ -29,7 +29,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .worldClock: "globe"
         case .moonPhase: "moonphase.waxing.gibbous"
         case .solarCurve: "sun.max"
-        case .sunPosition: "location.north.circle"
+        case .sunPosition: "safari"
         case .daylight: "rays"
         }
     }
