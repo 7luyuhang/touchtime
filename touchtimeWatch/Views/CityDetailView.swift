@@ -74,9 +74,7 @@ struct CityDetailView: View {
                             clock(date: date)
                         }
 
-                        dateRow(date: date, label: WatchTimeFormat.dayAndOffset(
-                            date, in: city.timeZone, now: context.date, dateStyle: cityStore.dateStyle
-                        ))
+                        dateRow(date: date, label: dateLabel, showsTime: showsGlobe)
                     }
                     .accessibilityElement(children: .combine)
                 case .moonPhase:
@@ -91,11 +89,9 @@ struct CityDetailView: View {
                         Color.black.ignoresSafeArea()
                     }
                 case .solarCurve:
-                    CitySolarCurveView(
-                        date: date,
-                        timeZone: city.timeZone,
-                        dateLabel: dateLabel
-                    )
+                    CitySolarCurveView(date: date, timeZone: city.timeZone) {
+                        dateRow(date: date, label: dateLabel, showsTime: true)
+                    }
                 case .sunPosition:
                     CitySunPositionView(
                         date: date,
@@ -128,13 +124,7 @@ struct CityDetailView: View {
                     Color.black
                 }
             }
-            .navigationTitle {
-                if display == .solarCurve, let adjustedDate {
-                    CrownTimeTitle(date: adjustedDate, timeZone: city.timeZone)
-                        .transition(.blurReplace)
-                        .allowsHitTesting(false)
-                }
-            }
+            .navigationTitle("")
             .toolbarTitleDisplayMode(.inline)
             .toolbarForegroundStyle(.primary, for: .navigationBar)
             .animation(.smooth, value: adjustedDate)
@@ -251,11 +241,12 @@ struct CityDetailView: View {
         .scenePadding(.navigationBar, edges: .horizontal)
     }
 
-    /// The city's day under the clock, or centered under the globe after the
-    /// city's time once the clock has made way for the globe.
-    private func dateRow(date: Date, label: String) -> some View {
+    /// The city's day along the bottom of the screen: under World Clock's
+    /// clock, or centered after the city's time where no clock shows, under
+    /// the globe or the solar curve.
+    private func dateRow(date: Date, label: String, showsTime: Bool) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            if showsGlobe {
+            if showsTime {
                 ClockTimeText(date: date, timeZone: city.timeZone, size: .medium)
                     .foregroundStyle(.white)
                     // The date shrinks to fit first
@@ -275,10 +266,11 @@ struct CityDetailView: View {
         }
         .lineLimit(1)
         .minimumScaleFactor(0.8)
-        .frame(maxWidth: .infinity, alignment: showsGlobe ? .center : .leading)
+        .frame(maxWidth: .infinity, alignment: showsTime ? .center : .leading)
         .fixedSize(horizontal: false, vertical: true)
         .scenePadding(.navigationBar, edges: .horizontal)
         .padding(.bottom, 14)
+        .accessibilityElement(children: .combine)
     }
 
     /// Move by calendar days for Moon Phase, preserving the local time across
@@ -314,26 +306,6 @@ struct CityDetailView: View {
               events.sunrise > day.start,
               events.sunset < day.end.addingTimeInterval(-1) else { return nil }
         return (events.sunrise, events.sunset)
-    }
-}
-
-/// Show the selected time as a plain navigation title while adjusting it.
-private struct CrownTimeTitle: View {
-    let date: Date
-    let timeZone: TimeZone
-
-    @Environment(\.locale) private var locale
-
-    var body: some View {
-        let formattedTime = WatchTimeFormat.time(date, in: timeZone, hourCycle: locale.hourCycle)
-
-        Text(formattedTime.digits)
-            .foregroundStyle(.white)
-            .monospacedDigit()
-            .fixedSize()
-            .contentTransition(.numericText())
-            .animation(.smooth(duration: 0.25), value: formattedTime.digits)
-            .accessibilityLabel([formattedTime.digits, formattedTime.period].compactMap { $0 }.joined(separator: " "))
     }
 }
 

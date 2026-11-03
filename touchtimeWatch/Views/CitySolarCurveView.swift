@@ -5,17 +5,20 @@
 
 import SwiftUI
 
-/// The day's solar path, with the selected instant marked on the curve.
-struct CitySolarCurveView: View {
+/// The day's solar path, with the selected instant marked on the curve and
+/// `footer` along the bottom of the screen.
+struct CitySolarCurveView<Footer: View>: View {
     let date: Date
     let timeZone: TimeZone
-    let dateLabel: String
+    @ViewBuilder let footer: Footer
 
-    @ScaledMetric(relativeTo: .body) private var informationHeight: CGFloat = 76
+    /// The room under the curve, with `footer` at its bottom. The curve's
+    /// height is what's left, so this also sets how tall the curve draws.
+    @ScaledMetric(relativeTo: .body) private var footerRoom: CGFloat = 76
 
     var body: some View {
         GeometryReader { geometry in
-            let chartHeight = max(40, geometry.size.height - informationHeight)
+            let chartHeight = max(40, geometry.size.height - footerRoom)
             let topInset = geometry.safeAreaInsets.top
             let screenHeight = geometry.size.height + topInset
             let horizon = screenHeight / 2
@@ -33,11 +36,19 @@ struct CitySolarCurveView: View {
                 // Convert the screen's midpoint to this content area's
                 // coordinates, below the navigation bar.
                 .offset(y: horizon - topInset - chartHeight / 2)
-                .accessibilityHidden(true)
+                // VoiceOver reads the sunrise and sunset where the curve
+                // crosses the horizon
+                .accessibilityRepresentation {
+                    let events = sunTimes
+                    VStack {
+                        eventRow("Sunrise", systemImage: "sunrise.fill", date: events.sunrise)
+                        eventRow("Sunset", systemImage: "sunset.fill", date: events.sunset)
+                    }
+                }
 
-                information
+                footer
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(height: informationHeight, alignment: .bottom)
+                    .frame(height: footerRoom, alignment: .bottom)
             }
             .background(alignment: .top) {
                 // Extend the upper sky behind the toolbar while keeping its
@@ -54,25 +65,6 @@ struct CitySolarCurveView: View {
         // Fill the display width instead of leaving the navigation
         // content area's narrow black gutters beside the sky and curve.
         .ignoresSafeArea(edges: .horizontal)
-    }
-
-    private var information: some View {
-        let events = sunTimes
-
-        return VStack(spacing: 6) {
-            eventRow("Sunrise", systemImage: "sunrise.fill", date: events.sunrise)
-            eventRow("Sunset", systemImage: "sunset.fill", date: events.sunset)
-
-            Text(dateLabel)
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .contentTransition(.numericText())
-            .padding(.top, 4)
-        }
-        .font(.body)
-        .lineLimit(1)
-        .minimumScaleFactor(0.75)
-        .scenePadding(.navigationBar, edges: .horizontal)
     }
 
     private func eventRow(_ title: LocalizedStringKey, systemImage: String, date: Date?) -> some View {
@@ -162,12 +154,12 @@ private struct SolarCurveSkyBackground: View {
 #Preview {
     let date = Date.now
     NavigationStack {
-        CitySolarCurveView(
-            date: date,
-            timeZone: .current,
-            dateLabel: date.formattedDate(style: "Relative", timeZone: .current, relativeTo: date)
-        )
-            .ignoresSafeArea(edges: .bottom)
-            .navigationTitle("Local")
+        CitySolarCurveView(date: date, timeZone: .current) {
+            Text(date.formattedDate(style: "Relative", timeZone: .current, relativeTo: date))
+                .foregroundStyle(.secondary)
+                .padding(.bottom, 14)
+        }
+        .ignoresSafeArea(edges: .bottom)
+        .navigationTitle("Local")
     }
 }
