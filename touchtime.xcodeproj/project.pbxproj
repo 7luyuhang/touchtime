@@ -132,6 +132,7 @@
 				DateFormatting.swift,
 				DaylightRing.swift,
 				DotsWorldMap.swift,
+				DotsWorldMapGlobe.swift,
 				MoonAstronomy.swift,
 				MoonPhase.swift,
 				SkyColorGradient.swift,

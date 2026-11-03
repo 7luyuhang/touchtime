@@ -22,6 +22,8 @@ struct CityDetailView: View {
     @State private var showsMoonInfo = false
     @State private var moonInfoDate = Date()
     @State private var showsLiveCompass = false
+    /// Whether World Clock's map has turned, or is turning, into the globe.
+    @State private var showsGlobe = false
     /// How far the Digital Crown has moved: days in Moon Phase, hours otherwise.
     @State private var crownSteps: Double = 0
     /// The time the Digital Crown's steps count from: the clocks' time when
@@ -62,18 +64,26 @@ struct CityDetailView: View {
             Group {
                 switch display {
                 case .worldClock:
-                    VStack(alignment: .leading, spacing: 4) {
+                    VStack(spacing: 0) {
                         CityMapView(
                             date: date,
                             timeZoneIdentifiers: mapCities.map(\.timeZone.identifier),
-                            highlightedTimeZoneIdentifier: city.timeZone.identifier
-                        )
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                            highlightedTimeZoneIdentifier: city.timeZone.identifier,
+                            isGlobe: $showsGlobe
+                        ) {
+                            // Gives way to the globe, the time moving down
+                            // beside the date
+                            if !showsGlobe {
+                                clock(date: date)
+                                    .transition(.blurReplace)
+                            }
+                        }
 
-                        summary(date: date, dateLabel: WatchTimeFormat.dayAndOffset(
+                        dateRow(date: date, label: WatchTimeFormat.dayAndOffset(
                             date, in: city.timeZone, now: context.date, dateStyle: cityStore.dateStyle
                         ))
                     }
+                    .accessibilityElement(children: .combine)
                 case .moonPhase:
                     CityMoonPhaseView(date: date, timeZone: city.timeZone, dateLabel: dateLabel) {
                         moonInfoDate = date
@@ -201,6 +211,7 @@ struct CityDetailView: View {
             crownReferenceDate = nil
             crownSteps = 0
             showsLiveCompass = false
+            showsGlobe = false
         }
         .onChange(of: showsLiveCompass) { _, showsLiveCompass in
             if showsLiveCompass {
@@ -220,44 +231,59 @@ struct CityDetailView: View {
         }
     }
 
-    private func summary(date: Date, dateLabel: String) -> some View {
-        VStack(alignment: .leading, spacing: 0) {
-            let time = ClockTimeText(date: date, timeZone: city.timeZone, alignsLeadingInk: true)
-                .foregroundStyle(.white)
+    /// The city's time, with its sunrise and sunset beside it.
+    private func clock(date: Date) -> some View {
+        let time = ClockTimeText(date: date, timeZone: city.timeZone, alignsLeadingInk: true)
+            .foregroundStyle(.white)
 
-            // The sun's times give way on screens too narrow for both
-            ViewThatFits(in: .horizontal) {
-                HStack(spacing: 4) {
-                    time
-                    Spacer(minLength: 0)
-                    if let sunTimes = sunTimes(on: date) {
-                        SunTimesView(sunrise: sunTimes.sunrise, sunset: sunTimes.sunset, timeZone: city.timeZone)
-                            .transition(.blurReplace)
-                    }
-                }
+        // The sun's times give way on screens too narrow for both
+        return ViewThatFits(in: .horizontal) {
+            HStack(spacing: 4) {
                 time
+                Spacer(minLength: 0)
+                if let sunTimes = sunTimes(on: date) {
+                    SunTimesView(sunrise: sunTimes.sunrise, sunset: sunTimes.sunset, timeZone: city.timeZone)
+                        .transition(.blurReplace)
+                }
+            }
+            time
+        }
+        // The time can shrink to fit, so the stack would otherwise squeeze
+        // it to make room for the map
+        .fixedSize(horizontal: false, vertical: true)
+        // In line with the navigation bar, which clears the screen's rounded
+        // corners on every watch size
+        .scenePadding(.navigationBar, edges: .horizontal)
+    }
+
+    /// The city's day under the clock, or centered under the globe after the
+    /// city's time once the clock has made way for the globe.
+    private func dateRow(date: Date, label: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+            if showsGlobe {
+                ClockTimeText(date: date, timeZone: city.timeZone, size: .medium)
+                    .foregroundStyle(.white)
+                    // The date shrinks to fit first
+                    .layoutPriority(1)
+                    .transition(.blurReplace)
             }
 
             // Changing within the stack keeps the blend mode outside the
             // blur, which would otherwise grey the date mid-change
             ZStack(alignment: .leading) {
-                Text(dateLabel)
+                Text(label)
                     .transition(.blurReplace)
-                    .id(dateLabel)
+                    .id(label)
             }
             .foregroundStyle(.secondary)
             .blendMode(.plusLighter)
-            .lineLimit(1)
-            .minimumScaleFactor(0.8)
         }
-        // The time can shrink to fit, so the outer stack would otherwise
-        // squeeze it to make room for the map
+        .lineLimit(1)
+        .minimumScaleFactor(0.8)
+        .frame(maxWidth: .infinity, alignment: showsGlobe ? .center : .leading)
         .fixedSize(horizontal: false, vertical: true)
-        // In line with the navigation bar, which clears the screen's rounded
-        // corners on every watch size
         .scenePadding(.navigationBar, edges: .horizontal)
         .padding(.bottom, 14)
-        .accessibilityElement(children: .combine)
     }
 
     /// Move by calendar days for Moon Phase, preserving the local time across
