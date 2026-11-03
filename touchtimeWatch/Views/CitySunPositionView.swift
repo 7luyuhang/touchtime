@@ -3,26 +3,51 @@
 //  touchtimeWatch
 //
 
+import CoreLocation
 import SwiftUI
 
 /// The sun's direction over the city on a compass, north up, and the shadow
 /// it casts from a glass triangle in the middle: away from the sun, longer as
-/// the sun sinks, and gone once it sets.
+/// the sun sinks, and gone once it sets. Tapping the triangle goes live: the
+/// sun where the watch is, on a dial that turns with the watch like a compass.
 struct CitySunPositionView: View {
+    /// The triangle's tint and the circle behind the N while live.
+    private static let liveColor = Color.yellow
+
     let date: Date
     let timeZone: TimeZone
     let dateLabel: String
     /// While the Digital Crown shows another time, the time shows under the
     /// triangle.
     let isAdjusting: Bool
+    /// Whether the view is live, which tapping the triangle turns on and off.
+    @Binding var isLive: Bool
 
     @Environment(\.locale) private var locale
+    @Environment(\.scenePhase) private var scenePhase
     /// The sun's azimuth, in degrees past north, counting whole turns so the
     /// sun and shadow always animate the shorter way around.
     @State private var displayedAzimuth: Double?
+    /// Made the first time the view goes live.
+    @State private var compass: LiveCompass?
+    /// How far the dial is turned against the watch's heading, counting whole
+    /// turns like `displayedAzimuth`. A whole number of turns with north up.
+    @State private var displayedHeading: Double = 0
+    @State private var flippedLabels = CompassDial.flippedLabels(atHeading: 0)
+    /// Live, which half the sun is in, kept until it's well into the other
+    /// half so a wavering heading can't flip the label back and forth.
+    @State private var isLiveSunInTopHalf = false
+
+    /// Degrees clockwise from north that the top of the watch faces, while live.
+    private var heading: Double? {
+        isLive ? compass?.heading : nil
+    }
 
     private var sunPosition: SolarCalculator.Position {
-        let coordinate = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier)
+        // Live, from where the watch is once it knows.
+        let coordinate = (isLive ? compass?.location?.coordinate : nil)
+            .map { (latitude: $0.latitude, longitude: $0.longitude) }
+            ?? TimeZoneCoordinates.getCoordinate(for: timeZone.identifier)
             ?? (latitude: 51.5074, longitude: -0.1278)
         return SolarCalculator.position(
             latitude: coordinate.latitude,
@@ -34,6 +59,10 @@ struct CitySunPositionView: View {
     var body: some View {
         let position = sunPosition
         let azimuth = displayedAzimuth ?? position.azimuth
+        // Where the sun is around the screen, with the dial turned.
+        let screenAzimuth = azimuth - displayedHeading
+        // From −1 at the bottom of the screen to 1 at the top.
+        let sunHeight = cos(screenAzimuth * .pi / 180)
 
         GeometryReader { geometry in
             let layout = SunDialLayout(
@@ -42,19 +71,25 @@ struct CitySunPositionView: View {
 
             ZStack {
                 ZStack {
-                    CompassDial(layout: layout)
+                    CompassDial(
+                        layout: layout,
+                        heading: displayedHeading,
+                        flippedLabels: flippedLabels,
+                        northFill: isLive ? Self.liveColor : .white
+                    )
 
                     SunOrbit(
-                        azimuth: azimuth,
+                        azimuth: screenAzimuth,
                         isSunFilled: position.altitude > SunDialLayout.civilTwilightAltitude,
                         layout: layout
                     )
                     .animation(.smooth, value: displayedAzimuth)
 
                     SunPositionLabel(
-                        dateLabel: dateLabel,
+                        // Live, it's always now.
+                        dateLabel: isLive ? nil : dateLabel,
                         azimuth: azimuth,
-                        isSunInTopHalf: cos(position.azimuth * .pi / 180) > 0,
+                        isSunInTopHalf: isLive ? isLiveSunInTopHalf : cos(position.azimuth * .pi / 180) > 0,
                         layout: layout
                     )
                     .animation(.smooth, value: displayedAzimuth)
@@ -65,13 +100,7 @@ struct CitySunPositionView: View {
 
                 // The triangle and the time, centered together.
                 VStack(spacing: 6) {
-                    Color.clear
-                        .frame(width: layout.triangleFrame.width, height: layout.triangleFrame.height)
-                        .glassEffect(.clear, in: RoundedTriangle(cornerRadius: layout.triangleCornerRadius))
-                        .background {
-                            TriangleShadow(azimuth: azimuth, altitude: position.altitude, layout: layout)
-                                .animation(.smooth, value: displayedAzimuth)
-                        }
+                    triangle(layout: layout, sunAzimuth: screenAzimuth, sunAltitude: position.altitude)
                         // Alone, centered on its middle and lowered a little. With
                         // the time, laid out by the triangle itself: its rounded
                         // point is a corner radius below its frame's top, and its
@@ -79,7 +108,6 @@ struct CitySunPositionView: View {
                         .padding(.top, isAdjusting ? -layout.triangleCornerRadius : 0)
                         .padding(.bottom, isAdjusting ? -layout.triangleRadius / 2 : 0)
                         .offset(y: isAdjusting ? 0 : layout.triangleDrop)
-                        .accessibilityHidden(true)
 
                     if isAdjusting {
                         ClockTimeText(date: date, timeZone: timeZone, size: .title)
@@ -98,6 +126,86 @@ struct CitySunPositionView: View {
             let turn = (newAzimuth - oldAzimuth + 540).truncatingRemainder(dividingBy: 360) - 180
             displayedAzimuth = (displayedAzimuth ?? oldAzimuth) + turn
         }
+        .onChange(of: heading) { _, heading in
+            withAnimation(.smooth) {
+                if let heading {
+                    displayedHeading += (heading - displayedHeading).remainder(dividingBy: 360)
+                    flippedLabels = CompassDial.flippedLabels(atHeading: displayedHeading, from: flippedLabels)
+                } else {
+                    // Back to north up by the nearer way.
+                    displayedHeading = (displayedHeading / 360).rounded() * 360
+                    flippedLabels = CompassDial.flippedLabels(atHeading: displayedHeading)
+                }
+            }
+        }
+        .onChange(of: sunHeight) { _, height in
+            if abs(height) > 0.25 {
+                isLiveSunInTopHalf = height > 0
+            }
+        }
+        .onChange(of: isLive) { _, isLive in
+            if isLive {
+                isLiveSunInTopHalf = sunHeight > 0
+                startCompass()
+            } else {
+                compass?.stop()
+            }
+        }
+        // Only while the watch is raised and the view is on screen.
+        .onChange(of: scenePhase) { _, phase in
+            guard isLive else { return }
+            if phase == .active {
+                startCompass()
+            } else {
+                compass?.stop()
+            }
+        }
+        .onAppear {
+            if isLive {
+                startCompass()
+            }
+        }
+        .onDisappear {
+            compass?.stop()
+        }
+    }
+
+    /// The glass triangle and its shadow, which turn the live compass on and
+    /// off, tinted while it's on.
+    private func triangle(layout: SunDialLayout, sunAzimuth: Double, sunAltitude: Double) -> some View {
+        let shape = RoundedTriangle(cornerRadius: layout.triangleCornerRadius)
+        let tint: Color? = isLive ? Self.liveColor : nil
+        let traits: AccessibilityTraits = isLive ? [.isButton, .isSelected] : .isButton
+
+        return Color.clear
+            .frame(width: layout.triangleFrame.width, height: layout.triangleFrame.height)
+            .glassEffect(.clear.tint(tint).interactive(), in: shape)
+            .background {
+                TriangleShadow(azimuth: sunAzimuth, altitude: sunAltitude, layout: layout)
+                    .animation(.smooth, value: displayedAzimuth)
+                    .allowsHitTesting(false)
+            }
+            .contentShape(shape)
+            .onTapGesture(perform: toggleLive)
+            .accessibilityElement()
+            .accessibilityLabel("Live Compass")
+            .accessibilityAddTraits(traits)
+            .accessibilityAction {
+                toggleLive()
+            }
+    }
+
+    private func toggleLive() {
+        withAnimation(.smooth) {
+            isLive.toggle()
+        }
+    }
+
+    private func startCompass() {
+        if compass == nil {
+            compass = LiveCompass()
+        }
+        compass?.start()
     }
 
     private func accessibilityValue(for position: SolarCalculator.Position) -> String {
@@ -112,7 +220,7 @@ struct CitySunPositionView: View {
             Measurement(value: position.azimuth, unit: UnitAngle.degrees).formatted(degrees),
             Measurement(value: position.altitude, unit: UnitAngle.degrees).formatted(degrees)
         )
-        return "\(dateLabel), \(sunPosition)"
+        return isLive ? sunPosition : "\(dateLabel), \(sunPosition)"
     }
 }
 
@@ -181,9 +289,42 @@ private struct SunDialLayout {
 }
 
 /// The dial's rings: N, E, S and W and the degrees between them around the
-/// outside, and inside them the track the sun travels.
-private struct CompassDial: View {
+/// outside, and inside them the track the sun travels. Live, it turns against
+/// the watch's heading.
+private struct CompassDial: View, Animatable {
+    private static let labelDegrees = Array(stride(from: 0, to: 360, by: 30))
+
     let layout: SunDialLayout
+    /// How far the dial is turned counterclockwise, in degrees.
+    var heading: Double
+    /// The labels turned over to read left to right across the bottom.
+    let flippedLabels: Set<Int>
+    /// The circle behind the N.
+    let northFill: Color
+
+    var animatableData: Double {
+        get { heading }
+        set { heading = newValue }
+    }
+
+    /// The labels below the sides of the dial turned to `heading`. Updated
+    /// from `current`, a label on a side keeps its way up until it's well
+    /// past, so a wavering heading can't flip it back and forth.
+    static func flippedLabels(atHeading heading: Double, from current: Set<Int>? = nil) -> Set<Int> {
+        Set(labelDegrees.filter { degrees in
+            // Around the screen, clockwise from the top.
+            var angle = (Double(degrees) - heading).truncatingRemainder(dividingBy: 360)
+            if angle < 0 {
+                angle += 360
+            }
+            guard let current else {
+                // E and W, on the sides with north up, read along the top half.
+                return angle > 90 && angle < 270
+            }
+            let height = cos(angle * .pi / 180)
+            return abs(height) > 0.25 ? height < 0 : current.contains(degrees)
+        })
+    }
 
     var body: some View {
         ZStack {
@@ -200,21 +341,22 @@ private struct CompassDial: View {
             .stroke(.white.opacity(0.1), lineWidth: SunDialLayout.lineWidth)
             .blendMode(.plusLighter)
 
-            ForEach(Array(stride(from: 0, to: 360, by: 30)), id: \.self) { degrees in
+            ForEach(Self.labelDegrees, id: \.self) { degrees in
                 Text(verbatim: degrees.isMultiple(of: 90) ? ["N", "E", "S", "W"][degrees / 90] : String(degrees))
                     .foregroundStyle(degrees == 0 ? .black : .white)
                     .background {
                         if degrees == 0 {
                             // Just clear of the lines either side of the labels.
                             Circle()
-                                .fill(.white)
+                                .fill(northFill)
                                 .frame(width: SunDialLayout.labelBandWidth - 2, height: SunDialLayout.labelBandWidth - 2)
                         }
                     }
                     // Turned along the dial, and over across its bottom half to
                     // read left to right, like the daylight ring's hours.
-                    .rotationEffect(.degrees(Double(degrees > 90 && degrees < 270 ? degrees - 180 : degrees)))
-                    .position(layout.point(atDegrees: Double(degrees), radius: layout.labelRadius))
+                    .scaleEffect(flippedLabels.contains(degrees) ? -1 : 1)
+                    .rotationEffect(.degrees(Double(degrees) - heading))
+                    .position(layout.point(atDegrees: Double(degrees) - heading, radius: layout.labelRadius))
             }
             .font(.system(size: 11, weight: .semibold, design: .rounded))
         }
@@ -258,17 +400,17 @@ private struct SunOrbit: View, Animatable {
     }
 }
 
-/// The day and the sun's direction, in degrees and on the compass, along its
-/// track: across the top while the sun is in the bottom half, and across the
-/// bottom while it's in the top half. The degrees count along as the sun
-/// moves.
+/// The sun's direction, in degrees and on the compass, after the day if
+/// there is one, along its track: across the top while the sun is in the
+/// bottom half, and across the bottom while it's in the top half. The
+/// degrees count along as the sun moves.
 private struct SunPositionLabel: View, Animatable {
     private static let directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     private static let font = Font.system(.footnote, weight: .medium).monospacedDigit()
     /// Clear of the sun, which is always in the other half.
     private static let maxAngle = Angle.degrees(140)
 
-    let dateLabel: String
+    let dateLabel: String?
     /// Degrees clockwise from north.
     var azimuth: Double
     /// Where the sun is headed, rather than where it is on the way, sets the
@@ -283,7 +425,8 @@ private struct SunPositionLabel: View, Animatable {
 
     var body: some View {
         let degrees = (Int(azimuth.rounded()) % 360 + 360) % 360
-        let text = "\(dateLabel) · \(degrees)°\(Self.directions[(degrees + 22) / 45 % 8])"
+        let direction = "\(degrees)°\(Self.directions[(degrees + 22) / 45 % 8])"
+        let text = dateLabel.map { "\($0) · \(direction)" } ?? direction
 
         ZStack {
             // Two views, so the label blurs from one side to the other.
@@ -307,6 +450,8 @@ private struct SunPositionLabel: View, Animatable {
             isAtBottom: isAtBottom
         )
         .transition(.blurReplace)
+        // Blurs into the other as the day comes and goes, too.
+        .id(dateLabel == nil)
     }
 }
 
@@ -514,7 +659,8 @@ private func smoothstep(from edge0: Double, to edge1: Double, value: Double) -> 
             date: date,
             timeZone: .current,
             dateLabel: date.formattedDate(style: "Relative", timeZone: .current, relativeTo: date),
-            isAdjusting: false
+            isAdjusting: false,
+            isLive: .constant(false)
         )
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {

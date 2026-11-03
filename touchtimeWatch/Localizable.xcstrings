@@ -732,6 +732,22 @@
         }
       }
     },
+    "Live Compass" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "实时罗盘"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即時羅盤"
+          }
+        }
+      }
+    },
     "Local" : {
       "localizations" : {
         "zh-Hans" : {

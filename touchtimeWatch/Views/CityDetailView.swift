@@ -4,7 +4,7 @@
 //
 //  A city's world clock, moon phase, solar curve, sun position, or daylight.
 //  Turning the Digital Crown moves a day at a time in Moon Phase, and an hour
-//  in the other views.
+//  in the other views, except in Sun Position's live compass, which shows now.
 //
 
 import SwiftUI
@@ -21,6 +21,7 @@ struct CityDetailView: View {
     @State private var showsDisplayPicker = false
     @State private var showsMoonInfo = false
     @State private var moonInfoDate = Date()
+    @State private var showsLiveCompass = false
     /// How far the Digital Crown has moved: days in Moon Phase, hours otherwise.
     @State private var crownSteps: Double = 0
     /// The time the Digital Crown's steps count from: the clocks' time when
@@ -95,7 +96,8 @@ struct CityDetailView: View {
                         date: date,
                         timeZone: city.timeZone,
                         dateLabel: shortDateLabel,
-                        isAdjusting: isAdjusted
+                        isAdjusting: isAdjusted,
+                        isLive: $showsLiveCompass
                     )
                 case .daylight:
                     CityDaylightView(
@@ -143,7 +145,7 @@ struct CityDetailView: View {
             }
         }
         .tint(.primary)
-        .focusable()
+        .focusable(!showsLiveCompass)
         .focused($isCrownFocused)
         .digitalCrownRotation(
             $crownSteps,
@@ -161,14 +163,7 @@ struct CityDetailView: View {
             // button in the same leading corner.
             if isAdjusted {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Current Time", systemImage: "xmark") {
-                        withAnimation(.smooth) {
-                            crownStart = nil
-                            crownReferenceDate = nil
-                            crownSteps = 0
-                            adjustedDate = nil
-                        }
-                    }
+                    Button("Current Time", systemImage: "xmark", action: showCurrentTime)
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -184,7 +179,7 @@ struct CityDetailView: View {
             }
         }
         .sheet(isPresented: $showsDisplayPicker, onDismiss: {
-            isCrownFocused = true
+            isCrownFocused = !showsLiveCompass
         }) {
             CityDetailDisplayPicker(cityName: city.name, selection: $display)
         }
@@ -198,13 +193,30 @@ struct CityDetailView: View {
             if crownSteps == 0 {
                 crownStart = adjustedDate
             }
-            isCrownFocused = !showsMoonInfo && !showsDisplayPicker
+            isCrownFocused = !showsMoonInfo && !showsDisplayPicker && !showsLiveCompass
         }
         .onChange(of: display) { _, _ in
             // Start the new step size at the displayed date without moving it.
             crownStart = adjustedDate
             crownReferenceDate = nil
             crownSteps = 0
+            showsLiveCompass = false
+        }
+        .onChange(of: showsLiveCompass) { _, showsLiveCompass in
+            if showsLiveCompass {
+                showCurrentTime()
+            }
+            isCrownFocused = !showsLiveCompass
+        }
+    }
+
+    /// Back to now on every clock, with the Digital Crown at rest.
+    private func showCurrentTime() {
+        withAnimation(.smooth) {
+            crownStart = nil
+            crownReferenceDate = nil
+            crownSteps = 0
+            adjustedDate = nil
         }
     }
 
