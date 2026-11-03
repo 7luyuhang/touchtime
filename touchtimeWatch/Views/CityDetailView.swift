@@ -49,6 +49,14 @@ struct CityDetailView: View {
             let dateLabel = date.formattedDate(
                 style: cityStore.dateStyle, timeZone: city.timeZone, relativeTo: context.date
             )
+            // Short enough to curve along the sun's track, and the same in the
+            // daylight ring's middle.
+            let shortDateLabel = date.formattedDate(
+                style: cityStore.dateStyle,
+                timeZone: city.timeZone,
+                relativeTo: context.date,
+                allowsWeekday: false
+            )
 
             Group {
                 switch display {
@@ -86,19 +94,14 @@ struct CityDetailView: View {
                     CitySunPositionView(
                         date: date,
                         timeZone: city.timeZone,
-                        // Short enough to curve along the sun's track.
-                        dateLabel: date.formattedDate(
-                            style: cityStore.dateStyle,
-                            timeZone: city.timeZone,
-                            relativeTo: context.date,
-                            allowsWeekday: false
-                        ),
+                        dateLabel: shortDateLabel,
                         isAdjusting: isAdjusted
                     )
                 case .daylight:
                     CityDaylightView(
                         date: date,
                         timeZone: city.timeZone,
+                        dateLabel: shortDateLabel,
                         isAdjusting: isAdjusted,
                         referenceDate: isAdjusted ? context.date : nil
                     )

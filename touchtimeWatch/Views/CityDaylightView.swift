@@ -11,6 +11,7 @@ import SwiftUI
 struct CityDaylightView: View {
     let date: Date
     let timeZone: TimeZone
+    let dateLabel: String
     let isAdjusting: Bool
     var referenceDate: Date? = nil
 
@@ -20,14 +21,6 @@ struct CityDaylightView: View {
     /// The ring's edges, which the border around its hours matches.
     private static let borderWidth: CGFloat = 1.5
     private static let borderOpacity = 0.10
-
-    private var dateString: String {
-        date.formatted(
-            Date.FormatStyle(locale: locale, timeZone: timeZone)
-                .weekday(.abbreviated)
-                .day()
-        )
-    }
 
     /// The city's hour now. While the Crown shows another time, now is the
     /// reference date.
@@ -127,7 +120,7 @@ struct CityDaylightView: View {
                     VStack(spacing: 0) {
                         ClockTimeText(date: date, timeZone: timeZone, size: .title)
 
-                        Text(dateString)
+                        Text(dateLabel)
                             .font(.title3)
                             .foregroundStyle(.secondary)
                             .contentTransition(.numericText())
