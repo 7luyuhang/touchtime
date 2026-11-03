@@ -187,6 +187,29 @@
         }
       }
     },
+    "Azimuth %@, altitude %@" : {
+      "comment" : "The sun's direction clockwise from north and its height above the horizon, read by VoiceOver, e.g. \"Azimuth 213°, altitude 34°\"",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Azimuth %1$@, altitude %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "方位角 %1$@，高度角 %2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "方位角 %1$@，高度角 %2$@"
+          }
+        }
+      }
+    },
     "Blizzard" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1081,6 +1104,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "陽光小雪"
+          }
+        }
+      }
+    },
+    "Sun Position" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太阳位置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太陽位置"
           }
         }
       }

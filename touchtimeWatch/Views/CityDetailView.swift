@@ -2,8 +2,9 @@
 //  CityDetailView.swift
 //  touchtimeWatch
 //
-//  A city's world clock, moon phase, solar curve, or daylight. Turning the Digital
-//  Crown moves a day at a time in Moon Phase, and an hour in the other views.
+//  A city's world clock, moon phase, solar curve, sun position, or daylight.
+//  Turning the Digital Crown moves a day at a time in Moon Phase, and an hour
+//  in the other views.
 //
 
 import SwiftUI
@@ -81,6 +82,8 @@ struct CityDetailView: View {
                         timeZone: city.timeZone,
                         dateLabel: dateLabel
                     )
+                case .sunPosition:
+                    CitySunPositionView(date: date, timeZone: city.timeZone, isAdjusting: isAdjusted)
                 case .daylight:
                     CityDaylightView(
                         date: date,
@@ -98,7 +101,7 @@ struct CityDetailView: View {
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 switch display {
-                case .worldClock:
+                case .worldClock, .sunPosition:
                     CitySkyBackground(date: date, timeZone: city.timeZone)
                 case .moonPhase, .solarCurve, .daylight:
                     Color.black

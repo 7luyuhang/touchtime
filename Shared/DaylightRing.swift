@@ -371,7 +371,7 @@ struct DaylightRing: View {
 /// The sun as an outline that closes into a disc: `fill` 0 is a `lineWidth`
 /// ring inside the frame, 1 is solid. The outer edge never moves, so night
 /// and day suns are the same size. Fill it even-odd to keep the hole.
-private struct SunDisc: Shape {
+struct SunDisc: Shape {
     var fill: CGFloat
     let lineWidth: CGFloat
 
