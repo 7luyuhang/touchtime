@@ -202,13 +202,21 @@ private struct CompassDial: View {
 
             ForEach(Array(stride(from: 0, to: 360, by: 30)), id: \.self) { degrees in
                 Text(verbatim: degrees.isMultiple(of: 90) ? ["N", "E", "S", "W"][degrees / 90] : String(degrees))
+                    .foregroundStyle(degrees == 0 ? .black : .white)
+                    .background {
+                        if degrees == 0 {
+                            // Just clear of the lines either side of the labels.
+                            Circle()
+                                .fill(.white)
+                                .frame(width: SunDialLayout.labelBandWidth - 2, height: SunDialLayout.labelBandWidth - 2)
+                        }
+                    }
                     // Turned along the dial, and over across its bottom half to
                     // read left to right, like the daylight ring's hours.
                     .rotationEffect(.degrees(Double(degrees > 90 && degrees < 270 ? degrees - 180 : degrees)))
                     .position(layout.point(atDegrees: Double(degrees), radius: layout.labelRadius))
             }
             .font(.system(size: 11, weight: .semibold, design: .rounded))
-            .foregroundStyle(.white)
         }
         .frame(width: layout.diameter, height: layout.diameter)
     }
