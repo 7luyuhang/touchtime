@@ -21,6 +21,8 @@ struct CityDetailView: View {
     @State private var showsDisplayPicker = false
     @State private var showsMoonInfo = false
     @State private var moonInfoDate = Date()
+    @State private var showsSunTimes = false
+    @State private var sunTimesDate = Date()
     @State private var showsLiveCompass = false
     /// Whether World Clock's map has turned, or is turning, into the globe.
     @State private var showsGlobe = false
@@ -90,6 +92,10 @@ struct CityDetailView: View {
                     }
                 case .solarCurve:
                     CitySolarCurveView(date: date, timeZone: city.timeZone) {
+                        sunTimesDate = date
+                        isCrownFocused = false
+                        showsSunTimes = true
+                    } footer: {
                         dateRow(date: date, label: dateLabel, showsTime: true)
                     }
                 case .sunPosition:
@@ -124,7 +130,8 @@ struct CityDetailView: View {
                     Color.black
                 }
             }
-            .navigationTitle("")
+            // Verbatim, so the string catalog doesn't gain an empty key
+            .navigationTitle(Text(verbatim: ""))
             .toolbarTitleDisplayMode(.inline)
             .toolbarForegroundStyle(.primary, for: .navigationBar)
             .animation(.smooth, value: adjustedDate)
@@ -178,17 +185,24 @@ struct CityDetailView: View {
         }) {
             CityDetailDisplayPicker(cityName: city.name, selection: $display)
         }
+        // Each sheet captures its date so the body reads it. Otherwise the
+        // sheet opens with the date from before the tap.
         .sheet(isPresented: $showsMoonInfo, onDismiss: {
             isCrownFocused = true
-        }) {
+        }) { [moonInfoDate] in
             CityMoonPhasesSheet(date: moonInfoDate, timeZone: city.timeZone)
+        }
+        .sheet(isPresented: $showsSunTimes, onDismiss: {
+            isCrownFocused = true
+        }) { [sunTimesDate] in
+            CitySunTimesSheet(date: sunTimesDate, timeZone: city.timeZone, dateStyle: cityStore.dateStyle)
         }
         .onAppear {
             // Returning from a sheet must keep an in-progress Crown adjustment's anchor.
             if crownSteps == 0 {
                 crownStart = adjustedDate
             }
-            isCrownFocused = !showsMoonInfo && !showsDisplayPicker && !showsLiveCompass
+            isCrownFocused = !showsMoonInfo && !showsSunTimes && !showsDisplayPicker && !showsLiveCompass
         }
         .onChange(of: display) { _, _ in
             // Start the new step size at the displayed date without moving it.

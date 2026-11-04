@@ -6,10 +6,11 @@
 import SwiftUI
 
 /// The day's solar path, with the selected instant marked on the curve and
-/// `footer` along the bottom of the screen.
+/// `footer` along the bottom of the screen. Tapping anywhere calls `onTap`.
 struct CitySolarCurveView<Footer: View>: View {
     let date: Date
     let timeZone: TimeZone
+    let onTap: () -> Void
     @ViewBuilder let footer: Footer
 
     /// The room under the curve, with `footer` at its bottom. The curve's
@@ -36,14 +37,11 @@ struct CitySolarCurveView<Footer: View>: View {
                 // Convert the screen's midpoint to this content area's
                 // coordinates, below the navigation bar.
                 .offset(y: horizon - topInset - chartHeight / 2)
-                // VoiceOver reads the sunrise and sunset where the curve
-                // crosses the horizon
-                .accessibilityRepresentation {
-                    let events = sunTimes
-                    VStack {
-                        eventRow("Sunrise", systemImage: "sunrise.fill", date: events.sunrise)
-                        eventRow("Sunset", systemImage: "sunset.fill", date: events.sunset)
-                    }
+                .accessibilityElement()
+                .accessibilityLabel("Solar Curve")
+                .accessibilityAddTraits(.isButton)
+                .accessibilityAction {
+                    onTap()
                 }
 
                 footer
@@ -65,43 +63,8 @@ struct CitySolarCurveView<Footer: View>: View {
         // Fill the display width instead of leaving the navigation
         // content area's narrow black gutters beside the sky and curve.
         .ignoresSafeArea(edges: .horizontal)
-    }
-
-    private func eventRow(_ title: LocalizedStringKey, systemImage: String, date: Date?) -> some View {
-        HStack {
-            Label(title, systemImage: systemImage)
-                .labelStyle(.titleAndIcon)
-            Spacer(minLength: 8)
-            if let date {
-                ClockTimeText(date: date, timeZone: timeZone, size: .medium)
-            } else {
-                Text(verbatim: "-")
-            }
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private var sunTimes: (sunrise: Date?, sunset: Date?) {
-        guard let coordinate = TimeZoneCoordinates.getCoordinate(for: timeZone.identifier) else {
-            return (nil, nil)
-        }
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = timeZone
-        guard let day = calendar.dateInterval(of: .day, for: date) else { return (nil, nil) }
-
-        let events = SolarCalculator.events(
-            latitude: coordinate.latitude,
-            longitude: coordinate.longitude,
-            date: date,
-            timeZone: timeZone
-        )
-        // The calculator clamps missing polar events to noon or the day's
-        // edges. Show a dash instead of presenting those as real crossings.
-        guard events.sunrise < events.sunset else { return (nil, nil) }
-        return (
-            events.sunrise > day.start ? events.sunrise : nil,
-            events.sunset < day.end.addingTimeInterval(-1) ? events.sunset : nil
-        )
+        .contentShape(.rect)
+        .onTapGesture(perform: onTap)
     }
 }
 
@@ -154,7 +117,7 @@ private struct SolarCurveSkyBackground: View {
 #Preview {
     let date = Date.now
     NavigationStack {
-        CitySolarCurveView(date: date, timeZone: .current) {
+        CitySolarCurveView(date: date, timeZone: .current) {} footer: {
             Text(date.formattedDate(style: "Relative", timeZone: .current, relativeTo: date))
                 .foregroundStyle(.secondary)
                 .padding(.bottom, 14)

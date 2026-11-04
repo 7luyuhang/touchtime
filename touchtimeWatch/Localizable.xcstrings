@@ -1,29 +1,6 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
-    "%lldD" : {
-      "comment" : "Calendar days remaining until an upcoming moon phase.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lldD"
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld天"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 天"
-          }
-        }
-      }
-    },
     "%02dm" : {
       "comment" : "How far the Scroll Time bar has moved the time, under an hour, e.g. \"-45m\"",
       "localizations" : {
@@ -121,6 +98,29 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d 小時 %02d 分鐘"
+          }
+        }
+      }
+    },
+    "%lldD" : {
+      "comment" : "Calendar days remaining until an upcoming moon phase.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lldD"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld天"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld 天"
           }
         }
       }
@@ -419,6 +419,22 @@
         }
       }
     },
+    "First Light" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "曙光"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "曙光"
+          }
+        }
+      }
+    },
     "First Quarter" : {
       "localizations" : {
         "zh-Hans" : {
@@ -689,6 +705,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下弦"
+          }
+        }
+      }
+    },
+    "Last Light" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暮光"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暮光"
           }
         }
       }

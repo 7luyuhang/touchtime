@@ -82,7 +82,7 @@ struct CityMoonPhasesSheet: View {
         let dateFormat = Date.FormatStyle(locale: locale, timeZone: timeZone)
             .month(.abbreviated).day()
 
-        return page {
+        return DetailSheetPage {
             ForEach(events) { event in
                 let value = showsRemainingDays
                     ? daysUntil(event.date)
@@ -145,72 +145,22 @@ struct CityMoonPhasesSheet: View {
             numberFormatStyle: .number.precision(.fractionLength(0))
         )
 
-        return page {
-            detailRow("Moonrise") {
-                timeText(riseAndSet.moonrise)
+        return DetailSheetPage {
+            DetailSheetRow("Moonrise") {
+                DetailSheetTime(date: riseAndSet.moonrise, timeZone: timeZone)
             }
             Divider()
-            detailRow("Moonset") {
-                timeText(riseAndSet.moonset)
+            DetailSheetRow("Moonset") {
+                DetailSheetTime(date: riseAndSet.moonset, timeZone: timeZone)
             }
             Divider()
-            detailRow("Illumination") {
+            DetailSheetRow("Illumination") {
                 Text(illumination.formatted(.percent.locale(locale)))
             }
             Divider()
-            detailRow("Distance") {
+            DetailSheetRow("Distance") {
                 Text(distance.formatted(distanceStyle))
             }
-        }
-    }
-
-    /// Fills the page, scrolling only when larger text sizes push the rows
-    /// past the bottom.
-    private func page(@ViewBuilder rows: () -> some View) -> some View {
-        let content = rows()
-        return GeometryReader { geometry in
-            ScrollView {
-                VStack(spacing: 0) {
-                    content
-                }
-                .scenePadding(.navigationBar, edges: .horizontal)
-                .fixedSize(horizontal: false, vertical: true)
-                .frame(minHeight: geometry.size.height, alignment: .top)
-            }
-        }
-        .ignoresSafeArea(edges: .bottom)
-    }
-
-    private func detailRow(_ title: LocalizedStringKey, @ViewBuilder value: () -> some View) -> some View {
-        HStack {
-            Text(title)
-                .foregroundColor(.secondary)
-                .blendMode(.plusLighter)
-
-            Spacer(minLength: 8)
-
-            value()
-                .monospacedDigit()
-        }
-        .font(.body)
-        .foregroundStyle(.white)
-        .lineLimit(1)
-        .minimumScaleFactor(0.7)
-        // As tall as a phase row, whose symbol outgrows the text.
-        .frame(minHeight: 24)
-        .padding(.vertical, 10)
-        .accessibilityElement(children: .combine)
-    }
-
-    /// The digits alone, as on the watch's clocks. VoiceOver still reads AM or PM.
-    @ViewBuilder
-    private func timeText(_ time: Date?) -> some View {
-        if let time {
-            let formattedTime = WatchTimeFormat.time(time, in: timeZone, hourCycle: locale.hourCycle)
-            Text(formattedTime.digits)
-                .accessibilityLabel([formattedTime.digits, formattedTime.period].compactMap { $0 }.joined(separator: " "))
-        } else {
-            Text(verbatim: "-")
         }
     }
 
