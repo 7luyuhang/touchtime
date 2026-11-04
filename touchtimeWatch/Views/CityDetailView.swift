@@ -104,6 +104,7 @@ struct CityDetailView: View {
                         timeZone: city.timeZone,
                         dateLabel: shortDateLabel,
                         isAdjusting: isAdjusted,
+                        canGoLive: city.isLocal,
                         isLive: $showsLiveCompass
                     )
                 case .daylight:

@@ -8,8 +8,9 @@ import SwiftUI
 
 /// The sun's direction over the city on a compass, north up, and the shadow
 /// it casts from a glass triangle in the middle: away from the sun, longer as
-/// the sun sinks, and gone once it sets. Tapping the triangle goes live: the
-/// sun where the watch is, on a dial that turns with the watch like a compass.
+/// the sun sinks, and gone once it sets. On the watch's own clock, tapping the
+/// triangle goes live: the sun where the watch is, on a dial that turns with
+/// the watch like a compass. Elsewhere, tapping it says so.
 struct CitySunPositionView: View {
     /// The triangle's tint and the circle behind the N while live.
     private static let liveColor = Color.yellow
@@ -20,11 +21,15 @@ struct CitySunPositionView: View {
     /// While the Digital Crown shows another time, the time shows under the
     /// triangle.
     let isAdjusting: Bool
+    /// Whether tapping the triangle goes live. Only the watch's own clock
+    /// does, as the live sun is where the watch is rather than the city's.
+    let canGoLive: Bool
     /// Whether the view is live, which tapping the triangle turns on and off.
     @Binding var isLive: Bool
 
     @Environment(\.locale) private var locale
     @Environment(\.scenePhase) private var scenePhase
+    @State private var showsSunCompassAlert = false
     /// The sun's azimuth, in degrees past north, counting whole turns so the
     /// sun and shadow always animate the shorter way around.
     @State private var displayedAzimuth: Double?
@@ -168,6 +173,10 @@ struct CitySunPositionView: View {
         .onDisappear {
             compass?.stop()
         }
+        // Untitled. Verbatim, so the string catalog doesn't gain an empty key
+        .alert(Text(verbatim: ""), isPresented: $showsSunCompassAlert, actions: {}) {
+            Text("Sun Compass is only available for Local.")
+        }
     }
 
     /// The glass triangle, lit along the sun's side, and its shadow, which
@@ -187,18 +196,22 @@ struct CitySunPositionView: View {
                     .allowsHitTesting(false)
             }
             .contentShape(shape)
-            .onTapGesture(perform: toggleLive)
+            .onTapGesture(perform: tapTriangle)
             .accessibilityElement()
-            .accessibilityLabel("Live Compass")
+            .accessibilityLabel("Sun Compass")
             .accessibilityAddTraits(traits)
             .accessibilityAction {
-                toggleLive()
+                tapTriangle()
             }
     }
 
-    private func toggleLive() {
-        withAnimation(.smooth) {
-            isLive.toggle()
+    private func tapTriangle() {
+        if canGoLive {
+            withAnimation(.smooth) {
+                isLive.toggle()
+            }
+        } else {
+            showsSunCompassAlert = true
         }
     }
 
@@ -728,6 +741,7 @@ private func smoothstep(from edge0: Double, to edge1: Double, value: Double) -> 
             timeZone: .current,
             dateLabel: date.formattedDate(style: "Relative", timeZone: .current, relativeTo: date),
             isAdjusting: false,
+            canGoLive: true,
             isLive: .constant(false)
         )
             .ignoresSafeArea(edges: .bottom)

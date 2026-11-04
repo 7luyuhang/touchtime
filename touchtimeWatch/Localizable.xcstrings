@@ -773,22 +773,6 @@
         }
       }
     },
-    "Live Compass" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "实时罗盘"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "即時羅盤"
-          }
-        }
-      }
-    },
     "Local" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1145,6 +1129,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "強雷暴"
+          }
+        }
+      }
+    },
+    "Sun Compass" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太阳罗盘"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太陽羅盤"
+          }
+        }
+      }
+    },
+    "Sun Compass is only available for Local." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太阳罗盘仅支持“本地”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太陽羅盤僅支援「本地」。"
           }
         }
       }
