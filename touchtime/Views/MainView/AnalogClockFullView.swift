@@ -972,16 +972,16 @@ struct AnalogClockFullView: View {
 
         Button(action: {
             triggerMenuHaptic()
-            showWidgetIntroSheet = true
+            showAppleWatchIntroSheet = true
         }) {
-            Label(String(localized: "Widgets"), systemImage: "widget.small")
+            Label("Apple Watch", systemImage: "applewatch")
         }
 
         Button(action: {
             triggerMenuHaptic()
-            showAppleWatchIntroSheet = true
+            showWidgetIntroSheet = true
         }) {
-            Label("Apple Watch", systemImage: "applewatch")
+            Label(String(localized: "Widgets"), systemImage: "widget.small")
         }
     }
 

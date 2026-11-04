@@ -199,6 +199,15 @@ extension HomeView {
 
         Button(action: {
             if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+            showAppleWatchIntroSheet = true
+        }) {
+            Label("Apple Watch", systemImage: "applewatch")
+        }
+
+        Button(action: {
+            if hapticEnabled {
                 let impactFeedback = UIImpactFeedbackGenerator(style: .light)
                 impactFeedback.prepare()
                 impactFeedback.impactOccurred()
@@ -217,15 +226,6 @@ extension HomeView {
             showWidgetIntroSheet = true
         }) {
             Label(String(localized: "Widgets"), systemImage: "widget.small")
-        }
-
-        Button(action: {
-            if hapticEnabled {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-            }
-            showAppleWatchIntroSheet = true
-        }) {
-            Label("Apple Watch", systemImage: "applewatch")
         }
     }
 }
