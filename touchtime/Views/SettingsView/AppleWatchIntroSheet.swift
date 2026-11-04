@@ -4,6 +4,21 @@ import UIKit
 struct AppleWatchIntroSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
+    @State private var showAppleWatchSupport = false
+
+    // Apple's guide to downloading watch apps, localized to the language the app is running in
+    private var appleWatchSupportURL: URL {
+        let region: String
+        switch Bundle.main.preferredLocalizations.first {
+        case "zh-Hans":
+            region = "zh-cn"
+        case "zh-Hant":
+            region = "zh-tw"
+        default:
+            region = "en-gb"
+        }
+        return URL(string: "https://support.apple.com/\(region)/109023")!
+    }
 
     var body: some View {
         NavigationStack {
@@ -50,6 +65,22 @@ struct AppleWatchIntroSheet: View {
                     }
                     .accessibilityLabel(Text("Close"))
                 }
+
+                // Tips: Apple guide on downloading apps on Apple Watch
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        }
+                        showAppleWatchSupport = true
+                    } label: {
+                        Image(systemName: "questionmark.circle")
+                    }
+                }
+            }
+            .sheet(isPresented: $showAppleWatchSupport) {
+                SafariView(url: appleWatchSupportURL)
+                    .ignoresSafeArea()
             }
         }
         .preferredColorScheme(.dark)
