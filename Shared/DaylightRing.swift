@@ -30,6 +30,8 @@ struct DaylightRing: View {
     var sunAnimation: SunAnimation = .timeline
     var borderWidth: CGFloat = 1
     var borderOpacity: Double = 0.025
+    /// The night sun's outline, against the day sun's full white.
+    var nightSunOpacity: Double = 0.35
 
     @Environment(\.colorScheme) private var colorScheme
     @State private var interactiveSunTurns: Double?
@@ -258,7 +260,7 @@ struct DaylightRing: View {
             let fill: CGFloat = isSunFilled ? 1 : 0
             SunDisc(fill: fill, lineWidth: 2)
                 .fill(.white, style: FillStyle(eoFill: true))
-                .opacity(0.35 + 0.65 * fill)
+                .opacity(nightSunOpacity + (1 - nightSunOpacity) * fill)
                 .blendMode(.plusLighter)
                 .background {
                     if !monochrome {

@@ -411,7 +411,6 @@ private struct SunOrbit: View, Animatable {
 
         SunDisc(fill: fill, lineWidth: 2)
             .fill(.white, style: FillStyle(eoFill: true))
-            .opacity(0.35 + 0.65 * fill)
             .blendMode(.plusLighter)
             .background {
                 // A layer of its own: plusDarker on the white disc would make it vanish.

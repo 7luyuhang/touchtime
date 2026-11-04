@@ -113,7 +113,8 @@ struct CityDaylightView: View {
                         monochrome: false,
                         sunAnimation: .interactive(isAdjusting: isAdjusting),
                         borderWidth: Self.borderWidth,
-                        borderOpacity: Self.borderOpacity
+                        borderOpacity: Self.borderOpacity,
+                        nightSunOpacity: 1
                     )
                     .accessibilityHidden(true)
 
