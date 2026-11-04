@@ -126,34 +126,3 @@ struct ScrollTimeSlide {
     /// The time the clocks showed as it began, or nil for now.
     let start: Date?
 }
-
-/// The button above the Scroll Time bar that brings the clocks back to now.
-struct ScrollTimeResetButton: View {
-    /// The time every clock shows in place of now, or nil for now.
-    @Binding var adjustedDate: Date?
-
-    private static let diameter: CGFloat = 40
-    private static let hitTarget: CGFloat = 48
-    private static let spacing: CGFloat = 6
-
-    var body: some View {
-        Button {
-            withAnimation(.smooth) {
-                adjustedDate = nil
-            }
-        } label: {
-            Label("Current Time", systemImage: "xmark")
-                .labelStyle(.iconOnly)
-                .font(.subheadline)
-                .fontWeight(.semibold)
-                .frame(width: Self.diameter, height: Self.diameter)
-                .glassEffect(.regular.interactive(), in: .circle)
-                // Catch taps near the circle's edge before the city row below.
-                .frame(width: Self.hitTarget, height: Self.hitTarget)
-                .contentShape(.rect)
-        }
-        .buttonStyle(.plain)
-        // Keep the visible circle the same distance above the Scroll Time bar.
-        .padding(.bottom, Self.spacing - (Self.hitTarget - Self.diameter) / 2)
-    }
-}

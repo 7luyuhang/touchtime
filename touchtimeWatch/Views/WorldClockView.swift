@@ -24,18 +24,12 @@ struct WorldClockView: View {
         let cities = [ClockCity.local] + cityStore.cities.map { ClockCity($0) }
 
         NavigationSplitView {
-            CityListView(cities: cities, selection: selection(among: cities), adjustedDate: $adjustedDate)
-                .toolbar {
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button("Analog Clock", systemImage: "clock") {
-                            showsAnalogClock = true
-                        }
-                    }
-                }
-                .toolbarForegroundStyle(.primary, for: .navigationBar)
-                .sheet(isPresented: $showsAnalogClock) {
-                    AnalogClockHomeView(cities: cities, adjustedDate: $adjustedDate)
-                }
+            CityListView(cities: cities, selection: selection(among: cities), adjustedDate: $adjustedDate) {
+                showsAnalogClock = true
+            }
+            .sheet(isPresented: $showsAnalogClock) {
+                AnalogClockHomeView(cities: cities, adjustedDate: $adjustedDate)
+            }
         } detail: {
             if let city = cities.first(where: { $0.id == selectedCityID }) {
                 CityDetailView(city: city, mapCities: cities, adjustedDate: $adjustedDate)

@@ -11,6 +11,7 @@ struct CityListView: View {
     @Binding var selection: String?
     /// The time every clock shows in place of now, or nil for now.
     @Binding var adjustedDate: Date?
+    let onAnalogClockTap: () -> Void
 
     @Environment(WatchCityStore.self) private var cityStore
     /// The slide under way on the Scroll Time bar, or nil while it's at rest.
@@ -20,15 +21,15 @@ struct CityListView: View {
     @State private var listBottom: CGFloat = 0
     @State private var scrollTimeBarTop: CGFloat = 0
 
-    /// Whether the button that brings the clocks back to now shows. A slide
-    /// leaves it as it was until the finger lifts.
+    /// Whether the button that brings the clocks back to now shows, in place
+    /// of the analog clock button. A slide leaves it as it was until the
+    /// finger lifts.
     private var showsResetButton: Bool {
         timeSlide.map { $0.start != nil } ?? (adjustedDate != nil)
     }
 
     /// Room below the last city, so it scrolls clear of the Scroll Time bar,
-    /// with a little to spare. The button above the bar covers the list
-    /// rather than adding room, which would shift the rows as it comes and goes.
+    /// with a little to spare.
     private var bottomClearance: CGFloat {
         listBottom - scrollTimeBarTop + 8
     }
@@ -51,22 +52,31 @@ struct CityListView: View {
                 }
             }
             .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).maxY } action: { listBottom = $0 }
-            // Resting on the Scroll Time bar rather than in the bottom bar with
-            // it, which would push the bar down to keep what it holds centered
-            .overlay(alignment: .bottom) {
-                if showsResetButton {
-                    ScrollTimeResetButton(adjustedDate: $adjustedDate)
-                        .offset(y: scrollTimeBarTop - listBottom)
-                        .transition(.blurReplace.combined(with: .scale).combined(with: .move(edge: .bottom)))
-                }
-            }
             .animation(.smooth, value: adjustedDate)
             .toolbar {
+                // While adjusting time, a reset button takes the analog clock
+                // button's place, as it takes the back button's on a city's
+                // details.
+                ToolbarItem(placement: .topBarLeading) {
+                    if showsResetButton {
+                        Button("Current Time", systemImage: "xmark", action: showCurrentTime)
+                    } else {
+                        Button("Analog Clock", systemImage: "clock", action: onAnalogClockTap)
+                    }
+                }
                 ToolbarItem(placement: .bottomBar) {
                     ScrollTimeBar(adjustedDate: $adjustedDate, slide: $timeSlide, now: context.date)
                         .onGeometryChange(for: CGFloat.self) { $0.frame(in: .global).minY } action: { scrollTimeBarTop = $0 }
                 }
             }
+        }
+        .toolbarForegroundStyle(.primary, for: .navigationBar)
+    }
+
+    /// Back to now on every clock.
+    private func showCurrentTime() {
+        withAnimation(.smooth) {
+            adjustedDate = nil
         }
     }
 }
