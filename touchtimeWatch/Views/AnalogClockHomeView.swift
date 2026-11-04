@@ -3,8 +3,9 @@
 //  touchtimeWatch
 //
 //  The iPhone app's analog clock, one city at a time, on a sheet over the
-//  list. Tapping the middle moves on to the next city, and turning the
-//  Digital Crown moves the time an hour at a time, as on a city's details.
+//  list. Tapping the middle moves on to the next city, and tapping a dot to
+//  its city. Turning the Digital Crown moves the time an hour at a time, as
+//  on a city's details.
 //
 
 import SwiftUI
@@ -52,7 +53,8 @@ struct AnalogClockHomeView: View {
                         layout: AnalogClockDialLayout(
                             diameter: max(0, min(geometry.size.width - 16, geometry.size.height - 12))
                         ),
-                        onCenterTap: showNextCity
+                        onCenterTap: showNextCity,
+                        onDotTap: { cityID = $0.id }
                     )
                     .frame(width: geometry.size.width, height: geometry.size.height)
                 }
@@ -184,6 +186,9 @@ private struct AnalogClockDialLayout {
 private struct AnalogClockDial: View {
     /// The rings', lightening the sky behind them, as on the sun dial.
     private static let lineColor = Color.white.opacity(0.1)
+    /// How far from a dot a tap still picks it, as the dots are much smaller
+    /// than a fingertip.
+    private static let dotReach: CGFloat = 22
 
     let city: ClockCity
     let cities: [ClockCity]
@@ -192,6 +197,8 @@ private struct AnalogClockDial: View {
     let dateStyle: String
     let layout: AnalogClockDialLayout
     let onCenterTap: () -> Void
+    /// Called with the city to show for a tap on a dot.
+    let onDotTap: (ClockCity) -> Void
 
     /// The time in UTC around the dial, counting whole turns so the dots
     /// always move the shorter way around, past midnight included.
@@ -219,6 +226,24 @@ private struct AnalogClockDial: View {
     private var dotCities: [ClockCity] {
         var offsets = Set<Int>()
         return cities.filter { offsets.insert($0.timeZone.secondsFromGMT(for: date)).inserted }
+    }
+
+    /// The city to show for a tap at `location`: the nearest dot's, if the
+    /// tap is within reach of it. A dot stands for every city at its time:
+    /// the first of them, or with the clock already on one, the next.
+    private func city(tappedAt location: CGPoint) -> ClockCity? {
+        let utcAngle = utcAngle
+        func distance(to dotCity: ClockCity) -> CGFloat {
+            let dot = layout.point(atHour: angle(of: dotCity, at: utcAngle) / 15, radius: layout.orbitRadius)
+            return hypot(dot.x - location.x, dot.y - location.y)
+        }
+        guard let dotCity = dotCities.min(by: { distance(to: $0) < distance(to: $1) }),
+              distance(to: dotCity) <= Self.dotReach else { return nil }
+
+        let offset = dotCity.timeZone.secondsFromGMT(for: date)
+        let citiesAtDot = cities.filter { $0.timeZone.secondsFromGMT(for: date) == offset }
+        guard let index = citiesAtDot.firstIndex(where: { $0.id == city.id }) else { return dotCity }
+        return citiesAtDot[(index + 1) % citiesAtDot.count]
     }
 
     /// The city's day around the dial, in degrees clockwise from midnight:
@@ -293,6 +318,16 @@ private struct AnalogClockDial: View {
             }
             .animation(.smooth, value: displayedAngle)
             .accessibilityHidden(true)
+
+            // The middle, laid over it, keeps its own tap
+            Color.clear
+                .contentShape(.circle)
+                .onTapGesture(coordinateSpace: .local) { location in
+                    if let tappedCity = city(tappedAt: location) {
+                        onDotTap(tappedCity)
+                    }
+                }
+                .accessibilityHidden(true)
 
             VStack(spacing: 0) {
                 ZStack {
