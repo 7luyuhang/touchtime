@@ -9,6 +9,10 @@ struct AppleWatchIntroSheet: View {
     @State private var showAppleWatchSupport = false
     // The view the watch is showing; taps on its screen move through them
     @State private var screen = AppleWatchPreviewScreen.allCases[0]
+    // The page dots and the name pill come in after the watch, like the widget sheet's
+    @State private var animateIndicators = false
+    // The tagline starts this far up, where the dots and the pill come in
+    @State private var indicatorsHeight: CGFloat = 0
 
     // Apple's guide to downloading watch apps, localized to the language the app is running in
     private var appleWatchSupportURL: URL {
@@ -51,29 +55,40 @@ struct AppleWatchIntroSheet: View {
                     .layoutPriority(1)
 
                 if fullHeight {
-                    // Page dots, same as the widget sheet's
-                    HStack(spacing: 8) {
-                        ForEach(AppleWatchPreviewScreen.allCases, id: \.self) { page in
-                            Circle()
-                                .fill(.primary)
-                                .frame(width: 7, height: 7)
-                                .opacity(screen == page ? 0.9 : 0.3)
+                    VStack(spacing: 0) {
+                        // Page dots, same as the widget sheet's
+                        HStack(spacing: 8) {
+                            ForEach(AppleWatchPreviewScreen.allCases, id: \.self) { page in
+                                Circle()
+                                    .fill(.primary)
+                                    .frame(width: 7, height: 7)
+                                    .opacity(screen == page ? 0.9 : 0.3)
+                            }
                         }
-                    }
-                    .blendMode(.plusLighter)
-                    .padding(.top, 12)
-                    .animation(.smooth(duration: 0.3), value: screen)
+                        .blendMode(.plusLighter)
+                        .padding(.top, 12)
+                        .animation(.smooth(duration: 0.3), value: screen)
 
-                    // Current view's name in a glass capsule, swapping with a
-                    // blur as taps on the watch move through the views.
-                    Text(screen.title)
-                        .font(.subheadline.weight(.semibold))
-                        .transition(.blurReplace)
-                        .id(screen)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 12)
-                        .glassEffect(.clear, in: Capsule(style: .continuous))
-                        .padding(.top, 24)
+                        // Current view's name in a glass capsule, swapping with a
+                        // blur as taps on the watch move through the views.
+                        Text(screen.title)
+                            .font(.subheadline.weight(.semibold))
+                            .transition(.blurReplace)
+                            .id(screen)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 12)
+                            .glassEffect(.clear, in: Capsule(style: .continuous))
+                            .padding(.top, 24)
+                    }
+                    .blur(radius: animateIndicators ? 0 : 10)
+                    .opacity(animateIndicators ? 1.0 : 0.0)
+                    // Waits for the tagline to move out of the way
+                    .animation(.smooth(duration: 1.0).delay(0.3), value: animateIndicators)
+                    .onGeometryChange(for: CGFloat.self) { proxy in
+                        proxy.size.height
+                    } action: { height in
+                        indicatorsHeight = height
+                    }
                 }
 
                 Text("Touch time, right on your wrist.")
@@ -84,6 +99,8 @@ struct AppleWatchIntroSheet: View {
                     .padding(.horizontal, 24)
                     .padding(.top, fullHeight ? 24 : 12)
                     .padding(.bottom, 24)
+                    .offset(y: animateIndicators ? 0 : -indicatorsHeight)
+                    .animation(.smooth(duration: 1.0), value: animateIndicators)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -124,6 +141,11 @@ struct AppleWatchIntroSheet: View {
                     } label: {
                         Image(systemName: "questionmark.circle")
                     }
+                }
+            }
+            .onAppear {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) {
+                    animateIndicators = true
                 }
             }
             .sheet(isPresented: $showAppleWatchSupport) {
