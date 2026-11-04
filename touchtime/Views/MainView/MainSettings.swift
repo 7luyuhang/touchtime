@@ -1283,7 +1283,7 @@ struct SettingsView: View {
             }
             // Apple Watch Sheet
             .sheet(isPresented: $showAppleWatchIntroSheet) {
-                AppleWatchIntroSheet()
+                AppleWatchIntroSheet(fullHeight: true)
             }
         }
         // On the stack so the pages pushed from Settings get it too

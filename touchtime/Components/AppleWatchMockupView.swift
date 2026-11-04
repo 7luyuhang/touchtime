@@ -5,13 +5,50 @@ import Metal
 import os
 #endif
 
+/// The watch app's detail views, in the order taps on the screen show them.
+nonisolated enum AppleWatchPreviewScreen: CaseIterable {
+    case sunPosition
+    case moonPhase
+    case daylight
+    case solarCurve
+    case worldClock
+
+    // Matches CityDetailDisplay's titles in the watch app
+    var title: String {
+        switch self {
+        case .sunPosition: String(localized: "Sun Position")
+        case .moonPhase: String(localized: "Moon Phase")
+        case .daylight: String(localized: "Daylight")
+        case .solarCurve: String(localized: "Solar Curve")
+        case .worldClock: String(localized: "World Clock")
+        }
+    }
+
+    var imageName: String {
+        switch self {
+        case .sunPosition: "AppleWatchIntroSunPosition"
+        case .moonPhase: "AppleWatchIntroMoonPhase"
+        case .daylight: "AppleWatchIntroDaylight"
+        case .solarCurve: "AppleWatchIntroSolarCurve"
+        case .worldClock: "AppleWatchIntroWorldClock"
+        }
+    }
+}
+
 /// Uses the supplied USDZ's actual display mesh, so the screenshot stays
 /// attached to the watch face throughout the three-dimensional entrance.
+/// Tapping the screen crossfades through the watch app's views.
 struct AppleWatchMockupView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var scene: SCNScene?
     @State private var loadFailed = false
     @State private var entranceHasStarted = false
+    private let onScreenChange: (AppleWatchPreviewScreen) -> Void
+
+    init(onScreenChange: @escaping (AppleWatchPreviewScreen) -> Void = { _ in }) {
+        self.onScreenChange = onScreenChange
+    }
 
     static func preload() async {
         await AppleWatchSceneCache.shared.preload()
@@ -20,14 +57,19 @@ struct AppleWatchMockupView: View {
     var body: some View {
         ZStack {
             if let scene {
-                AppleWatchSceneView(scene: scene, reduceMotion: reduceMotion) {
+                AppleWatchSceneView(
+                    scene: scene,
+                    reduceMotion: reduceMotion,
+                    hapticEnabled: hapticEnabled,
+                    onScreenChange: onScreenChange
+                ) {
                     entranceHasStarted = true
                 }
                 .blur(radius: reduceMotion || entranceHasStarted ? 0 : 10)
                 .animation(reduceMotion ? nil : .easeOut(duration: 1.2), value: entranceHasStarted)
             } else if loadFailed {
                 // Keep the introduction useful if a bundled asset cannot load.
-                Image("AppleWatchIntroScreen")
+                Image(AppleWatchPreviewScreen.allCases[0].imageName)
                     .resizable()
                     .scaledToFit()
                     .padding(16)
@@ -119,11 +161,27 @@ private enum WatchSceneError: Error {
 private struct AppleWatchSceneView: UIViewRepresentable {
     let scene: SCNScene
     let reduceMotion: Bool
+    let hapticEnabled: Bool
+    let onScreenChange: (AppleWatchPreviewScreen) -> Void
     let onEntranceBegan: () -> Void
 
     nonisolated private static let watchNodeName = "introWatch"
     nonisolated private static let rotationNodeName = "introWatchRotation"
     nonisolated private static let cameraNodeName = "introCamera"
+    nonisolated private static let displayNodeName = "rJeLKgtaspBNkmI"
+    // The screen material holds two screenshots, the diffuse one and an
+    // incoming one, and mixes between them by the fade amount.
+    nonisolated private static let incomingScreenKey = "incomingScreen"
+    nonisolated private static let screenFadeKey = "screenFade"
+    nonisolated private static let screenFadeModifier = """
+        #pragma arguments
+        texture2d<float> \(incomingScreenKey);
+        float \(screenFadeKey);
+        #pragma body
+        constexpr sampler screenSampler(filter::linear, mip_filter::linear, max_anisotropy(8));
+        float4 incoming = \(incomingScreenKey).sample(screenSampler, _surface.diffuseTexcoord);
+        _surface.diffuse = mix(_surface.diffuse, incoming, \(screenFadeKey));
+        """
     // Settle face-on and upright so the screen remains easy to read.
     nonisolated private static let restingAngles = SCNVector3Zero
     nonisolated private static let entranceAngles = SCNVector3(-0.45, -0.65, -0.18)
@@ -146,11 +204,17 @@ private struct AppleWatchSceneView: UIViewRepresentable {
         let coordinator = context.coordinator
         coordinator.view = view
         coordinator.reduceMotion = reduceMotion
+        coordinator.hapticEnabled = hapticEnabled
+        coordinator.onScreenChange = onScreenChange
         coordinator.rotationNode = scene.rootNode.childNode(withName: Self.rotationNodeName, recursively: true)
+        if let display = scene.rootNode.childNode(withName: Self.displayNodeName, recursively: true) {
+            coordinator.attachScreen(display)
+        }
         let pan = UIPanGestureRecognizer(target: coordinator, action: #selector(Coordinator.handlePan(_:)))
         pan.maximumNumberOfTouches = 1
         pan.delegate = coordinator
         view.addGestureRecognizer(pan)
+        view.addGestureRecognizer(UITapGestureRecognizer(target: coordinator, action: #selector(Coordinator.handleTap(_:))))
 
         guard let watch = scene.rootNode.childNode(withName: Self.watchNodeName, recursively: false) else {
             return view
@@ -193,10 +257,10 @@ private struct AppleWatchSceneView: UIViewRepresentable {
                     node.scale = SCNVector3(1, 1, 1)
                 }
                 view.isPlaying = true
-                watch.runAction(.sequence([movement, settle])) { [weak view, weak coordinator] in
+                watch.runAction(.sequence([movement, settle])) { [weak coordinator] in
                     DispatchQueue.main.async {
-                        view?.isPlaying = false
                         coordinator?.isReady = true
+                        coordinator?.pauseIfIdle()
                     }
                 }
             }
@@ -206,19 +270,22 @@ private struct AppleWatchSceneView: UIViewRepresentable {
 
     func updateUIView(_ view: SCNView, context: Context) {
         context.coordinator.reduceMotion = reduceMotion
+        context.coordinator.hapticEnabled = hapticEnabled
+        context.coordinator.onScreenChange = onScreenChange
         if reduceMotion, let watch = scene.rootNode.childNode(withName: Self.watchNodeName, recursively: false) {
             watch.removeAllActions()
             watch.position = SCNVector3Zero
             watch.eulerAngles = Self.restingAngles
             watch.scale = SCNVector3(1, 1, 1)
-            view.isPlaying = false
             context.coordinator.isReady = true
+            context.coordinator.pauseIfIdle()
         }
     }
 
     static func dismantleUIView(_ view: SCNView, coordinator: Coordinator) {
         coordinator.isReady = false
         coordinator.rotationNode?.removeAllActions()
+        coordinator.displayNode?.removeAllActions()
         coordinator.view = nil
         view.scene?.rootNode.childNode(withName: watchNodeName, recursively: false)?.removeAllActions()
         view.isPlaying = false
@@ -228,11 +295,88 @@ private struct AppleWatchSceneView: UIViewRepresentable {
     final class Coordinator: NSObject, UIGestureRecognizerDelegate {
         weak var view: SCNView?
         weak var rotationNode: SCNNode?
+        weak var displayNode: SCNNode?
         var reduceMotion = false
+        var hapticEnabled = true
+        var onScreenChange: (AppleWatchPreviewScreen) -> Void = { _ in }
         var isReady = false
+        private var isDragging = false
         private var startingYaw: Float = 0
         private var resetID = UUID()
         private let maximumYaw = Float.pi / 12
+        private static let screenFadeActionKey = "screenFade"
+        private var screenIndex = 0
+        // Whether the incoming slot, rather than the diffuse one, holds the
+        // screenshot on screen; each tap fades the hidden slot in.
+        private var showsIncomingScreen = false
+
+        func attachScreen(_ display: SCNNode) {
+            // Clones share geometry and materials with the cached template, so
+            // switching screenshots needs this view's own copies.
+            guard let geometry = display.geometry?.copy() as? SCNGeometry,
+                  let material = geometry.firstMaterial?.copy() as? SCNMaterial else { return }
+            geometry.materials = [material]
+            display.geometry = geometry
+            displayNode = display
+        }
+
+        /// Rendering stops only once the entrance, any drag and its reset, and
+        /// any screen fade have all finished, so none of them freezes another.
+        func pauseIfIdle() {
+            guard let view, !isDragging else { return }
+            let watch = view.scene?.rootNode.childNode(withName: AppleWatchSceneView.watchNodeName, recursively: false)
+            guard ![watch, rotationNode, displayNode].contains(where: { $0?.hasActions == true }) else { return }
+            view.isPlaying = false
+        }
+
+        @objc func handleTap(_ tap: UITapGestureRecognizer) {
+            guard let view, let displayNode else { return }
+            // The display mesh is made of polygons, which SceneKit's mesh hit
+            // testing skips; its thin bounding box covers exactly the screen.
+            let hits = view.hitTest(tap.location(in: view), options: [.rootNode: displayNode, .boundingBoxOnly: true])
+            guard !hits.isEmpty else { return }
+            showNextScreen()
+        }
+
+        private func showNextScreen() {
+            guard let view, let displayNode, let material = displayNode.geometry?.firstMaterial else { return }
+            let screens = AppleWatchPreviewScreen.allCases
+            let nextIndex = (screenIndex + 1) % screens.count
+            guard let screenshot = UIImage(named: screens[nextIndex].imageName) else { return }
+            screenIndex = nextIndex
+            onScreenChange(screens[nextIndex])
+
+            // A tap mid-fade settles the running fade before starting the next.
+            displayNode.removeAction(forKey: Self.screenFadeActionKey)
+            let start: CGFloat = showsIncomingScreen ? 1 : 0
+            material.setValue(start, forKey: AppleWatchSceneView.screenFadeKey)
+            if showsIncomingScreen {
+                material.diffuse.contents = screenshot
+            } else {
+                material.setValue(AppleWatchSceneView.screenTexture(screenshot), forKey: AppleWatchSceneView.incomingScreenKey)
+            }
+            showsIncomingScreen.toggle()
+            let end: CGFloat = showsIncomingScreen ? 1 : 0
+
+            if hapticEnabled {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            }
+            let duration: TimeInterval = 0.3
+            let fade = SCNAction.customAction(duration: duration) { node, elapsed in
+                let progress = min(elapsed / CGFloat(duration), 1)
+                let eased = progress * progress * (3 - 2 * progress)
+                node.geometry?.firstMaterial?.setValue(start + (end - start) * eased, forKey: AppleWatchSceneView.screenFadeKey)
+            }
+            let settle = SCNAction.run { node in
+                node.geometry?.firstMaterial?.setValue(end, forKey: AppleWatchSceneView.screenFadeKey)
+            }
+            view.isPlaying = true
+            displayNode.runAction(.sequence([fade, settle]), forKey: Self.screenFadeActionKey) { [weak self] in
+                DispatchQueue.main.async {
+                    self?.pauseIfIdle()
+                }
+            }
+        }
 
         func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
             guard isReady, let pan = gestureRecognizer as? UIPanGestureRecognizer else { return false }
@@ -246,6 +390,7 @@ private struct AppleWatchSceneView: UIViewRepresentable {
             switch pan.state {
             case .began:
                 resetID = UUID()
+                isDragging = true
                 let currentYaw = rotationNode.presentation.eulerAngles.y
                 rotationNode.removeAllActions()
                 rotationNode.eulerAngles.y = currentYaw
@@ -256,9 +401,10 @@ private struct AppleWatchSceneView: UIViewRepresentable {
                 let yaw = startingYaw + distance * maximumYaw * 2
                 rotationNode.eulerAngles.y = min(max(yaw, -maximumYaw), maximumYaw)
             case .ended, .cancelled, .failed:
+                isDragging = false
                 if reduceMotion {
                     rotationNode.eulerAngles = SCNVector3Zero
-                    view.isPlaying = false
+                    pauseIfIdle()
                     return
                 }
                 let currentResetID = UUID()
@@ -276,7 +422,7 @@ private struct AppleWatchSceneView: UIViewRepresentable {
                 rotationNode.runAction(.sequence([reset, settle])) { [weak self] in
                     DispatchQueue.main.async {
                         guard let self, self.resetID == currentResetID else { return }
-                        self.view?.isPlaying = false
+                        self.pauseIfIdle()
                     }
                 }
             default:
@@ -286,8 +432,10 @@ private struct AppleWatchSceneView: UIViewRepresentable {
     }
 
     nonisolated static func configure(_ scene: SCNScene) throws -> SCNScene {
-        guard let screenshot = UIImage(named: "AppleWatchIntroScreen"),
-              let display = scene.rootNode.childNode(withName: "rJeLKgtaspBNkmI", recursively: true),
+        let screens = AppleWatchPreviewScreen.allCases
+        guard let screenshot = UIImage(named: screens[0].imageName),
+              let nextScreenshot = UIImage(named: screens[1].imageName),
+              let display = scene.rootNode.childNode(withName: displayNodeName, recursively: true),
               let displayGeometry = display.geometry else {
             throw WatchSceneError.missingAsset
         }
@@ -297,6 +445,13 @@ private struct AppleWatchSceneView: UIViewRepresentable {
         screenMaterial.diffuse.contents = screenshot
         screenMaterial.diffuse.mipFilter = .linear
         screenMaterial.diffuse.maxAnisotropy = 8
+        // Bind the incoming slot up front so warm-up compiles the fade shader
+        // and uploads the first screenshot a tap brings in.
+        screenMaterial.shaderModifiers = [.surface: screenFadeModifier]
+        screenMaterial.setValue(screenTexture(nextScreenshot), forKey: incomingScreenKey)
+        // A floating-point value like the fade's; SceneKit stops updating a
+        // uniform whose value type changes.
+        screenMaterial.setValue(0.0, forKey: screenFadeKey)
         // Retain the mesh's original full-screen UVs and rounded outline.
         displayGeometry.materials = [screenMaterial]
         applyWhiteAluminum(to: scene)
@@ -346,6 +501,12 @@ private struct AppleWatchSceneView: UIViewRepresentable {
         addLight(to: scene, type: .directional, intensity: 1400, position: SCNVector3(1, 4, -6))
         scene.background.contents = UIColor.clear
         return scene
+    }
+
+    nonisolated private static func screenTexture(_ screenshot: UIImage) -> SCNMaterialProperty {
+        let texture = SCNMaterialProperty(contents: screenshot)
+        texture.mipFilter = .linear
+        return texture
     }
 
     nonisolated private static func applyWhiteAluminum(to scene: SCNScene) {

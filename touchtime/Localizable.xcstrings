@@ -14805,6 +14805,22 @@
         }
       }
     },
+    "Sun Position" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太阳位置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "太陽位置"
+          }
+        }
+      }
+    },
     "Sun Showers" : {
       "localizations" : {
         "zh-Hans" : {
@@ -17425,6 +17441,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "世界城市"
+          }
+        }
+      }
+    },
+    "World Clock" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "世界时钟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "世界時鐘"
           }
         }
       }

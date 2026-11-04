@@ -2,9 +2,13 @@ import SwiftUI
 import UIKit
 
 struct AppleWatchIntroSheet: View {
+    // Settings presents it full height, like the widget sheet; the Home menus at half height
+    var fullHeight = false
     @Environment(\.dismiss) private var dismiss
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @State private var showAppleWatchSupport = false
+    // The view the watch is showing; taps on its screen move through them
+    @State private var screen = AppleWatchPreviewScreen.allCases[0]
 
     // Apple's guide to downloading watch apps, localized to the language the app is running in
     private var appleWatchSupportURL: URL {
@@ -22,9 +26,16 @@ struct AppleWatchIntroSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 12) {
-                AppleWatchMockupView()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+            VStack(spacing: 0) {
+                AppleWatchMockupView(onScreenChange: { newScreen in
+                    // The pill's blur swap only animates when the change itself is animated
+                    withAnimation(.smooth(duration: 0.5)) {
+                        screen = newScreen
+                    }
+                })
+                    // The camera frames the watch by the view's height, so this
+                    // cap sets the watch's size in the full-height sheet.
+                    .frame(maxWidth: .infinity, maxHeight: 280)
                     .mask {
                         LinearGradient(
                             stops: [
@@ -39,14 +50,42 @@ struct AppleWatchIntroSheet: View {
                     }
                     .layoutPriority(1)
 
+                if fullHeight {
+                    // Page dots, same as the widget sheet's
+                    HStack(spacing: 8) {
+                        ForEach(AppleWatchPreviewScreen.allCases, id: \.self) { page in
+                            Circle()
+                                .fill(.primary)
+                                .frame(width: 7, height: 7)
+                                .opacity(screen == page ? 0.9 : 0.3)
+                        }
+                    }
+                    .blendMode(.plusLighter)
+                    .padding(.top, 12)
+                    .animation(.smooth(duration: 0.3), value: screen)
+
+                    // Current view's name in a glass capsule, swapping with a
+                    // blur as taps on the watch move through the views.
+                    Text(screen.title)
+                        .font(.subheadline.weight(.semibold))
+                        .transition(.blurReplace)
+                        .id(screen)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 12)
+                        .glassEffect(.clear, in: Capsule(style: .continuous))
+                        .padding(.top, 24)
+                }
+
                 Text("Touch time, right on your wrist.")
-                    .font(.subheadline.weight(.medium))
+                    .font(fullHeight ? .headline : .subheadline.weight(.medium))
                     .foregroundStyle(.primary)
                     .fixedSize(horizontal: false, vertical: true)
                     .multilineTextAlignment(.center)
                     .padding(.horizontal, 24)
+                    .padding(.top, fullHeight ? 24 : 12)
                     .padding(.bottom, 24)
             }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 openWatchButton
                     .padding(.horizontal, 24)
@@ -84,7 +123,7 @@ struct AppleWatchIntroSheet: View {
             }
         }
         .preferredColorScheme(.dark)
-        .presentationDetents([.medium])
+        .presentationDetents(fullHeight ? [.large] : [.medium])
         .presentationDragIndicator(.hidden)
 //        .presentationBackground {
 //            LinearGradient(
