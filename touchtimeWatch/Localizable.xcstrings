@@ -164,6 +164,22 @@
         }
       }
     },
+    "Analog Clock" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模拟时钟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模擬時鐘"
+          }
+        }
+      }
+    },
     "Azimuth %@, altitude %@" : {
       "comment" : "The sun's direction clockwise from north and its height above the horizon, read by VoiceOver, e.g. \"Azimuth 213°, altitude 34°\"",
       "localizations" : {
@@ -263,6 +279,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "選擇視圖"
+          }
+        }
+      }
+    },
+    "Cities" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "城市"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "城市"
           }
         }
       }
