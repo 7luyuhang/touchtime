@@ -160,6 +160,8 @@ private struct AnalogClockDialLayout {
     var edgeRadius: CGFloat { (diameter - Self.lineWidth) / 2 }
     /// Through the middle of the hours' band.
     var hourRadius: CGFloat { (diameter - Self.hourBandWidth) / 2 }
+    /// Between neighboring hours, center to center.
+    var hourSpacing: CGFloat { 2 * hourRadius * sin(.pi / 24) }
     /// The city on the clock's dot, just clear of the lines either side.
     var selectedDotDiameter: CGFloat { diameter * 0.085 }
     /// Every other city's dot.
@@ -179,9 +181,9 @@ private struct AnalogClockDialLayout {
 }
 
 /// A city's 24-hour dial, midnight at the top: the hours around the outside,
-/// and inside them the track where every city's time shows as a dot, crossed
-/// at the city's sunrise and sunset and lit between them, around the city's
-/// time, name and day.
+/// the city's hour now on a pill, and inside them the track where every
+/// city's time shows as a dot, crossed at the city's sunrise and sunset and
+/// lit between them, around the city's time, name and day.
 private struct AnalogClockDial: View {
     /// The rings', lightening the sky behind them, as on the sun dial.
     private static let lineColor = Color.white.opacity(0.1)
@@ -201,11 +203,22 @@ private struct AnalogClockDial: View {
     /// The time in UTC around the dial, counting whole turns so the dots
     /// always move the shorter way around, past midnight included.
     @State private var displayedAngle: Double?
+    /// The current hour's pill around the dial, in degrees, counting whole
+    /// turns in the same way.
+    @State private var pillAngle: Double?
 
     /// Across the dial's bottom half, an hour turns over to read left to right
     /// rather than upside down.
     private static func isTurnedOver(_ hour: Int) -> Bool {
         hour > 6 && hour < 18
+    }
+
+    /// The city's hour now, which stays now while the Digital Crown shows
+    /// another time, as on the daylight ring's hours.
+    private var currentHour: Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = city.timeZone
+        return calendar.component(.hour, from: now)
     }
 
     /// The time in UTC, in degrees clockwise from midnight.
@@ -292,15 +305,26 @@ private struct AnalogClockDial: View {
                 .stroke(Self.lineColor, lineWidth: AnalogClockDialLayout.lineWidth)
                 .blendMode(.plusLighter)
 
-            // Turned along the dial, and over across its bottom half, like
-            // the daylight ring's hours.
-            ForEach(0..<24, id: \.self) { hour in
-                Text(verbatim: String(hour == 0 ? 24 : hour))
-                    .rotationEffect(.degrees(Double(hour) * 15 - (Self.isTurnedOver(hour) ? 180 : 0)))
-                    .position(layout.point(atHour: Double(hour), radius: layout.hourRadius))
+            // Like the daylight ring's current hour, the city's hour now on a
+            // pill, with the hours it covers cut out of it like the sun
+            // dial's N, so it can move along them to another city's hour.
+            let pill = DialHourPill(layout: layout, angle: pillAngle ?? Double(currentHour) * 15)
+            ZStack {
+                // Clear of the pill, so as not to fill its cutouts back in
+                ZStack {
+                    hours
+                    pill.blendMode(.destinationOut)
+                }
+                .compositingGroup()
+
+                ZStack {
+                    pill
+                    hours.blendMode(.destinationOut)
+                }
+                .compositingGroup()
             }
-            .font(.system(size: 11, weight: .semibold, design: .rounded))
             .foregroundStyle(.white)
+            .animation(.smooth, value: pillAngle)
             .accessibilityHidden(true)
 
             ForEach(dotCities) { dotCity in
@@ -375,6 +399,52 @@ private struct AnalogClockDial: View {
             let turn = (newAngle - oldAngle + 540).truncatingRemainder(dividingBy: 360) - 180
             displayedAngle = (displayedAngle ?? oldAngle) + turn
         }
+        .onChange(of: currentHour, initial: true) { oldHour, newHour in
+            let turn = Double((newHour - oldHour + 36) % 24 - 12) * 15
+            pillAngle = (pillAngle ?? Double(oldHour) * 15) + turn
+        }
+    }
+
+    /// Turned along the dial, and over across its bottom half, like the
+    /// daylight ring's hours.
+    private var hours: some View {
+        ZStack {
+            ForEach(0..<24, id: \.self) { hour in
+                Text(verbatim: String(hour == 0 ? 24 : hour))
+                    .rotationEffect(.degrees(Double(hour) * 15 - (Self.isTurnedOver(hour) ? 180 : 0)))
+                    .position(layout.point(atHour: Double(hour), radius: layout.hourRadius))
+            }
+        }
+        .font(.system(size: 11, weight: .semibold, design: .rounded))
+    }
+}
+
+/// The current hour's pill, bent along the hours' band like the daylight
+/// ring's, at `angle` around the dial, so it moves along the band rather
+/// than across the dial. It reaches halfway to the neighboring hours, as
+/// every hour is marked.
+private struct DialHourPill: Shape {
+    let layout: AnalogClockDialLayout
+    /// In degrees clockwise from midnight.
+    var angle: Double
+
+    var animatableData: Double {
+        get { angle }
+        set { angle = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let thickness = AnalogClockDialLayout.hourBandWidth
+        // The round ends reach half the thickness past each end of the arc.
+        let sweep = (layout.hourSpacing - thickness) / layout.hourRadius
+        var arc = Path()
+        arc.addRelativeArc(
+            center: layout.center,
+            radius: layout.hourRadius,
+            startAngle: .radians((angle - 90) * .pi / 180 - sweep / 2),
+            delta: .radians(sweep)
+        )
+        return arc.strokedPath(StrokeStyle(lineWidth: thickness, lineCap: .round))
     }
 }
 
