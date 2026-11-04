@@ -2,9 +2,9 @@
 //  AnalogClockHomeView.swift
 //  touchtimeWatch
 //
-//  The list's alternative: the iPhone app's analog clock, one city at a time.
-//  Tapping the middle moves on to the next city, and turning the Digital Crown
-//  moves the time an hour at a time, as on a city's details.
+//  The iPhone app's analog clock, one city at a time, on a sheet over the
+//  list. Tapping the middle moves on to the next city, and turning the
+//  Digital Crown moves the time an hour at a time, as on a city's details.
 //
 
 import SwiftUI
@@ -13,9 +13,9 @@ struct AnalogClockHomeView: View {
     let cities: [ClockCity]
     /// The time every clock shows in place of now, or nil for now.
     @Binding var adjustedDate: Date?
-    let onCitiesTap: () -> Void
 
     @Environment(WatchCityStore.self) private var cityStore
+    @Environment(\.dismiss) private var dismiss
     /// The city on the clock, kept across launches.
     @AppStorage("analogClockCityID") private var cityID = ClockCity.localID
     /// How many hours the Digital Crown has moved.
@@ -38,80 +38,86 @@ struct AnalogClockHomeView: View {
     var body: some View {
         let city = cities[cityIndex]
 
-        TimelineView(.everyMinute) { context in
-            let date = adjustedDate ?? context.date
+        NavigationStack {
+            TimelineView(.everyMinute) { context in
+                let date = adjustedDate ?? context.date
 
-            GeometryReader { geometry in
-                AnalogClockDial(
-                    city: city,
-                    cities: cities,
-                    date: date,
-                    now: context.date,
-                    dateStyle: cityStore.dateStyle,
-                    layout: AnalogClockDialLayout(
-                        diameter: max(0, min(geometry.size.width - 16, geometry.size.height - 12))
-                    ),
-                    onCenterTap: showNextCity
-                )
-                .frame(width: geometry.size.width, height: geometry.size.height)
+                GeometryReader { geometry in
+                    AnalogClockDial(
+                        city: city,
+                        cities: cities,
+                        date: date,
+                        now: context.date,
+                        dateStyle: cityStore.dateStyle,
+                        layout: AnalogClockDialLayout(
+                            diameter: max(0, min(geometry.size.width - 16, geometry.size.height - 12))
+                        ),
+                        onCenterTap: showNextCity
+                    )
+                    .frame(width: geometry.size.width, height: geometry.size.height)
+                }
+                // The circle's narrow top fits between the toolbar controls.
+                .padding(.top, -24)
+                .ignoresSafeArea(edges: .bottom)
+                .containerBackground(for: .navigation) {
+                    CitySkyBackground(date: date, timeZone: city.timeZone)
+                }
+                .animation(.smooth, value: adjustedDate)
             }
-            // The circle's narrow top fits between the toolbar controls.
-            .padding(.top, -24)
-            .ignoresSafeArea(edges: .bottom)
-            .containerBackground(for: .navigation) {
-                CitySkyBackground(date: date, timeZone: city.timeZone)
+            .accessibilityElement(children: .combine)
+            .accessibilityAction {
+                showNextCity()
             }
-            .animation(.smooth, value: adjustedDate)
-        }
-        .accessibilityElement(children: .combine)
-        .accessibilityAction {
-            showNextCity()
-        }
-        .accessibilityAdjustableAction { direction in
-            switch direction {
-            case .increment:
-                crownSteps += 1
-            case .decrement:
-                crownSteps -= 1
-            @unknown default:
-                break
-            }
-        }
-        .focusable()
-        .focused($isCrownFocused)
-        .digitalCrownRotation(
-            $crownSteps,
-            from: -Self.crownRange,
-            through: Self.crownRange,
-            by: 1,
-            sensitivity: .medium,
-            isContinuous: false,
-            isHapticFeedbackEnabled: true
-        )
-        .toolbar {
-            // While adjusting time, a reset button takes the list button's
-            // place, as it takes the back button's on a city's details.
-            ToolbarItem(placement: .topBarLeading) {
-                if adjustedDate != nil {
-                    Button("Current Time", systemImage: "xmark", action: showCurrentTime)
-                } else {
-                    Button("Cities", systemImage: "list.bullet", action: onCitiesTap)
+            .accessibilityAdjustableAction { direction in
+                switch direction {
+                case .increment:
+                    crownSteps += 1
+                case .decrement:
+                    crownSteps -= 1
+                @unknown default:
+                    break
                 }
             }
-        }
-        .onChange(of: Int(crownSteps.rounded())) { _, steps in
-            if steps == 0 {
-                adjustedDate = crownStart
-                crownReferenceDate = nil
-            } else {
-                let referenceDate = crownReferenceDate ?? crownStart ?? .now
-                crownReferenceDate = referenceDate
-                adjustedDate = crownDate(steps, from: referenceDate, in: city.timeZone)
+            .focusable()
+            .focused($isCrownFocused)
+            .digitalCrownRotation(
+                $crownSteps,
+                from: -Self.crownRange,
+                through: Self.crownRange,
+                by: 1,
+                sensitivity: .medium,
+                isContinuous: false,
+                isHapticFeedbackEnabled: true
+            )
+            .toolbar {
+                // In place of the sheet's own close button. While adjusting
+                // time, a reset button takes the list button's place, as it
+                // takes the back button's on a city's details.
+                ToolbarItem(placement: .cancellationAction) {
+                    if adjustedDate != nil {
+                        Button("Current Time", systemImage: "xmark", action: showCurrentTime)
+                    } else {
+                        Button("Cities", systemImage: "list.bullet") {
+                            dismiss()
+                        }
+                    }
+                }
             }
-        }
-        .onAppear {
-            crownStart = adjustedDate
-            isCrownFocused = true
+            .toolbarForegroundStyle(.primary, for: .navigationBar)
+            .onChange(of: Int(crownSteps.rounded())) { _, steps in
+                if steps == 0 {
+                    adjustedDate = crownStart
+                    crownReferenceDate = nil
+                } else {
+                    let referenceDate = crownReferenceDate ?? crownStart ?? .now
+                    crownReferenceDate = referenceDate
+                    adjustedDate = crownDate(steps, from: referenceDate, in: city.timeZone)
+                }
+            }
+            .onAppear {
+                crownStart = adjustedDate
+                isCrownFocused = true
+            }
         }
     }
 
@@ -250,6 +256,9 @@ private struct AnalogClockDial: View {
     var body: some View {
         let utcAngle = utcAngle
         let daylight = daylight
+        let dateLabel = date.formattedDate(
+            style: dateStyle, timeZone: city.timeZone, relativeTo: now, allowsWeekday: false
+        )
 
         ZStack {
             DialLines(layout: layout, sunrise: daylight.sunrise, sunset: daylight.sunset)
@@ -300,7 +309,7 @@ private struct AnalogClockDial: View {
                 // Blended outside its transition, whose blur would otherwise
                 // keep it from lightening the sky until the blur ends
                 ZStack {
-                    Text(date.formattedDate(style: dateStyle, timeZone: city.timeZone, relativeTo: now))
+                    Text(dateLabel)
                         .fontWeight(.medium)
                         .foregroundStyle(.secondary)
                         .contentTransition(.numericText())
