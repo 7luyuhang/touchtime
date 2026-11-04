@@ -15,9 +15,8 @@ struct WorldClockView: View {
     /// across launches; the watch's own time zone the first time.
     @AppStorage("selectedCityID") private var selectedCityID = ClockCity.localID
     @State private var showsAnalogClock = false
-    /// The time every clock shows in place of now, once moved by the list's
-    /// Scroll Time bar or the Digital Crown on a city's details or the
-    /// analog clock.
+    /// The time every clock shows in place of now, once moved by the Digital
+    /// Crown on a city's details or the analog clock.
     @State private var adjustedDate: Date?
 
     var body: some View {
