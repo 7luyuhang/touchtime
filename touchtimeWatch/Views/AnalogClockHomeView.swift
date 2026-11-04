@@ -3,9 +3,9 @@
 //  touchtimeWatch
 //
 //  The iPhone app's analog clock, one city at a time, on a sheet over the
-//  list. Tapping the middle moves on to the next city, and tapping a dot to
-//  its city. Turning the Digital Crown moves the time an hour at a time, as
-//  on a city's details.
+//  list. Tapping a dot moves on to its city, and tapping the middle back to
+//  Local. Turning the Digital Crown moves the time an hour at a time, as on
+//  a city's details.
 //
 
 import SwiftUI
@@ -53,7 +53,7 @@ struct AnalogClockHomeView: View {
                         layout: AnalogClockDialLayout(
                             diameter: max(0, min(geometry.size.width - 16, geometry.size.height - 12))
                         ),
-                        onCenterTap: showNextCity,
+                        onCenterTap: { cityID = ClockCity.localID },
                         onDotTap: { cityID = $0.id }
                     )
                     .frame(width: geometry.size.width, height: geometry.size.height)
@@ -196,6 +196,7 @@ private struct AnalogClockDial: View {
     let now: Date
     let dateStyle: String
     let layout: AnalogClockDialLayout
+    /// Called for a tap inside the track, even one within a dot's reach.
     let onCenterTap: () -> Void
     /// Called with the city to show for a tap on a dot.
     let onDotTap: (ClockCity) -> Void
@@ -319,16 +320,6 @@ private struct AnalogClockDial: View {
             .animation(.smooth, value: displayedAngle)
             .accessibilityHidden(true)
 
-            // The middle, laid over it, keeps its own tap
-            Color.clear
-                .contentShape(.circle)
-                .onTapGesture(coordinateSpace: .local) { location in
-                    if let tappedCity = city(tappedAt: location) {
-                        onDotTap(tappedCity)
-                    }
-                }
-                .accessibilityHidden(true)
-
             VStack(spacing: 0) {
                 ZStack {
                     VStack(spacing: 0) {
@@ -357,10 +348,16 @@ private struct AnalogClockDial: View {
             .minimumScaleFactor(0.6)
             .frame(width: layout.innerDiameter * 0.8)
             .frame(width: layout.innerDiameter, height: layout.innerDiameter)
-            .contentShape(.circle)
-            .onTapGesture(perform: onCenterTap)
         }
         .frame(width: layout.diameter, height: layout.diameter)
+        .contentShape(.circle)
+        .onTapGesture(coordinateSpace: .local) { location in
+            if hypot(location.x - layout.center.x, location.y - layout.center.y) < layout.trackInnerRadius {
+                onCenterTap()
+            } else if let tappedCity = city(tappedAt: location) {
+                onDotTap(tappedCity)
+            }
+        }
         // The stored city changes outside any transaction of the tap's
         .animation(.smooth, value: city.id)
         .onChange(of: utcAngle, initial: true) { oldAngle, newAngle in
