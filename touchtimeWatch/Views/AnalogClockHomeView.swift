@@ -392,6 +392,7 @@ private struct AnalogClockDial: View {
                 onDotTap(tappedCity)
             }
         }
+        .sensoryFeedback(.selection, trigger: city.id)
         // The stored city changes outside any transaction of the tap's
         .animation(.smooth, value: city.id)
         .onChange(of: utcAngle, initial: true) { oldAngle, newAngle in
