@@ -297,10 +297,15 @@ private struct SunDialLayout {
 }
 
 /// The dial's rings: N, E, S and W and the degrees between them around the
-/// outside, and inside them the track the sun travels. Live, it turns against
-/// the watch's heading.
+/// outside, with a small tick between each two, and inside them the track the
+/// sun travels. Live, it turns against the watch's heading.
 private struct CompassDial: View, Animatable {
     private static let labelDegrees = Array(stride(from: 0, to: 360, by: 30))
+    /// Halfway between each two labels.
+    private static let tickDegrees = labelDegrees.map { $0 + 15 }
+    private static let tickSize = CGSize(width: 1.5, height: 6)
+    /// The rings' and the ticks', lightening the sky behind them.
+    private static let lineColor = Color.white.opacity(0.1)
 
     let layout: SunDialLayout
     /// How far the dial is turned counterclockwise, in degrees.
@@ -346,8 +351,17 @@ private struct CompassDial: View, Animatable {
                     ))
                 }
             }
-            .stroke(.white.opacity(0.1), lineWidth: SunDialLayout.lineWidth)
+            .stroke(Self.lineColor, lineWidth: SunDialLayout.lineWidth)
             .blendMode(.plusLighter)
+
+            ForEach(Self.tickDegrees, id: \.self) { degrees in
+                Capsule()
+                    .fill(Self.lineColor)
+                    .blendMode(.plusLighter)
+                    .frame(width: Self.tickSize.width, height: Self.tickSize.height)
+                    .rotationEffect(.degrees(Double(degrees) - heading))
+                    .position(layout.point(atDegrees: Double(degrees) - heading, radius: layout.labelRadius))
+            }
 
             ForEach(Self.labelDegrees, id: \.self) { degrees in
                 let label = Text(verbatim: degrees.isMultiple(of: 90) ? ["N", "E", "S", "W"][degrees / 90] : String(degrees))
