@@ -350,21 +350,28 @@ private struct CompassDial: View, Animatable {
             .blendMode(.plusLighter)
 
             ForEach(Self.labelDegrees, id: \.self) { degrees in
-                Text(verbatim: degrees.isMultiple(of: 90) ? ["N", "E", "S", "W"][degrees / 90] : String(degrees))
-                    .foregroundStyle(degrees == 0 ? .black : .white)
-                    .background {
-                        if degrees == 0 {
-                            // Just clear of the lines either side of the labels.
-                            Circle()
-                                .fill(northFill)
-                                .frame(width: SunDialLayout.labelBandWidth - 2, height: SunDialLayout.labelBandWidth - 2)
-                        }
+                let label = Text(verbatim: degrees.isMultiple(of: 90) ? ["N", "E", "S", "W"][degrees / 90] : String(degrees))
+
+                Group {
+                    if degrees == 0 {
+                        // Just clear of the lines either side of the labels,
+                        // with the N cut out of it.
+                        Circle()
+                            .fill(northFill)
+                            .frame(width: SunDialLayout.labelBandWidth - 2, height: SunDialLayout.labelBandWidth - 2)
+                            .overlay {
+                                label.blendMode(.destinationOut)
+                            }
+                            .compositingGroup()
+                    } else {
+                        label.foregroundStyle(.white)
                     }
-                    // Turned along the dial, and over across its bottom half to
-                    // read left to right, like the daylight ring's hours.
-                    .scaleEffect(flippedLabels.contains(degrees) ? -1 : 1)
-                    .rotationEffect(.degrees(Double(degrees) - heading))
-                    .position(layout.point(atDegrees: Double(degrees) - heading, radius: layout.labelRadius))
+                }
+                // Turned along the dial, and over across its bottom half to
+                // read left to right, like the daylight ring's hours.
+                .scaleEffect(flippedLabels.contains(degrees) ? -1 : 1)
+                .rotationEffect(.degrees(Double(degrees) - heading))
+                .position(layout.point(atDegrees: Double(degrees) - heading, radius: layout.labelRadius))
             }
             .font(.system(size: 11, weight: .semibold, design: .rounded))
         }

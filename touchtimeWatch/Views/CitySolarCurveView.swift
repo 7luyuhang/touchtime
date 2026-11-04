@@ -32,7 +32,7 @@ struct CitySolarCurveView<Footer: View>: View {
                     height: chartHeight,
                     showBackground: false,
                     showSun: true,
-                    sunDiameter: 16
+                    sunDiameter: 12
                 )
                 // Convert the screen's midpoint to this content area's
                 // coordinates, below the navigation bar.
