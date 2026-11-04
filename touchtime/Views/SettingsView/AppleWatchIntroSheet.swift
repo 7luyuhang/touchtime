@@ -90,6 +90,15 @@ struct AppleWatchIntroSheet: View {
                 openWatchButton
                     .padding(.horizontal, 24)
             }
+            .background {
+                // Twinkling dot matrix, same as the onboarding's
+                if fullHeight {
+                    DotMatrixOverlay()
+                        .ignoresSafeArea()
+                        .blendMode(.plusLighter)
+                        .opacity(0.75)
+                }
+            }
             .navigationTitle("Apple Watch")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
