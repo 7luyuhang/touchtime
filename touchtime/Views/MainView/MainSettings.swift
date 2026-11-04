@@ -63,6 +63,7 @@ struct SettingsView: View {
     @State private var showSupportLove = false
     @State private var showComplicationsSheet = false
     @State private var showWidgetSheet = false
+    @State private var showAppleWatchIntroSheet = false
     @State private var touchTimeIconShakes = 0
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var weatherManager: WeatherManager
@@ -619,6 +620,19 @@ struct SettingsView: View {
                     .foregroundStyle(.primary)
                 ) {
                     
+                    Button(action: {
+                        if hapticEnabled {
+                            UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                        }
+                        showAppleWatchIntroSheet = true
+                    }) {
+                        HStack(spacing: 12) {
+                            SystemIconImage(systemName: "applewatch", topColor: .gray, bottomColor: .gray, style: .plain)
+                            Text("Apple Watch")
+                        }
+                    }
+                    .foregroundStyle(.primary)
+
                     Button(action: {
                         if hapticEnabled {
                             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
@@ -1266,6 +1280,10 @@ struct SettingsView: View {
             .sheet(isPresented: $showWidgetSheet) {
                 WidgetIntroSheet()
                     .scrollEdgeEffectStyle(.soft, for: .top)
+            }
+            // Apple Watch Sheet
+            .sheet(isPresented: $showAppleWatchIntroSheet) {
+                AppleWatchIntroSheet()
             }
         }
         // On the stack so the pages pushed from Settings get it too
