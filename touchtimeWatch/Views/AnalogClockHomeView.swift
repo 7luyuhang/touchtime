@@ -3,9 +3,8 @@
 //  touchtimeWatch
 //
 //  The iPhone app's analog clock, one city at a time, on a sheet over the
-//  list. Tapping a dot moves on to its city, and tapping the middle back to
-//  Local. Turning the Digital Crown moves the time an hour at a time, as on
-//  a city's details.
+//  list. Tapping a dot moves on to its city. Turning the Digital Crown moves
+//  the time an hour at a time, as on a city's details.
 //
 
 import SwiftUI
@@ -53,7 +52,6 @@ struct AnalogClockHomeView: View {
                         layout: AnalogClockDialLayout(
                             diameter: max(0, min(geometry.size.width - 16, geometry.size.height - 12))
                         ),
-                        onCenterTap: { cityID = ClockCity.localID },
                         onDotTap: { cityID = $0.id }
                     )
                     .frame(width: geometry.size.width, height: geometry.size.height)
@@ -182,7 +180,8 @@ private struct AnalogClockDialLayout {
 
 /// A city's 24-hour dial, midnight at the top: the hours around the outside,
 /// and inside them the track where every city's time shows as a dot, crossed
-/// at the city's sunrise and sunset, around the city's time, name and day.
+/// at the city's sunrise and sunset and lit between them, around the city's
+/// time, name and day.
 private struct AnalogClockDial: View {
     /// The rings', lightening the sky behind them, as on the sun dial.
     private static let lineColor = Color.white.opacity(0.1)
@@ -196,8 +195,6 @@ private struct AnalogClockDial: View {
     let now: Date
     let dateStyle: String
     let layout: AnalogClockDialLayout
-    /// Called for a tap inside the track, even one within a dot's reach.
-    let onCenterTap: () -> Void
     /// Called with the city to show for a tap on a dot.
     let onDotTap: (ClockCity) -> Void
 
@@ -287,6 +284,10 @@ private struct AnalogClockDial: View {
         )
 
         ZStack {
+            TrackDay(layout: layout, sunrise: daylight.sunrise, sunset: daylight.sunset)
+                .fill(.white.opacity(0.1))
+                .blendMode(.plusLighter)
+
             DialLines(layout: layout, sunrise: daylight.sunrise, sunset: daylight.sunset)
                 .stroke(Self.lineColor, lineWidth: AnalogClockDialLayout.lineWidth)
                 .blendMode(.plusLighter)
@@ -304,8 +305,7 @@ private struct AnalogClockDial: View {
 
             ForEach(dotCities) { dotCity in
                 let isSelected = dotCity.timeZone.secondsFromGMT(for: date) == city.timeZone.secondsFromGMT(for: date)
-
-                TrackDot(
+                let dot = TrackDot(
                     layout: layout,
                     angle: angle(of: dotCity, at: displayedAngle ?? utcAngle),
                     diameter: isSelected ? layout.selectedDotDiameter : layout.dotDiameter,
@@ -313,9 +313,21 @@ private struct AnalogClockDial: View {
                     sunrise: daylight.sunrise,
                     sunset: daylight.sunset
                 )
-                .fill(.white, style: FillStyle(eoFill: true))
-                .opacity(isSelected ? 1 : 0.5)
-                .blendMode(.plusLighter)
+
+                dot
+                    .fill(.white, style: FillStyle(eoFill: true))
+                    .opacity(isSelected ? 1 : dotCity.isLocal ? 0 : 0.5)
+                    .blendMode(.plusLighter)
+
+                // Local's in yellow, unless it's the sun: unblended, as
+                // lightening the sky washes the yellow out, and over the
+                // white rather than in its place, as switching blend modes
+                // blinks
+                if dotCity.isLocal {
+                    dot
+                        .fill(.yellow, style: FillStyle(eoFill: true))
+                        .opacity(isSelected ? 0 : 1)
+                }
             }
             .animation(.smooth, value: displayedAngle)
             .accessibilityHidden(true)
@@ -352,9 +364,7 @@ private struct AnalogClockDial: View {
         .frame(width: layout.diameter, height: layout.diameter)
         .contentShape(.circle)
         .onTapGesture(coordinateSpace: .local) { location in
-            if hypot(location.x - layout.center.x, location.y - layout.center.y) < layout.trackInnerRadius {
-                onCenterTap()
-            } else if let tappedCity = city(tappedAt: location) {
+            if let tappedCity = city(tappedAt: location) {
                 onDotTap(tappedCity)
             }
         }
@@ -397,6 +407,38 @@ private struct DialLines: Shape {
                 path.addLine(to: layout.point(atHour: angle / 15, radius: layout.trackOuterRadius))
             }
         }
+        return path
+    }
+}
+
+/// The track from sunrise to sunset: all the way around while the sun stays
+/// up, and none of it while the sun stays down.
+private struct TrackDay: Shape {
+    let layout: AnalogClockDialLayout
+    /// In degrees clockwise from midnight.
+    var sunrise: Double
+    var sunset: Double
+
+    var animatableData: AnimatablePair<Double, Double> {
+        get { AnimatablePair(sunrise, sunset) }
+        set { (sunrise, sunset) = (newValue.first, newValue.second) }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.addRelativeArc(
+            center: layout.center,
+            radius: layout.trackOuterRadius,
+            startAngle: .degrees(sunrise - 90),
+            delta: .degrees(sunset - sunrise)
+        )
+        path.addRelativeArc(
+            center: layout.center,
+            radius: layout.trackInnerRadius,
+            startAngle: .degrees(sunset - 90),
+            delta: .degrees(sunrise - sunset)
+        )
+        path.closeSubpath()
         return path
     }
 }
