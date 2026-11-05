@@ -62,6 +62,7 @@ struct AnalogClockHomeView: View {
                 .containerBackground(for: .navigation) {
                     CitySkyBackground(date: date, timeZone: city.timeZone)
                 }
+                .navigationTitle(WorldClock.timeDifference(to: city.timeZone, at: date))
                 .animation(.smooth, value: adjustedDate)
             }
             .accessibilityElement(children: .combine)
