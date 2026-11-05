@@ -198,7 +198,7 @@ struct CityDetailView: View {
         .sheet(isPresented: $showsMoonInfo, onDismiss: {
             isCrownFocused = true
         }) { [moonInfoDate] in
-            CityMoonPhasesSheet(date: moonInfoDate, timeZone: city.timeZone)
+            CityMoonPhasesSheet(date: moonInfoDate, timeZone: city.timeZone, firstWeekday: cityStore.firstWeekday)
         }
         .sheet(isPresented: $showsSunTimes, onDismiss: {
             isCrownFocused = true

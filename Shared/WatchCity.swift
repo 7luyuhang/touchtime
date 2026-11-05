@@ -28,4 +28,7 @@ nonisolated enum WatchSyncKeys {
     static let cities = "cities"
     /// The iPhone's date style: "Relative", "With Weekday" or "Date Only".
     static let dateStyle = "dateStyle"
+    /// The iPhone's first day of the week, chosen in its Calendar settings:
+    /// 1 = Sunday, 2 = Monday, ...
+    static let firstWeekday = "firstWeekday"
 }
