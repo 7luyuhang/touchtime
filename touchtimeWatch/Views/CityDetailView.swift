@@ -26,6 +26,9 @@ struct CityDetailView: View {
     @State private var showsLiveCompass = false
     /// Whether World Clock's map has turned, or is turning, into the globe.
     @State private var showsGlobe = false
+    /// Taps on Current Time, each felt. Not the adjusted date, which the
+    /// Digital Crown and going live also clear, with haptics of their own.
+    @State private var currentTimeTaps = 0
     /// How far the Digital Crown has moved: days in Moon Phase, hours otherwise.
     @State private var crownSteps: Double = 0
     /// The time the Digital Crown's steps count from: the clocks' time when
@@ -166,7 +169,10 @@ struct CityDetailView: View {
             // button in the same leading corner.
             if isAdjusted {
                 ToolbarItem(placement: .topBarLeading) {
-                    Button("Current Time", systemImage: "xmark", action: showCurrentTime)
+                    Button("Current Time", systemImage: "xmark") {
+                        currentTimeTaps += 1
+                        showCurrentTime()
+                    }
                 }
             }
             ToolbarItem(placement: .topBarTrailing) {
@@ -181,6 +187,7 @@ struct CityDetailView: View {
                 .accessibilityValue(Text(display.title))
             }
         }
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: currentTimeTaps)
         .sheet(isPresented: $showsDisplayPicker, onDismiss: {
             isCrownFocused = !showsLiveCompass
         }) {

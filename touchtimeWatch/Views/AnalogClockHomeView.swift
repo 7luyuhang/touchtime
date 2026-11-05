@@ -26,6 +26,9 @@ struct AnalogClockHomeView: View {
     @State private var crownStart: Date?
     /// Freeze "now" on the first step so minute ticks cannot shift the adjustment.
     @State private var crownReferenceDate: Date?
+    /// Taps on Current Time, each felt. Not the adjusted date, which the
+    /// Digital Crown also clears, with a haptic of its own.
+    @State private var currentTimeTaps = 0
     @FocusState private var isCrownFocused: Bool
 
     /// A year in either direction, as on a city's details.
@@ -97,7 +100,10 @@ struct AnalogClockHomeView: View {
                 // takes the back button's on a city's details.
                 ToolbarItem(placement: .cancellationAction) {
                     if adjustedDate != nil {
-                        Button("Current Time", systemImage: "xmark", action: showCurrentTime)
+                        Button("Current Time", systemImage: "xmark") {
+                            currentTimeTaps += 1
+                            showCurrentTime()
+                        }
                     } else {
                         Button("Cities", systemImage: "list.bullet") {
                             dismiss()
@@ -106,6 +112,7 @@ struct AnalogClockHomeView: View {
                 }
             }
             .toolbarForegroundStyle(.primary, for: .navigationBar)
+            .sensoryFeedback(.impact(flexibility: .soft), trigger: currentTimeTaps)
             .onChange(of: Int(crownSteps.rounded())) { _, steps in
                 if steps == 0 {
                     adjustedDate = crownStart

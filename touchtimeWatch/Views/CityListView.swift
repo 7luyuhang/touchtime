@@ -15,6 +15,9 @@ struct CityListView: View {
 
     @Environment(WatchCityStore.self) private var cityStore
     @State private var showsSettings = false
+    /// Taps on Current Time, each felt. Not the adjusted date, which a city's
+    /// details and the analog clock also clear, with haptics of their own.
+    @State private var currentTimeTaps = 0
 
     var body: some View {
         TimelineView(.everyMinute) { context in
@@ -35,7 +38,10 @@ struct CityListView: View {
                 // details.
                 ToolbarItem(placement: .topBarLeading) {
                     if adjustedDate != nil {
-                        Button("Current Time", systemImage: "xmark", action: showCurrentTime)
+                        Button("Current Time", systemImage: "xmark") {
+                            currentTimeTaps += 1
+                            showCurrentTime()
+                        }
                     } else {
                         Button("Analog Clock", systemImage: "clock", action: onAnalogClockTap)
                     }
@@ -48,6 +54,7 @@ struct CityListView: View {
             }
         }
         .toolbarForegroundStyle(.primary, for: .navigationBar)
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: currentTimeTaps)
         .sheet(isPresented: $showsSettings) {
             SettingsView()
         }
