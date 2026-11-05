@@ -6,7 +6,8 @@
 import SwiftUI
 
 /// The 24-Hour Format and Additional Time settings, how many cities the
-/// iPhone sent, a link to share the app, and the app's version.
+/// iPhone sent, links to send feedback and share the app, and the app's
+/// version.
 struct SettingsView: View {
     @Environment(WatchCityStore.self) private var cityStore
     @Environment(\.dismiss) private var dismiss
@@ -41,6 +42,11 @@ struct SettingsView: View {
                 } footer: {
                     Text("Add, delete or arrange cities on iPhone.")
                 }
+
+                Link(
+                    "Send Feedback",
+                    destination: URL(string: "mailto:7luyuhang@gmail.com?subject=Touch%20Time%20Feedback")!
+                )
 
                 ShareLink(
                     item: URL(string: "https://apps.apple.com/us/app/touch-time-world-clock/id6753721487")!,
