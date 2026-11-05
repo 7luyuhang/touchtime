@@ -15,6 +15,8 @@ struct WorldClockView: View {
     /// across launches; the watch's own time zone the first time.
     @AppStorage("selectedCityID") private var selectedCityID = ClockCity.localID
     @State private var showsAnalogClock = false
+    /// Shows the welcome sheet on launch until Continue is first tapped.
+    @AppStorage("showsOnboarding") private var showsOnboarding = true
     /// The time every clock shows in place of now, once moved by the Digital
     /// Crown on a city's details or the analog clock.
     @State private var adjustedDate: Date?
@@ -34,6 +36,9 @@ struct WorldClockView: View {
                 CityDetailView(city: city, mapCities: cities, adjustedDate: $adjustedDate)
                     .id(city.id)
             }
+        }
+        .sheet(isPresented: $showsOnboarding) {
+            OnboardingSheet()
         }
     }
 

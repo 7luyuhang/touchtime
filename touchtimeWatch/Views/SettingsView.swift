@@ -6,13 +6,15 @@
 import SwiftUI
 
 /// The 24-Hour Format and Additional Time settings, how many cities the
-/// iPhone sent, links to send feedback and share the app, and the app's
-/// version.
+/// iPhone sent, links to send feedback and share the app, a button to see
+/// the welcome sheet again, and the app's version.
 struct SettingsView: View {
     @Environment(WatchCityStore.self) private var cityStore
     @Environment(\.dismiss) private var dismiss
     @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
     @AppStorage(AdditionalTime.storageKey) private var additionalTime: AdditionalTime = .timeShift
+    /// Shows the welcome sheet again, without touching the first launch's flag.
+    @State private var showsOnboarding = false
 
     /// The version and build, like "2.1.4 (223)", as in the iPhone app's About.
     private var version: String {
@@ -55,6 +57,10 @@ struct SettingsView: View {
                     Text("Share with Friends")
                 }
 
+                Button("Show Onboarding") {
+                    showsOnboarding = true
+                }
+
                 VStack(spacing: 10) {
                     Image("TouchTimeAppIcon")
                         .resizable()
@@ -82,6 +88,9 @@ struct SettingsView: View {
                         dismiss()
                     }
                 }
+            }
+            .sheet(isPresented: $showsOnboarding) {
+                OnboardingSheet()
             }
         }
     }
