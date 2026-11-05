@@ -23,18 +23,21 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Toggle("24-Hour Format", isOn: $use24HourFormat)
+                Section("Display") {
+                    Toggle("24-Hour Format", isOn: $use24HourFormat)
 
-                Picker("Additional Time", selection: $additionalTime) {
-                    ForEach(AdditionalTime.allCases) { option in
-                        Text(option.title)
-                            .tag(option)
+                    Picker("Additional Time", selection: $additionalTime) {
+                        ForEach(AdditionalTime.allCases) { option in
+                            Text(option.title)
+                                .tag(option)
+                        }
                     }
+                    .pickerStyle(.navigationLink)
                 }
-                .pickerStyle(.navigationLink)
 
                 Section {
                     Text("\(cityStore.cities.count) Cities Added")
+                        .foregroundStyle(.secondary)
                 } footer: {
                     Text("Add, delete or arrange cities on iPhone.")
                 }
