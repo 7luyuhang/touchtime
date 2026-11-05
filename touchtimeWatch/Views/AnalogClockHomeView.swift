@@ -207,6 +207,7 @@ private struct AnalogClockDial: View {
     /// The current hour's pill around the dial, in degrees, counting whole
     /// turns in the same way.
     @State private var pillAngle: Double?
+    @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
 
     /// Across the dial's bottom half, an hour turns over to read left to right
     /// rather than upside down.
@@ -412,12 +413,22 @@ private struct AnalogClockDial: View {
     private var hours: some View {
         ZStack {
             ForEach(0..<24, id: \.self) { hour in
-                Text(verbatim: String(hour == 0 ? 24 : hour))
+                Text(verbatim: String(hourNumber(hour)))
                     .rotationEffect(.degrees(Double(hour) * 15 - (Self.isTurnedOver(hour) ? 180 : 0)))
                     .position(layout.point(atHour: Double(hour), radius: layout.hourRadius))
             }
         }
         .font(.system(size: 11, weight: .semibold, design: .rounded))
+    }
+
+    /// The number marking `hour` around the dial: 24 at the top and 1 to 23
+    /// on round in 24-hour time, and 12 and 1 to 11 twice round in 12-hour
+    /// time, like the daylight ring's hours.
+    private func hourNumber(_ hour: Int) -> Int {
+        if use24HourFormat {
+            return hour == 0 ? 24 : hour
+        }
+        return hour % 12 == 0 ? 12 : hour % 12
     }
 }
 
