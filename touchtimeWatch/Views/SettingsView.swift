@@ -5,7 +5,7 @@
 
 import SwiftUI
 
-/// The 24-Hour Format setting and the app's version.
+/// The 24-Hour Format setting, the app's version and its credits.
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
@@ -38,6 +38,13 @@ struct SettingsView: View {
                     .lineLimit(1)
                 }
                 .accessibilityElement(children: .combine)
+
+                Text("Designed & built by yuhang in London.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
+                    .listRowBackground(Color.clear)
             }
             .navigationTitle("Settings")
             .toolbar {

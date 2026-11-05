@@ -350,6 +350,22 @@
         }
       }
     },
+    "Designed & built by yuhang in London." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设计与开发：雨杭 于伦敦"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設計與開發：雨杭 於倫敦"
+          }
+        }
+      }
+    },
     "Distance" : {
       "localizations" : {
         "zh-Hans" : {
