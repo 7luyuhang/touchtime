@@ -65,7 +65,7 @@ struct SettingsView: View {
                     VStack(spacing: 0) {
                         Text(verbatim: "Touch Time")
                         Text(verbatim: version)
-                            .font(.subheadline)
+                            .font(.footnote)
                             .foregroundStyle(.secondary)
                     }
                     .lineLimit(1)
