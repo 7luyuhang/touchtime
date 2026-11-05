@@ -172,8 +172,9 @@ private struct AnalogClockDialLayout {
     var trackOuterRadius: CGFloat { diameter / 2 - Self.hourBandWidth }
     var trackInnerRadius: CGFloat { trackOuterRadius - selectedDotDiameter - Self.lineWidth }
     var orbitRadius: CGFloat { (trackOuterRadius + trackInnerRadius) / 2 }
-    /// Inside the track, where the time, the city and its day show.
-    var innerDiameter: CGFloat { trackInnerRadius * 2 }
+    /// Inside the track, where the time, the city and its day show. None
+    /// while the dial is too small to fit the track, as at zero size.
+    var innerDiameter: CGFloat { max(0, trackInnerRadius * 2) }
 
     /// `radius` from the center, `hour` hours clockwise from midnight at the top.
     func point(atHour hour: Double, radius: CGFloat) -> CGPoint {
