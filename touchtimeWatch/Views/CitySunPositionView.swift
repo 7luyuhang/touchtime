@@ -197,6 +197,7 @@ struct CitySunPositionView: View {
             }
             .contentShape(shape)
             .onTapGesture(perform: tapTriangle)
+            .sensoryFeedback(.start, trigger: isLive) { _, isLive in isLive }
             .accessibilityElement()
             .accessibilityLabel("Sun Compass")
             .accessibilityAddTraits(traits)
