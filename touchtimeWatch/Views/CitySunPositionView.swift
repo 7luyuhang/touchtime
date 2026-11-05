@@ -12,7 +12,7 @@ import SwiftUI
 /// triangle goes live: the sun where the watch is, on a dial that turns with
 /// the watch like a compass. Elsewhere, tapping it says so.
 struct CitySunPositionView: View {
-    /// The triangle's tint and the circle behind the N while live.
+    /// The triangle's tint and the sun's color while live.
     private static let liveColor = Color.yellow
 
     let date: Date
@@ -79,13 +79,14 @@ struct CitySunPositionView: View {
                     CompassDial(
                         layout: layout,
                         heading: displayedHeading,
-                        flippedLabels: flippedLabels,
-                        northFill: isLive ? Self.liveColor : .white
+                        flippedLabels: flippedLabels
                     )
 
                     SunOrbit(
                         azimuth: screenAzimuth,
                         isSunFilled: position.altitude > SunDialLayout.civilTwilightAltitude,
+                        isLive: isLive,
+                        liveColor: Self.liveColor,
                         layout: layout
                     )
                     .animation(.smooth, value: displayedAzimuth)
@@ -326,8 +327,6 @@ private struct CompassDial: View, Animatable {
     var heading: Double
     /// The labels turned over to read left to right across the bottom.
     let flippedLabels: Set<Int>
-    /// The circle behind the N.
-    let northFill: Color
 
     var animatableData: Double {
         get { heading }
@@ -385,7 +384,7 @@ private struct CompassDial: View, Animatable {
                         // Just clear of the lines either side of the labels,
                         // with the N cut out of it.
                         Circle()
-                            .fill(northFill)
+                            .fill(.white)
                             .frame(width: SunDialLayout.labelBandWidth - 2, height: SunDialLayout.labelBandWidth - 2)
                             .overlay {
                                 label.blendMode(.destinationOut)
@@ -413,6 +412,9 @@ private struct SunOrbit: View, Animatable {
     /// Degrees clockwise from north.
     var azimuth: Double
     let isSunFilled: Bool
+    let isLive: Bool
+    /// The sun's color while live, in place of white.
+    let liveColor: Color
     let layout: SunDialLayout
 
     var animatableData: Double {
@@ -422,23 +424,34 @@ private struct SunOrbit: View, Animatable {
 
     var body: some View {
         let fill: CGFloat = isSunFilled ? 1 : 0
+        let disc = SunDisc(fill: fill, lineWidth: 2)
 
-        SunDisc(fill: fill, lineWidth: 2)
-            .fill(.white, style: FillStyle(eoFill: true))
-            .blendMode(.plusLighter)
-            .background {
-                // A layer of its own: plusDarker on the white disc would make it vanish.
-                Circle()
-                    .fill(.black.opacity(0.05))
-                    .blur(radius: 5)
-                    .offset(y: 2.5)
-                    .blendMode(.plusDarker)
-                    .opacity(fill)
-            }
-            .animation(.smooth, value: fill)
-            .frame(width: layout.sunDiameter, height: layout.sunDiameter)
-            .position(layout.point(atDegrees: azimuth, radius: layout.orbitRadius))
-            .frame(width: layout.diameter, height: layout.diameter)
+        ZStack {
+            disc
+                .fill(.white, style: FillStyle(eoFill: true))
+                .opacity(isLive ? 0 : 1)
+                .blendMode(.plusLighter)
+
+            // Unblended, as lightening the sky washes the color out, and over
+            // the white rather than in its place, as switching blend modes
+            // blinks
+            disc
+                .fill(liveColor, style: FillStyle(eoFill: true))
+                .opacity(isLive ? 1 : 0)
+        }
+        .background {
+            // A layer of its own: plusDarker on the white disc would make it vanish.
+            Circle()
+                .fill(.black.opacity(0.05))
+                .blur(radius: 5)
+                .offset(y: 2.5)
+                .blendMode(.plusDarker)
+                .opacity(fill)
+        }
+        .animation(.smooth, value: fill)
+        .frame(width: layout.sunDiameter, height: layout.sunDiameter)
+        .position(layout.point(atDegrees: azimuth, radius: layout.orbitRadius))
+        .frame(width: layout.diameter, height: layout.diameter)
     }
 }
 
