@@ -5,10 +5,10 @@
 
 import SwiftUI
 
-/// The next occurrence of each principal phase, ordered by date, then the
-/// day's moonrise and moonset and the moon's illumination and distance on
-/// the page below. Tap anywhere in the phases to switch between dates and
-/// days remaining.
+/// The day's moonrise and moonset and the moon's illumination and distance,
+/// then the next occurrence of each principal phase, ordered by date, on the
+/// page below. Tap anywhere in the phases to switch between dates and days
+/// remaining.
 struct CityMoonPhasesSheet: View {
     let date: Date
     let timeZone: TimeZone
@@ -62,8 +62,8 @@ struct CityMoonPhasesSheet: View {
     var body: some View {
         NavigationStack {
             TabView {
-                phasesPage
                 detailsPage
+                phasesPage
             }
             .tabViewStyle(.verticalPage)
             .navigationTitle(phase.localizedName)
