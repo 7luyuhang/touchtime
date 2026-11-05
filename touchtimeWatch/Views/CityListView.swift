@@ -14,6 +14,7 @@ struct CityListView: View {
     let onAnalogClockTap: () -> Void
 
     @Environment(WatchCityStore.self) private var cityStore
+    @State private var showsSettings = false
 
     var body: some View {
         TimelineView(.everyMinute) { context in
@@ -39,9 +40,17 @@ struct CityListView: View {
                         Button("Analog Clock", systemImage: "clock", action: onAnalogClockTap)
                     }
                 }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Settings", systemImage: "gear") {
+                        showsSettings = true
+                    }
+                }
             }
         }
         .toolbarForegroundStyle(.primary, for: .navigationBar)
+        .sheet(isPresented: $showsSettings) {
+            SettingsView()
+        }
     }
 
     /// Back to now on every clock.

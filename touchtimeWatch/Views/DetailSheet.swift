@@ -63,11 +63,11 @@ struct DetailSheetTime: View {
     let date: Date?
     let timeZone: TimeZone
 
-    @Environment(\.locale) private var locale
+    @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
 
     var body: some View {
         if let date {
-            let formattedTime = WatchTimeFormat.time(date, in: timeZone, hourCycle: locale.hourCycle)
+            let formattedTime = WatchTimeFormat.time(date, in: timeZone, use24HourFormat: use24HourFormat)
             Text(formattedTime.digits)
                 .accessibilityLabel([formattedTime.digits, formattedTime.period].compactMap { $0 }.joined(separator: " "))
         } else {

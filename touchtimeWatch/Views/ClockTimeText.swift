@@ -6,8 +6,8 @@
 import CoreText
 import SwiftUI
 
-/// A clock's time in rounded digits, in the watch's 12- or 24-hour time.
-/// AM/PM stays off the screen, but VoiceOver still reads it.
+/// A clock's time in rounded digits, in 12- or 24-hour time by the 24-Hour
+/// Format setting. AM/PM stays off the screen, but VoiceOver still reads it.
 struct ClockTimeText: View {
     enum Size {
         /// A clock's main time.
@@ -32,12 +32,11 @@ struct ClockTimeText: View {
 
     @ScaledMetric(relativeTo: .largeTitle) private var largeDigitsSize: CGFloat = 40
     @ScaledMetric(relativeTo: .largeTitle) private var listDigitsSize: CGFloat = 36
-    /// The watch's region settings, 24-Hour Time included.
-    @Environment(\.locale) private var locale
+    @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
     @Environment(\.fontResolutionContext) private var fontResolutionContext
 
     var body: some View {
-        let time = WatchTimeFormat.time(date, in: timeZone, hourCycle: locale.hourCycle)
+        let time = WatchTimeFormat.time(date, in: timeZone, use24HourFormat: use24HourFormat)
         let inkInset = alignsLeadingInk ? leadingInkInset(of: time.digits) : 0
         Text(time.digits)
             .font(font)

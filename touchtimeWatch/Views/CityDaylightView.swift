@@ -183,7 +183,7 @@ private struct DaylightRingHours: View {
     let borderWidth: CGFloat
     let borderOpacity: Double
 
-    @Environment(\.locale) private var locale
+    @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
 
     /// Across the ring's bottom half, an hour turns over to read left to right
     /// rather than upside down.
@@ -217,7 +217,7 @@ private struct DaylightRingHours: View {
 
                 ZStack {
                     if isVisible, !yieldsToPill {
-                        Text(WatchTimeFormat.dialHour(hour, hourCycle: locale.hourCycle))
+                        Text(WatchTimeFormat.dialHour(hour, use24HourFormat: use24HourFormat))
                             .transition(.blurReplace)
                     }
                 }
@@ -226,7 +226,7 @@ private struct DaylightRingHours: View {
 
             ZStack {
                 if isVisible {
-                    Text(WatchTimeFormat.dialHour(currentHour, hourCycle: locale.hourCycle))
+                    Text(WatchTimeFormat.dialHour(currentHour, use24HourFormat: use24HourFormat))
                         .foregroundStyle(.black)
                         .background(.white, in: HourPill(
                             radius: radius,
