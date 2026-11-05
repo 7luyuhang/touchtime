@@ -7,30 +7,30 @@ import os
 
 /// The watch app's detail views, in the order taps on the screen show them.
 nonisolated enum AppleWatchPreviewScreen: CaseIterable {
-    case sunPosition
-    case moonPhase
-    case daylight
-    case solarCurve
     case worldClock
+    case solarCurve
+    case sunPosition
+    case daylight
+    case moonPhase
 
     // Matches CityDetailDisplay's titles in the watch app
     var title: String {
         switch self {
-        case .sunPosition: String(localized: "Sun Position")
-        case .moonPhase: String(localized: "Moon Phase")
-        case .daylight: String(localized: "Daylight")
-        case .solarCurve: String(localized: "Solar Curve")
         case .worldClock: String(localized: "World Clock")
+        case .solarCurve: String(localized: "Solar Curve")
+        case .sunPosition: String(localized: "Sun Position")
+        case .daylight: String(localized: "Daylight")
+        case .moonPhase: String(localized: "Moon Phase")
         }
     }
 
     var imageName: String {
         switch self {
-        case .sunPosition: "AppleWatchIntroSunPosition"
-        case .moonPhase: "AppleWatchIntroMoonPhase"
-        case .daylight: "AppleWatchIntroDaylight"
-        case .solarCurve: "AppleWatchIntroSolarCurve"
         case .worldClock: "AppleWatchIntroWorldClock"
+        case .solarCurve: "AppleWatchIntroSolarCurve"
+        case .sunPosition: "AppleWatchIntroSunPosition"
+        case .daylight: "AppleWatchIntroDaylight"
+        case .moonPhase: "AppleWatchIntroMoonPhase"
         }
     }
 }

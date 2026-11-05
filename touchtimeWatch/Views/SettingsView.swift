@@ -59,13 +59,13 @@ struct SettingsView: View {
                     Image("TouchTimeAppIcon")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 32, height: 32)
+                        .frame(width: 36, height: 36)
                         .accessibilityHidden(true)
 
                     VStack(spacing: 0) {
                         Text(verbatim: "Touch Time")
                         Text(verbatim: version)
-                            .font(.footnote)
+                            .font(.subheadline)
                             .foregroundStyle(.secondary)
                     }
                     .lineLimit(1)
