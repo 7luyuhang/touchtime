@@ -17,6 +17,9 @@ struct CityDetailView: View {
     @Binding var adjustedDate: Date?
 
     @Environment(WatchCityStore.self) private var cityStore
+    /// False as soon as the details start going back to the list, before
+    /// they finish sliding away.
+    @Environment(\.isPresented) private var isPresented
     @AppStorage("watchDetailDisplay") private var display: CityDetailDisplay = .worldClock
     @State private var showsDisplayPicker = false
     @State private var showsMoonInfo = false
@@ -151,7 +154,10 @@ struct CityDetailView: View {
             }
         }
         .tint(.primary)
-        .focusable(!showsLiveCompass)
+        // Not while sliding back to the list: the details would take the
+        // Digital Crown back from it, and a quick turn would move the list's
+        // clocks rather than scroll it.
+        .focusable(isPresented && !showsLiveCompass)
         .focused($isCrownFocused)
         .digitalCrownRotation(
             $crownSteps,
