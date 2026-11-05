@@ -18,6 +18,7 @@ struct AnalogClockHomeView: View {
     @Environment(\.dismiss) private var dismiss
     /// The city on the clock, kept across launches.
     @AppStorage("analogClockCityID") private var cityID = ClockCity.localID
+    @AppStorage(AdditionalTime.storageKey) private var additionalTime: AdditionalTime = .timeShift
     /// How many hours the Digital Crown has moved.
     @State private var crownSteps: Double = 0
     /// The time the Digital Crown's steps count from: the clocks' time when
@@ -62,7 +63,7 @@ struct AnalogClockHomeView: View {
                 .containerBackground(for: .navigation) {
                     CitySkyBackground(date: date, timeZone: city.timeZone)
                 }
-                .navigationTitle(WorldClock.timeDifference(to: city.timeZone, at: date))
+                .navigationTitle(additionalTime.text(for: city.timeZone, at: date))
                 .animation(.smooth, value: adjustedDate)
             }
             .accessibilityElement(children: .combine)

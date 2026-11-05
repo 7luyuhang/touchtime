@@ -67,6 +67,8 @@ private struct CityRow: View {
     let now: Date
     let dateStyle: String
 
+    @AppStorage(AdditionalTime.storageKey) private var additionalTime: AdditionalTime = .timeShift
+
     var body: some View {
         let dateLabel = date.formattedDate(style: dateStyle, timeZone: city.timeZone, relativeTo: now)
 
@@ -94,11 +96,12 @@ private struct CityRow: View {
                 Spacer(minLength: 4)
 
                 Group {
-                    if city.isLocal {
+                    // In place of Local's time shift, which is always empty
+                    if city.isLocal && additionalTime == .timeShift {
                         Image(systemName: "location.fill")
                             .accessibilityHidden(true)
                     } else {
-                        Text(WorldClock.timeDifference(to: city.timeZone, at: date))
+                        Text(additionalTime.text(for: city.timeZone, at: date))
                             .lineLimit(1)
                     }
                 }

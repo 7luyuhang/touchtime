@@ -5,10 +5,13 @@
 
 import SwiftUI
 
-/// The 24-Hour Format setting, the app's version and its credits.
+/// The 24-Hour Format and Additional Time settings, how many cities the
+/// iPhone sent, a link to share the app, and the app's version.
 struct SettingsView: View {
+    @Environment(WatchCityStore.self) private var cityStore
     @Environment(\.dismiss) private var dismiss
     @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
+    @AppStorage(AdditionalTime.storageKey) private var additionalTime: AdditionalTime = .timeShift
 
     /// The version and build, like "2.1.4 (223)", as in the iPhone app's About.
     private var version: String {
@@ -22,14 +25,35 @@ struct SettingsView: View {
             List {
                 Toggle("24-Hour Format", isOn: $use24HourFormat)
 
-                HStack(spacing: 10) {
+                Picker("Additional Time", selection: $additionalTime) {
+                    ForEach(AdditionalTime.allCases) { option in
+                        Text(option.title)
+                            .tag(option)
+                    }
+                }
+                .pickerStyle(.navigationLink)
+
+                Section {
+                    Text("\(cityStore.cities.count) Cities Added")
+                } footer: {
+                    Text("Add, delete or arrange cities on iPhone.")
+                }
+
+                ShareLink(
+                    item: URL(string: "https://apps.apple.com/us/app/touch-time-world-clock/id6753721487")!,
+                    message: Text("Download Touch Time.")
+                ) {
+                    Text("Share with Friends")
+                }
+
+                VStack(spacing: 10) {
                     Image("TouchTimeAppIcon")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 32, height: 32)
                         .accessibilityHidden(true)
 
-                    VStack(alignment: .leading, spacing: 0) {
+                    VStack(spacing: 0) {
                         Text(verbatim: "Touch Time")
                         Text(verbatim: version)
                             .font(.footnote)
@@ -37,14 +61,10 @@ struct SettingsView: View {
                     }
                     .lineLimit(1)
                 }
+                .padding(.top, 16)
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
                 .accessibilityElement(children: .combine)
-
-                Text("Designed & built by yuhang in London.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .listRowBackground(Color.clear)
             }
             .navigationTitle("Settings")
             .toolbar {

@@ -68,6 +68,40 @@
         }
       }
     },
+    "%lld Cities Added" : {
+      "localizations" : {
+        "en" : {
+          "variations" : {
+            "plural" : {
+              "one" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld City Added"
+                }
+              },
+              "other" : {
+                "stringUnit" : {
+                  "state" : "translated",
+                  "value" : "%lld Cities Added"
+                }
+              }
+            }
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已添加 %lld 个城市"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已新增 %lld 個城市"
+          }
+        }
+      }
+    },
     "%lldD" : {
       "comment" : "Calendar days remaining until an upcoming moon phase.",
       "localizations" : {
@@ -125,6 +159,38 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "24 小時制"
+          }
+        }
+      }
+    },
+    "Add, delete or arrange cities on iPhone." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iPhone 中添加、删除或排列城市。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iPhone 上新增、刪除或排列城市。"
+          }
+        }
+      }
+    },
+    "Additional Time" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附加时间"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "附加時間"
           }
         }
       }
@@ -350,22 +416,6 @@
         }
       }
     },
-    "Designed & built by yuhang in London." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "设计与开发：雨杭 于伦敦"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "設計與開發：雨杭 於倫敦"
-          }
-        }
-      }
-    },
     "Distance" : {
       "localizations" : {
         "zh-Hans" : {
@@ -378,6 +428,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "距離"
+          }
+        }
+      }
+    },
+    "Download Touch Time." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下载 Touch Time。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下載 Touch Time。"
           }
         }
       }
@@ -1016,6 +1082,22 @@
         }
       }
     },
+    "Share with Friends" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享给朋友"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "分享給朋友"
+          }
+        }
+      }
+    },
     "Sleet" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1258,6 +1340,22 @@
         }
       }
     },
+    "Time Shift" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "时差"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時差"
+          }
+        }
+      }
+    },
     "Today" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1335,6 +1433,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "未知天氣"
+          }
+        }
+      }
+    },
+    "UTC" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UTC"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "UTC"
           }
         }
       }

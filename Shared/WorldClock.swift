@@ -100,8 +100,12 @@ struct WorldClock: Identifiable, Codable, Equatable {
             return "UTC +0"
         }
         
-        let offsetSeconds = targetTimeZone.secondsFromGMT()
-        let offsetHours = offsetSeconds / 3600
+        return Self.utcOffset(of: targetTimeZone)
+    }
+    
+    // Whole hours a time zone is ahead of or behind UTC (e.g., "UTC +8", "UTC -5")
+    static func utcOffset(of timeZone: TimeZone, at date: Date = Date()) -> String {
+        let offsetHours = timeZone.secondsFromGMT(for: date) / 3600
         
         if offsetHours == 0 {
             return "UTC +0"
