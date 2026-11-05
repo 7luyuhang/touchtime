@@ -68,40 +68,6 @@
         }
       }
     },
-    "%lld Cities" : {
-      "localizations" : {
-        "en" : {
-          "variations" : {
-            "plural" : {
-              "one" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld City"
-                }
-              },
-              "other" : {
-                "stringUnit" : {
-                  "state" : "translated",
-                  "value" : "%lld Cities"
-                }
-              }
-            }
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 个城市"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%lld 個城市"
-          }
-        }
-      }
-    },
     "%lldD" : {
       "comment" : "Calendar days remaining until an upcoming moon phase.",
       "localizations" : {
@@ -159,22 +125,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "24 小時制"
-          }
-        }
-      }
-    },
-    "Add, delete or arrange cities on iPhone." : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 iPhone 中添加、删除或排列城市。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "在 iPhone 上新增、刪除或排列城市。"
           }
         }
       }

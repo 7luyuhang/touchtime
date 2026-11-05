@@ -5,13 +5,10 @@
 
 import SwiftUI
 
-/// How many cities the iPhone sent, the 24-Hour Format setting, and the
-/// app's version.
+/// The 24-Hour Format setting and the app's version.
 struct SettingsView: View {
-    @Environment(WatchCityStore.self) private var cityStore
     @Environment(\.dismiss) private var dismiss
     @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
-    @State private var showsCitiesAlert = false
 
     /// The version and build, like "2.1.4 (223)", as in the iPhone app's About.
     private var version: String {
@@ -23,10 +20,6 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
-                Button("\(cityStore.cities.count) Cities") {
-                    showsCitiesAlert = true
-                }
-
                 Toggle("24-Hour Format", isOn: $use24HourFormat)
 
                 HStack(spacing: 10) {
@@ -53,9 +46,6 @@ struct SettingsView: View {
                         dismiss()
                     }
                 }
-            }
-            .alert(Text(verbatim: ""), isPresented: $showsCitiesAlert, actions: {}) {
-                Text("Add, delete or arrange cities on iPhone.")
             }
         }
     }
