@@ -2,8 +2,8 @@
 //  WatchCityStore.swift
 //  touchtimeWatch
 //
-//  The iPhone app's saved cities, date style and first day of the week,
-//  received over WatchConnectivity.
+//  The iPhone app's saved cities, collections, date style and first day of
+//  the week, received over WatchConnectivity.
 //
 
 import Foundation
@@ -16,6 +16,8 @@ import WatchConnectivity
 @Observable
 final class WatchCityStore: NSObject, WCSessionDelegate {
     private(set) var cities: [WatchCity]
+    /// The iPhone app's collections, each a page below the cities.
+    private(set) var collections: [WatchCollection]
     /// The iPhone app's date style, for `Date.formattedDate(style:)`.
     private(set) var dateStyle: String
     /// The iPhone app's first day of the week, for the moon calendar's weeks:
@@ -23,6 +25,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     private(set) var firstWeekday: Int
 
     private static let citiesKey = "cities"
+    private static let collectionsKey = "collections"
     private static let dateStyleKey = "dateStyle"
     private static let firstWeekdayKey = "firstWeekday"
 
@@ -32,6 +35,8 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             .flatMap { try? JSONDecoder().decode([WatchCity].self, from: $0) }
         // Until the iPhone first syncs, the cities the iPhone app starts with
         cities = savedCities ?? WorldClockData.defaultClocks.map { WatchCity($0) }
+        collections = defaults.data(forKey: Self.collectionsKey)
+            .flatMap { try? JSONDecoder().decode([WatchCollection].self, from: $0) } ?? []
         dateStyle = defaults.string(forKey: Self.dateStyleKey) ?? "Relative"
         // Monday, as on the iPhone until its Calendar settings pick another day
         let savedFirstWeekday = defaults.integer(forKey: Self.firstWeekdayKey)
@@ -49,7 +54,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         }
     }
 
-    private func apply(citiesData: Data?, dateStyle: String?, firstWeekday: Int?) {
+    private func apply(citiesData: Data?, collectionsData: Data?, dateStyle: String?, firstWeekday: Int?) {
         let defaults = UserDefaults.standard
         if let citiesData,
            let receivedCities = try? JSONDecoder().decode([WatchCity].self, from: citiesData) {
@@ -57,6 +62,13 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
                 cities = receivedCities
             }
             defaults.set(citiesData, forKey: Self.citiesKey)
+        }
+        if let collectionsData,
+           let receivedCollections = try? JSONDecoder().decode([WatchCollection].self, from: collectionsData) {
+            if receivedCollections != collections {
+                collections = receivedCollections
+            }
+            defaults.set(collectionsData, forKey: Self.collectionsKey)
         }
         if let dateStyle {
             if dateStyle != self.dateStyle {
@@ -74,10 +86,16 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
 
     nonisolated private func receive(_ context: [String: Any]) {
         let citiesData = context[WatchSyncKeys.cities] as? Data
+        let collectionsData = context[WatchSyncKeys.collections] as? Data
         let dateStyle = context[WatchSyncKeys.dateStyle] as? String
         let firstWeekday = context[WatchSyncKeys.firstWeekday] as? Int
         Task { @MainActor in
-            self.apply(citiesData: citiesData, dateStyle: dateStyle, firstWeekday: firstWeekday)
+            self.apply(
+                citiesData: citiesData,
+                collectionsData: collectionsData,
+                dateStyle: dateStyle,
+                firstWeekday: firstWeekday
+            )
         }
     }
 

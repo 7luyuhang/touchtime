@@ -30,6 +30,8 @@ struct ContentView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("firstWeekday") private var firstWeekday = 2
+    // Every screen that edits collections saves them straight under this key
+    @AppStorage("savedCityCollections") private var savedCollections: Data?
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
@@ -91,10 +93,13 @@ struct ContentView: View {
                 }
                 await AppleWatchMockupView.preload()
             }
-            // The Apple Watch app shows the same cities, in the same date style,
-            // and starts its moon calendar's weeks on the same day
+            // The Apple Watch app shows the same cities and collections, in the
+            // same date style, and starts its moon calendar's weeks on the same day
             .onChange(of: worldClocks) { _, clocks in
                 WatchSyncManager.shared.sync(clocks: clocks)
+            }
+            .onChange(of: savedCollections) {
+                WatchSyncManager.shared.sync()
             }
             .onChange(of: dateStyle) {
                 WatchSyncManager.shared.sync()

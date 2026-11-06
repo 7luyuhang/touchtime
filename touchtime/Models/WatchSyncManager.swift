@@ -2,8 +2,8 @@
 //  WatchSyncManager.swift
 //  touchtime
 //
-//  Sends the saved cities, the date style and the first day of the week to
-//  the Apple Watch app.
+//  Sends the saved cities, the collections, the date style and the first day
+//  of the week to the Apple Watch app.
 //
 
 import Foundation
@@ -33,10 +33,15 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
               session.isWatchAppInstalled else { return }
 
         let cities = (clocks ?? Self.savedClocks()).map { WatchCity($0) }
-        guard let citiesData = try? JSONEncoder().encode(cities) else { return }
+        let collections = CollectionsStore.load().map { collection in
+            WatchCollection(id: collection.id, name: collection.name, cities: collection.cities.map { WatchCity($0) })
+        }
+        guard let citiesData = try? JSONEncoder().encode(cities),
+              let collectionsData = try? JSONEncoder().encode(collections) else { return }
 
         try? session.updateApplicationContext([
             WatchSyncKeys.cities: citiesData,
+            WatchSyncKeys.collections: collectionsData,
             WatchSyncKeys.dateStyle: UserDefaults.standard.string(forKey: "dateStyle") ?? "Relative",
             WatchSyncKeys.firstWeekday: UserDefaults.standard.object(forKey: SharedWidgetStore.firstWeekdayKey) as? Int
                 ?? SharedWidgetStore.defaultFirstWeekday

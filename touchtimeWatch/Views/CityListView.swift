@@ -5,9 +5,13 @@
 
 import SwiftUI
 
-/// Every clock at a glance, each row tinted with the sky over its city.
+/// Every clock at a glance, each row tinted with the sky over its city, and
+/// below them a page for each of the iPhone's collections. The Digital Crown
+/// scrolls to the end of a page's cities and on into the next page.
 struct CityListView: View {
-    let cities: [ClockCity]
+    let pages: [CityListPage]
+    /// The page showing.
+    @Binding var pageID: String
     @Binding var selection: String?
     /// The time every clock shows in place of now, or nil for now.
     @Binding var adjustedDate: Date?
@@ -20,18 +24,30 @@ struct CityListView: View {
     @State private var currentTimeTaps = 0
 
     var body: some View {
+        let title = pages.first { $0.id == pageID }?.title
+
         TimelineView(.everyMinute) { context in
             let date = adjustedDate ?? context.date
 
-            List(selection: $selection) {
-                ForEach(cities) { city in
-                    NavigationLink(value: city.id) {
-                        CityRow(city: city, date: date, now: context.date, dateStyle: cityStore.dateStyle)
+            TabView(selection: $pageID) {
+                ForEach(pages) { page in
+                    List(selection: $selection) {
+                        ForEach(page.cities) { city in
+                            NavigationLink(value: city.id) {
+                                CityRow(city: city, date: date, now: context.date, dateStyle: cityStore.dateStyle)
+                            }
+                            .listRowBackground(CityRowBackground(date: date, timeZone: city.timeZone))
+                        }
                     }
-                    .listRowBackground(CityRowBackground(date: date, timeZone: city.timeZone))
+                    .tag(page.id)
                 }
             }
+            .tabViewStyle(.verticalPage)
+            // The pages' indicator otherwise stays over a city's details
+            .scrollIndicators(selection == nil ? .automatic : .hidden)
             .animation(.smooth, value: adjustedDate)
+            // Verbatim, as collections are named on the iPhone
+            .navigationTitle(Text(verbatim: title ?? ""))
             .toolbar {
                 // While adjusting time, a reset button takes the analog clock
                 // button's place, as it takes the back button's on a city's
@@ -46,9 +62,13 @@ struct CityListView: View {
                         Button("Analog Clock", systemImage: "clock", action: onAnalogClockTap)
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Settings", systemImage: "gear") {
-                        showsSettings = true
+                // Only on every city's page; on a collection's, the time and
+                // the collection's name move over into its place
+                if title == nil {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button("Settings", systemImage: "gear") {
+                            showsSettings = true
+                        }
                     }
                 }
             }

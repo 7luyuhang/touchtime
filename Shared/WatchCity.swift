@@ -2,8 +2,9 @@
 //  WatchCity.swift
 //  touchtime
 //
-//  The saved cities the iPhone app sends to the Apple Watch app over
-//  WatchConnectivity, and the application context keys they travel under.
+//  The saved cities and collections the iPhone app sends to the Apple Watch
+//  app over WatchConnectivity, and the application context keys they travel
+//  under.
 //
 
 import Foundation
@@ -23,9 +24,18 @@ extension WatchCity {
     }
 }
 
+/// A city collection as the watch shows it, its cities in the iPhone's order.
+struct WatchCollection: Codable, Identifiable, Hashable {
+    let id: UUID
+    let name: String
+    let cities: [WatchCity]
+}
+
 nonisolated enum WatchSyncKeys {
     /// JSON-encoded `[WatchCity]`, in the iPhone's order.
     static let cities = "cities"
+    /// JSON-encoded `[WatchCollection]`, in the iPhone's order.
+    static let collections = "collections"
     /// The iPhone's date style: "Relative", "With Weekday" or "Date Only".
     static let dateStyle = "dateStyle"
     /// The iPhone's first day of the week, chosen in its Calendar settings:
