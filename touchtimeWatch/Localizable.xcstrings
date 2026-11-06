@@ -1146,22 +1146,6 @@
         }
       }
     },
-    "Show Onboarding" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "显示引导"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "顯示引導"
-          }
-        }
-      }
-    },
     "Sleet" : {
       "localizations" : {
         "zh-Hans" : {
