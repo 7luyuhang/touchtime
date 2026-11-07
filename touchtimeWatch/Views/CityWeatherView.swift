@@ -150,7 +150,9 @@ struct CityWeatherView: View {
             // Never an empty range, even with a day or none.
             through: Double(max(days.count - 1, 1)),
             by: 1,
-            sensitivity: .medium,
+            // Less than the time's, so each day takes a turn of its own
+            // rather than a flick passing several.
+            sensitivity: .low,
             isContinuous: false,
             isHapticFeedbackEnabled: showsDays
         )
