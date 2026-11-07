@@ -31,4 +31,7 @@ nonisolated enum WatchSyncKeys {
     /// The iPhone's first day of the week, chosen in its Calendar settings:
     /// 1 = Sunday, 2 = Monday, ...
     static let firstWeekday = "firstWeekday"
+    /// The iPhone app's temperature unit: true for Celsius, false for
+    /// Fahrenheit.
+    static let useCelsius = "useCelsius"
 }

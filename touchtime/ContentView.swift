@@ -30,6 +30,7 @@ struct ContentView: View {
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("dateStyle") private var dateStyle = "Relative"
     @AppStorage("firstWeekday") private var firstWeekday = 2
+    @AppStorage("useCelsius") private var useCelsius = true
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
@@ -92,7 +93,8 @@ struct ContentView: View {
                 await AppleWatchMockupView.preload()
             }
             // The Apple Watch app shows the same cities, in the same date style,
-            // and starts its moon calendar's weeks on the same day
+            // with temperatures in the same unit, and starts its moon
+            // calendar's weeks on the same day
             .onChange(of: worldClocks) { _, clocks in
                 WatchSyncManager.shared.sync(clocks: clocks)
             }
@@ -100,6 +102,9 @@ struct ContentView: View {
                 WatchSyncManager.shared.sync()
             }
             .onChange(of: firstWeekday) {
+                WatchSyncManager.shared.sync()
+            }
+            .onChange(of: useCelsius) {
                 WatchSyncManager.shared.sync()
             }
             // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)

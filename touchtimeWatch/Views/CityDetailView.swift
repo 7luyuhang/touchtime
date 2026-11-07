@@ -131,7 +131,7 @@ struct CityDetailView: View {
                         Color.black.ignoresSafeArea()
                     }
                 case .weather:
-                    CityWeatherView(date: date, timeZone: city.timeZone)
+                    CityWeatherView(date: date, timeZone: city.timeZone, useCelsius: cityStore.useCelsius)
                 }
             }
             // Like World Clock, the clock sits low enough to leave the map

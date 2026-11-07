@@ -12,6 +12,8 @@ import WeatherKit
 struct CityWeatherView: View {
     let date: Date
     let timeZone: TimeZone
+    /// The iPhone app's temperature unit: Celsius, or Fahrenheit when false.
+    let useCelsius: Bool
 
     @Environment(WatchWeatherStore.self) private var weatherStore
 
@@ -56,7 +58,7 @@ struct CityWeatherView: View {
                 )
                 .accessibilityHidden(true)
 
-                WeatherRingCenter(conditions: weather?.current, isLoading: isLoading)
+                WeatherRingCenter(conditions: weather?.current, isLoading: isLoading, useCelsius: useCelsius)
                     .frame(width: holeDiameter * 0.80)
                     .frame(width: holeDiameter, height: holeDiameter)
             }
@@ -219,6 +221,7 @@ private struct WeatherRingConditions: View {
 private struct WeatherRingCenter: View {
     let conditions: CityWeather.Conditions?
     let isLoading: Bool
+    let useCelsius: Bool
 
     var body: some View {
         ZStack {
@@ -226,7 +229,7 @@ private struct WeatherRingCenter: View {
                 let name = conditions.condition.displayName
 
                 VStack(spacing: 0) {
-                    Text(Self.temperature(conditions.temperature))
+                    Text(Self.temperature(conditions.temperature, useCelsius: useCelsius))
                         .font(.system(.title2, design: .rounded, weight: .medium).monospacedDigit())
                         .contentTransition(.numericText())
 
@@ -256,11 +259,12 @@ private struct WeatherRingCenter: View {
         .accessibilityElement(children: .combine)
     }
 
-    /// In the watch's preferred unit, without its letter, like the iPhone app's.
-    private static func temperature(_ temperature: Measurement<UnitTemperature>) -> String {
-        let value = temperature.converted(to: UnitTemperature(forLocale: .autoupdatingCurrent, usage: .weather)).value
+    /// In whole degrees toward zero, without the unit's letter, as the iPhone
+    /// app shows them.
+    private static func temperature(_ temperature: Measurement<UnitTemperature>, useCelsius: Bool) -> String {
+        let value = temperature.converted(to: useCelsius ? .celsius : .fahrenheit).value
         guard value.isFinite else { return "--°" }
-        return "\(Int(value.rounded()))°"
+        return "\(Int(value))°"
     }
 }
 
@@ -296,7 +300,7 @@ private extension View {
     let weather = CityWeather(current: hours[currentHour]!, hours: hours, fetchDate: date)
 
     NavigationStack {
-        CityWeatherView(date: date, timeZone: .current)
+        CityWeatherView(date: date, timeZone: .current, useCelsius: true)
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 CitySkyBackground(date: date, timeZone: .current)

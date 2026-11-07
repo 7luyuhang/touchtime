@@ -2,8 +2,8 @@
 //  WatchCityStore.swift
 //  touchtimeWatch
 //
-//  The iPhone app's saved cities, date style and first day of the week,
-//  received over WatchConnectivity.
+//  The iPhone app's saved cities, date style, first day of the week and
+//  temperature unit, received over WatchConnectivity.
 //
 
 import Foundation
@@ -21,10 +21,13 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     /// The iPhone app's first day of the week, for the moon calendar's weeks:
     /// 1 = Sunday, 2 = Monday, ...
     private(set) var firstWeekday: Int
+    /// The iPhone app's temperature unit: Celsius, or Fahrenheit when false.
+    private(set) var useCelsius: Bool
 
     private static let citiesKey = "cities"
     private static let dateStyleKey = "dateStyle"
     private static let firstWeekdayKey = "firstWeekday"
+    private static let useCelsiusKey = "useCelsius"
 
     override init() {
         let defaults = UserDefaults.standard
@@ -36,6 +39,8 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         // Monday, as on the iPhone until its Calendar settings pick another day
         let savedFirstWeekday = defaults.integer(forKey: Self.firstWeekdayKey)
         firstWeekday = (1...7).contains(savedFirstWeekday) ? savedFirstWeekday : 2
+        // Celsius, as on the iPhone until its settings pick Fahrenheit
+        useCelsius = defaults.object(forKey: Self.useCelsiusKey) as? Bool ?? true
         super.init()
 
         if savedCities == nil {
@@ -49,7 +54,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         }
     }
 
-    private func apply(citiesData: Data?, dateStyle: String?, firstWeekday: Int?) {
+    private func apply(citiesData: Data?, dateStyle: String?, firstWeekday: Int?, useCelsius: Bool?) {
         let defaults = UserDefaults.standard
         if let citiesData,
            let receivedCities = try? JSONDecoder().decode([WatchCity].self, from: citiesData) {
@@ -70,14 +75,21 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             }
             defaults.set(firstWeekday, forKey: Self.firstWeekdayKey)
         }
+        if let useCelsius {
+            if useCelsius != self.useCelsius {
+                self.useCelsius = useCelsius
+            }
+            defaults.set(useCelsius, forKey: Self.useCelsiusKey)
+        }
     }
 
     nonisolated private func receive(_ context: [String: Any]) {
         let citiesData = context[WatchSyncKeys.cities] as? Data
         let dateStyle = context[WatchSyncKeys.dateStyle] as? String
         let firstWeekday = context[WatchSyncKeys.firstWeekday] as? Int
+        let useCelsius = context[WatchSyncKeys.useCelsius] as? Bool
         Task { @MainActor in
-            self.apply(citiesData: citiesData, dateStyle: dateStyle, firstWeekday: firstWeekday)
+            self.apply(citiesData: citiesData, dateStyle: dateStyle, firstWeekday: firstWeekday, useCelsius: useCelsius)
         }
     }
 
