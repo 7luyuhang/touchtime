@@ -25,7 +25,14 @@ struct CityWeatherView: View {
     @State private var showsDays = false
     /// How many days after today the Digital Crown has turned to.
     @State private var crownDays: Double = 0
-    @FocusState private var isCrownFocused: Bool
+    @FocusState private var crownHolder: CrownHolder?
+
+    /// Who has the Digital Crown: the hours, doing nothing with it, or the
+    /// days, turning from one to the next.
+    private enum CrownHolder {
+        case hours
+        case days
+    }
 
     /// The ring's edges, and the line around its hours.
     private static let lineWidth: CGFloat = 1
@@ -100,6 +107,7 @@ struct CityWeatherView: View {
                         withAnimation(.smooth) {
                             showsDays.toggle()
                         }
+                        crownHolder = showsDays ? .days : .hours
                     }
                 }
                 .frame(width: geometry.size.width, height: geometry.size.height)
@@ -133,31 +141,40 @@ struct CityWeatherView: View {
         .padding(.bottom, 8)
         .animation(.smooth, value: weather?.fetchDate)
         .animation(.smooth, value: chosenDayIndex)
-        // Held for as long as the weather shows, since the days can't take it
-        // the moment they appear, but turned only while they show. As on the
-        // details, not while sliding back to the list, so a quick turn
-        // scrolls the list rather than the days.
-        .focusable(isPresented)
-        .focused($isCrownFocused)
-        .digitalCrownRotation(
-            showsDays ? $crownDays : .constant(0),
-            from: 0,
-            // Never an empty range, even with a day or none.
-            through: Double(max(days.count - 1, 1)),
-            by: 1,
-            // Less than the time's, so each day takes a turn of its own
-            // rather than a flick passing several.
-            sensitivity: .low,
-            isContinuous: false,
-            isHapticFeedbackEnabled: showsDays
-        )
+        // A holder each for the hours and the days rather than one changing
+        // between them, since a Digital Crown whose haptics have been on
+        // keeps clicking with them off again. Both can take it for as long
+        // as the weather shows, since the days can't the moment they appear.
+        // As on the details, not while sliding back to the list, so a quick
+        // turn scrolls the list rather than the days.
+        .background {
+            Color.clear
+                .focusable(isPresented)
+                .focused($crownHolder, equals: .hours)
+                .digitalCrownRotation(.constant(0), from: 0, through: 1, isHapticFeedbackEnabled: false)
+            Color.clear
+                .focusable(isPresented)
+                .focused($crownHolder, equals: .days)
+                .digitalCrownRotation(
+                    $crownDays,
+                    from: 0,
+                    // Never an empty range, even with a day or none.
+                    through: Double(max(days.count - 1, 1)),
+                    by: 1,
+                    // Less than the time's, so each day takes a turn of its
+                    // own rather than a flick passing several.
+                    sensitivity: .low,
+                    isContinuous: false,
+                    isHapticFeedbackEnabled: true
+                )
+        }
         .scrollIndicators(.hidden)
         // A sheet takes the Digital Crown, and doesn't give it back.
         .onAppear {
-            isCrownFocused = true
+            crownHolder = showsDays ? .days : .hours
         }
         .onDisappear {
-            isCrownFocused = false
+            crownHolder = nil
         }
         // Every quarter hour, in case the weather has gone stale.
         .onChange(of: Int(date.timeIntervalSinceReferenceDate / 900), initial: true) {

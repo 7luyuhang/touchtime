@@ -167,22 +167,28 @@ struct CityDetailView: View {
             }
         }
         .tint(.primary)
-        // Not while sliding back to the list: the details would take the
-        // Digital Crown back from it, and a quick turn would move the list's
-        // clocks rather than scroll it.
-        .focusable(isPresented && crownMovesTime)
-        .focused($isCrownFocused)
-        // Turns reach the details too while a view inside them has the
-        // Digital Crown, as Weather's days do, and mustn't move the time then.
-        .digitalCrownRotation(
-            crownMovesTime ? $crownSteps : .constant(0),
-            from: -crownRange,
-            through: crownRange,
-            by: 1,
-            sensitivity: .medium,
-            isContinuous: false,
-            isHapticFeedbackEnabled: crownMovesTime
-        )
+        // Beside the details rather than around them, since turns for a view
+        // inside them, as Weather's days, would reach the time too. And
+        // clicking all along rather than only while it moves the time, since
+        // a Digital Crown whose haptics have been on keeps clicking with them
+        // off again.
+        .background {
+            Color.clear
+                // Not while sliding back to the list: the details would take
+                // the Digital Crown back from it, and a quick turn would move
+                // the list's clocks rather than scroll it.
+                .focusable(isPresented && crownMovesTime)
+                .focused($isCrownFocused)
+                .digitalCrownRotation(
+                    $crownSteps,
+                    from: -crownRange,
+                    through: crownRange,
+                    by: 1,
+                    sensitivity: .medium,
+                    isContinuous: false,
+                    isHapticFeedbackEnabled: true
+                )
+        }
         .scrollIndicators(.hidden)
         .navigationBarBackButtonHidden(isAdjusted)
         .toolbar {
