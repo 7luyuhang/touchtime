@@ -17,6 +17,8 @@ struct CityWeatherView: View {
     let timeZone: TimeZone
     /// The iPhone app's temperature unit: Celsius, or Fahrenheit when false.
     let useCelsius: Bool
+    /// The iPhone app's date style, for `Date.formattedDate(style:)`.
+    let dateStyle: String
 
     @Environment(WatchWeatherStore.self) private var weatherStore
     @Environment(\.isPresented) private var isPresented
@@ -188,11 +190,10 @@ struct CityWeatherView: View {
         return symbols
     }
 
-    /// Like "Nov 7", in the city.
+    /// In the iPhone app's date style, weekday and all, as under the details'
+    /// other views.
     private func dayLabel(_ day: CityWeather.Day) -> String {
-        var style = Date.FormatStyle.dateTime.month(.abbreviated).day()
-        style.timeZone = timeZone
-        return day.date.formatted(style)
+        day.date.formattedDate(style: dateStyle, timeZone: timeZone, relativeTo: date)
     }
 }
 
@@ -507,7 +508,7 @@ private extension View {
     let weather = CityWeather(current: hours[currentHour]!, hours: hours, days: days, fetchDate: date)
 
     NavigationStack {
-        CityWeatherView(date: date, timeZone: .current, useCelsius: true)
+        CityWeatherView(date: date, timeZone: .current, useCelsius: true, dateStyle: "Relative")
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 CitySkyBackground(date: date, timeZone: .current)
