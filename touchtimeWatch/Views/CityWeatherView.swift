@@ -8,10 +8,11 @@ import WeatherKit
 
 /// The city's temperature and conditions now, inside a ring of the next 12
 /// hours' conditions, laid out like the daylight ring with its hours showing:
-/// now at the top right, and each hour after it clockwise. Tapping the middle
-/// trades the hours for the days ahead, laid out like the daylight ring
-/// without its hours: today at the bottom left, each day after it clockwise,
-/// and a dot like its sun that the Digital Crown moves from day to day.
+/// now at its hour, as on a clock's face, and each hour after it clockwise.
+/// Tapping the middle trades the hours for the days ahead, laid out like the
+/// daylight ring without its hours: today at the bottom left, each day after
+/// it clockwise, and a dot like its sun that the Digital Crown moves from day
+/// to day.
 struct CityWeatherView: View {
     let date: Date
     let timeZone: TimeZone
@@ -75,7 +76,9 @@ struct CityWeatherView: View {
                     WeatherRingConditions(
                         diameter: diameter,
                         ringWidth: ringWidth,
-                        symbols: chosenDay == nil ? hourSymbols(in: weather) : daySymbols(days, chosen: chosenDayIndex),
+                        symbols: chosenDay == nil
+                            ? hourSymbols(in: weather, nowHour: hours[0])
+                            : daySymbols(days, chosen: chosenDayIndex),
                         dotDay: chosenDayIndex,
                         showsDays: chosenDay != nil,
                         lineWidth: Self.lineWidth,
@@ -203,10 +206,10 @@ struct CityWeatherView: View {
     }
 
     /// Each slot's symbol while the hours show, by day or by night.
-    private func hourSymbols(in weather: CityWeather?) -> [String?] {
+    private func hourSymbols(in weather: CityWeather?, nowHour: Int) -> [String?] {
         var symbols = [String?](repeating: nil, count: WeatherRing.slotCount)
         for hoursAhead in 0..<WeatherRing.hourCount {
-            symbols[WeatherRing.slot(hoursAhead: hoursAhead)] = conditions(hoursAhead: hoursAhead, in: weather)
+            symbols[WeatherRing.slot(hoursAhead: hoursAhead, nowHour: nowHour)] = conditions(hoursAhead: hoursAhead, in: weather)
                 .map { $0.condition.icon(isDaylight: $0.isDaylight) }
         }
         return symbols
@@ -253,10 +256,11 @@ private enum WeatherRing {
         }
     }
 
-    /// Now a twelfth of the way around, at the top right, and each hour after
-    /// it a twelfth further.
-    static func slot(hoursAhead: Int) -> Int {
-        (hoursAhead + 1) % slotCount
+    /// Now at its clock hour, `nowHour`, as on a clock's face, and each hour
+    /// after it a twelfth further, even where a clock change repeats or skips
+    /// an hour, so none share a slot.
+    static func slot(hoursAhead: Int, nowHour: Int) -> Int {
+        (nowHour + hoursAhead) % slotCount
     }
 
     static func slot(daysAhead: Int) -> Int {
@@ -305,7 +309,7 @@ private struct WeatherRingHours: View {
         let diameter = ringDiameter + bandWidth * 2
         // Halfway between the ring's edge and the line around the hours.
         let radius = (ringDiameter + bandWidth - lineWidth) / 2
-        let nowSlot = WeatherRing.slot(hoursAhead: 0)
+        let nowSlot = WeatherRing.slot(hoursAhead: 0, nowHour: hours[0])
 
         ZStack {
             Circle()
@@ -347,7 +351,7 @@ private struct WeatherRingHours: View {
                             .transition(.blurReplace)
                     }
                 }
-                .placed(slot: WeatherRing.slot(hoursAhead: hoursAhead), radius: radius, turnsAlong: true)
+                .placed(slot: WeatherRing.slot(hoursAhead: hoursAhead, nowHour: hours[0]), radius: radius, turnsAlong: true)
             }
         }
         .font(.system(size: 11, weight: .semibold, design: .rounded))
