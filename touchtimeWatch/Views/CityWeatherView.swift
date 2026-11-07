@@ -70,7 +70,7 @@ struct CityWeatherView: View {
                         ringWidth: ringWidth,
                         symbols: chosenDay == nil ? hourSymbols(in: weather) : daySymbols(days, chosen: chosenDayIndex),
                         dotDay: chosenDayIndex,
-                        showsDot: chosenDay != nil,
+                        showsDays: chosenDay != nil,
                         lineWidth: Self.lineWidth,
                         lineOpacity: Self.lineOpacity
                     )
@@ -352,7 +352,7 @@ private struct WeatherRingConditions: View {
     /// The chosen day, in days after today, where the dot waits while hidden.
     let dotDay: Int
     /// Whether the days, and with them the dot, show.
-    let showsDot: Bool
+    let showsDays: Bool
     let lineWidth: CGFloat
     let lineOpacity: Double
 
@@ -377,13 +377,21 @@ private struct WeatherRingConditions: View {
                     // stack's center.
                     Color.clear
                     if let symbol = symbols[slot] {
-                        Image(systemName: symbol)
-                            // Sized here rather than around the ring, so a
-                            // symbol going away keeps its size as it goes
-                            // rather than taking the ring's next.
-                            .font(.system(size: ringWidth * 0.5))
-                            .contentTransition(.symbolEffect(.replace))
-                            .transition(.blurReplace)
+                        ZStack {
+                            Image(systemName: symbol)
+                                // Sized here rather than around the ring, so a
+                                // symbol going away keeps its size as it goes
+                                // rather than taking the ring's next.
+                                .font(.system(size: ringWidth * 0.5))
+                                .contentTransition(.symbolEffect(.replace))
+                                // A new symbol between the hours and the days,
+                                // even where it's the same one, so each turns
+                                // over with the others rather than only
+                                // growing or shrinking with the ring.
+                                .id(showsDays)
+                                .transition(.symbolEffect)
+                        }
+                        .transition(.blurReplace)
                     }
                 }
                 .frame(width: ringWidth, height: ringWidth)
@@ -397,7 +405,7 @@ private struct WeatherRingConditions: View {
             // the ring's center.
             let angle = WeatherRing.angle(daysAhead: dotDay)
             ZStack {
-                if showsDot {
+                if showsDays {
                     Circle()
                         .fill(.white)
                         .background {
