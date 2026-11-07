@@ -87,23 +87,18 @@ struct CityWeatherView: View {
                     .contentShape(.circle)
                     .onTapGesture {
                         guard showsDays || !days.isEmpty else { return }
-                        if showsDays {
-                            withAnimation(.smooth, completionCriteria: .removed) {
-                                showsDays = false
-                            } completion: {
-                                // Back to today once the dot's gone, so it
-                                // comes back there rather than travelling
-                                // there from the day it left.
-                                if !showsDays {
-                                    crownDays = 0
-                                }
-                            }
-                        } else {
-                            withAnimation(.smooth) {
-                                // From today, each time the days show.
+                        if !showsDays {
+                            // From today each time the days show, the dot
+                            // appearing there rather than travelling there
+                            // from the day it left, however soon it's back.
+                            var reset = Transaction()
+                            reset.disablesAnimations = true
+                            withTransaction(reset) {
                                 crownDays = 0
-                                showsDays = true
                             }
+                        }
+                        withAnimation(.smooth) {
+                            showsDays.toggle()
                         }
                     }
                 }
