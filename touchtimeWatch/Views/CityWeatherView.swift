@@ -69,7 +69,8 @@ struct CityWeatherView: View {
                         diameter: diameter,
                         ringWidth: ringWidth,
                         symbols: chosenDay == nil ? hourSymbols(in: weather) : daySymbols(days, chosen: chosenDayIndex),
-                        chosenDay: chosenDay == nil ? nil : chosenDayIndex,
+                        dotDay: chosenDayIndex,
+                        showsDot: chosenDay != nil,
                         lineWidth: Self.lineWidth,
                         lineOpacity: Self.lineOpacity
                     )
@@ -86,12 +87,23 @@ struct CityWeatherView: View {
                     .contentShape(.circle)
                     .onTapGesture {
                         guard showsDays || !days.isEmpty else { return }
-                        withAnimation(.smooth) {
-                            // From today, each time the days show.
-                            if !showsDays {
-                                crownDays = 0
+                        if showsDays {
+                            withAnimation(.smooth, completionCriteria: .removed) {
+                                showsDays = false
+                            } completion: {
+                                // Back to today once the dot's gone, so it
+                                // comes back there rather than travelling
+                                // there from the day it left.
+                                if !showsDays {
+                                    crownDays = 0
+                                }
                             }
-                            showsDays.toggle()
+                        } else {
+                            withAnimation(.smooth) {
+                                // From today, each time the days show.
+                                crownDays = 0
+                                showsDays = true
+                            }
                         }
                     }
                 }
@@ -330,8 +342,10 @@ private struct WeatherRingConditions: View {
     /// Each slot's symbol from the top, or nil where none shows, or until its
     /// weather comes in.
     let symbols: [String?]
-    /// The chosen day, in days after today, while the days show.
-    let chosenDay: Int?
+    /// The chosen day, in days after today, where the dot waits while hidden.
+    let dotDay: Int
+    /// Whether the days, and with them the dot, show.
+    let showsDot: Bool
     let lineWidth: CGFloat
     let lineOpacity: Double
 
@@ -351,12 +365,16 @@ private struct WeatherRingConditions: View {
 
             ForEach(symbols.indices, id: \.self) { slot in
                 ZStack {
-                    // Sized even while empty, so an arriving symbol blurs in
+                    // Sized even while empty, so an arriving symbol comes in
                     // where it sits rather than sliding from the empty
                     // stack's center.
                     Color.clear
                     if let symbol = symbols[slot] {
                         Image(systemName: symbol)
+                            // Sized here rather than around the ring, so a
+                            // symbol going away keeps its size as it goes
+                            // rather than taking the ring's next.
+                            .font(.system(size: ringWidth * 0.5))
                             .contentTransition(.symbolEffect(.replace))
                             .transition(.blurReplace)
                     }
@@ -364,33 +382,35 @@ private struct WeatherRingConditions: View {
                 .frame(width: ringWidth, height: ringWidth)
                 .placed(slot: slot, radius: radius, turnsAlong: false)
             }
-            .font(.system(size: ringWidth * 0.5))
             .symbolRenderingMode(.multicolor)
             .foregroundStyle(.primary)
 
-            if let chosenDay {
-                let angle = WeatherRing.angle(daysAhead: chosenDay)
-                Circle()
-                    .fill(.white)
-                    .background {
-                        // As under the daylight ring's sun.
-                        Circle()
-                            .fill(.black.opacity(0.05))
-                            .blur(radius: 5)
-                            .offset(y: 2.5)
-                            .blendMode(.plusDarker)
-                    }
-                    .frame(width: ringWidth * 0.60, height: ringWidth * 0.60)
-                    // Carried around the ring by turning, so it follows the
-                    // ring from day to day, and turned back as it goes so its
-                    // shadow keeps falling downward.
-                    .rotationEffect(-angle)
-                    .offset(y: -radius)
-                    .rotationEffect(angle)
-                    // Fading where it is: anything more would scale it about
-                    // the ring's center.
-                    .transition(.opacity)
+            // Placed even while hidden, so the dot comes and goes on its slot
+            // as the ring grows and shrinks, scaling about itself rather than
+            // the ring's center.
+            let angle = WeatherRing.angle(daysAhead: dotDay)
+            ZStack {
+                if showsDot {
+                    Circle()
+                        .fill(.white)
+                        .background {
+                            // As under the daylight ring's sun.
+                            Circle()
+                                .fill(.black.opacity(0.05))
+                                .blur(radius: 5)
+                                .offset(y: 2.5)
+                                .blendMode(.plusDarker)
+                        }
+                        .transition(.scale(scale: 0.4).combined(with: AnyTransition(.blurReplace)))
+                }
             }
+            .frame(width: ringWidth * 0.60, height: ringWidth * 0.60)
+            // Carried around the ring by turning, so it follows the ring from
+            // day to day, and turned back as it goes so its shadow keeps
+            // falling downward.
+            .rotationEffect(-angle)
+            .offset(y: -radius)
+            .rotationEffect(angle)
         }
         .frame(width: diameter, height: diameter)
     }
