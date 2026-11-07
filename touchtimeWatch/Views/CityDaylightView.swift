@@ -258,7 +258,7 @@ private extension View {
 
 /// A pill bent along a circle through its middle, centered below it, or
 /// above it once turned over across the ring's bottom.
-private struct HourPill: Shape {
+struct HourPill: Shape {
     let radius: CGFloat
     let length: CGFloat
     let thickness: CGFloat

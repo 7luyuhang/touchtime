@@ -11,6 +11,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     case sunPosition
     case daylight
     case moonPhase
+    case weather
 
     var id: Self { self }
 
@@ -21,6 +22,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .solarCurve: "Solar Curve"
         case .sunPosition: "Sun Position"
         case .daylight: "Daylight"
+        case .weather: "Weather"
         }
     }
 
@@ -31,6 +33,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .solarCurve: "sun.max"
         case .sunPosition: "safari"
         case .daylight: "rays"
+        case .weather: "cloud"
         }
     }
 }

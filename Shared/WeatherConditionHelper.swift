@@ -103,6 +103,32 @@ extension WeatherCondition {
             return "cloud.fill"
         }
     }
+
+    // SF Symbol icon by day or by night: after dark, the moon in place of the
+    // sun, or no sun where a symbol has no moon
+    func icon(isDaylight: Bool) -> String {
+        if isDaylight {
+            return icon
+        }
+        switch self {
+        case .clear, .mostlyClear:
+            return "moon.stars.fill"
+        case .partlyCloudy, .mostlyCloudy:
+            return "cloud.moon.fill"
+        case .haze:
+            return "moon.haze.fill"
+        case .blowingDust:
+            return "moon.dust.fill"
+        case .sunShowers:
+            return "cloud.moon.rain.fill"
+        case .sunFlurries:
+            return "cloud.snow.fill"
+        case .hot:
+            return "thermometer.high"
+        default:
+            return icon
+        }
+    }
     
     // Format weather condition name for display
     var displayName: String {

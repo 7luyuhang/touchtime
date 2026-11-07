@@ -2,9 +2,11 @@
 //  CityDetailView.swift
 //  touchtimeWatch
 //
-//  A city's world clock, moon phase, solar curve, sun position, or daylight.
+//  A city's world clock, moon phase, solar curve, sun position, daylight, or
+//  weather.
 //  Turning the Digital Crown moves a day at a time in Moon Phase, and an hour
-//  in the other views, except in Sun Position's live compass, which shows now.
+//  in the other views, except in Weather and Sun Position's live compass,
+//  which show now.
 //
 
 import SwiftUI
@@ -52,6 +54,10 @@ struct CityDetailView: View {
 
     private var isAdjusted: Bool {
         adjustedDate != nil
+    }
+
+    private var crownMovesTime: Bool {
+        display != .weather && !showsLiveCompass
     }
 
     var body: some View {
@@ -124,6 +130,8 @@ struct CityDetailView: View {
                     .background {
                         Color.black.ignoresSafeArea()
                     }
+                case .weather:
+                    CityWeatherView(date: date, timeZone: city.timeZone)
                 }
             }
             // Like World Clock, the clock sits low enough to leave the map
@@ -131,7 +139,7 @@ struct CityDetailView: View {
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 switch display {
-                case .worldClock, .sunPosition:
+                case .worldClock, .sunPosition, .weather:
                     CitySkyBackground(date: date, timeZone: city.timeZone)
                 case .moonPhase, .solarCurve, .daylight:
                     Color.black
@@ -157,7 +165,7 @@ struct CityDetailView: View {
         // Not while sliding back to the list: the details would take the
         // Digital Crown back from it, and a quick turn would move the list's
         // clocks rather than scroll it.
-        .focusable(isPresented && !showsLiveCompass)
+        .focusable(isPresented && crownMovesTime)
         .focused($isCrownFocused)
         .digitalCrownRotation(
             $crownSteps,
@@ -195,7 +203,7 @@ struct CityDetailView: View {
         }
         .sensoryFeedback(.impact(flexibility: .soft), trigger: currentTimeTaps)
         .sheet(isPresented: $showsDisplayPicker, onDismiss: {
-            isCrownFocused = !showsLiveCompass
+            isCrownFocused = crownMovesTime
         }) {
             CityDetailDisplayPicker(cityName: city.name, selection: $display)
         }
@@ -212,11 +220,15 @@ struct CityDetailView: View {
             CitySunTimesSheet(date: sunTimesDate, timeZone: city.timeZone, dateStyle: cityStore.dateStyle)
         }
         .onAppear {
+            // Weather shows now, even after the analog clock moved every clock.
+            if display == .weather {
+                showCurrentTime()
+            }
             // Returning from a sheet must keep an in-progress Crown adjustment's anchor.
             if crownSteps == 0 {
                 crownStart = adjustedDate
             }
-            isCrownFocused = !showsMoonInfo && !showsSunTimes && !showsDisplayPicker && !showsLiveCompass
+            isCrownFocused = !showsMoonInfo && !showsSunTimes && !showsDisplayPicker && crownMovesTime
         }
         .onChange(of: display) { _, _ in
             // Start the new step size at the displayed date without moving it.
@@ -225,12 +237,15 @@ struct CityDetailView: View {
             crownSteps = 0
             showsLiveCompass = false
             showsGlobe = false
+            if display == .weather {
+                showCurrentTime()
+            }
         }
         .onChange(of: showsLiveCompass) { _, showsLiveCompass in
             if showsLiveCompass {
                 showCurrentTime()
             }
-            isCrownFocused = !showsLiveCompass
+            isCrownFocused = crownMovesTime
         }
     }
 
