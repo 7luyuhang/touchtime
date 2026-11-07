@@ -44,7 +44,7 @@ struct CityWeatherView: View {
         let chosenDayIndex = min(max(Int(crownDays.rounded()), 0), max(days.count - 1, 0))
         let chosenDay = showsDays && days.indices.contains(chosenDayIndex) ? days[chosenDayIndex] : nil
 
-        VStack(spacing: 8) {
+        VStack(spacing: 0) {
             GeometryReader { geometry in
                 // As on the daylight ring, the hours take the footer's place,
                 // and the ring shrinks a little to make room for them.
@@ -110,20 +110,27 @@ struct CityWeatherView: View {
                 .frame(width: geometry.size.width, height: geometry.size.height)
             }
 
-            if let chosenDay {
-                Text(dayLabel(chosenDay))
-                    .font(.subheadline)
-                    .monospacedDigit()
-                    .foregroundStyle(.primary)
-                    .blendMode(.plusLighter)
-                    .contentTransition(.numericText())
-                    .multilineTextAlignment(.center)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .scenePadding(.navigationBar, edges: .horizontal)
-                    .transition(.blurReplace)
+            // Blended outside the transition, so the date blends with the sky
+            // as it blurs in and out too, rather than only once it's in.
+            ZStack {
+                if let chosenDay {
+                    Text(dayLabel(chosenDay))
+                        .font(.subheadline)
+                        .monospacedDigit()
+                        .foregroundStyle(.primary)
+                        .contentTransition(.numericText())
+                        .multilineTextAlignment(.center)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .scenePadding(.navigationBar, edges: .horizontal)
+                        // Spaced inside the stack, so the empty stack takes
+                        // no room while the hours show.
+                        .padding(.top, 8)
+                        .transition(.blurReplace)
+                }
             }
+            .blendMode(.plusLighter)
         }
         // The circle's narrow top fits between the toolbar controls, as the
         // daylight ring's does.
@@ -431,13 +438,20 @@ private struct WeatherRingCenter: View {
             if let temperature = day?.highTemperature ?? conditions?.temperature,
                let condition = day?.condition ?? conditions?.condition {
                 VStack(spacing: 0) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 0) {
                         Text(Self.temperature(temperature, useCelsius: useCelsius))
-                        if let day {
-                            Text(Self.temperature(day.lowTemperature, useCelsius: useCelsius))
-                                .foregroundStyle(.secondary)
-                                .transition(.blurReplace)
+                        // As the footer's date, blended outside the
+                        // transition, and spaced inside the stack so the empty
+                        // stack takes no room.
+                        ZStack {
+                            if let day {
+                                Text(Self.temperature(day.lowTemperature, useCelsius: useCelsius))
+                                    .foregroundStyle(.secondary)
+                                    .padding(.leading, 4)
+                                    .transition(.blurReplace)
+                            }
                         }
+                        .blendMode(.plusLighter)
                     }
                     // The days in the daylight ring's time's font, now a size
                     // larger.
