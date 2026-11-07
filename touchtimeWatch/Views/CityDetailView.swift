@@ -6,7 +6,7 @@
 //  weather.
 //  Turning the Digital Crown moves a day at a time in Moon Phase, and an hour
 //  in the other views, except in Weather and Sun Position's live compass,
-//  which show now.
+//  which show now. Weather's days ahead take the Crown themselves.
 //
 
 import SwiftUI
@@ -167,14 +167,16 @@ struct CityDetailView: View {
         // clocks rather than scroll it.
         .focusable(isPresented && crownMovesTime)
         .focused($isCrownFocused)
+        // Turns reach the details too while a view inside them has the
+        // Digital Crown, as Weather's days do, and mustn't move the time then.
         .digitalCrownRotation(
-            $crownSteps,
+            crownMovesTime ? $crownSteps : .constant(0),
             from: -crownRange,
             through: crownRange,
             by: 1,
             sensitivity: .medium,
             isContinuous: false,
-            isHapticFeedbackEnabled: true
+            isHapticFeedbackEnabled: crownMovesTime
         )
         .scrollIndicators(.hidden)
         .navigationBarBackButtonHidden(isAdjusted)

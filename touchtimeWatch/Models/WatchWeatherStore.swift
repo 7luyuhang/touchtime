@@ -2,7 +2,8 @@
 //  WatchWeatherStore.swift
 //  touchtimeWatch
 //
-//  Each city's weather from WeatherKit, now and over the next day.
+//  Each city's weather from WeatherKit: now, over the next day, and over the
+//  days ahead.
 //
 
 import CoreLocation
@@ -10,8 +11,8 @@ import Foundation
 import Observation
 import WeatherKit
 
-/// A city's weather as it was fetched: its conditions now, and each hour's
-/// from the hour under way to a day later.
+/// A city's weather as it was fetched: its conditions now, each hour's from
+/// the hour under way to a day later, and each day's from today.
 struct CityWeather {
     struct Conditions: Equatable {
         let temperature: Measurement<UnitTemperature>
@@ -19,9 +20,19 @@ struct CityWeather {
         let isDaylight: Bool
     }
 
+    struct Day: Equatable {
+        /// The city's midnight at the start of the day.
+        let date: Date
+        let highTemperature: Measurement<UnitTemperature>
+        let lowTemperature: Measurement<UnitTemperature>
+        let condition: WeatherCondition
+    }
+
     let current: Conditions
     /// By the start of each hour.
     let hours: [Date: Conditions]
+    /// From today, in order.
+    let days: [Day]
     let fetchDate: Date
 }
 
@@ -66,10 +77,11 @@ final class WatchWeatherStore {
             defer { fetchingTimeZones.remove(identifier) }
             let hourStart = Self.hourStart(of: .now)
             do {
-                let (current, forecast) = try await WeatherService.shared.weather(
+                let (current, forecast, dailyForecast) = try await WeatherService.shared.weather(
                     for: CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
                     including: .current,
-                    .hourly(startDate: hourStart, endDate: hourStart.addingTimeInterval(24 * 3600))
+                    .hourly(startDate: hourStart, endDate: hourStart.addingTimeInterval(24 * 3600)),
+                    .daily
                 )
                 var hours: [Date: CityWeather.Conditions] = [:]
                 for hour in forecast {
@@ -80,6 +92,18 @@ final class WatchWeatherStore {
                         isDaylight: hour.isDaylight
                     )
                 }
+                var calendar = Calendar(identifier: .gregorian)
+                calendar.timeZone = timeZone
+                let days = dailyForecast.map { day in
+                    CityWeather.Day(
+                        // The city's day most of the forecast's falls in,
+                        // should their midnights differ.
+                        date: calendar.startOfDay(for: day.date.addingTimeInterval(12 * 3600)),
+                        highTemperature: day.highTemperature,
+                        lowTemperature: day.lowTemperature,
+                        condition: day.condition
+                    )
+                }
                 weather[identifier] = CityWeather(
                     current: CityWeather.Conditions(
                         temperature: current.temperature,
@@ -87,6 +111,7 @@ final class WatchWeatherStore {
                         isDaylight: current.isDaylight
                     ),
                     hours: hours,
+                    days: days,
                     fetchDate: .now
                 )
             } catch {
