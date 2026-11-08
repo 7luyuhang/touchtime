@@ -24,6 +24,29 @@
         }
       }
     },
+    "%@ from %@, gusts %@" : {
+      "comment" : "The wind's speed, the direction it comes from, clockwise from north, and its gusts' speed, read by VoiceOver, e.g. \"18 kilometers per hour from 200°, gusts 29 kilometers per hour\"",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ from %2$@, gusts %3$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@，风向 %2$@，阵风 %3$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@，風向 %2$@，陣風 %3$@"
+          }
+        }
+      }
+    },
     "%d hours" : {
       "localizations" : {
         "en" : {
@@ -742,6 +765,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "通用"
+          }
+        }
+      }
+    },
+    "Gusts: %@" : {
+      "comment" : "The wind's gust speed curved under the glass on Wind, in the unit shown in the glass, e.g. \"Gusts: 29\". Drawn a character at a time, so full-width punctuation loses its spacing.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "阵风 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "陣風 %@"
           }
         }
       }

@@ -8,8 +8,8 @@ import WeatherKit
 
 /// The wind over the city now on Sun Position's compass, north up: its speed
 /// on a glass disc in the middle, the way it comes from curved over the glass
-/// and the speed's unit under it, and on the track a ring on the side it comes
-/// from and an arrow on the side it blows to.
+/// and its gusts under it, and on the track a ring on the side it comes from
+/// and an arrow on the side it blows to.
 struct CityWindView: View {
     let date: Date
     let timeZone: TimeZone
@@ -44,8 +44,10 @@ struct CityWindView: View {
                     .transition(.blurReplace)
                 }
 
-                if weather != nil {
-                    WindCurvedLabel(text: windSpeedUnit.localizedSymbol, isAtBottom: true, layout: layout)
+                if let gust = weather?.wind.gust {
+                    let gusts = String(localized: "Gusts: \(windSpeedUnit.number(gust))")
+                    WindCurvedLabel(text: gusts, isAtBottom: true, layout: layout)
+                        .id(gusts)
                         .transition(.blurReplace)
                 }
 
@@ -88,10 +90,16 @@ struct CityWindView: View {
             usage: .asProvided,
             numberFormatStyle: .number.precision(.fractionLength(0))
         )
+        let formattedSpeed = wind.speed.converted(to: windSpeedUnit.unit).formatted(speed)
+        let formattedDirection = Measurement(value: wind.direction, unit: UnitAngle.degrees).formatted(degrees)
+        guard let gust = wind.gust else {
+            return String(format: String(localized: "%@ from %@", locale: locale), formattedSpeed, formattedDirection)
+        }
         return String(
-            format: String(localized: "%@ from %@", locale: locale),
-            wind.speed.converted(to: windSpeedUnit.unit).formatted(speed),
-            Measurement(value: wind.direction, unit: UnitAngle.degrees).formatted(degrees)
+            format: String(localized: "%@ from %@, gusts %@", locale: locale),
+            formattedSpeed,
+            formattedDirection,
+            gust.converted(to: windSpeedUnit.unit).formatted(speed)
         )
     }
 }
@@ -235,8 +243,10 @@ private struct WindDirectionLabel: View, Animatable {
     }
 }
 
-/// The wind's speed in `unit`, alone in the middle of the glass.
+/// The wind's speed over `unit` in the middle of the glass.
 private struct WindSpeedLabel: View {
+    private static let numberFont = Font.system(.headline, design: .rounded, weight: .medium).monospacedDigit()
+
     let speed: Measurement<UnitSpeed>?
     let isLoading: Bool
     let unit: WindSpeedUnit
@@ -244,22 +254,35 @@ private struct WindSpeedLabel: View {
     var body: some View {
         ZStack {
             if let speed {
-                Text(speed.converted(to: unit.unit).value.formatted(.number.precision(.fractionLength(0))))
-                    .contentTransition(.numericText())
-                    .transition(.blurReplace)
+                // Into the room under the digits, which have no descenders.
+                VStack(spacing: -3) {
+                    Text(unit.number(speed))
+                        .font(Self.numberFont)
+                        .contentTransition(.numericText())
+                    Text(unit.localizedSymbol)
+                        .font(.footnote.weight(.medium))
+                }
+                .transition(.blurReplace)
             } else if isLoading {
                 ProgressView()
                     .transition(.blurReplace)
             } else {
                 Text(verbatim: "--")
+                    .font(Self.numberFont)
                     .transition(.blurReplace)
             }
         }
-        .font(.system(.title3, design: .rounded, weight: .medium).monospacedDigit())
         .foregroundStyle(.white)
         .lineLimit(1)
         // The speed at the largest text sizes on the smallest watch.
         .minimumScaleFactor(0.4)
+    }
+}
+
+private extension WindSpeedUnit {
+    /// A speed in this unit to the nearest whole number, without the unit.
+    func number(_ speed: Measurement<UnitSpeed>) -> String {
+        speed.converted(to: unit).value.formatted(.number.precision(.fractionLength(0)))
     }
 }
 
@@ -271,7 +294,11 @@ private struct WindSpeedLabel: View {
             condition: .breezy,
             isDaylight: true
         ),
-        wind: CityWeather.Wind(direction: 200, speed: Measurement(value: 18, unit: .kilometersPerHour)),
+        wind: CityWeather.Wind(
+            direction: 200,
+            speed: Measurement(value: 18, unit: .kilometersPerHour),
+            gust: Measurement(value: 29, unit: .kilometersPerHour)
+        ),
         hours: [:],
         days: [],
         fetchDate: date

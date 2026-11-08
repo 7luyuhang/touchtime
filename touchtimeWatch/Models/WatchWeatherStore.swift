@@ -25,6 +25,8 @@ struct CityWeather {
         /// Where the wind comes from, in degrees clockwise from north.
         let direction: Double
         let speed: Measurement<UnitSpeed>
+        /// Nil when the forecast has none.
+        let gust: Measurement<UnitSpeed>?
     }
 
     struct Day: Equatable {
@@ -120,7 +122,8 @@ final class WatchWeatherStore {
                     ),
                     wind: CityWeather.Wind(
                         direction: current.wind.direction.converted(to: .degrees).value,
-                        speed: current.wind.speed
+                        speed: current.wind.speed,
+                        gust: current.wind.gust
                     ),
                     hours: hours,
                     days: days,

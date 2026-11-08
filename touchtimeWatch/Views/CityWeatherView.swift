@@ -767,7 +767,11 @@ private extension View {
     }
     let weather = CityWeather(
         current: hours[currentHour]!,
-        wind: CityWeather.Wind(direction: 200, speed: Measurement(value: 18, unit: .kilometersPerHour)),
+        wind: CityWeather.Wind(
+            direction: 200,
+            speed: Measurement(value: 18, unit: .kilometersPerHour),
+            gust: Measurement(value: 29, unit: .kilometersPerHour)
+        ),
         hours: hours,
         days: days,
         fetchDate: date
