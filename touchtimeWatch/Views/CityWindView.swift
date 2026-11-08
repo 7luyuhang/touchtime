@@ -262,6 +262,9 @@ private struct WindSpeedLabel: View {
                     Text(unit.localizedSymbol)
                         .font(.footnote.weight(.medium))
                 }
+                // Raised to look centered: the lines leave more room over the
+                // digits than under the unit.
+                .offset(y: -1.5)
                 .transition(.blurReplace)
             } else if isLoading {
                 ProgressView()
