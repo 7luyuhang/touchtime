@@ -394,7 +394,7 @@
         }
       }
     },
-    "Condition" : {
+    "Conditions" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {

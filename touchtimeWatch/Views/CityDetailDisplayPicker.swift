@@ -22,7 +22,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .solarCurve: "Solar Curve"
         case .sunPosition: "Sun Position"
         case .daylight: "Daylight"
-        case .weather: "Condition"
+        case .weather: "Conditions"
         }
     }
 
