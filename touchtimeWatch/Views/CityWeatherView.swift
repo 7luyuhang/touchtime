@@ -8,7 +8,8 @@ import WeatherKit
 
 /// The city's temperature and conditions now, inside a ring of the next 12
 /// hours' conditions, laid out like the daylight ring with its hours showing:
-/// now at its hour, as on a clock's face, and each hour after it clockwise.
+/// now at its hour, as on a clock's face, where the ring is rounded off, and
+/// each hour after it clockwise.
 /// Tapping the middle trades the hours for the days ahead, laid out like the
 /// daylight ring without its hours: today at the bottom left, each day after
 /// it clockwise, and a mark on the ring's inner edge that the Digital Crown
@@ -80,6 +81,7 @@ struct CityWeatherView: View {
                         symbols: chosenDay == nil
                             ? hourSymbols(in: weather, nowHour: hours[0])
                             : daySymbols(days),
+                        nowSlot: WeatherRing.slot(hoursAhead: 0, nowHour: hours[0]),
                         chosenDay: chosenDayIndex,
                         showsDays: chosenDay != nil,
                         lineWidth: Self.lineWidth,
@@ -379,15 +381,18 @@ private struct WeatherRingHours: View {
     }
 }
 
-/// The ring's edges, and between them each slot's symbol, and while the days
-/// show, dividers at their ends and a mark on the inner edge under the chosen
-/// day.
+/// The ring's edges, and between them each slot's symbol. While the hours
+/// show, a half circle rounds the ring off at now, between it and the last
+/// hour, and while the days show, dividers set off their ends and a mark on
+/// the inner edge sits under the chosen day.
 private struct WeatherRingConditions: View {
     let diameter: CGFloat
     let ringWidth: CGFloat
     /// Each slot's symbol from the top, or nil where none shows, or until its
     /// weather comes in.
     let symbols: [String?]
+    /// Now's slot, where the hours start.
+    let nowSlot: Int
     /// The chosen day, in days after today, where the mark waits while hidden.
     let chosenDay: Int
     /// Whether the days, and with them the mark, show.
@@ -402,14 +407,21 @@ private struct WeatherRingConditions: View {
         ZStack {
             ZStack {
                 Circle()
-                    .strokeBorder(.white.opacity(lineOpacity), lineWidth: lineWidth)
+                    .strokeBorder(.white, lineWidth: lineWidth)
                 Circle()
                     .inset(by: ringWidth)
-                    .stroke(.white.opacity(lineOpacity), lineWidth: lineWidth)
+                    .stroke(.white, lineWidth: lineWidth)
+                WeatherRingNowCap(angle: WeatherRing.angle(slot: nowSlot), ringWidth: ringWidth, lineWidth: lineWidth)
+                    .stroke(.white, lineWidth: lineWidth)
+                    .opacity(showsDays ? 0 : 1)
                 WeatherRingDividers(angles: WeatherRing.dayEndAngles, ringWidth: ringWidth, lineWidth: lineWidth)
-                    .stroke(.white.opacity(lineOpacity), lineWidth: lineWidth)
+                    .stroke(.white, lineWidth: lineWidth)
                     .opacity(showsDays ? 1 : 0)
             }
+            // Faded as one, so the lines show no brighter where they run
+            // into each other.
+            .compositingGroup()
+            .opacity(lineOpacity)
             .blendMode(.plusLighter)
 
             ForEach(symbols.indices, id: \.self) { slot in
@@ -462,6 +474,37 @@ private struct WeatherRingConditions: View {
                 .opacity(showsDays ? 1 : 0)
         }
         .frame(width: diameter, height: diameter)
+    }
+}
+
+/// A half circle across the ring, from its inner edge's line to its outer
+/// edge's, round the middle of the slot at `angle`, from the top, clockwise,
+/// on the slot's counterclockwise side, like the round end of a pill.
+private struct WeatherRingNowCap: Shape {
+    let angle: Angle
+    var ringWidth: CGFloat
+    let lineWidth: CGFloat
+
+    var animatableData: CGFloat {
+        get { ringWidth }
+        set { ringWidth = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        // The outer edge's line is stroked inside its circle, and the inner
+        // edge's across its own.
+        let outerRadius = min(rect.width, rect.height) / 2 - lineWidth / 2
+        let innerRadius = min(rect.width, rect.height) / 2 - ringWidth
+        let middle = (outerRadius + innerRadius) / 2
+        var path = Path()
+        // From the inner edge's line, round to the outer's.
+        path.addRelativeArc(
+            center: CGPoint(x: rect.midX + middle * sin(angle.radians), y: rect.midY - middle * cos(angle.radians)),
+            radius: (outerRadius - innerRadius) / 2,
+            startAngle: angle + .degrees(90),
+            delta: .degrees(180)
+        )
+        return path
     }
 }
 
@@ -526,7 +569,7 @@ private struct WeatherRingTemperatures: View {
             if let day {
                 arc
                     .trim(from: scale.fraction(day.highTemperature), to: scale.fraction(day.lowTemperature))
-                    .stroke(.primary, style: style)
+                    .stroke(.cyan, style: style)
             }
         }
         .frame(width: diameter, height: diameter)
