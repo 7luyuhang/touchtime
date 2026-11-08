@@ -125,14 +125,21 @@ private extension CompassDialLayout {
         let base = arrowRadius / 2
         return trackRadius - (point - base) / 2
     }
+    /// Where the lines in from the ring and the arrow fade away: just clear of
+    /// the labels, even of the baseline of the unit's letters, turned outward
+    /// under the glass.
+    var tailEndRadius: CGFloat { glassLabelRadius + 5 }
 }
 
 /// On the track, a ring on the side the wind comes from, and an arrow on the
 /// side it blows to, pointing the way it blows: outlined and solid like the
-/// sun on its track by night and by day.
+/// sun on its track by night and by day. From each, a line runs in toward the
+/// middle, fading away.
 private struct WindMarks: View, Animatable {
     /// As wide as the sun's outline.
     private static let ringLineWidth: CGFloat = 2
+    /// As wide as the dial's ticks.
+    private static let tailWidth: CGFloat = 1.5
 
     /// Where the wind comes from, in degrees clockwise from north.
     var direction: Double
@@ -147,6 +154,13 @@ private struct WindMarks: View, Animatable {
         let arrow = RoundedTriangle(cornerRadius: layout.arrowCornerRadius).rotation(.degrees(direction + 180))
 
         ZStack {
+            // From under the ring's line and the arrow's base, leaving no seam.
+            tail(
+                atDegrees: direction,
+                from: layout.trackRadius - layout.ringDiameter / 2 + Self.ringLineWidth / 2
+            )
+            tail(atDegrees: direction + 180, from: layout.arrowCenterRadius - layout.arrowRadius / 2 + 1)
+
             Circle()
                 .strokeBorder(.white, lineWidth: Self.ringLineWidth)
                 .frame(width: layout.ringDiameter, height: layout.ringDiameter)
@@ -165,6 +179,19 @@ private struct WindMarks: View, Animatable {
                 .position(layout.point(atDegrees: direction + 180, radius: layout.arrowCenterRadius))
         }
         .frame(width: layout.diameter, height: layout.diameter)
+    }
+
+    /// A line along the radius at `degrees`, from `radius` in to where it fades
+    /// away.
+    private func tail(atDegrees degrees: Double, from radius: CGFloat) -> some View {
+        let length = max(0, radius - layout.tailEndRadius)
+
+        return Rectangle()
+            .fill(LinearGradient(colors: [.white.opacity(0), .white], startPoint: .leading, endPoint: .trailing))
+            .frame(width: length, height: Self.tailWidth)
+            // Its white end outward.
+            .rotationEffect(.degrees(degrees - 90))
+            .position(layout.point(atDegrees: degrees, radius: radius - length / 2))
     }
 }
 
