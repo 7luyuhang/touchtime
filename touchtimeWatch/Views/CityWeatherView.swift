@@ -11,9 +11,9 @@ import WeatherKit
 /// now at its hour, as on a clock's face, and each hour after it clockwise.
 /// Tapping the middle trades the hours for the days ahead, laid out like the
 /// daylight ring without its hours: today at the bottom left, each day after
-/// it clockwise, and a dot like its sun that the Digital Crown moves from day
-/// to day. Between the days' ends at the bottom, an arc shows the chosen
-/// day's low and high.
+/// it clockwise, and a mark on the ring's inner edge that the Digital Crown
+/// moves from day to day. Between the days' ends at the bottom, an arc shows
+/// the chosen day's low and high.
 struct CityWeatherView: View {
     let date: Date
     let timeZone: TimeZone
@@ -79,8 +79,8 @@ struct CityWeatherView: View {
                         ringWidth: ringWidth,
                         symbols: chosenDay == nil
                             ? hourSymbols(in: weather, nowHour: hours[0])
-                            : daySymbols(days, chosen: chosenDayIndex),
-                        dotDay: chosenDayIndex,
+                            : daySymbols(days),
+                        chosenDay: chosenDayIndex,
                         showsDays: chosenDay != nil,
                         lineWidth: Self.lineWidth,
                         lineOpacity: Self.lineOpacity
@@ -108,7 +108,7 @@ struct CityWeatherView: View {
                     .onTapGesture {
                         guard showsDays || !days.isEmpty else { return }
                         if !showsDays {
-                            // From today each time the days show, the dot
+                            // From today each time the days show, the mark
                             // appearing there rather than travelling there
                             // from the day it left, however soon it's back.
                             var reset = Transaction()
@@ -225,11 +225,11 @@ struct CityWeatherView: View {
         return symbols
     }
 
-    /// Each slot's symbol while the days show: each day's in its slot, but
-    /// the chosen day's, leaving its slot to the dot.
-    private func daySymbols(_ days: [CityWeather.Day], chosen: Int) -> [String?] {
+    /// Each slot's symbol while the days show: each day's in its slot,
+    /// leaving the bottom to the chosen day's temperatures.
+    private func daySymbols(_ days: [CityWeather.Day]) -> [String?] {
         var symbols = [String?](repeating: nil, count: WeatherRing.slotCount)
-        for (daysAhead, day) in days.enumerated() where daysAhead != chosen {
+        for (daysAhead, day) in days.enumerated() {
             symbols[WeatherRing.slot(daysAhead: daysAhead)] = day.condition.icon
         }
         return symbols
@@ -260,6 +260,11 @@ private enum WeatherRing {
         .degrees((Double(todaySlot) - 0.5) * 360 / Double(slotCount))
     ]
 
+    /// How thick the chosen day's mark and the arc of its temperatures are.
+    static func markWidth(ringWidth: CGFloat) -> CGFloat {
+        ringWidth * 0.10
+    }
+
     /// The city's clock hour for each of the ring's hours, from the one under
     /// way. Read at each hour's middle: where clocks are off UTC's hours, it
     /// starts partway through the clock's hour before the one it ends in.
@@ -287,7 +292,7 @@ private enum WeatherRing {
     }
 
     /// The day's slot's angle, but on past the top rather than back around to
-    /// it, so the dot keeps going clockwise from day to day.
+    /// it, so the mark keeps going clockwise from day to day.
     static func angle(daysAhead: Int) -> Angle {
         angle(slot: todaySlot + daysAhead)
     }
@@ -375,17 +380,17 @@ private struct WeatherRingHours: View {
 }
 
 /// The ring's edges, and between them each slot's symbol, and while the days
-/// show, dividers at their ends and a dot like the daylight ring's sun on the
-/// chosen day.
+/// show, dividers at their ends and a mark on the inner edge under the chosen
+/// day.
 private struct WeatherRingConditions: View {
     let diameter: CGFloat
     let ringWidth: CGFloat
     /// Each slot's symbol from the top, or nil where none shows, or until its
     /// weather comes in.
     let symbols: [String?]
-    /// The chosen day, in days after today, where the dot waits while hidden.
-    let dotDay: Int
-    /// Whether the days, and with them the dot, show.
+    /// The chosen day, in days after today, where the mark waits while hidden.
+    let chosenDay: Int
+    /// Whether the days, and with them the mark, show.
     let showsDays: Bool
     let lineWidth: CGFloat
     let lineOpacity: Double
@@ -437,32 +442,24 @@ private struct WeatherRingConditions: View {
             .symbolRenderingMode(.multicolor)
             .foregroundStyle(.primary)
 
-            // Placed even while hidden, so the dot comes and goes on its slot
-            // as the ring grows and shrinks, scaling about itself rather than
-            // the ring's center.
-            let angle = WeatherRing.angle(daysAhead: dotDay)
-            ZStack {
-                if showsDays {
-                    Circle()
-                        .fill(.white)
-                        .background {
-                            // As under the daylight ring's sun.
-                            Circle()
-                                .fill(.black.opacity(0.05))
-                                .blur(radius: 5)
-                                .offset(y: 2.5)
-                                .blendMode(.plusDarker)
-                        }
-                        .transition(.scale(scale: 0.4).combined(with: AnyTransition(.blurReplace)))
-                }
-            }
-            .frame(width: ringWidth * 0.60, height: ringWidth * 0.60)
-            // Carried around the ring by turning, so it follows the ring from
-            // day to day, and turned back as it goes so its shadow keeps
-            // falling downward.
-            .rotationEffect(-angle)
-            .offset(y: -radius)
-            .rotationEffect(angle)
+            let markWidth = WeatherRing.markWidth(ringWidth: ringWidth)
+            // A slot long from one edge to the other, caps and all, so today's
+            // ends where the days' divider meets the inner edge.
+            let markHalfLength = 1 / Double(WeatherRing.slotCount * 2)
+                - markWidth / 2 / (.pi * max(diameter - ringWidth * 2, 1))
+            Circle()
+                .inset(by: ringWidth)
+                // Around the top, where a circle's path is three quarters of
+                // the way round.
+                .trim(from: 0.75 - markHalfLength, to: 0.75 + markHalfLength)
+                .stroke(.primary, style: StrokeStyle(lineWidth: markWidth, lineCap: .round))
+                // Carried around the ring by turning, so it follows the ring
+                // from day to day.
+                .rotationEffect(WeatherRing.angle(daysAhead: chosenDay))
+                // Out of sight rather than gone while the hours show, so it
+                // comes and goes under its day as the ring grows and shrinks.
+                .blur(radius: showsDays ? 0 : ringWidth * 0.2)
+                .opacity(showsDays ? 1 : 0)
         }
         .frame(width: diameter, height: diameter)
     }
@@ -520,7 +517,7 @@ private struct WeatherRingTemperatures: View {
         let day = days.indices.contains(chosenDay) ? days[chosenDay] : nil
         // Through the middle of the ring.
         let arc = Circle().inset(by: ringWidth / 2)
-        let style = StrokeStyle(lineWidth: ringWidth * 0.10, lineCap: .round)
+        let style = StrokeStyle(lineWidth: WeatherRing.markWidth(ringWidth: ringWidth), lineCap: .round)
 
         ZStack {
             arc
