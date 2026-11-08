@@ -1,6 +1,29 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "%@ from %@" : {
+      "comment" : "The wind's speed and the direction it comes from, clockwise from north, read by VoiceOver, e.g. \"18 kilometers per hour from 200°\"",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ from %2$@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@，风向 %2$@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@，風向 %2$@"
+          }
+        }
+      }
+    },
     "%d hours" : {
       "localizations" : {
         "en" : {
@@ -1658,6 +1681,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "天氣"
+          }
+        }
+      }
+    },
+    "Wind" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "风"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "風"
           }
         }
       }

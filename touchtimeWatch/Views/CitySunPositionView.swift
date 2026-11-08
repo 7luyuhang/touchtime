@@ -70,7 +70,7 @@ struct CitySunPositionView: View {
         let sunHeight = cos(screenAzimuth * .pi / 180)
 
         GeometryReader { geometry in
-            let layout = SunDialLayout(
+            let layout = CompassDialLayout(
                 diameter: max(0, min(geometry.size.width - 16, geometry.size.height - 12))
             )
 
@@ -84,7 +84,7 @@ struct CitySunPositionView: View {
 
                     SunOrbit(
                         azimuth: screenAzimuth,
-                        isSunFilled: position.altitude > SunDialLayout.civilTwilightAltitude,
+                        isSunFilled: position.altitude > CompassDialLayout.civilTwilightAltitude,
                         isLive: isLive,
                         liveColor: Self.liveColor,
                         layout: layout
@@ -182,7 +182,7 @@ struct CitySunPositionView: View {
 
     /// The glass triangle, lit along the sun's side, and its shadow, which
     /// turn the live compass on and off, tinted while it's on.
-    private func triangle(layout: SunDialLayout, sunAzimuth: Double, sunAltitude: Double) -> some View {
+    private func triangle(layout: CompassDialLayout, sunAzimuth: Double, sunAltitude: Double) -> some View {
         let shape = RoundedTriangle(cornerRadius: layout.triangleCornerRadius)
         let tint: Color? = isLive ? Self.liveColor : nil
         let traits: AccessibilityTraits = isLive ? [.isButton, .isSelected] : .isButton
@@ -240,17 +240,14 @@ struct CitySunPositionView: View {
     }
 }
 
-/// The dial's measurements. The labels' band keeps its width on every watch,
-/// like the daylight ring's hours; the rest scales with the diameter.
-private struct SunDialLayout {
+/// The sun's and the triangle's measurements on the dial.
+private extension CompassDialLayout {
     /// The sun's altitude at sunrise and sunset: its upper edge on the
     /// horizon, raised by refraction.
     static let horizonAltitude = -0.833
     /// The sun's altitude at civil dawn and dusk, below which the daylight
     /// ring outlines its sun.
     static let civilTwilightAltitude = -6.0
-    static let labelBandWidth: CGFloat = 16
-    static let lineWidth: CGFloat = 1
 
     /// How much of the sun's light reaches the ground: rising from 0 to 1 as
     /// its disc, about half a degree across, clears the horizon at sunrise,
@@ -258,21 +255,6 @@ private struct SunDialLayout {
     static func sunlight(atAltitude altitude: Double) -> Double {
         smoothstep(from: horizonAltitude, to: horizonAltitude + 0.53, value: altitude)
     }
-
-    let diameter: CGFloat
-
-    var center: CGPoint { CGPoint(x: diameter / 2, y: diameter / 2) }
-    /// The dial's edge, inset to keep its line inside.
-    var edgeRadius: CGFloat { (diameter - Self.lineWidth) / 2 }
-    /// Through the middle of the outer band, where the labels sit.
-    var labelRadius: CGFloat { (diameter - Self.labelBandWidth) / 2 }
-    /// As big as the daylight ring's sun, whose ring is a little smaller than
-    /// this dial.
-    var sunDiameter: CGFloat { diameter * 0.11 }
-    /// The sun's track, inside the labels' band, which the sun fills.
-    var trackOuterRadius: CGFloat { diameter / 2 - Self.labelBandWidth }
-    var trackInnerRadius: CGFloat { trackOuterRadius - sunDiameter }
-    var orbitRadius: CGFloat { trackOuterRadius - sunDiameter / 2 }
 
     /// From the triangle's center to where its sides would meet.
     var triangleRadius: CGFloat { diameter * 0.18 }
@@ -311,101 +293,6 @@ private struct SunDialLayout {
     var maxShadowLength: CGFloat { max(trackInnerRadius - triangleRadius, 1) * 1.3 }
 }
 
-/// The dial's rings: N, E, S and W and the degrees between them around the
-/// outside, with a small tick between each two, and inside them the track the
-/// sun travels. Live, it turns against the watch's heading.
-private struct CompassDial: View, Animatable {
-    private static let labelDegrees = Array(stride(from: 0, to: 360, by: 30))
-    /// Halfway between each two labels.
-    private static let tickDegrees = labelDegrees.map { $0 + 15 }
-    private static let tickSize = CGSize(width: 1.5, height: 6)
-    /// The rings' and the ticks', lightening the sky behind them.
-    private static let lineColor = Color.white.opacity(0.1)
-
-    let layout: SunDialLayout
-    /// How far the dial is turned counterclockwise, in degrees.
-    var heading: Double
-    /// The labels turned over to read left to right across the bottom.
-    let flippedLabels: Set<Int>
-
-    var animatableData: Double {
-        get { heading }
-        set { heading = newValue }
-    }
-
-    /// The labels below the sides of the dial turned to `heading`. Updated
-    /// from `current`, a label on a side keeps its way up until it's well
-    /// past, so a wavering heading can't flip it back and forth.
-    static func flippedLabels(atHeading heading: Double, from current: Set<Int>? = nil) -> Set<Int> {
-        Set(labelDegrees.filter { degrees in
-            // Around the screen, clockwise from the top.
-            var angle = (Double(degrees) - heading).truncatingRemainder(dividingBy: 360)
-            if angle < 0 {
-                angle += 360
-            }
-            guard let current else {
-                // E and W, on the sides with north up, read along the top half.
-                return angle > 90 && angle < 270
-            }
-            let height = cos(angle * .pi / 180)
-            return abs(height) > 0.25 ? height < 0 : current.contains(degrees)
-        })
-    }
-
-    var body: some View {
-        ZStack {
-            Path { path in
-                for radius in [layout.edgeRadius, layout.trackOuterRadius, layout.trackInnerRadius] {
-                    path.addEllipse(in: CGRect(
-                        x: layout.center.x - radius,
-                        y: layout.center.y - radius,
-                        width: radius * 2,
-                        height: radius * 2
-                    ))
-                }
-            }
-            .stroke(Self.lineColor, lineWidth: SunDialLayout.lineWidth)
-            .blendMode(.plusLighter)
-
-            ForEach(Self.tickDegrees, id: \.self) { degrees in
-                Capsule()
-                    .fill(Self.lineColor)
-                    .blendMode(.plusLighter)
-                    .frame(width: Self.tickSize.width, height: Self.tickSize.height)
-                    .rotationEffect(.degrees(Double(degrees) - heading))
-                    .position(layout.point(atDegrees: Double(degrees) - heading, radius: layout.labelRadius))
-            }
-
-            ForEach(Self.labelDegrees, id: \.self) { degrees in
-                let label = Text(verbatim: degrees.isMultiple(of: 90) ? ["N", "E", "S", "W"][degrees / 90] : String(degrees))
-
-                Group {
-                    if degrees == 0 {
-                        // Just clear of the lines either side of the labels,
-                        // with the N cut out of it.
-                        Circle()
-                            .fill(.white)
-                            .frame(width: SunDialLayout.labelBandWidth - 2, height: SunDialLayout.labelBandWidth - 2)
-                            .overlay {
-                                label.blendMode(.destinationOut)
-                            }
-                            .compositingGroup()
-                    } else {
-                        label.foregroundStyle(.white)
-                    }
-                }
-                // Turned along the dial, and over across its bottom half to
-                // read left to right, like the daylight ring's hours.
-                .scaleEffect(flippedLabels.contains(degrees) ? -1 : 1)
-                .rotationEffect(.degrees(Double(degrees) - heading))
-                .position(layout.point(atDegrees: Double(degrees) - heading, radius: layout.labelRadius))
-            }
-            .font(.system(size: 11, weight: .semibold, design: .rounded))
-        }
-        .frame(width: layout.diameter, height: layout.diameter)
-    }
-}
-
 /// The sun on its track, as on the daylight ring: a disc while it's light out,
 /// and an outline from civil dusk to dawn.
 private struct SunOrbit: View, Animatable {
@@ -415,7 +302,7 @@ private struct SunOrbit: View, Animatable {
     let isLive: Bool
     /// The sun's color while live, in place of white.
     let liveColor: Color
-    let layout: SunDialLayout
+    let layout: CompassDialLayout
 
     var animatableData: Double {
         get { azimuth }
@@ -449,8 +336,8 @@ private struct SunOrbit: View, Animatable {
                 .opacity(fill)
         }
         .animation(.smooth, value: fill)
-        .frame(width: layout.sunDiameter, height: layout.sunDiameter)
-        .position(layout.point(atDegrees: azimuth, radius: layout.orbitRadius))
+        .frame(width: layout.trackWidth, height: layout.trackWidth)
+        .position(layout.point(atDegrees: azimuth, radius: layout.trackRadius))
         .frame(width: layout.diameter, height: layout.diameter)
     }
 }
@@ -460,7 +347,6 @@ private struct SunOrbit: View, Animatable {
 /// bottom half, and across the bottom while it's in the top half. The
 /// degrees count along as the sun moves.
 private struct SunPositionLabel: View, Animatable {
-    private static let directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
     private static let font = Font.system(.footnote, weight: .medium).monospacedDigit()
     /// Clear of the sun, which is always in the other half.
     private static let maxAngle = Angle.degrees(140)
@@ -471,7 +357,7 @@ private struct SunPositionLabel: View, Animatable {
     /// Where the sun is headed, rather than where it is on the way, sets the
     /// side.
     let isSunInTopHalf: Bool
-    let layout: SunDialLayout
+    let layout: CompassDialLayout
 
     var animatableData: Double {
         get { azimuth }
@@ -479,8 +365,7 @@ private struct SunPositionLabel: View, Animatable {
     }
 
     var body: some View {
-        let degrees = (Int(azimuth.rounded()) % 360 + 360) % 360
-        let direction = "\(degrees)°\(Self.directions[(degrees + 22) / 45 % 8])"
+        let direction = CompassDial.bearing(azimuth)
         let text = dateLabel.map { "\($0) · \(direction)" } ?? direction
 
         ZStack {
@@ -500,7 +385,7 @@ private struct SunPositionLabel: View, Animatable {
         CurvedText(
             text: text,
             font: Self.font,
-            radius: layout.orbitRadius,
+            radius: layout.trackRadius,
             maxAngle: Self.maxAngle,
             isAtBottom: isAtBottom
         )
@@ -521,7 +406,7 @@ private struct TriangleShadow: View, Animatable {
     var azimuth: Double
     /// Degrees above the horizon.
     var altitude: Double
-    let layout: SunDialLayout
+    let layout: CompassDialLayout
 
     var animatableData: AnimatablePair<Double, Double> {
         get { AnimatablePair(azimuth, altitude) }
@@ -608,7 +493,7 @@ private struct TriangleShadow: View, Animatable {
             }
         }
         .frame(width: layout.diameter, height: layout.diameter)
-        .opacity(SunDialLayout.sunlight(atAltitude: altitude))
+        .opacity(CompassDialLayout.sunlight(atAltitude: altitude))
         .blendMode(.plusDarker)
     }
 }
@@ -623,7 +508,7 @@ private struct TriangleHighlight: View, Animatable {
     var azimuth: Double
     /// Degrees above the horizon.
     var altitude: Double
-    let layout: SunDialLayout
+    let layout: CompassDialLayout
 
     var animatableData: AnimatablePair<Double, Double> {
         get { AnimatablePair(azimuth, altitude) }
@@ -654,91 +539,8 @@ private struct TriangleHighlight: View, Animatable {
                 lineWidth: Self.lineWidth * 2
             )
             .clipShape(shape)
-            .opacity(SunDialLayout.sunlight(atAltitude: altitude) * cos(max(altitude, 0) * .pi / 180))
+            .opacity(CompassDialLayout.sunlight(atAltitude: altitude) * cos(max(altitude, 0) * .pi / 180))
             .blendMode(.plusLighter)
-    }
-}
-
-/// An equilateral triangle pointing north, centered on its middle, with
-/// rounded corners.
-private struct RoundedTriangle: Shape {
-    var cornerRadius: CGFloat
-
-    /// Its corners `radius` from `center`, clockwise from the top.
-    static func vertices(center: CGPoint, radius: CGFloat) -> [CGPoint] {
-        (0..<3).map { index in
-            let angle = Double(index) * 2 * .pi / 3
-            return CGPoint(x: center.x + radius * sin(angle), y: center.y - radius * cos(angle))
-        }
-    }
-
-    func path(in rect: CGRect) -> Path {
-        let vertices = Self.vertices(
-            center: CGPoint(x: rect.midX, y: rect.midY),
-            radius: min(rect.width, rect.height) / 2
-        )
-        var path = Path()
-        path.move(to: CGPoint(x: (vertices[2].x + vertices[0].x) / 2, y: (vertices[2].y + vertices[0].y) / 2))
-        for index in vertices.indices {
-            path.addArc(
-                tangent1End: vertices[index],
-                tangent2End: vertices[(index + 1) % vertices.count],
-                radius: cornerRadius
-            )
-        }
-        path.closeSubpath()
-        return path
-    }
-}
-
-/// A line of text bent along a circle about the middle of its frame: across
-/// the top reading clockwise, or across the bottom turned over to read left
-/// to right, like the dial's labels there.
-private struct CurvedText: View {
-    let text: String
-    let font: Font
-    let radius: CGFloat
-    /// The most of the circle the text spans, shrinking to fit beyond it.
-    let maxAngle: Angle
-    let isAtBottom: Bool
-
-    var body: some View {
-        Canvas { context, size in
-            let characters = text.map { character in
-                context.resolve(
-                    Text(verbatim: String(character))
-                        .font(font)
-                        .foregroundStyle(.white)
-                )
-            }
-            let widths = characters.map { $0.measure(in: size).width }
-            let length = widths.reduce(0, +)
-            let scale = min(1, radius * maxAngle.radians / length)
-
-            let center = CGPoint(x: size.width / 2, y: size.height / 2)
-            // Along the circle from the text's middle to the character's.
-            var distance = -length * scale / 2
-            for (character, width) in zip(characters, widths) {
-                let angle = (distance + width * scale / 2) / radius
-                distance += width * scale
-                // Clockwise from north: left to right runs clockwise across
-                // the top, and counterclockwise across the bottom.
-                let position = isAtBottom ? .pi - angle : angle
-                var glyph = context
-                glyph.translateBy(x: center.x + radius * sin(position), y: center.y - radius * cos(position))
-                glyph.rotate(by: .radians(isAtBottom ? -angle : angle))
-                glyph.scaleBy(x: scale, y: scale)
-                glyph.draw(character, at: .zero)
-            }
-        }
-    }
-}
-
-private extension SunDialLayout {
-    /// `radius` from the center, `degrees` clockwise from north.
-    func point(atDegrees degrees: Double, radius: CGFloat) -> CGPoint {
-        let angle = degrees * .pi / 180
-        return CGPoint(x: center.x + radius * sin(angle), y: center.y - radius * cos(angle))
     }
 }
 

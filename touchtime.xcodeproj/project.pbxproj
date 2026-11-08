@@ -143,6 +143,7 @@
 				TimeZoneCoordinates.swift,
 				WatchCity.swift,
 				WeatherConditionHelper.swift,
+				WindSpeedUnit.swift,
 				WorldClock.swift,
 			);
 			target = E300000000000000000000A2 /* touchtimeWatch */;

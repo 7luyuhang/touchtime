@@ -118,7 +118,7 @@ struct touchtimeApp: App {
                 SharedWidgetStore.syncFromApp()
                 WidgetCenter.shared.reloadAllTimelines()
                 // And the Apple Watch app's cities, date style, first day of
-                // the week and temperature unit, whichever screen changed them
+                // the week and units, whichever screen changed them
                 WatchSyncManager.shared.sync()
             }
         }

@@ -765,7 +765,13 @@ private extension View {
             condition: day.2
         )
     }
-    let weather = CityWeather(current: hours[currentHour]!, hours: hours, days: days, fetchDate: date)
+    let weather = CityWeather(
+        current: hours[currentHour]!,
+        wind: CityWeather.Wind(direction: 200, speed: Measurement(value: 18, unit: .kilometersPerHour)),
+        hours: hours,
+        days: days,
+        fetchDate: date
+    )
 
     NavigationStack {
         CityWeatherView(date: date, timeZone: .current, useCelsius: true, dateStyle: "Relative")

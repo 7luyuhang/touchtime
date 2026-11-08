@@ -12,6 +12,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     case daylight
     case moonPhase
     case weather
+    case wind
 
     var id: Self { self }
 
@@ -23,6 +24,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .sunPosition: "Sun Position"
         case .daylight: "Daylight"
         case .weather: "Conditions"
+        case .wind: "Wind"
         }
     }
 
@@ -34,7 +36,13 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .sunPosition: "safari"
         case .daylight: "rays"
         case .weather: "cloud"
+        case .wind: "wind"
         }
+    }
+
+    /// Whether the view shows the weather now, whatever time the clocks show.
+    var showsNow: Bool {
+        self == .weather || self == .wind
     }
 }
 
@@ -60,6 +68,7 @@ struct CityDetailDisplayPicker: View {
 
                 Section("Weather") {
                     row(for: .weather)
+                    row(for: .wind)
                 }
             }
             .navigationTitle(cityName)

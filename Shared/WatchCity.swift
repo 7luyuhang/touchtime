@@ -34,4 +34,6 @@ nonisolated enum WatchSyncKeys {
     /// The iPhone app's temperature unit: true for Celsius, false for
     /// Fahrenheit.
     static let useCelsius = "useCelsius"
+    /// The iPhone app's wind speed unit: a `WindSpeedUnit`'s raw value.
+    static let windSpeedUnit = "windSpeedUnit"
 }

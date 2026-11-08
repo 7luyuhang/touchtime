@@ -2,11 +2,11 @@
 //  CityDetailView.swift
 //  touchtimeWatch
 //
-//  A city's world clock, moon phase, solar curve, sun position, daylight, or
-//  weather.
+//  A city's world clock, moon phase, solar curve, sun position, daylight,
+//  weather, or wind.
 //  Turning the Digital Crown moves a day at a time in Moon Phase, and an hour
-//  in the other views, except in Weather and Sun Position's live compass,
-//  which show now. Weather's days ahead take the Crown themselves.
+//  in the other views, except in Weather, Wind and Sun Position's live
+//  compass, which show now. Weather's days ahead take the Crown themselves.
 //
 
 import SwiftUI
@@ -57,7 +57,7 @@ struct CityDetailView: View {
     }
 
     private var crownMovesTime: Bool {
-        display != .weather && !showsLiveCompass
+        !display.showsNow && !showsLiveCompass
     }
 
     var body: some View {
@@ -137,6 +137,12 @@ struct CityDetailView: View {
                         useCelsius: cityStore.useCelsius,
                         dateStyle: cityStore.dateStyle
                     )
+                case .wind:
+                    CityWindView(
+                        date: date,
+                        timeZone: city.timeZone,
+                        windSpeedUnit: cityStore.windSpeedUnit
+                    )
                 }
             }
             // Like World Clock, the clock sits low enough to leave the map
@@ -144,7 +150,7 @@ struct CityDetailView: View {
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 switch display {
-                case .worldClock, .sunPosition, .weather:
+                case .worldClock, .sunPosition, .weather, .wind:
                     CitySkyBackground(date: date, timeZone: city.timeZone)
                 case .moonPhase, .solarCurve, .daylight:
                     Color.black
@@ -233,8 +239,9 @@ struct CityDetailView: View {
             CitySunTimesSheet(date: sunTimesDate, timeZone: city.timeZone, dateStyle: cityStore.dateStyle)
         }
         .onAppear {
-            // Weather shows now, even after the analog clock moved every clock.
-            if display == .weather {
+            // Weather and Wind show now, even after the analog clock moved
+            // every clock.
+            if display.showsNow {
                 showCurrentTime()
             }
             // Returning from a sheet must keep an in-progress Crown adjustment's anchor.
@@ -250,7 +257,7 @@ struct CityDetailView: View {
             crownSteps = 0
             showsLiveCompass = false
             showsGlobe = false
-            if display == .weather {
+            if display.showsNow {
                 showCurrentTime()
             }
         }

@@ -11,13 +11,20 @@ import Foundation
 import Observation
 import WeatherKit
 
-/// A city's weather as it was fetched: its conditions now, each hour's from
-/// the hour under way to a day later, and each day's from today.
+/// A city's weather as it was fetched: its conditions and wind now, each
+/// hour's conditions from the hour under way to a day later, and each day's
+/// from today.
 struct CityWeather {
     struct Conditions: Equatable {
         let temperature: Measurement<UnitTemperature>
         let condition: WeatherCondition
         let isDaylight: Bool
+    }
+
+    struct Wind: Equatable {
+        /// Where the wind comes from, in degrees clockwise from north.
+        let direction: Double
+        let speed: Measurement<UnitSpeed>
     }
 
     struct Day: Equatable {
@@ -29,6 +36,7 @@ struct CityWeather {
     }
 
     let current: Conditions
+    let wind: Wind
     /// By the start of each hour.
     let hours: [Date: Conditions]
     /// From today, in order.
@@ -109,6 +117,10 @@ final class WatchWeatherStore {
                         temperature: current.temperature,
                         condition: current.condition,
                         isDaylight: current.isDaylight
+                    ),
+                    wind: CityWeather.Wind(
+                        direction: current.wind.direction.converted(to: .degrees).value,
+                        speed: current.wind.speed
                     ),
                     hours: hours,
                     days: days,
