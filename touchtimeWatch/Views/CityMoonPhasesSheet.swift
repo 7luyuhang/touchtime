@@ -5,10 +5,10 @@
 
 import SwiftUI
 
-/// The month's moons, then the day's moonrise and moonset and the moon's
-/// illumination and distance, where the sheet opens, then the next
-/// occurrence of each principal phase, ordered by date. Tap anywhere in the
-/// phases to switch between dates and days remaining.
+/// The day's moonrise and moonset and the moon's illumination and distance,
+/// then the month's moons, then the next occurrence of each principal phase,
+/// ordered by date. Tap anywhere in the phases to switch between dates and
+/// days remaining.
 struct CityMoonPhasesSheet: View {
     let date: Date
     let timeZone: TimeZone
@@ -18,11 +18,6 @@ struct CityMoonPhasesSheet: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.locale) private var locale
     @State private var showsRemainingDays = false
-    @State private var page = Page.details
-
-    private enum Page {
-        case calendar, details, phases
-    }
 
     private struct Event: Identifiable {
         let phase: MoonPhase
@@ -68,13 +63,10 @@ struct CityMoonPhasesSheet: View {
 
     var body: some View {
         NavigationStack {
-            TabView(selection: $page) {
-                CityMoonCalendarPage(date: date, timeZone: timeZone, firstWeekday: firstWeekday)
-                    .tag(Page.calendar)
+            TabView {
                 detailsPage
-                    .tag(Page.details)
+                CityMoonCalendarPage(date: date, timeZone: timeZone, firstWeekday: firstWeekday)
                 phasesPage
-                    .tag(Page.phases)
             }
             .tabViewStyle(.verticalPage)
             .navigationTitle(phase.localizedName)
