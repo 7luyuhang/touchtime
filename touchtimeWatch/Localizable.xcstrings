@@ -211,6 +211,22 @@
         }
       }
     },
+    "Astronomy" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天文"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天文"
+          }
+        }
+      }
+    },
     "Azimuth %@, altitude %@" : {
       "comment" : "The sun's direction clockwise from north and its height above the horizon, read by VoiceOver, e.g. \"Azimuth 213°, altitude 34°\"",
       "localizations" : {
@@ -374,6 +390,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "多雲"
+          }
+        }
+      }
+    },
+    "Condition" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "状况"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "狀況"
           }
         }
       }
@@ -671,6 +703,22 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "滿月"
+          }
+        }
+      }
+    },
+    "General" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通用"
           }
         }
       }
@@ -1530,22 +1578,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "UTC"
-          }
-        }
-      }
-    },
-    "Viewing" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在查看"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "正在檢視"
           }
         }
       }

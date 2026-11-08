@@ -22,7 +22,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .solarCurve: "Solar Curve"
         case .sunPosition: "Sun Position"
         case .daylight: "Daylight"
-        case .weather: "Weather"
+        case .weather: "Condition"
         }
     }
 
@@ -47,26 +47,19 @@ struct CityDetailDisplayPicker: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("Viewing") {
-                    ForEach(CityDetailDisplay.allCases) { display in
-                        Button {
-                            selection = display
-                            dismiss()
-                        } label: {
-                            HStack {
-                                Label(display.title, systemImage: display.symbolName)
-                                    .symbolRenderingMode(.monochrome)
-                                Spacer(minLength: 4)
-                                if selection == display {
-                                    Image(systemName: "checkmark")
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
-                                        .accessibilityHidden(true)
-                                }
-                            }
-                        }
-                        .accessibilityAddTraits(selection == display ? .isSelected : [])
-                    }
+                Section("General") {
+                    row(for: .worldClock)
+                }
+
+                Section("Astronomy") {
+                    row(for: .solarCurve)
+                    row(for: .sunPosition)
+                    row(for: .daylight)
+                    row(for: .moonPhase)
+                }
+
+                Section("Weather") {
+                    row(for: .weather)
                 }
             }
             .navigationTitle(cityName)
@@ -79,5 +72,25 @@ struct CityDetailDisplayPicker: View {
                 }
             }
         }
+    }
+
+    private func row(for display: CityDetailDisplay) -> some View {
+        Button {
+            selection = display
+            dismiss()
+        } label: {
+            HStack {
+                Label(display.title, systemImage: display.symbolName)
+                    .symbolRenderingMode(.monochrome)
+                Spacer(minLength: 4)
+                if selection == display {
+                    Image(systemName: "checkmark")
+                        .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
+                        .accessibilityHidden(true)
+                }
+            }
+        }
+        .accessibilityAddTraits(selection == display ? .isSelected : [])
     }
 }

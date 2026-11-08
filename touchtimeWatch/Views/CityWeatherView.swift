@@ -94,6 +94,7 @@ struct CityWeatherView: View {
                         ringWidth: ringWidth,
                         days: days,
                         chosenDay: chosenDayIndex,
+                        temperature: weather?.current.temperature,
                         isVisible: chosenDay != nil
                     )
                     .accessibilityHidden(true)
@@ -539,8 +540,9 @@ private struct WeatherRingDividers: Shape {
 
 /// At the ring's bottom, between the days' ends, an arc from the days'
 /// lowest temperature at its left to their highest at its right, colored from
-/// the chosen day's low to its high. Every day shares the arc, as the Weather
-/// app's bars do, so turning from day to day moves the color along it.
+/// the chosen day's low to its high, and on today's, a dot at the temperature
+/// now. Every day shares the arc, as the Weather app's bars do, so turning
+/// from day to day moves the color along it.
 private struct WeatherRingTemperatures: View {
     let diameter: CGFloat
     let ringWidth: CGFloat
@@ -548,37 +550,80 @@ private struct WeatherRingTemperatures: View {
     /// The chosen day, in days after today, whose temperatures stay while
     /// hidden.
     let chosenDay: Int
+    /// The temperature now, dotted on today's.
+    let temperature: Measurement<UnitTemperature>?
     let isVisible: Bool
 
     var body: some View {
-        let celsius = days
-            .flatMap { [$0.lowTemperature, $0.highTemperature] }
+        // The temperature now too, so its dot is on the arc even where it's
+        // past today's forecast.
+        let celsius = (days.flatMap { [$0.lowTemperature, $0.highTemperature] } + [temperature].compactMap { $0 })
             .map { $0.converted(to: .celsius).value }
         let lowest = celsius.min() ?? 0
         // Never an empty span, even where every day's the same.
         let scale = Scale(lowest: lowest, highest: max(celsius.max() ?? 0, lowest + 1))
         let day = days.indices.contains(chosenDay) ? days[chosenDay] : nil
+        let lineWidth = WeatherRing.markWidth(ringWidth: ringWidth)
         // Through the middle of the ring.
         let arc = Circle().inset(by: ringWidth / 2)
-        let style = StrokeStyle(lineWidth: WeatherRing.markWidth(ringWidth: ringWidth), lineCap: .round)
+        let style = StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+        let dotAngle = Angle.degrees(360 * (temperature.map(scale.fraction) ?? Scale.lowEnd))
+        let dotOffset = CGSize(
+            width: (diameter - ringWidth) / 2 * cos(dotAngle.radians),
+            height: (diameter - ringWidth) / 2 * sin(dotAngle.radians)
+        )
 
+        // Each layer fades out of sight rather than going while the hours
+        // show, so it grows and shrinks with the ring as it comes and goes.
         ZStack {
-            arc
-                .trim(from: Scale.highEnd, to: Scale.lowEnd)
-                .stroke(.white.opacity(0.25), style: style)
-            if let day {
+            // Lighter where the sky is, as the ring's lines are, but on its
+            // own, since the color on it would wash out.
+            ZStack {
                 arc
-                    .trim(from: scale.fraction(day.highTemperature), to: scale.fraction(day.lowTemperature))
-                    .stroke(.cyan, style: style)
+                    .trim(from: Scale.highEnd, to: Scale.lowEnd)
+                    .stroke(.white.opacity(0.10), style: style)
+                dot(lineWidth: lineWidth, isHole: true)
+                    .offset(dotOffset)
             }
+            .compositingGroup()
+            .blur(radius: isVisible ? 0 : ringWidth * 0.2)
+            .opacity(isVisible ? 1 : 0)
+            .blendMode(.plusLighter)
+
+            ZStack {
+                if let day {
+                    arc
+                        .trim(from: scale.fraction(day.highTemperature), to: scale.fraction(day.lowTemperature))
+                        .stroke(.cyan, style: style)
+                }
+                dot(lineWidth: lineWidth, isHole: false)
+                    .offset(dotOffset)
+            }
+            .compositingGroup()
+            .blur(radius: isVisible ? 0 : ringWidth * 0.2)
+            .opacity(isVisible ? 1 : 0)
         }
         .frame(width: diameter, height: diameter)
-        // Fading as one, so the track doesn't show through the color.
-        .compositingGroup()
-        // Out of sight rather than gone while the hours show, so it grows and
-        // shrinks with the ring as it comes and goes.
-        .blur(radius: isVisible ? 0 : ringWidth * 0.2)
-        .opacity(isVisible ? 1 : 0)
+    }
+
+    /// Today's dot, placed even while hidden so it comes and goes where it
+    /// is, in a ring cut out of its layer round the dot's own circle so the
+    /// sky rings it evenly, or for the track's layer, only the hole.
+    private func dot(lineWidth: CGFloat, isHole: Bool) -> some View {
+        ZStack {
+            if chosenDay == 0, temperature != nil {
+                Circle()
+                    .fill(.white)
+                    .blendMode(isHole ? .destinationOut : .normal)
+                    .background {
+                        Circle()
+                            .stroke(lineWidth: lineWidth * 0.75)
+                            .blendMode(.destinationOut)
+                    }
+                    .frame(width: lineWidth, height: lineWidth)
+                    .transition(.scale)
+            }
+        }
     }
 
     /// Where temperatures go along the arc, as fractions of the way around a
