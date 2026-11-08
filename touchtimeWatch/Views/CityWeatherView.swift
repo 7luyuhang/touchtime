@@ -12,7 +12,8 @@ import WeatherKit
 /// Tapping the middle trades the hours for the days ahead, laid out like the
 /// daylight ring without its hours: today at the bottom left, each day after
 /// it clockwise, and a dot like its sun that the Digital Crown moves from day
-/// to day.
+/// to day. Between the days' ends at the bottom, an arc shows the chosen
+/// day's low and high.
 struct CityWeatherView: View {
     let date: Date
     let timeZone: TimeZone
@@ -83,6 +84,15 @@ struct CityWeatherView: View {
                         showsDays: chosenDay != nil,
                         lineWidth: Self.lineWidth,
                         lineOpacity: Self.lineOpacity
+                    )
+                    .accessibilityHidden(true)
+
+                    WeatherRingTemperatures(
+                        diameter: diameter,
+                        ringWidth: ringWidth,
+                        days: days,
+                        chosenDay: chosenDayIndex,
+                        isVisible: chosenDay != nil
                     )
                     .accessibilityHidden(true)
 
@@ -216,12 +226,11 @@ struct CityWeatherView: View {
     }
 
     /// Each slot's symbol while the days show: each day's in its slot, but
-    /// the chosen day's at the bottom, leaving its slot to the dot.
+    /// the chosen day's, leaving its slot to the dot.
     private func daySymbols(_ days: [CityWeather.Day], chosen: Int) -> [String?] {
         var symbols = [String?](repeating: nil, count: WeatherRing.slotCount)
-        for (daysAhead, day) in days.enumerated() {
-            let slot = daysAhead == chosen ? WeatherRing.chosenDaySlot : WeatherRing.slot(daysAhead: daysAhead)
-            symbols[slot] = day.condition.icon
+        for (daysAhead, day) in days.enumerated() where daysAhead != chosen {
+            symbols[WeatherRing.slot(daysAhead: daysAhead)] = day.condition.icon
         }
         return symbols
     }
@@ -239,11 +248,17 @@ private enum WeatherRing {
     static let slotCount = 12
     static let hourCount = 12
     /// Today's slot is at the bottom left, and each day after it a slot
-    /// further clockwise, round to the bottom right. The chosen day's symbol
-    /// goes to the bottom, between them.
+    /// further clockwise, round to the bottom right, leaving the bottom
+    /// between them to the chosen day's temperatures.
     static let dayCount = 9
     static let todaySlot = 8
-    static let chosenDaySlot = 6
+
+    /// The days' ends, half a slot past the last day's and before today's,
+    /// where dividers set them apart from the temperatures between them.
+    static let dayEndAngles: [Angle] = [
+        .degrees((Double(todaySlot + dayCount - 1) + 0.5) * 360 / Double(slotCount)),
+        .degrees((Double(todaySlot) - 0.5) * 360 / Double(slotCount))
+    ]
 
     /// The city's clock hour for each of the ring's hours, from the one under
     /// way. Read at each hour's middle: where clocks are off UTC's hours, it
@@ -360,7 +375,8 @@ private struct WeatherRingHours: View {
 }
 
 /// The ring's edges, and between them each slot's symbol, and while the days
-/// show, a dot like the daylight ring's sun on the chosen day.
+/// show, dividers at their ends and a dot like the daylight ring's sun on the
+/// chosen day.
 private struct WeatherRingConditions: View {
     let diameter: CGFloat
     let ringWidth: CGFloat
@@ -385,6 +401,9 @@ private struct WeatherRingConditions: View {
                 Circle()
                     .inset(by: ringWidth)
                     .stroke(.white.opacity(lineOpacity), lineWidth: lineWidth)
+                WeatherRingDividers(angles: WeatherRing.dayEndAngles, ringWidth: ringWidth, lineWidth: lineWidth)
+                    .stroke(.white.opacity(lineOpacity), lineWidth: lineWidth)
+                    .opacity(showsDays ? 1 : 0)
             }
             .blendMode(.plusLighter)
 
@@ -449,8 +468,104 @@ private struct WeatherRingConditions: View {
     }
 }
 
+/// Lines across the ring at each of `angles`, from the top, clockwise, from
+/// its inner edge's line to its outer edge's, meeting them without
+/// overlapping them.
+private struct WeatherRingDividers: Shape {
+    let angles: [Angle]
+    var ringWidth: CGFloat
+    let lineWidth: CGFloat
+
+    var animatableData: CGFloat {
+        get { ringWidth }
+        set { ringWidth = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let outerRadius = min(rect.width, rect.height) / 2
+        // The inner edge's line is stroked across its circle, and the outer
+        // edge's inside it.
+        let start = outerRadius - ringWidth + lineWidth / 2
+        let end = outerRadius - lineWidth
+        var path = Path()
+        for angle in angles {
+            let direction = CGVector(dx: sin(angle.radians), dy: -cos(angle.radians))
+            path.move(to: CGPoint(x: rect.midX + direction.dx * start, y: rect.midY + direction.dy * start))
+            path.addLine(to: CGPoint(x: rect.midX + direction.dx * end, y: rect.midY + direction.dy * end))
+        }
+        return path
+    }
+}
+
+/// At the ring's bottom, between the days' ends, an arc from the days'
+/// lowest temperature at its left to their highest at its right, colored from
+/// the chosen day's low to its high. Every day shares the arc, as the Weather
+/// app's bars do, so turning from day to day moves the color along it.
+private struct WeatherRingTemperatures: View {
+    let diameter: CGFloat
+    let ringWidth: CGFloat
+    let days: [CityWeather.Day]
+    /// The chosen day, in days after today, whose temperatures stay while
+    /// hidden.
+    let chosenDay: Int
+    let isVisible: Bool
+
+    var body: some View {
+        let celsius = days
+            .flatMap { [$0.lowTemperature, $0.highTemperature] }
+            .map { $0.converted(to: .celsius).value }
+        let lowest = celsius.min() ?? 0
+        // Never an empty span, even where every day's the same.
+        let scale = Scale(lowest: lowest, highest: max(celsius.max() ?? 0, lowest + 1))
+        let day = days.indices.contains(chosenDay) ? days[chosenDay] : nil
+        // Through the middle of the ring.
+        let arc = Circle().inset(by: ringWidth / 2)
+        let style = StrokeStyle(lineWidth: ringWidth * 0.10, lineCap: .round)
+
+        ZStack {
+            arc
+                .trim(from: Scale.highEnd, to: Scale.lowEnd)
+                .stroke(.white.opacity(0.25), style: style)
+            if let day {
+                arc
+                    .trim(from: scale.fraction(day.highTemperature), to: scale.fraction(day.lowTemperature))
+                    .stroke(.primary, style: style)
+            }
+        }
+        .frame(width: diameter, height: diameter)
+        // Fading as one, so the track doesn't show through the color.
+        .compositingGroup()
+        // Out of sight rather than gone while the hours show, so it grows and
+        // shrinks with the ring as it comes and goes.
+        .blur(radius: isVisible ? 0 : ringWidth * 0.2)
+        .opacity(isVisible ? 1 : 0)
+    }
+
+    /// Where temperatures go along the arc, as fractions of the way around a
+    /// circle's path, which starts at its right, a quarter turn past the
+    /// ring's top, and goes clockwise.
+    private struct Scale {
+        /// The lowest temperature's end, on the slot before today's.
+        static let lowEnd = (WeatherRing.angle(slot: WeatherRing.todaySlot - 1).degrees - 90) / 360
+        /// The highest temperature's end, on the slot after the last day's.
+        static let highEnd = (WeatherRing.angle(
+            slot: (WeatherRing.todaySlot + WeatherRing.dayCount) % WeatherRing.slotCount
+        ).degrees - 90) / 360
+
+        let lowest: Double
+        let highest: Double
+
+        func fraction(_ temperature: Measurement<UnitTemperature>) -> Double {
+            let celsius = temperature.converted(to: .celsius).value
+            let along = min(max((celsius - lowest) / (highest - lowest), 0), 1)
+            return Self.lowEnd + (Self.highEnd - Self.lowEnd) * along
+        }
+    }
+}
+
 /// The temperature over the conditions now, in the middle of the ring, or
-/// while the days show, the chosen day's high and low over its conditions.
+/// while the days show, the chosen day's low and high, left to right as on
+/// the arc below, over its conditions.
 private struct WeatherRingCenter: View {
     let conditions: CityWeather.Conditions?
     let day: CityWeather.Day?
@@ -461,7 +576,7 @@ private struct WeatherRingCenter: View {
         ZStack {
             // One view for now and the days, so going between them resizes
             // and moves the text rather than replacing it.
-            if let temperature = day?.highTemperature ?? conditions?.temperature,
+            if let temperature = day?.lowTemperature ?? conditions?.temperature,
                let condition = day?.condition ?? conditions?.condition {
                 VStack(spacing: 0) {
                     HStack(spacing: 0) {
@@ -471,7 +586,7 @@ private struct WeatherRingCenter: View {
                         // stack takes no room.
                         ZStack {
                             if let day {
-                                Text(Self.temperature(day.lowTemperature, useCelsius: useCelsius))
+                                Text(Self.temperature(day.highTemperature, useCelsius: useCelsius))
                                     .foregroundStyle(.secondary)
                                     .padding(.leading, 4)
                                     .transition(.blurReplace)
