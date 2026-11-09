@@ -22,7 +22,7 @@ struct CityDetailView: View {
     /// False as soon as the details start going back to the list, before
     /// they finish sliding away.
     @Environment(\.isPresented) private var isPresented
-    @AppStorage("watchDetailDisplay") private var display: CityDetailDisplay = .worldClock
+    @AppStorage(CityDetailDisplay.storageKey) private var display: CityDetailDisplay = .worldClock
     @State private var showsDisplayPicker = false
     @State private var showsMoonInfo = false
     @State private var moonInfoDate = Date()

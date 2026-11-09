@@ -14,6 +14,9 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     case weather
     case wind
 
+    /// The view every city's details show, as last chosen.
+    static let storageKey = "watchDetailDisplay"
+
     var id: Self { self }
 
     var title: LocalizedStringKey {
@@ -43,6 +46,40 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     /// Whether the view shows the weather now, whatever time the clocks show.
     var showsNow: Bool {
         self == .weather || self == .wind
+    }
+}
+
+/// The watch app's Default View setting: the view the app opens on, or the
+/// one last chosen.
+enum DefaultCityDetailDisplay: RawRepresentable, CaseIterable, Identifiable, Hashable {
+    case lastUsed
+    case display(CityDetailDisplay)
+
+    /// The watch app's Default View setting.
+    static let storageKey = "watchDefaultDetailDisplay"
+
+    /// Last Used, then every view in the order Choose View lists them.
+    static let allCases: [Self] = [.lastUsed] + CityDetailDisplay.allCases.map(Self.display)
+
+    /// Last Used in place of a view that's no longer there.
+    init(rawValue: String) {
+        self = CityDetailDisplay(rawValue: rawValue).map(Self.display) ?? .lastUsed
+    }
+
+    var rawValue: String {
+        switch self {
+        case .lastUsed: "lastUsed"
+        case .display(let display): display.rawValue
+        }
+    }
+
+    var id: Self { self }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .lastUsed: "Last Used"
+        case .display(let display): display.title
+        }
     }
 }
 

@@ -5,14 +5,15 @@
 
 import SwiftUI
 
-/// The 24-Hour Format and Additional Time settings, how many cities the
-/// iPhone sent, links to send feedback and share the app, and the app's
-/// version.
+/// The 24-Hour Format, Additional Time and Default View settings, how many
+/// cities the iPhone sent, links to send feedback and share the app, and the
+/// app's version.
 struct SettingsView: View {
     @Environment(WatchCityStore.self) private var cityStore
     @Environment(\.dismiss) private var dismiss
     @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
     @AppStorage(AdditionalTime.storageKey) private var additionalTime: AdditionalTime = .timeShift
+    @AppStorage(DefaultCityDetailDisplay.storageKey) private var defaultDisplay: DefaultCityDetailDisplay = .lastUsed
 
     /// The version and build, like "2.1.4 (223)", as in the iPhone app's About.
     private var version: String {
@@ -29,6 +30,14 @@ struct SettingsView: View {
 
                     Picker("Additional Time", selection: $additionalTime) {
                         ForEach(AdditionalTime.allCases) { option in
+                            Text(option.title)
+                                .tag(option)
+                        }
+                    }
+                    .pickerStyle(.navigationLink)
+
+                    Picker("Default View", selection: $defaultDisplay) {
+                        ForEach(DefaultCityDetailDisplay.allCases) { option in
                             Text(option.title)
                                 .tag(option)
                         }
