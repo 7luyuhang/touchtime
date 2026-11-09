@@ -379,6 +379,32 @@ private struct WeatherRingHours: View {
         }
         .font(.system(size: 11, weight: .semibold, design: .rounded))
         .foregroundStyle(.primary)
+        // Cut off inside the ring's edge, as though under the ring like the
+        // daylight ring's hours, so they don't blur across its symbols as it
+        // grows over them. Clear of the pill, which reaches into the edge.
+        .clipShape(WeatherRingOutside(diameter: ringDiameter - lineWidth * 2), style: FillStyle(eoFill: true))
+    }
+}
+
+/// Everywhere around a circle of `diameter` in the middle, out past the
+/// rect's edges to whatever blurs beyond them.
+private struct WeatherRingOutside: Shape {
+    var diameter: CGFloat
+
+    var animatableData: CGFloat {
+        get { diameter }
+        set { diameter = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path(rect.insetBy(dx: -rect.width, dy: -rect.height))
+        path.addEllipse(in: CGRect(
+            x: rect.midX - diameter / 2,
+            y: rect.midY - diameter / 2,
+            width: diameter,
+            height: diameter
+        ))
+        return path
     }
 }
 
