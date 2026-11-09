@@ -372,7 +372,7 @@ private struct AnalogClockDial: View {
                     VStack(spacing: 0) {
                         ClockTimeText(date: date, timeZone: city.timeZone, size: .medium)
 
-                        Text(city.name)
+                        MarqueeText(city.name)
                             .font(.headline)
                     }
                     .transition(.blurReplace)
