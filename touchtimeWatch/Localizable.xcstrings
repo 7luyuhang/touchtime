@@ -1773,6 +1773,38 @@
         }
       }
     },
+    "Wind Compass" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "风向罗盘"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "風向羅盤"
+          }
+        }
+      }
+    },
+    "Wind Compass is only available for Local." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "风向罗盘仅支持“本地”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "風向羅盤僅支援「本地」。"
+          }
+        }
+      }
+    },
     "Windy" : {
       "localizations" : {
         "zh-Hans" : {

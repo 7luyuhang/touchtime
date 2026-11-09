@@ -47,16 +47,31 @@ struct CityWeather {
 }
 
 /// The weather where each city's time zone is, as the iPhone app looks it up,
-/// kept while the app runs and fetched again once it's half an hour old.
+/// kept while the app runs and fetched again once it's half an hour old. And
+/// for Wind's live compass, the wind where the watch is, fetched again sooner.
 @Observable
 final class WatchWeatherStore {
+    /// The wind where the watch was, as it was fetched.
+    struct LiveWind {
+        let wind: CityWeather.Wind
+        let location: CLLocation
+        let fetchDate: Date
+    }
+
     private static let maxAge: TimeInterval = 30 * 60
+    private static let liveWindMaxAge: TimeInterval = 10 * 60
+    /// How far the watch goes before the wind where it was no longer stands
+    /// for the wind where it is.
+    private static let liveWindRange: CLLocationDistance = 5000
 
     /// By time zone identifier.
     private(set) var weather: [String: CityWeather]
     /// The time zones whose weather couldn't be fetched, until it's tried again.
     private(set) var unavailableTimeZones: Set<String> = []
+    /// The wind where the watch was when it was last fetched.
+    private(set) var liveWind: LiveWind?
     @ObservationIgnored private var fetchingTimeZones: Set<String> = []
+    @ObservationIgnored private var isFetchingLiveWind = false
 
     init(weather: [String: CityWeather] = [:]) {
         self.weather = weather
@@ -120,11 +135,7 @@ final class WatchWeatherStore {
                         condition: current.condition,
                         isDaylight: current.isDaylight
                     ),
-                    wind: CityWeather.Wind(
-                        direction: current.wind.direction.converted(to: .degrees).value,
-                        speed: current.wind.speed,
-                        gust: current.wind.gust
-                    ),
+                    wind: CityWeather.Wind(current.wind),
                     hours: hours,
                     days: days,
                     fetchDate: .now
@@ -137,5 +148,38 @@ final class WatchWeatherStore {
                 }
             }
         }
+    }
+
+    /// Fetches the wind at `location`, where the watch is, unless it was
+    /// fetched near there recently, or is already on its way.
+    func updateLiveWind(at location: CLLocation) {
+        if let liveWind,
+           Date.now.timeIntervalSince(liveWind.fetchDate) < Self.liveWindMaxAge,
+           liveWind.location.distance(from: location) < Self.liveWindRange {
+            return
+        }
+        guard !isFetchingLiveWind else { return }
+        isFetchingLiveWind = true
+
+        Task {
+            defer { isFetchingLiveWind = false }
+            do {
+                let current = try await WeatherService.shared.weather(for: location, including: .current)
+                liveWind = LiveWind(wind: CityWeather.Wind(current.wind), location: location, fetchDate: .now)
+            } catch {
+                // The city's wind stands in.
+                print("Failed to fetch the wind where the watch is: \(error)")
+            }
+        }
+    }
+}
+
+private extension CityWeather.Wind {
+    init(_ wind: WeatherKit.Wind) {
+        self.init(
+            direction: wind.direction.converted(to: .degrees).value,
+            speed: wind.speed,
+            gust: wind.gust
+        )
     }
 }

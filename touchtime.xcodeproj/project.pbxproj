@@ -629,7 +629,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = touchtime/touchtime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 231;
+				CURRENT_PROJECT_VERSION = 232;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_ONLY_ACTIVE_RESOURCES = NO;
@@ -680,7 +680,7 @@
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_ENTITLEMENTS = touchtime/touchtime.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 231;
+				CURRENT_PROJECT_VERSION = 232;
 				ENABLE_APP_SANDBOX = YES;
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_ONLY_ACTIVE_RESOURCES = NO;
@@ -729,7 +729,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = touchtimeWidgetExtension/touchtimeWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 231;
+				CURRENT_PROJECT_VERSION = 232;
 				ENABLE_ONLY_ACTIVE_RESOURCES = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = touchtimeWidgetExtension/Info.plist;
@@ -762,7 +762,7 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = touchtimeWidgetExtension/touchtimeWidgetExtension.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 231;
+				CURRENT_PROJECT_VERSION = 232;
 				ENABLE_ONLY_ACTIVE_RESOURCES = NO;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = touchtimeWidgetExtension/Info.plist;
@@ -793,7 +793,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 231;
+				CURRENT_PROJECT_VERSION = 232;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = touchtimeCaptureExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Touch Time";
@@ -824,7 +824,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 231;
+				CURRENT_PROJECT_VERSION = 232;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = touchtimeCaptureExtension/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "Touch Time";
@@ -858,11 +858,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = touchtimeWatch/touchtimeWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 231;
+				CURRENT_PROJECT_VERSION = 232;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Touch Time";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Allow location access to show the sun's position where you are.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Allow location access to show the sun's position and the wind where you are.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.time.touchtime;
 				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
@@ -893,11 +893,11 @@
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = touchtimeWatch/touchtimeWatch.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 231;
+				CURRENT_PROJECT_VERSION = 232;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = "Touch Time";
-				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Allow location access to show the sun's position where you are.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Allow location access to show the sun's position and the wind where you are.";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.time.touchtime;
 				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;

@@ -3,29 +3,66 @@
 //  touchtimeWatch
 //
 
+import CoreLocation
 import SwiftUI
 import WeatherKit
 
 /// The wind over the city now on Sun Position's compass, north up: its speed
 /// on a glass disc in the middle, the way it comes from curved over the glass
 /// and its gusts under it, and on the track a ring on the side it comes from
-/// and an arrow on the side it blows to.
+/// and an arrow on the side it blows to. On the watch's own clock, tapping the
+/// glass goes live: the wind where the watch is, on a dial that turns with
+/// the watch like a compass. Elsewhere, tapping it says so.
 struct CityWindView: View {
+    /// The glass's tint and the ring's and arrow's color while live, as in
+    /// Sun Position.
+    private static let liveColor = Color.yellow
+
     let date: Date
     let timeZone: TimeZone
     /// The iPhone app's wind speed unit.
     let windSpeedUnit: WindSpeedUnit
+    /// Whether tapping the glass goes live. Only the watch's own clock does,
+    /// as the live wind is where the watch is rather than the city's.
+    let canGoLive: Bool
+    /// Whether the view is live, which tapping the glass turns on and off.
+    @Binding var isLive: Bool
 
     @Environment(WatchWeatherStore.self) private var weatherStore
     @Environment(\.locale) private var locale
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var showsWindCompassAlert = false
     /// Where the wind comes from, in degrees past north, counting whole turns
     /// so the ring and arrow always turn the shorter way around.
     @State private var displayedDirection: Double?
+    /// Made the first time the view goes live.
+    @State private var compass: LiveCompass?
+    /// How far the dial is turned against the watch's heading, counting whole
+    /// turns like `displayedDirection`. A whole number of turns with north up.
+    @State private var displayedHeading: Double = 0
+    @State private var flippedLabels = CompassDial.flippedLabels(atHeading: 0)
+
+    /// Degrees clockwise from north that the top of the watch faces, while live.
+    private var heading: Double? {
+        isLive ? compass?.heading : nil
+    }
+
+    /// Where the watch is, while live, once it knows.
+    private var liveLocation: CLLocation? {
+        isLive ? compass?.location : nil
+    }
+
+    /// Live, the wind where the watch is once it's in, and otherwise the
+    /// city's.
+    private var wind: CityWeather.Wind? {
+        let liveWind = liveLocation == nil ? nil : weatherStore.liveWind?.wind
+        return liveWind ?? weatherStore.weather[timeZone.identifier]?.wind
+    }
 
     var body: some View {
-        let weather = weatherStore.weather[timeZone.identifier]
-        let isLoading = weather == nil && !weatherStore.unavailableTimeZones.contains(timeZone.identifier)
-        let direction = displayedDirection ?? weather?.wind.direction
+        let wind = wind
+        let isLoading = wind == nil && !weatherStore.unavailableTimeZones.contains(timeZone.identifier)
+        let direction = displayedDirection ?? wind?.direction
 
         GeometryReader { geometry in
             let layout = CompassDialLayout(
@@ -33,47 +70,146 @@ struct CityWindView: View {
             )
 
             ZStack {
-                CompassDial(layout: layout, heading: 0, flippedLabels: CompassDial.flippedLabels(atHeading: 0))
+                ZStack {
+                    CompassDial(layout: layout, heading: displayedHeading, flippedLabels: flippedLabels)
 
-                if let direction {
-                    Group {
-                        WindMarks(direction: direction, layout: layout)
-                        WindDirectionLabel(direction: direction, layout: layout)
-                    }
-                    .animation(.smooth, value: displayedDirection)
-                    .transition(.blurReplace)
-                }
-
-                if let gust = weather?.wind.gust {
-                    let gusts = String(localized: "Gusts: \(windSpeedUnit.number(gust))")
-                    WindCurvedLabel(text: gusts, isAtBottom: true, layout: layout)
-                        .id(gusts)
+                    if let direction {
+                        Group {
+                            WindMarks(
+                                // Around the screen, with the dial turned.
+                                direction: direction - displayedHeading,
+                                color: isLive ? Self.liveColor : .white,
+                                layout: layout
+                            )
+                            WindDirectionLabel(direction: direction, layout: layout)
+                        }
+                        .animation(.smooth, value: displayedDirection)
                         .transition(.blurReplace)
-                }
+                    }
 
-                WindSpeedLabel(speed: weather?.wind.speed, isLoading: isLoading, unit: windSpeedUnit)
-                    .frame(width: layout.glassDiameter * 0.8)
-                    .frame(width: layout.glassDiameter, height: layout.glassDiameter)
-                    .glassEffect(.clear, in: .circle)
+                    if let gust = wind?.gust {
+                        let gusts = String(localized: "Gusts: \(windSpeedUnit.number(gust))")
+                        WindCurvedLabel(text: gusts, isAtBottom: true, layout: layout)
+                            .id(gusts)
+                            .transition(.blurReplace)
+                    }
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("Wind")
+                .accessibilityValue(wind.map { accessibilityValue(for: $0) } ?? "")
+
+                glass(layout: layout, speed: wind?.speed, isLoading: isLoading)
             }
             .frame(width: layout.diameter, height: layout.diameter)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("Wind")
-            .accessibilityValue(weather.map { accessibilityValue(for: $0.wind) } ?? "")
             .frame(width: geometry.size.width, height: geometry.size.height)
         }
         // The circle's narrow top fits between the toolbar controls.
         .padding(.top, -24)
-        .animation(.smooth, value: weather?.fetchDate)
-        .onChange(of: weather?.wind.direction, initial: true) { oldDirection, newDirection in
+        .animation(.smooth, value: wind)
+        .onChange(of: wind?.direction, initial: true) { oldDirection, newDirection in
             guard let newDirection else { return }
             // At most half a turn either way.
             let current = displayedDirection ?? oldDirection ?? newDirection
             displayedDirection = current + (newDirection - current).remainder(dividingBy: 360)
         }
+        .onChange(of: heading) { _, heading in
+            withAnimation(.smooth) {
+                if let heading {
+                    displayedHeading += (heading - displayedHeading).remainder(dividingBy: 360)
+                    flippedLabels = CompassDial.flippedLabels(atHeading: displayedHeading, from: flippedLabels)
+                } else {
+                    // Back to north up by the nearer way.
+                    displayedHeading = (displayedHeading / 360).rounded() * 360
+                    flippedLabels = CompassDial.flippedLabels(atHeading: displayedHeading)
+                }
+            }
+        }
+        .onChange(of: isLive) { _, isLive in
+            if isLive {
+                startCompass()
+            } else {
+                compass?.stop()
+            }
+        }
+        // Only while the watch is raised and the view is on screen.
+        .onChange(of: scenePhase) { _, phase in
+            guard isLive else { return }
+            if phase == .active {
+                startCompass()
+            } else {
+                compass?.stop()
+            }
+        }
+        .onAppear {
+            if isLive {
+                startCompass()
+            }
+        }
+        .onDisappear {
+            compass?.stop()
+        }
         // Every quarter hour, in case the weather has gone stale.
         .onChange(of: Int(date.timeIntervalSinceReferenceDate / 900), initial: true) {
             weatherStore.update(for: timeZone)
+        }
+        // Live, the wind where the watch is as soon as it knows, and each
+        // minute after in case it's gone stale or the watch has moved.
+        .onChange(of: liveLocation) {
+            updateLiveWind()
+        }
+        .onChange(of: date) {
+            updateLiveWind()
+        }
+        // Untitled. Verbatim, so the string catalog doesn't gain an empty key
+        .alert(Text(verbatim: ""), isPresented: $showsWindCompassAlert, actions: {}) {
+            Text("Wind Compass is only available for Local.")
+        }
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: showsWindCompassAlert) { _, showsAlert in showsAlert }
+    }
+
+    /// The glass in the middle, with the speed on it, which turns the live
+    /// compass on and off, tinted while it's on.
+    private func glass(layout: CompassDialLayout, speed: Measurement<UnitSpeed>?, isLoading: Bool) -> some View {
+        let tint: Color? = isLive ? Self.liveColor : nil
+        let traits: AccessibilityTraits = isLive ? [.isButton, .isSelected] : .isButton
+
+        return WindSpeedLabel(speed: speed, isLoading: isLoading, unit: windSpeedUnit)
+            // White would wash out on the tint.
+            .foregroundStyle(isLive ? .black : .white)
+            .frame(width: layout.glassDiameter * 0.8)
+            .frame(width: layout.glassDiameter, height: layout.glassDiameter)
+            .glassEffect(.clear.tint(tint).interactive(), in: .circle)
+            .contentShape(.circle)
+            .onTapGesture(perform: tapGlass)
+            .sensoryFeedback(.start, trigger: isLive) { _, isLive in isLive }
+            .accessibilityElement()
+            .accessibilityLabel("Wind Compass")
+            .accessibilityAddTraits(traits)
+            .accessibilityAction {
+                tapGlass()
+            }
+    }
+
+    private func tapGlass() {
+        if canGoLive {
+            withAnimation(.smooth) {
+                isLive.toggle()
+            }
+        } else {
+            showsWindCompassAlert = true
+        }
+    }
+
+    private func startCompass() {
+        if compass == nil {
+            compass = LiveCompass()
+        }
+        compass?.start()
+    }
+
+    private func updateLiveWind() {
+        if let liveLocation {
+            weatherStore.updateLiveWind(at: liveLocation)
         }
     }
 
@@ -149,8 +285,10 @@ private struct WindMarks: View, Animatable {
     /// As wide as the dial's ticks.
     private static let tailWidth: CGFloat = 1.5
 
-    /// Where the wind comes from, in degrees clockwise from north.
+    /// Where the wind comes from, in degrees clockwise from the top of the
+    /// screen.
     var direction: Double
+    let color: Color
     let layout: CompassDialLayout
 
     var animatableData: Double {
@@ -170,12 +308,12 @@ private struct WindMarks: View, Animatable {
             tail(atDegrees: direction + 180, from: layout.arrowCenterRadius - layout.arrowRadius / 2 + 1)
 
             Circle()
-                .strokeBorder(.white, lineWidth: Self.ringLineWidth)
+                .strokeBorder(color, lineWidth: Self.ringLineWidth)
                 .frame(width: layout.ringDiameter, height: layout.ringDiameter)
                 .position(layout.point(atDegrees: direction, radius: layout.trackRadius))
 
             arrow
-                .fill(.white)
+                .fill(color)
                 .background {
                     arrow
                         .fill(.black.opacity(0.05))
@@ -195,9 +333,9 @@ private struct WindMarks: View, Animatable {
         let length = max(0, radius - layout.tailEndRadius)
 
         return Rectangle()
-            .fill(LinearGradient(colors: [.white.opacity(0), .white], startPoint: .leading, endPoint: .trailing))
+            .fill(LinearGradient(colors: [color.opacity(0), color], startPoint: .leading, endPoint: .trailing))
             .frame(width: length, height: Self.tailWidth)
-            // Its white end outward.
+            // Its opaque end outward.
             .rotationEffect(.degrees(degrees - 90))
             .position(layout.point(atDegrees: degrees, radius: radius - length / 2))
     }
@@ -275,7 +413,6 @@ private struct WindSpeedLabel: View {
                     .transition(.blurReplace)
             }
         }
-        .foregroundStyle(.white)
         .lineLimit(1)
         // The speed at the largest text sizes on the smallest watch.
         .minimumScaleFactor(0.4)
@@ -308,7 +445,13 @@ private extension WindSpeedUnit {
     )
 
     NavigationStack {
-        CityWindView(date: date, timeZone: .current, windSpeedUnit: .kilometersPerHour)
+        CityWindView(
+            date: date,
+            timeZone: .current,
+            windSpeedUnit: .kilometersPerHour,
+            canGoLive: true,
+            isLive: .constant(false)
+        )
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 CitySkyBackground(date: date, timeZone: .current)

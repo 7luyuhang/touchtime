@@ -141,7 +141,9 @@ struct CityDetailView: View {
                     CityWindView(
                         date: date,
                         timeZone: city.timeZone,
-                        windSpeedUnit: cityStore.windSpeedUnit
+                        windSpeedUnit: cityStore.windSpeedUnit,
+                        canGoLive: city.isLocal,
+                        isLive: $showsLiveCompass
                     )
                 }
             }

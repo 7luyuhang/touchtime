@@ -6,16 +6,16 @@
 import CoreLocation
 import Observation
 
-/// Which way the watch faces and where it is, for Sun Position's live
-/// compass. It only updates between `start()` and `stop()`, and asks for
-/// location access the first time it starts.
+/// Which way the watch faces and where it is, for the live compasses in Sun
+/// Position and Wind. It only updates between `start()` and `stop()`, and asks
+/// for location access the first time it starts.
 @Observable
 final class LiveCompass: NSObject, CLLocationManagerDelegate {
     /// Degrees clockwise from north that the top of the watch faces: from
     /// true north once the watch knows where it is, magnetic north until
     /// then. Nil before the first reading, and on a watch without a compass.
     private(set) var heading: Double?
-    /// Where the watch is, near enough for the sun's position.
+    /// Where the watch is, near enough for the sun's position and the wind.
     private(set) var location: CLLocation?
 
     @ObservationIgnored private let manager = CLLocationManager()
@@ -24,7 +24,8 @@ final class LiveCompass: NSObject, CLLocationManagerDelegate {
     override init() {
         super.init()
         manager.delegate = self
-        // The sun's position hardly changes over a few kilometers.
+        // Neither the sun's position nor the forecast's wind changes much
+        // over a few kilometers.
         manager.desiredAccuracy = kCLLocationAccuracyKilometer
         manager.distanceFilter = 1000
         manager.headingFilter = 1
