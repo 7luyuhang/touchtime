@@ -666,13 +666,14 @@ private struct WeatherRingCenter: View {
                 VStack(spacing: 0) {
                     HStack(spacing: 0) {
                         Text(Self.temperature(temperature, useCelsius: useCelsius))
+                            .foregroundStyle(day == nil ? .primary : .secondary)
+                            .blendMode(.plusLighter)
                         // As the footer's date, blended outside the
                         // transition, and spaced inside the stack so the empty
                         // stack takes no room.
                         ZStack {
                             if let day {
                                 Text(Self.temperature(day.highTemperature, useCelsius: useCelsius))
-                                    .foregroundStyle(.secondary)
                                     .padding(.leading, 4)
                                     .transition(.blurReplace)
                             }
