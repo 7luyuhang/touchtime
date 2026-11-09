@@ -181,15 +181,14 @@ struct CitySunPositionView: View {
         .sensoryFeedback(.impact(flexibility: .soft), trigger: showsSunCompassAlert) { _, showsAlert in showsAlert }
     }
 
-    /// The glass triangle, lit along the sun's side, and its shadow, which
-    /// turn the live compass on and off, tinted while it's on.
+    /// The glass triangle and its shadow, which turn the live compass on and
+    /// off, tinted while it's on.
     private func triangle(layout: CompassDialLayout, sunAzimuth: Double, sunAltitude: Double) -> some View {
         let shape = RoundedTriangle(cornerRadius: layout.triangleCornerRadius)
         let tint: Color? = isLive ? Self.liveColor : nil
         let traits: AccessibilityTraits = isLive ? [.isButton, .isSelected] : .isButton
 
-        return TriangleHighlight(azimuth: sunAzimuth, altitude: sunAltitude, layout: layout)
-            .animation(.smooth, value: displayedAzimuth)
+        return Color.clear
             .frame(width: layout.triangleFrame.width, height: layout.triangleFrame.height)
             .glassEffect(.clear.tint(tint).interactive(), in: shape)
             .background {
@@ -496,52 +495,6 @@ private struct TriangleShadow: View, Animatable {
         .frame(width: layout.diameter, height: layout.diameter)
         .opacity(CompassDialLayout.sunlight(atAltitude: altitude))
         .blendMode(.plusDarker)
-    }
-}
-
-/// The sun catching the triangle's edge: brightest along the side or corner
-/// nearest it and fading across, fainter under a high sun, which lights the
-/// sides less, and gone with the shadow once the sun sets.
-private struct TriangleHighlight: View, Animatable {
-    private static let lineWidth: CGFloat = 1.5
-
-    /// Degrees clockwise from north.
-    var azimuth: Double
-    /// Degrees above the horizon.
-    var altitude: Double
-    let layout: CompassDialLayout
-
-    var animatableData: AnimatablePair<Double, Double> {
-        get { AnimatablePair(azimuth, altitude) }
-        set {
-            azimuth = newValue.first
-            altitude = newValue.second
-        }
-    }
-
-    var body: some View {
-        let center = layout.center
-        let radians = azimuth * .pi / 180
-        // Toward the sun, with north up.
-        let toward = CGVector(dx: sin(radians), dy: -cos(radians))
-        // From the triangle's nearest reach to the sun, fading out about
-        // halfway across, in its frame.
-        let reach = layout.triangleOutline.map { ($0.x - center.x) * toward.dx + ($0.y - center.y) * toward.dy }.max() ?? 0
-        let size = layout.triangleFrame.width
-        let start = UnitPoint(x: 0.5 + toward.dx * reach / size, y: 0.5 + toward.dy * reach / size)
-        let fade = layout.triangleRadius * 0.75 / size
-        let end = UnitPoint(x: start.x - toward.dx * fade, y: start.y - toward.dy * fade)
-        let shape = RoundedTriangle(cornerRadius: layout.triangleCornerRadius)
-
-        return shape
-            // Twice as wide, with the half outside the edge clipped away.
-            .stroke(
-                LinearGradient(colors: [.white.opacity(0.25), .white.opacity(0)], startPoint: start, endPoint: end),
-                lineWidth: Self.lineWidth * 2
-            )
-            .clipShape(shape)
-            .opacity(CompassDialLayout.sunlight(atAltitude: altitude) * cos(max(altitude, 0) * .pi / 180))
-            .blendMode(.plusLighter)
     }
 }
 
