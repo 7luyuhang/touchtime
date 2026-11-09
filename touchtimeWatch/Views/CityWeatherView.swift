@@ -620,7 +620,7 @@ private struct WeatherRingTemperatures: View {
                             .stroke(lineWidth: lineWidth * 0.75)
                             .blendMode(.destinationOut)
                     }
-                    .frame(width: lineWidth, height: lineWidth)
+                    .frame(width: lineWidth * 1.5, height: lineWidth * 1.5)
                     .transition(.scale)
             }
         }

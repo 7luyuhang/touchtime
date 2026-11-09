@@ -178,7 +178,7 @@ struct CitySunPositionView: View {
         .alert(Text(verbatim: ""), isPresented: $showsSunCompassAlert, actions: {}) {
             Text("Sun Compass is only available for Local.")
         }
-        .sensoryFeedback(.error, trigger: showsSunCompassAlert) { _, showsAlert in showsAlert }
+        .sensoryFeedback(.warning, trigger: showsSunCompassAlert) { _, showsAlert in showsAlert }
     }
 
     /// The glass triangle, lit along the sun's side, and its shadow, which
