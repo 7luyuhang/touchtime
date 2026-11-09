@@ -6,15 +6,15 @@
 import SwiftUI
 import WeatherKit
 
-/// The city's temperature and conditions now, inside a ring of the next 12
-/// hours' conditions, laid out like the daylight ring with its hours showing:
-/// now at its hour, as on a clock's face, where the ring is rounded off, and
-/// each hour after it clockwise.
-/// Tapping the middle trades the hours for the days ahead, laid out like the
-/// daylight ring without its hours: today at the bottom left, each day after
-/// it clockwise, and a mark on the ring's inner edge that the Digital Crown
-/// moves from day to day. Between the days' ends at the bottom, an arc shows
-/// the chosen day's low and high.
+/// The city's days ahead around a ring, laid out like the daylight ring
+/// without its hours: today at the bottom left, each day after it clockwise,
+/// and a mark on the ring's inner edge that the Digital Crown moves from day
+/// to day. In the middle, the chosen day's low and high over its conditions,
+/// and between the days' ends at the bottom, an arc showing them.
+/// Tapping the middle trades the days for the temperature and conditions now,
+/// inside a ring of the next 12 hours' conditions, laid out like the daylight
+/// ring with its hours showing: now at its hour, as on a clock's face, where
+/// the ring is rounded off, and each hour after it clockwise.
 struct CityWeatherView: View {
     let date: Date
     let timeZone: TimeZone
@@ -25,7 +25,7 @@ struct CityWeatherView: View {
 
     @Environment(WatchWeatherStore.self) private var weatherStore
     @Environment(\.isPresented) private var isPresented
-    @State private var showsDays = false
+    @State private var showsDays = true
     /// How many days after today the Digital Crown has turned to.
     @State private var crownDays: Double = 0
     @FocusState private var crownHolder: CrownHolder?
@@ -78,12 +78,12 @@ struct CityWeatherView: View {
                     WeatherRingConditions(
                         diameter: diameter,
                         ringWidth: ringWidth,
-                        symbols: chosenDay == nil
-                            ? hourSymbols(in: weather, nowHour: hours[0])
-                            : daySymbols(days),
+                        symbols: showsDays
+                            ? daySymbols(days)
+                            : hourSymbols(in: weather, nowHour: hours[0]),
                         nowSlot: WeatherRing.slot(hoursAhead: 0, nowHour: hours[0]),
                         chosenDay: chosenDayIndex,
-                        showsDays: chosenDay != nil,
+                        showsDays: showsDays,
                         lineWidth: Self.lineWidth,
                         lineOpacity: Self.lineOpacity
                     )
@@ -109,7 +109,6 @@ struct CityWeatherView: View {
                     .frame(width: holeDiameter, height: holeDiameter)
                     .contentShape(.circle)
                     .onTapGesture {
-                        guard showsDays || !days.isEmpty else { return }
                         if !showsDays {
                             // From today each time the days show, the mark
                             // appearing there rather than travelling there
@@ -132,8 +131,10 @@ struct CityWeatherView: View {
             // Blended outside the transition, so the date blends with the sky
             // as it blurs in and out too, rather than only once it's in.
             ZStack {
-                if let chosenDay {
-                    Text(dayLabel(chosenDay))
+                if showsDays {
+                    // Today's until the days come in, so the ring needn't
+                    // shrink to make room for the date once they do.
+                    Text(dayLabel(chosenDay?.date ?? date))
                         .font(.subheadline)
                         .monospacedDigit()
                         .foregroundStyle(.primary)
@@ -240,8 +241,8 @@ struct CityWeatherView: View {
 
     /// In the iPhone app's date style, weekday and all, as under the details'
     /// other views.
-    private func dayLabel(_ day: CityWeather.Day) -> String {
-        day.date.formattedDate(style: dateStyle, timeZone: timeZone, relativeTo: date)
+    private func dayLabel(_ day: Date) -> String {
+        day.formattedDate(style: dateStyle, timeZone: timeZone, relativeTo: date)
     }
 }
 
