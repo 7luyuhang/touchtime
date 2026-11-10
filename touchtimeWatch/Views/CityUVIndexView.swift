@@ -453,9 +453,8 @@ private struct UVIndexCategoryLabel: View {
     var body: some View {
         ZStack {
             if let uvIndex {
-                let category = UVIndex.ExposureCategory(index: uvIndex)
-                Text(category.displayName)
-                    .id(category)
+                Text(UVIndex.ExposureCategory(index: uvIndex).displayName)
+                    .contentTransition(.numericText(value: Double(uvIndex)))
                     .transition(.blurReplace)
             }
         }
