@@ -677,7 +677,7 @@ private struct WeatherRingTemperatures: View {
 
 /// The temperature over the conditions now, in the middle of the ring, or
 /// while the days show, the chosen day's low and high, left to right as on
-/// the arc below, over its conditions.
+/// the arc below, over its conditions. Under rain, how likely it is too.
 private struct WeatherRingCenter: View {
     let conditions: CityWeather.Conditions?
     let day: CityWeather.Day?
@@ -713,6 +713,10 @@ private struct WeatherRingCenter: View {
                     .contentTransition(.numericText())
 
                     conditionName(condition.displayName)
+
+                    precipitationChance(
+                        condition.isRainy ? day?.precipitationChance ?? conditions?.precipitationChance : nil
+                    )
                 }
                 .transition(.blurReplace)
             } else if isLoading {
@@ -742,6 +746,20 @@ private struct WeatherRingCenter: View {
         .padding(.horizontal, 4)
     }
 
+    /// In whole percent, as the iPhone app's hours show it, and only where
+    /// there's any.
+    private func precipitationChance(_ chance: Double?) -> some View {
+        ZStack {
+            if let chance, (chance * 100).rounded() >= 1 {
+                Text(chance, format: .percent.precision(.fractionLength(0)))
+                    .contentTransition(.numericText(value: chance))
+                    .transition(.blurReplace)
+            }
+        }
+        .font(.footnote.weight(.medium).monospacedDigit())
+        .foregroundStyle(.cyan)
+    }
+
     /// In whole degrees toward zero, without the unit's letter, as the iPhone
     /// app shows them.
     private static func temperature(_ temperature: Measurement<UnitTemperature>, useCelsius: Bool) -> String {
@@ -764,10 +782,10 @@ private extension View {
 #Preview {
     let date = Date.now
     let currentHour = WatchWeatherStore.hourStart(of: date)
-    let forecast: [(Double, WeatherCondition)] = [
-        (16, .cloudy), (15, .mostlyCloudy), (15, .partlyCloudy), (14, .mostlyClear),
-        (13, .clear), (12, .clear), (12, .clear), (12, .partlyCloudy),
-        (13, .drizzle), (14, .rain), (15, .rain), (16, .cloudy)
+    let forecast: [(Double, WeatherCondition, Double)] = [
+        (16, .cloudy, 0.2), (15, .mostlyCloudy, 0.1), (15, .partlyCloudy, 0), (14, .mostlyClear, 0),
+        (13, .clear, 0), (12, .clear, 0), (12, .clear, 0), (12, .partlyCloudy, 0.1),
+        (13, .drizzle, 0.4), (14, .rain, 0.7), (15, .rain, 0.8), (16, .cloudy, 0.3)
     ]
     let hours = Dictionary(uniqueKeysWithValues: forecast.enumerated().map { index, hour in
         let start = currentHour.addingTimeInterval(Double(index) * 3600)
@@ -776,13 +794,15 @@ private extension View {
             CityWeather.Conditions(
                 temperature: Measurement(value: hour.0, unit: .celsius),
                 condition: hour.1,
-                isDaylight: (6..<18).contains(Calendar.current.component(.hour, from: start))
+                isDaylight: (6..<18).contains(Calendar.current.component(.hour, from: start)),
+                precipitationChance: hour.2
             )
         )
     })
-    let dailyForecast: [(Double, Double, WeatherCondition)] = [
-        (9, 3, .mostlyCloudy), (11, 5, .rain), (10, 4, .drizzle), (12, 6, .partlyCloudy), (14, 7, .clear),
-        (13, 8, .mostlyClear), (11, 6, .cloudy), (9, 4, .rain), (6, 1, .snow), (8, 2, .partlyCloudy)
+    let dailyForecast: [(Double, Double, WeatherCondition, Double)] = [
+        (9, 3, .mostlyCloudy, 0.2), (11, 5, .rain, 0.8), (10, 4, .drizzle, 0.5), (12, 6, .partlyCloudy, 0.1),
+        (14, 7, .clear, 0), (13, 8, .mostlyClear, 0), (11, 6, .cloudy, 0.3), (9, 4, .rain, 0.9),
+        (6, 1, .snow, 0.6), (8, 2, .partlyCloudy, 0.1)
     ]
     let today = Calendar.current.startOfDay(for: date)
     let days = dailyForecast.enumerated().map { index, day in
@@ -791,6 +811,7 @@ private extension View {
             highTemperature: Measurement(value: day.0, unit: .celsius),
             lowTemperature: Measurement(value: day.1, unit: .celsius),
             condition: day.2,
+            precipitationChance: day.3,
             uvIndex: 4
         )
     }

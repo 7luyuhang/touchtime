@@ -432,7 +432,8 @@ private extension WindSpeedUnit {
         current: CityWeather.Conditions(
             temperature: Measurement(value: 14, unit: .celsius),
             condition: .breezy,
-            isDaylight: true
+            isDaylight: true,
+            precipitationChance: 0
         ),
         wind: CityWeather.Wind(
             direction: 200,

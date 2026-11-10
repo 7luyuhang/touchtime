@@ -19,6 +19,8 @@ struct CityWeather {
         let temperature: Measurement<UnitTemperature>
         let condition: WeatherCondition
         let isDaylight: Bool
+        /// How likely precipitation is, from 0 to 1.
+        let precipitationChance: Double
     }
 
     struct Wind: Equatable {
@@ -35,6 +37,8 @@ struct CityWeather {
         let highTemperature: Measurement<UnitTemperature>
         let lowTemperature: Measurement<UnitTemperature>
         let condition: WeatherCondition
+        /// How likely precipitation is, from 0 to 1.
+        let precipitationChance: Double
         /// The highest the UV index gets.
         let uvIndex: Int
     }
@@ -130,7 +134,8 @@ final class WatchWeatherStore {
                     hours[start] = CityWeather.Conditions(
                         temperature: hour.temperature,
                         condition: hour.condition,
-                        isDaylight: hour.isDaylight
+                        isDaylight: hour.isDaylight,
+                        precipitationChance: hour.precipitationChance
                     )
                     hourlyUVIndexes[start] = hour.uvIndex.value
                 }
@@ -142,6 +147,7 @@ final class WatchWeatherStore {
                         highTemperature: day.highTemperature,
                         lowTemperature: day.lowTemperature,
                         condition: day.condition,
+                        precipitationChance: day.precipitationChance,
                         uvIndex: day.uvIndex.value
                     )
                 }
@@ -149,7 +155,9 @@ final class WatchWeatherStore {
                     current: CityWeather.Conditions(
                         temperature: current.temperature,
                         condition: current.condition,
-                        isDaylight: current.isDaylight
+                        isDaylight: current.isDaylight,
+                        // The weather now has none, so the hour under way's.
+                        precipitationChance: hours[Self.hourStart(of: .now)]?.precipitationChance ?? 0
                     ),
                     wind: CityWeather.Wind(current.wind),
                     uvIndex: current.uvIndex.value,

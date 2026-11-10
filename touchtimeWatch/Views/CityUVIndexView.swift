@@ -718,6 +718,7 @@ private extension View {
             highTemperature: Measurement(value: 24, unit: .celsius),
             lowTemperature: Measurement(value: 16, unit: .celsius),
             condition: .clear,
+            precipitationChance: 0,
             uvIndex: uvIndex
         )
     }
@@ -729,7 +730,8 @@ private extension View {
         current: CityWeather.Conditions(
             temperature: Measurement(value: 22, unit: .celsius),
             condition: .clear,
-            isDaylight: true
+            isDaylight: true,
+            precipitationChance: 0
         ),
         wind: CityWeather.Wind(
             direction: 200,
