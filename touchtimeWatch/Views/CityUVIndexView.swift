@@ -221,13 +221,6 @@ private enum UVIndexScale {
         angle(along: count > 1 ? Double(day) / Double(count - 1) : 0)
     }
 
-    /// Across the gauge's bottom half, a day turns over to read left to right
-    /// rather than upside down, as on the daylight ring.
-    static func isTurnedOver(_ angle: Angle) -> Bool {
-        let degrees = angle.degrees.truncatingRemainder(dividingBy: 360)
-        return degrees > 90 && degrees < 270
-    }
-
     private static func angle(along fraction: Double) -> Angle {
         .degrees(startAngle.degrees + sweep.degrees * fraction)
     }
@@ -701,10 +694,11 @@ private extension UVIndex.ExposureCategory {
 }
 
 private extension View {
-    /// At `angle` around a circle of `radius`, turned along it.
+    /// At `angle` around a circle of `radius`, its bottom toward the circle's
+    /// middle. Unlike the daylight ring's hours, none turns over across the
+    /// bottom half, so the days read in order along the gauge, clockwise.
     func placed(at angle: Angle, radius: CGFloat) -> some View {
-        let turn = UVIndexScale.isTurnedOver(angle) ? angle - .degrees(180) : angle
-        return rotationEffect(turn)
+        rotationEffect(angle)
             .offset(x: radius * sin(angle.radians), y: -radius * cos(angle.radians))
     }
 }
