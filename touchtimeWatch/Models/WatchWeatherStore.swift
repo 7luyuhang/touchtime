@@ -11,9 +11,9 @@ import Foundation
 import Observation
 import WeatherKit
 
-/// A city's weather as it was fetched: its conditions and wind now, each
-/// hour's conditions from the hour under way to a day later, and each day's
-/// from today.
+/// A city's weather as it was fetched: its conditions, wind and UV index now,
+/// each hour's conditions from the hour under way to a day later, and each
+/// day's from today.
 struct CityWeather {
     struct Conditions: Equatable {
         let temperature: Measurement<UnitTemperature>
@@ -35,10 +35,13 @@ struct CityWeather {
         let highTemperature: Measurement<UnitTemperature>
         let lowTemperature: Measurement<UnitTemperature>
         let condition: WeatherCondition
+        /// The highest the UV index gets.
+        let uvIndex: Int
     }
 
     let current: Conditions
     let wind: Wind
+    let uvIndex: Int
     /// By the start of each hour.
     let hours: [Date: Conditions]
     /// From today, in order.
@@ -126,7 +129,8 @@ final class WatchWeatherStore {
                         date: calendar.startOfDay(for: day.date.addingTimeInterval(12 * 3600)),
                         highTemperature: day.highTemperature,
                         lowTemperature: day.lowTemperature,
-                        condition: day.condition
+                        condition: day.condition,
+                        uvIndex: day.uvIndex.value
                     )
                 }
                 weather[identifier] = CityWeather(
@@ -136,6 +140,7 @@ final class WatchWeatherStore {
                         isDaylight: current.isDaylight
                     ),
                     wind: CityWeather.Wind(current.wind),
+                    uvIndex: current.uvIndex.value,
                     hours: hours,
                     days: days,
                     fetchDate: .now

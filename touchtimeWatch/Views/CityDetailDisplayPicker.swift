@@ -13,6 +13,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     case moonPhase
     case weather
     case wind
+    case uvIndex
 
     /// The view every city's details show, as last chosen.
     static let storageKey = "watchDetailDisplay"
@@ -28,6 +29,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .daylight: "Daylight"
         case .weather: "Conditions"
         case .wind: "Wind"
+        case .uvIndex: "UV Index"
         }
     }
 
@@ -40,12 +42,13 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .daylight: "rays"
         case .weather: "cloud"
         case .wind: "wind"
+        case .uvIndex: "sunglasses"
         }
     }
 
     /// Whether the view shows the weather now, whatever time the clocks show.
     var showsNow: Bool {
-        self == .weather || self == .wind
+        self == .weather || self == .wind || self == .uvIndex
     }
 }
 
@@ -106,6 +109,7 @@ struct CityDetailDisplayPicker: View {
                 Section("Weather") {
                     row(for: .weather)
                     row(for: .wind)
+                    row(for: .uvIndex)
                 }
             }
             .navigationTitle(cityName)

@@ -790,7 +790,8 @@ private extension View {
             date: Calendar.current.date(byAdding: .day, value: index, to: today)!,
             highTemperature: Measurement(value: day.0, unit: .celsius),
             lowTemperature: Measurement(value: day.1, unit: .celsius),
-            condition: day.2
+            condition: day.2,
+            uvIndex: 4
         )
     }
     let weather = CityWeather(
@@ -800,6 +801,7 @@ private extension View {
             speed: Measurement(value: 18, unit: .kilometersPerHour),
             gust: Measurement(value: 29, unit: .kilometersPerHour)
         ),
+        uvIndex: 2,
         hours: hours,
         days: days,
         fetchDate: date

@@ -439,6 +439,7 @@ private extension WindSpeedUnit {
             speed: Measurement(value: 18, unit: .kilometersPerHour),
             gust: Measurement(value: 29, unit: .kilometersPerHour)
         ),
+        uvIndex: 3,
         hours: [:],
         days: [],
         fetchDate: date

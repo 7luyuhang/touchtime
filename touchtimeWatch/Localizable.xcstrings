@@ -607,6 +607,23 @@
         }
       }
     },
+    "Extreme" : {
+      "comment" : "UV index exposure category for an index of 11 or higher, under the index on UV Index.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "极高"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "極高"
+          }
+        }
+      }
+    },
     "First" : {
       "comment" : "Short label for the first quarter moon in the upcoming phases cards.",
       "localizations" : {
@@ -866,6 +883,23 @@
         }
       }
     },
+    "High" : {
+      "comment" : "UV index exposure category for an index of 6–7, under the index on UV Index.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "高"
+          }
+        }
+      }
+    },
     "Hot" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1041,6 +1075,40 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "洛杉磯"
+          }
+        }
+      }
+    },
+    "Low" : {
+      "comment" : "UV index exposure category for an index of 0–2, under the index on UV Index.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "低"
+          }
+        }
+      }
+    },
+    "Moderate" : {
+      "comment" : "UV index exposure category for an index of 3–5, under the index on UV Index.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中等"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "中等"
           }
         }
       }
@@ -1673,6 +1741,39 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "UTC"
+          }
+        }
+      }
+    },
+    "UV Index" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紫外线指数"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "紫外線指數"
+          }
+        }
+      }
+    },
+    "Very High" : {
+      "comment" : "UV index exposure category for an index of 8–10, under the index on UV Index.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "很高"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "很高"
           }
         }
       }
