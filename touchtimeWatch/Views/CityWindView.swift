@@ -441,6 +441,7 @@ private extension WindSpeedUnit {
         ),
         uvIndex: 3,
         hours: [:],
+        hourlyUVIndexes: [:],
         days: [],
         fetchDate: date
     )

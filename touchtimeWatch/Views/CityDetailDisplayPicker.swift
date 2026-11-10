@@ -42,7 +42,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .daylight: "rays"
         case .weather: "cloud"
         case .wind: "wind"
-        case .uvIndex: "sunglasses"
+        case .uvIndex: "beach.umbrella"
         }
     }
 

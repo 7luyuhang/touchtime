@@ -803,6 +803,7 @@ private extension View {
         ),
         uvIndex: 2,
         hours: hours,
+        hourlyUVIndexes: [:],
         days: days,
         fetchDate: date
     )

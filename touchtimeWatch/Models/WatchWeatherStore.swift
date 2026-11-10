@@ -2,8 +2,8 @@
 //  WatchWeatherStore.swift
 //  touchtimeWatch
 //
-//  Each city's weather from WeatherKit: now, over the next day, and over the
-//  days ahead.
+//  Each city's weather from WeatherKit: now, and hour by hour and day by day
+//  from today over the days ahead.
 //
 
 import CoreLocation
@@ -12,8 +12,8 @@ import Observation
 import WeatherKit
 
 /// A city's weather as it was fetched: its conditions, wind and UV index now,
-/// each hour's conditions from the hour under way to a day later, and each
-/// day's from today.
+/// each hour's conditions and UV index from the start of today to the end of
+/// the forecast's last day, and each day's from today.
 struct CityWeather {
     struct Conditions: Equatable {
         let temperature: Measurement<UnitTemperature>
@@ -44,6 +44,8 @@ struct CityWeather {
     let uvIndex: Int
     /// By the start of each hour.
     let hours: [Date: Conditions]
+    /// Each hour's UV index, by the start of the hour.
+    let hourlyUVIndexes: [Date: Int]
     /// From today, in order.
     let days: [Day]
     let fetchDate: Date
@@ -62,6 +64,9 @@ final class WatchWeatherStore {
     }
 
     private static let maxAge: TimeInterval = 30 * 60
+    /// The days WeatherKit forecasts, every hour of which is fetched too, for
+    /// each day's UV index hour by hour.
+    private static let forecastDays = 10
     private static let liveWindMaxAge: TimeInterval = 10 * 60
     /// How far the watch goes before the wind where it was no longer stands
     /// for the wind where it is.
@@ -103,25 +108,32 @@ final class WatchWeatherStore {
         // Not the view's task, so leaving the view doesn't cancel the fetch.
         Task {
             defer { fetchingTimeZones.remove(identifier) }
-            let hourStart = Self.hourStart(of: .now)
+            var calendar = Calendar(identifier: .gregorian)
+            calendar.timeZone = timeZone
+            // From the city's midnight rather than now, so today's hours
+            // already gone by are in too.
+            let today = calendar.startOfDay(for: .now)
+            let forecastEnd = calendar.date(byAdding: .day, value: Self.forecastDays, to: today)
+                ?? today.addingTimeInterval(Double(Self.forecastDays) * 24 * 3600)
             do {
                 let (current, forecast, dailyForecast) = try await WeatherService.shared.weather(
                     for: CLLocation(latitude: coordinate.latitude, longitude: coordinate.longitude),
                     including: .current,
-                    .hourly(startDate: hourStart, endDate: hourStart.addingTimeInterval(24 * 3600)),
+                    .hourly(startDate: today, endDate: forecastEnd),
                     .daily
                 )
                 var hours: [Date: CityWeather.Conditions] = [:]
+                var hourlyUVIndexes: [Date: Int] = [:]
                 for hour in forecast {
                     // To the nearest hour, should one start a moment off it.
-                    hours[Self.hourStart(of: hour.date.addingTimeInterval(1800))] = CityWeather.Conditions(
+                    let start = Self.hourStart(of: hour.date.addingTimeInterval(1800))
+                    hours[start] = CityWeather.Conditions(
                         temperature: hour.temperature,
                         condition: hour.condition,
                         isDaylight: hour.isDaylight
                     )
+                    hourlyUVIndexes[start] = hour.uvIndex.value
                 }
-                var calendar = Calendar(identifier: .gregorian)
-                calendar.timeZone = timeZone
                 let days = dailyForecast.map { day in
                     CityWeather.Day(
                         // The city's day most of the forecast's falls in,
@@ -142,6 +154,7 @@ final class WatchWeatherStore {
                     wind: CityWeather.Wind(current.wind),
                     uvIndex: current.uvIndex.value,
                     hours: hours,
+                    hourlyUVIndexes: hourlyUVIndexes,
                     days: days,
                     fetchDate: .now
                 )
