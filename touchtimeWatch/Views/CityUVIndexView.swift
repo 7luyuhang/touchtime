@@ -183,11 +183,11 @@ private enum UVIndexScale {
 }
 
 /// The forecast's days around the outside of the arc, the one the Digital
-/// Crown has turned to on a pill like the daylight ring's current hour's,
-/// inside a border like the daylight ring's edge; the arc in the UV index's
-/// colors from the gauge's start to its end; and on it, at the index, a sun
-/// outlined like the daylight ring's by night. Below the arc's ends its edge
-/// and the border fade away.
+/// Crown has turned to cut out of a pill like the daylight ring's current
+/// hour's, inside a border like the daylight ring's edge; the arc in the UV
+/// index's colors from the gauge's start to its end; and on it, at the index,
+/// a sun outlined like the daylight ring's by night. Below the arc's ends its
+/// edge and the border fade away.
 private struct UVIndexGauge: View {
     /// How far past the arc the days and their border reach, as the daylight
     /// ring's hours do.
@@ -223,21 +223,27 @@ private struct UVIndexGauge: View {
         let pillAngle = UVIndexScale.angle(day: chosenDayIndex, of: dayCount)
 
         ZStack {
-            days(radius: labelRadius, count: dayCount)
-                .foregroundStyle(.primary)
+            // The days it covers cut out of the pill, so the sky shows through
+            // them as it moves from day to day.
+            ZStack {
+                // Clear of the pill, so as not to fill its cutouts back in.
+                ZStack {
+                    days(radius: labelRadius, count: dayCount)
+                    pill(radius: labelRadius, angle: pillAngle)
+                        .blendMode(.destinationOut)
+                }
+                .compositingGroup()
 
-            if !dayNumbers.isEmpty {
-                pill(radius: labelRadius, angle: pillAngle)
-                    .foregroundStyle(.white)
-
-                // Dark wherever the pill is under them, as it passes from day
-                // to day.
-                days(radius: labelRadius, count: dayCount)
-                    .foregroundStyle(.black)
-                    .mask {
+                if !dayNumbers.isEmpty {
+                    ZStack {
                         pill(radius: labelRadius, angle: pillAngle)
+                        days(radius: labelRadius, count: dayCount)
+                            .blendMode(.destinationOut)
                     }
+                    .compositingGroup()
+                }
             }
+            .foregroundStyle(.white)
 
             Circle()
                 .inset(by: ringWidth / 2)
