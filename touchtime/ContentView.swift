@@ -32,6 +32,7 @@ struct ContentView: View {
     @AppStorage("firstWeekday") private var firstWeekday = 2
     @AppStorage("useCelsius") private var useCelsius = true
     @AppStorage(WindSpeedUnit.storageKey) private var windSpeedUnit = WindSpeedUnit.kilometersPerHour
+    @AppStorage(PressureUnit.storageKey) private var pressureUnit = PressureUnit.millibars
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
@@ -94,8 +95,8 @@ struct ContentView: View {
                 await AppleWatchMockupView.preload()
             }
             // The Apple Watch app shows the same cities, in the same date style,
-            // with temperatures and wind speeds in the same units, and starts
-            // its moon calendar's weeks on the same day
+            // with temperatures, wind speeds and pressures in the same units,
+            // and starts its moon calendar's weeks on the same day
             .onChange(of: worldClocks) { _, clocks in
                 WatchSyncManager.shared.sync(clocks: clocks)
             }
@@ -109,6 +110,9 @@ struct ContentView: View {
                 WatchSyncManager.shared.sync()
             }
             .onChange(of: windSpeedUnit) {
+                WatchSyncManager.shared.sync()
+            }
+            .onChange(of: pressureUnit) {
                 WatchSyncManager.shared.sync()
             }
             // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)

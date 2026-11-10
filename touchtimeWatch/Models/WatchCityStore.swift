@@ -3,7 +3,8 @@
 //  touchtimeWatch
 //
 //  The iPhone app's saved cities, date style, first day of the week, and
-//  temperature and wind speed units, received over WatchConnectivity.
+//  temperature, wind speed and pressure units, received over
+//  WatchConnectivity.
 //
 
 import Foundation
@@ -25,12 +26,15 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     private(set) var useCelsius: Bool
     /// The iPhone app's wind speed unit.
     private(set) var windSpeedUnit: WindSpeedUnit
+    /// The iPhone app's pressure unit.
+    private(set) var pressureUnit: PressureUnit
 
     private static let citiesKey = "cities"
     private static let dateStyleKey = "dateStyle"
     private static let firstWeekdayKey = "firstWeekday"
     private static let useCelsiusKey = "useCelsius"
     private static let windSpeedUnitKey = "windSpeedUnit"
+    private static let pressureUnitKey = "pressureUnit"
 
     override init() {
         let defaults = UserDefaults.standard
@@ -49,6 +53,9 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         // Fahrenheit, and km/h otherwise
         windSpeedUnit = defaults.string(forKey: Self.windSpeedUnitKey).flatMap(WindSpeedUnit.init(rawValue:))
             ?? (savedUseCelsius ? .kilometersPerHour : .milesPerHour)
+        // Millibars, as on the iPhone until its settings pick another unit
+        pressureUnit = defaults.string(forKey: Self.pressureUnitKey).flatMap(PressureUnit.init(rawValue:))
+            ?? .millibars
         super.init()
 
         if savedCities == nil {
@@ -62,7 +69,14 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         }
     }
 
-    private func apply(citiesData: Data?, dateStyle: String?, firstWeekday: Int?, useCelsius: Bool?, windSpeedUnit: String?) {
+    private func apply(
+        citiesData: Data?,
+        dateStyle: String?,
+        firstWeekday: Int?,
+        useCelsius: Bool?,
+        windSpeedUnit: String?,
+        pressureUnit: String?
+    ) {
         let defaults = UserDefaults.standard
         if let citiesData,
            let receivedCities = try? JSONDecoder().decode([WatchCity].self, from: citiesData) {
@@ -95,6 +109,12 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             }
             defaults.set(windSpeedUnit.rawValue, forKey: Self.windSpeedUnitKey)
         }
+        if let pressureUnit = pressureUnit.flatMap(PressureUnit.init(rawValue:)) {
+            if pressureUnit != self.pressureUnit {
+                self.pressureUnit = pressureUnit
+            }
+            defaults.set(pressureUnit.rawValue, forKey: Self.pressureUnitKey)
+        }
     }
 
     nonisolated private func receive(_ context: [String: Any]) {
@@ -103,13 +123,15 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         let firstWeekday = context[WatchSyncKeys.firstWeekday] as? Int
         let useCelsius = context[WatchSyncKeys.useCelsius] as? Bool
         let windSpeedUnit = context[WatchSyncKeys.windSpeedUnit] as? String
+        let pressureUnit = context[WatchSyncKeys.pressureUnit] as? String
         Task { @MainActor in
             self.apply(
                 citiesData: citiesData,
                 dateStyle: dateStyle,
                 firstWeekday: firstWeekday,
                 useCelsius: useCelsius,
-                windSpeedUnit: windSpeedUnit
+                windSpeedUnit: windSpeedUnit,
+                pressureUnit: pressureUnit
             )
         }
     }

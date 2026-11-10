@@ -135,6 +135,7 @@
 				DotsWorldMapGlobe.swift,
 				MoonAstronomy.swift,
 				MoonPhase.swift,
+				PressureUnit.swift,
 				SkyColorGradient.swift,
 				SolarCalculator.swift,
 				SolarCurve.swift,

@@ -11,9 +11,9 @@ import Foundation
 import Observation
 import WeatherKit
 
-/// A city's weather as it was fetched: its conditions, wind and UV index now,
-/// each hour's conditions and UV index from the start of today to the end of
-/// the forecast's last day, and each day's from today.
+/// A city's weather as it was fetched: its conditions, wind, UV index and
+/// pressure now, each hour's conditions, UV index and pressure from the start
+/// of today to the end of the forecast's last day, and each day's from today.
 struct CityWeather {
     struct Conditions: Equatable {
         let temperature: Measurement<UnitTemperature>
@@ -46,10 +46,15 @@ struct CityWeather {
     let current: Conditions
     let wind: Wind
     let uvIndex: Int
+    /// At sea level.
+    let pressure: Measurement<UnitPressure>
+    let pressureTrend: PressureTrend
     /// By the start of each hour.
     let hours: [Date: Conditions]
     /// Each hour's UV index, by the start of the hour.
     let hourlyUVIndexes: [Date: Int]
+    /// Each hour's pressure at sea level, by the start of the hour.
+    let hourlyPressures: [Date: Measurement<UnitPressure>]
     /// From today, in order.
     let days: [Day]
     let fetchDate: Date
@@ -69,7 +74,7 @@ final class WatchWeatherStore {
 
     private static let maxAge: TimeInterval = 30 * 60
     /// The days WeatherKit forecasts, every hour of which is fetched too, for
-    /// each day's UV index hour by hour.
+    /// each day's UV index and pressure hour by hour.
     private static let forecastDays = 10
     private static let liveWindMaxAge: TimeInterval = 10 * 60
     /// How far the watch goes before the wind where it was no longer stands
@@ -128,6 +133,7 @@ final class WatchWeatherStore {
                 )
                 var hours: [Date: CityWeather.Conditions] = [:]
                 var hourlyUVIndexes: [Date: Int] = [:]
+                var hourlyPressures: [Date: Measurement<UnitPressure>] = [:]
                 for hour in forecast {
                     // To the nearest hour, should one start a moment off it.
                     let start = Self.hourStart(of: hour.date.addingTimeInterval(1800))
@@ -138,6 +144,7 @@ final class WatchWeatherStore {
                         precipitationChance: hour.precipitationChance
                     )
                     hourlyUVIndexes[start] = hour.uvIndex.value
+                    hourlyPressures[start] = hour.pressure
                 }
                 let days = dailyForecast.map { day in
                     CityWeather.Day(
@@ -161,8 +168,11 @@ final class WatchWeatherStore {
                     ),
                     wind: CityWeather.Wind(current.wind),
                     uvIndex: current.uvIndex.value,
+                    pressure: current.pressure,
+                    pressureTrend: current.pressureTrend,
                     hours: hours,
                     hourlyUVIndexes: hourlyUVIndexes,
+                    hourlyPressures: hourlyPressures,
                     days: days,
                     fetchDate: .now
                 )

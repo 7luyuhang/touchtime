@@ -3,11 +3,11 @@
 //  touchtimeWatch
 //
 //  A city's world clock, moon phase, solar curve, sun position, daylight,
-//  weather, wind, or UV index.
+//  weather, wind, UV index, or pressure.
 //  Turning the Digital Crown moves a day at a time in Moon Phase, and an hour
-//  in the other views, except in Weather, Wind, UV Index and Sun Position's
-//  live compass, which show now. Weather's and UV Index's days ahead take the
-//  Crown themselves.
+//  in the other views, except in Weather, Wind, UV Index, Pressure and Sun
+//  Position's live compass, which show now. Weather's, UV Index's and
+//  Pressure's days ahead take the Crown themselves.
 //
 
 import SwiftUI
@@ -148,6 +148,13 @@ struct CityDetailView: View {
                     )
                 case .uvIndex:
                     CityUVIndexView(date: date, timeZone: city.timeZone, dateStyle: cityStore.dateStyle)
+                case .pressure:
+                    CityPressureView(
+                        date: date,
+                        timeZone: city.timeZone,
+                        pressureUnit: cityStore.pressureUnit,
+                        dateStyle: cityStore.dateStyle
+                    )
                 }
             }
             // Like World Clock, the clock sits low enough to leave the map
@@ -155,7 +162,7 @@ struct CityDetailView: View {
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 switch display {
-                case .worldClock, .sunPosition, .weather, .wind, .uvIndex:
+                case .worldClock, .sunPosition, .weather, .wind, .uvIndex, .pressure:
                     CitySkyBackground(date: date, timeZone: city.timeZone)
                 case .moonPhase, .solarCurve, .daylight:
                     Color.black
@@ -244,8 +251,8 @@ struct CityDetailView: View {
             CitySunTimesSheet(date: sunTimesDate, timeZone: city.timeZone, dateStyle: cityStore.dateStyle)
         }
         .onAppear {
-            // Weather, Wind and UV Index show now, even after the analog
-            // clock moved every clock.
+            // Weather, Wind, UV Index and Pressure show now, even after the
+            // analog clock moved every clock.
             if display.showsNow {
                 showCurrentTime()
             }

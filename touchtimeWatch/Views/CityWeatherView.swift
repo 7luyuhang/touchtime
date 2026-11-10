@@ -868,8 +868,11 @@ private extension View {
             gust: Measurement(value: 29, unit: .kilometersPerHour)
         ),
         uvIndex: 2,
+        pressure: Measurement(value: 1013, unit: .hectopascals),
+        pressureTrend: .steady,
         hours: hours,
         hourlyUVIndexes: [:],
+        hourlyPressures: [:],
         days: days,
         fetchDate: date
     )

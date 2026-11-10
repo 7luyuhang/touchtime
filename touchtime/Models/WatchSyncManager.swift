@@ -3,7 +3,7 @@
 //  touchtime
 //
 //  Sends the saved cities, the date style, the first day of the week, and the
-//  temperature and wind speed units to the Apple Watch app.
+//  temperature, wind speed and pressure units to the Apple Watch app.
 //
 
 import Foundation
@@ -42,7 +42,9 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
                 ?? SharedWidgetStore.defaultFirstWeekday,
             WatchSyncKeys.useCelsius: UserDefaults.standard.object(forKey: "useCelsius") as? Bool ?? true,
             WatchSyncKeys.windSpeedUnit: UserDefaults.standard.string(forKey: WindSpeedUnit.storageKey)
-                ?? WindSpeedUnit.kilometersPerHour.rawValue
+                ?? WindSpeedUnit.kilometersPerHour.rawValue,
+            WatchSyncKeys.pressureUnit: UserDefaults.standard.string(forKey: PressureUnit.storageKey)
+                ?? PressureUnit.millibars.rawValue
         ])
     }
 

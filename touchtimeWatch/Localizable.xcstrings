@@ -624,6 +624,23 @@
         }
       }
     },
+    "Falling" : {
+      "comment" : "Air pressure trend, read by VoiceOver after the pressure on Pressure: pressure is dropping.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下降"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "下降"
+          }
+        }
+      }
+    },
     "First" : {
       "comment" : "Short label for the first quarter moon in the upcoming phases cards.",
       "localizations" : {
@@ -1277,6 +1294,22 @@
         }
       }
     },
+    "Pressure" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "气压"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "氣壓"
+          }
+        }
+      }
+    },
     "Rain" : {
       "localizations" : {
         "zh-Hans" : {
@@ -1289,6 +1322,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "小雨"
+          }
+        }
+      }
+    },
+    "Rising" : {
+      "comment" : "Air pressure trend, read by VoiceOver after the pressure on Pressure: pressure is going up.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上升"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "上升"
           }
         }
       }
@@ -1451,6 +1501,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@後開始"
+          }
+        }
+      }
+    },
+    "Steady" : {
+      "comment" : "Air pressure trend, read by VoiceOver after the pressure on Pressure: pressure is holding level.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "稳定"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "穩定"
           }
         }
       }

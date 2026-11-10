@@ -441,8 +441,11 @@ private extension WindSpeedUnit {
             gust: Measurement(value: 29, unit: .kilometersPerHour)
         ),
         uvIndex: 3,
+        pressure: Measurement(value: 1013, unit: .hectopascals),
+        pressureTrend: .steady,
         hours: [:],
         hourlyUVIndexes: [:],
+        hourlyPressures: [:],
         days: [],
         fetchDate: date
     )
