@@ -567,9 +567,10 @@ private struct WeatherRingDividers: Shape {
 
 /// At the ring's bottom, between the days' ends, an arc from the days'
 /// lowest temperature at its left to their highest at its right, colored from
-/// the chosen day's low to its high, and on today's, a dot at the temperature
-/// now. Every day shares the arc, as the Weather app's bars do, so turning
-/// from day to day moves the color along it.
+/// the chosen day's low to its high in the Weather app's colors for each
+/// temperature, and on today's, a dot at the temperature now. Every day shares
+/// the arc, as the Weather app's bars do, so turning from day to day moves the
+/// color along it.
 private struct WeatherRingTemperatures: View {
     let diameter: CGFloat
     let ringWidth: CGFloat
@@ -621,7 +622,7 @@ private struct WeatherRingTemperatures: View {
                 if let day {
                     arc
                         .trim(from: scale.fraction(day.highTemperature), to: scale.fraction(day.lowTemperature))
-                        .stroke(.cyan, style: style)
+                        .stroke(scale.gradient, style: style)
                 }
                 dot(lineWidth: lineWidth, isHole: false)
                     .offset(dotOffset)
@@ -671,6 +672,50 @@ private struct WeatherRingTemperatures: View {
             let celsius = temperature.converted(to: .celsius).value
             let along = min(max((celsius - lowest) / (highest - lowest), 0), 1)
             return Self.lowEnd + (Self.highEnd - Self.lowEnd) * along
+        }
+
+        /// Each temperature's color where it is along the arc, from the
+        /// highest's end clockwise to the lowest's.
+        var gradient: AngularGradient {
+            let inside = TemperatureColors.stops.reversed().filter { lowest < $0.celsius && $0.celsius < highest }
+            let stops = [Gradient.Stop(color: TemperatureColors.color(celsius: highest), location: 0)]
+                + inside.map { Gradient.Stop(color: $0.color, location: (highest - $0.celsius) / (highest - lowest)) }
+                + [Gradient.Stop(color: TemperatureColors.color(celsius: lowest), location: 1)]
+            return AngularGradient(
+                stops: stops,
+                center: .center,
+                startAngle: .degrees(360 * Self.highEnd),
+                endAngle: .degrees(360 * Self.lowEnd)
+            )
+        }
+    }
+
+    /// The Weather app's colors for temperatures, which its bars blend from
+    /// each day's low to its high: dark blue below 0°C, light blue to 15°,
+    /// green to 20°, yellow to 25°, orange to 30° and red above. Each is at
+    /// its band's middle, the open-ended bands taken as wide as the next.
+    private enum TemperatureColors {
+        static let stops: [(celsius: Double, color: Color)] = [
+            (-7.5, .blue),
+            (7.5, .cyan),
+            (17.5, .green),
+            (22.5, .yellow),
+            (27.5, .orange),
+            (32.5, .red)
+        ]
+
+        /// Blended as the gradient blends them.
+        static func color(celsius: Double) -> Color {
+            guard let next = stops.firstIndex(where: { $0.celsius > celsius }) else {
+                return stops[stops.count - 1].color
+            }
+            guard next > 0 else { return stops[0].color }
+            let (below, above) = (stops[next - 1], stops[next])
+            return below.color.mix(
+                with: above.color,
+                by: (celsius - below.celsius) / (above.celsius - below.celsius),
+                in: .device
+            )
         }
     }
 }
