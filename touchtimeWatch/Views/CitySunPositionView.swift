@@ -519,4 +519,5 @@ private func smoothstep(from edge0: Double, to edge1: Double, value: Double) -> 
                 CitySkyBackground(date: date, timeZone: .current)
             }
     }
+    .environment(WatchWeatherStore())
 }

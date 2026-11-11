@@ -74,8 +74,14 @@ private struct SolarCurveSkyBackground: View {
     let timeZone: TimeZone
     let horizon: CGFloat
 
+    @Environment(WatchWeatherStore.self) private var weatherStore
+
     var body: some View {
-        let sky = SkyColorGradient(date: date, timeZoneIdentifier: timeZone.identifier)
+        let sky = SkyColorGradient(
+            date: date,
+            timeZoneIdentifier: timeZone.identifier,
+            weatherCondition: weatherStore.weather[timeZone.identifier]?.current.condition
+        )
         let colors = sky.colorsOverBlack(opacity: 0.75)
         let reflection = LinearGradient(colors: colors.reversed(), startPoint: .top, endPoint: .bottom)
 
@@ -111,6 +117,10 @@ private struct SolarCurveSkyBackground: View {
         .animation(.easeInOut(duration: 0.5), value: sky.animationValue)
         .allowsHitTesting(false)
         .accessibilityHidden(true)
+        // Every quarter hour, in case the weather has gone stale.
+        .onChange(of: Int(date.timeIntervalSinceReferenceDate / 900), initial: true) {
+            weatherStore.update(for: timeZone)
+        }
     }
 }
 
@@ -125,4 +135,5 @@ private struct SolarCurveSkyBackground: View {
         .ignoresSafeArea(edges: .bottom)
         .navigationTitle("Local")
     }
+    .environment(WatchWeatherStore())
 }
