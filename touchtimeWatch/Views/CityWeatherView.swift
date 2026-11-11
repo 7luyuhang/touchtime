@@ -22,12 +22,14 @@ struct CityWeatherView: View {
     let useCelsius: Bool
     /// The iPhone app's date style, for `Date.formattedDate(style:)`.
     let dateStyle: String
+    /// Whether the days show rather than the hours, which tapping the middle
+    /// trades between.
+    @Binding var showsDays: Bool
+    /// How many days after today the Digital Crown has turned to.
+    @Binding var crownDays: Double
 
     @Environment(WatchWeatherStore.self) private var weatherStore
     @Environment(\.isPresented) private var isPresented
-    @State private var showsDays = true
-    /// How many days after today the Digital Crown has turned to.
-    @State private var crownDays: Double = 0
     @FocusState private var crownHolder: CrownHolder?
 
     /// Who has the Digital Crown: the hours, doing nothing with it, or the
@@ -846,6 +848,8 @@ private extension View {
 }
 
 #Preview {
+    @Previewable @State var showsDays = true
+    @Previewable @State var crownDays: Double = 0
     let date = Date.now
     let currentHour = WatchWeatherStore.hourStart(of: date)
     let forecast: [(Double, WeatherCondition, Double)] = [
@@ -901,11 +905,18 @@ private extension View {
     )
 
     NavigationStack {
-        CityWeatherView(date: date, timeZone: .current, useCelsius: true, dateStyle: "Relative")
-            .ignoresSafeArea(edges: .bottom)
-            .containerBackground(for: .navigation) {
-                CitySkyBackground(date: date, timeZone: .current)
-            }
+        CityWeatherView(
+            date: date,
+            timeZone: .current,
+            useCelsius: true,
+            dateStyle: "Relative",
+            showsDays: $showsDays,
+            crownDays: $crownDays
+        )
+        .ignoresSafeArea(edges: .bottom)
+        .containerBackground(for: .navigation) {
+            CitySkyBackground(date: date, timeZone: .current)
+        }
     }
     .environment(WatchWeatherStore(weather: [TimeZone.current.identifier: weather]))
 }

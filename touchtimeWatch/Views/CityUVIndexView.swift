@@ -23,11 +23,11 @@ struct CityUVIndexView: View {
     let timeZone: TimeZone
     /// The iPhone app's date style, for `Date.formattedDate(style:)`.
     let dateStyle: String
+    /// How many days after today the Digital Crown has turned to.
+    @Binding var crownDays: Double
 
     @Environment(WatchWeatherStore.self) private var weatherStore
     @Environment(\.isPresented) private var isPresented
-    /// How many days after today the Digital Crown has turned to.
-    @State private var crownDays: Double = 0
     @FocusState private var isCrownFocused: Bool
 
     var body: some View {
@@ -489,6 +489,7 @@ private extension View {
 }
 
 #Preview {
+    @Previewable @State var crownDays: Double = 0
     let date = Date.now
     let today = Calendar.current.startOfDay(for: date)
     let days = [5, 7, 9, 11, 8, 6, 4, 2, 1, 3].enumerated().map { index, uvIndex in
@@ -530,7 +531,7 @@ private extension View {
     )
 
     NavigationStack {
-        CityUVIndexView(date: date, timeZone: .current, dateStyle: "Relative")
+        CityUVIndexView(date: date, timeZone: .current, dateStyle: "Relative", crownDays: $crownDays)
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 CitySkyBackground(date: date, timeZone: .current)

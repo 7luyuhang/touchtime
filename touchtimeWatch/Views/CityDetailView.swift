@@ -32,6 +32,11 @@ struct CityDetailView: View {
     @State private var showsLiveCompass = false
     /// Whether World Map's map has turned, or is turning, into the globe.
     @State private var showsGlobe = false
+    /// Whether Conditions shows its days rather than its hours.
+    @State private var showsWeatherDays = true
+    /// How many days after today the Digital Crown has turned to in
+    /// Conditions, UV Index, Humidity and Pressure.
+    @State private var crownDays: Double = 0
     /// Taps on Current Time, each felt. Not the adjusted date, which the
     /// Digital Crown and going live also clear, with haptics of their own.
     @State private var currentTimeTaps = 0
@@ -59,6 +64,15 @@ struct CityDetailView: View {
 
     private var crownMovesTime: Bool {
         !display.showsNow && !showsLiveCompass
+    }
+
+    /// Whether the view shows a day after today rather than now.
+    private var showsLaterDay: Bool {
+        switch display {
+        case .weather: showsWeatherDays && Int(crownDays.rounded()) > 0
+        case .uvIndex, .humidity, .pressure: Int(crownDays.rounded()) > 0
+        case .worldClock, .solarCurve, .sunPosition, .daylight, .moonPhase, .wind: false
+        }
     }
 
     var body: some View {
@@ -136,7 +150,9 @@ struct CityDetailView: View {
                         date: date,
                         timeZone: city.timeZone,
                         useCelsius: cityStore.useCelsius,
-                        dateStyle: cityStore.dateStyle
+                        dateStyle: cityStore.dateStyle,
+                        showsDays: $showsWeatherDays,
+                        crownDays: $crownDays
                     )
                 case .wind:
                     CityWindView(
@@ -147,20 +163,27 @@ struct CityDetailView: View {
                         isLive: $showsLiveCompass
                     )
                 case .uvIndex:
-                    CityUVIndexView(date: date, timeZone: city.timeZone, dateStyle: cityStore.dateStyle)
+                    CityUVIndexView(
+                        date: date,
+                        timeZone: city.timeZone,
+                        dateStyle: cityStore.dateStyle,
+                        crownDays: $crownDays
+                    )
                 case .humidity:
                     CityHumidityView(
                         date: date,
                         timeZone: city.timeZone,
                         useCelsius: cityStore.useCelsius,
-                        dateStyle: cityStore.dateStyle
+                        dateStyle: cityStore.dateStyle,
+                        crownDays: $crownDays
                     )
                 case .pressure:
                     CityPressureView(
                         date: date,
                         timeZone: city.timeZone,
                         pressureUnit: cityStore.pressureUnit,
-                        dateStyle: cityStore.dateStyle
+                        dateStyle: cityStore.dateStyle,
+                        crownDays: $crownDays
                     )
                 }
             }
@@ -215,15 +238,18 @@ struct CityDetailView: View {
                 )
         }
         .scrollIndicators(.hidden)
-        .navigationBarBackButtonHidden(isAdjusted)
+        .navigationBarBackButtonHidden(isAdjusted || showsLaterDay)
         .toolbar {
-            // While adjusting time, replace the list button with a reset
-            // button in the same leading corner.
-            if isAdjusted {
+            // While adjusting time, or showing a day after today, replace the
+            // list button with a reset button in the same leading corner.
+            if isAdjusted || showsLaterDay {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Current Time", systemImage: "xmark") {
                         currentTimeTaps += 1
                         showCurrentTime()
+                        withAnimation(.smooth) {
+                            crownDays = 0
+                        }
                     }
                 }
             }
@@ -276,6 +302,8 @@ struct CityDetailView: View {
             crownSteps = 0
             showsLiveCompass = false
             showsGlobe = false
+            showsWeatherDays = true
+            crownDays = 0
             if display.showsNow {
                 showCurrentTime()
             }

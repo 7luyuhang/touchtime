@@ -30,11 +30,11 @@ struct CityPressureView: View {
     let pressureUnit: PressureUnit
     /// The iPhone app's date style, for `Date.formattedDate(style:)`.
     let dateStyle: String
+    /// How many days after today the Digital Crown has turned to.
+    @Binding var crownDays: Double
 
     @Environment(WatchWeatherStore.self) private var weatherStore
     @Environment(\.isPresented) private var isPresented
-    /// How many days after today the Digital Crown has turned to.
-    @State private var crownDays: Double = 0
     @FocusState private var isCrownFocused: Bool
 
     var body: some View {
@@ -682,6 +682,7 @@ private extension View {
 }
 
 #Preview {
+    @Previewable @State var crownDays: Double = 0
     let date = Date.now
     let today = Calendar.current.startOfDay(for: date)
     let days = (0..<10).map { index in
@@ -725,11 +726,17 @@ private extension View {
     )
 
     NavigationStack {
-        CityPressureView(date: date, timeZone: .current, pressureUnit: .millibars, dateStyle: "Relative")
-            .ignoresSafeArea(edges: .bottom)
-            .containerBackground(for: .navigation) {
-                CitySkyBackground(date: date, timeZone: .current)
-            }
+        CityPressureView(
+            date: date,
+            timeZone: .current,
+            pressureUnit: .millibars,
+            dateStyle: "Relative",
+            crownDays: $crownDays
+        )
+        .ignoresSafeArea(edges: .bottom)
+        .containerBackground(for: .navigation) {
+            CitySkyBackground(date: date, timeZone: .current)
+        }
     }
     .environment(WatchWeatherStore(weather: [TimeZone.current.identifier: weather]))
 }
