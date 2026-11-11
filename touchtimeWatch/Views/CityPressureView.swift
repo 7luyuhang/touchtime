@@ -21,6 +21,8 @@ struct CityPressureView: View {
     /// The least the chart spans, in hectopascals, so a calm spell's little
     /// ups and downs stay little.
     private static let leastChartSpan = 10.0
+    /// Between the gauge's room and the date under it.
+    private static let dateSpacing: CGFloat = 8
 
     let date: Date
     let timeZone: TimeZone
@@ -51,7 +53,7 @@ struct CityPressureView: View {
             }
         }
 
-        VStack(spacing: 8) {
+        VStack(spacing: Self.dateSpacing) {
             GeometryReader { geometry in
                 // Laid out as UV Index's gauge, so going from one to the
                 // other, the gauge stays where it is.
@@ -63,6 +65,11 @@ struct CityPressureView: View {
                 // width over the chart in the bottom of the circle.
                 let trendRoom = diameter * (0.5 - DayLineChart.heightShare) - chartLineWidth
                     - PressureGauge.endsDepth(diameter: diameter, ringWidth: ringWidth)
+                // Under the circle, which is centered in the room, to the date.
+                let chartOffset = DayLineChart.offset(
+                    lineWidth: chartLineWidth,
+                    spaceBelow: (geometry.size.height - diameter) / 2 + Self.dateSpacing
+                )
 
                 ZStack {
                     PressureGauge(
@@ -99,6 +106,7 @@ struct CityPressureView: View {
                             }
                         }
                         .frame(height: diameter * DayLineChart.heightShare)
+                        .offset(y: chartOffset)
                         .accessibilityHidden(true)
                     }
                     .frame(width: diameter - PressureGauge.bandWidth * 2, height: diameter, alignment: .bottom)
@@ -707,9 +715,11 @@ private extension View {
         uvIndex: 2,
         pressure: Measurement(value: 1005, unit: .hectopascals),
         pressureTrend: .falling,
+        humidity: CityWeather.Humidity(relative: 0.85, dewPoint: Measurement(value: 9, unit: .celsius)),
         hours: [:],
         hourlyUVIndexes: [:],
         hourlyPressures: hourlyPressures,
+        hourlyHumidities: [:],
         days: days,
         fetchDate: date
     )

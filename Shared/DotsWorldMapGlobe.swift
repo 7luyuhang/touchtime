@@ -6,7 +6,7 @@
 //
 //  The dotted globe the dotted world map (DotsWorldMap.swift) wraps up
 //  into, shared by the app's Search tab (DotsWorldMapGlobeView) and the
-//  watch's World Clock (CityMapView): the globe's dots, which way it faces
+//  watch's World Map (CityMapView): the globe's dots, which way it faces
 //  and how it turns, and the canvas drawing the map, the globe and the
 //  morph between them. Each adds its own gestures on top.
 //

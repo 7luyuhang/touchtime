@@ -3,11 +3,11 @@
 //  touchtimeWatch
 //
 //  A city's world clock, moon phase, solar curve, sun position, daylight,
-//  weather, wind, UV index, or pressure.
+//  weather, wind, UV index, humidity, or pressure.
 //  Turning the Digital Crown moves a day at a time in Moon Phase, and an hour
-//  in the other views, except in Weather, Wind, UV Index, Pressure and Sun
-//  Position's live compass, which show now. Weather's, UV Index's and
-//  Pressure's days ahead take the Crown themselves.
+//  in the other views, except in Weather, Wind, UV Index, Humidity, Pressure
+//  and Sun Position's live compass, which show now. Weather's, UV Index's,
+//  Humidity's and Pressure's days ahead take the Crown themselves.
 //
 
 import SwiftUI
@@ -30,7 +30,7 @@ struct CityDetailView: View {
     @State private var showsSunTimes = false
     @State private var sunTimesDate = Date()
     @State private var showsLiveCompass = false
-    /// Whether World Clock's map has turned, or is turning, into the globe.
+    /// Whether World Map's map has turned, or is turning, into the globe.
     @State private var showsGlobe = false
     /// Taps on Current Time, each felt. Not the adjusted date, which the
     /// Digital Crown and going live also clear, with haptics of their own.
@@ -148,6 +148,13 @@ struct CityDetailView: View {
                     )
                 case .uvIndex:
                     CityUVIndexView(date: date, timeZone: city.timeZone, dateStyle: cityStore.dateStyle)
+                case .humidity:
+                    CityHumidityView(
+                        date: date,
+                        timeZone: city.timeZone,
+                        useCelsius: cityStore.useCelsius,
+                        dateStyle: cityStore.dateStyle
+                    )
                 case .pressure:
                     CityPressureView(
                         date: date,
@@ -162,7 +169,7 @@ struct CityDetailView: View {
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 switch display {
-                case .worldClock, .sunPosition, .weather, .wind, .uvIndex, .pressure:
+                case .worldClock, .sunPosition, .weather, .wind, .uvIndex, .humidity, .pressure:
                     CitySkyBackground(date: date, timeZone: city.timeZone)
                 case .moonPhase, .solarCurve, .daylight:
                     Color.black
@@ -251,8 +258,8 @@ struct CityDetailView: View {
             CitySunTimesSheet(date: sunTimesDate, timeZone: city.timeZone, dateStyle: cityStore.dateStyle)
         }
         .onAppear {
-            // Weather, Wind, UV Index and Pressure show now, even after the
-            // analog clock moved every clock.
+            // Weather, Wind, UV Index, Humidity and Pressure show now, even
+            // after the analog clock moved every clock.
             if display.showsNow {
                 showCurrentTime()
             }
@@ -316,7 +323,7 @@ struct CityDetailView: View {
         .scenePadding(.navigationBar, edges: .horizontal)
     }
 
-    /// The city's day along the bottom of the screen: under World Clock's
+    /// The city's day along the bottom of the screen: under World Map's
     /// clock, or centered after the city's time where no clock shows, under
     /// the globe or the solar curve.
     private func dateRow(date: Date, label: String, showsTime: Bool) -> some View {

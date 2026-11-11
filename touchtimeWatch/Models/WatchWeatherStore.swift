@@ -11,9 +11,10 @@ import Foundation
 import Observation
 import WeatherKit
 
-/// A city's weather as it was fetched: its conditions, wind, UV index and
-/// pressure now, each hour's conditions, UV index and pressure from the start
-/// of today to the end of the forecast's last day, and each day's from today.
+/// A city's weather as it was fetched: its conditions, wind, UV index,
+/// pressure and humidity now, each hour's conditions, UV index, pressure and
+/// humidity from the start of today to the end of the forecast's last day,
+/// and each day's from today.
 struct CityWeather {
     struct Conditions: Equatable {
         let temperature: Measurement<UnitTemperature>
@@ -29,6 +30,15 @@ struct CityWeather {
         let speed: Measurement<UnitSpeed>
         /// Nil when the forecast has none.
         let gust: Measurement<UnitSpeed>?
+    }
+
+    struct Humidity: Equatable {
+        /// How much water vapor the air holds of the most it could at its
+        /// temperature, from 0 to 1.
+        let relative: Double
+        /// The temperature the air would have to cool to for its water vapor
+        /// to condense.
+        let dewPoint: Measurement<UnitTemperature>
     }
 
     struct Day: Equatable {
@@ -49,12 +59,15 @@ struct CityWeather {
     /// At sea level.
     let pressure: Measurement<UnitPressure>
     let pressureTrend: PressureTrend
+    let humidity: Humidity
     /// By the start of each hour.
     let hours: [Date: Conditions]
     /// Each hour's UV index, by the start of the hour.
     let hourlyUVIndexes: [Date: Int]
     /// Each hour's pressure at sea level, by the start of the hour.
     let hourlyPressures: [Date: Measurement<UnitPressure>]
+    /// Each hour's humidity, by the start of the hour.
+    let hourlyHumidities: [Date: Humidity]
     /// From today, in order.
     let days: [Day]
     let fetchDate: Date
@@ -74,7 +87,7 @@ final class WatchWeatherStore {
 
     private static let maxAge: TimeInterval = 30 * 60
     /// The days WeatherKit forecasts, every hour of which is fetched too, for
-    /// each day's UV index and pressure hour by hour.
+    /// each day's UV index, pressure and humidity hour by hour.
     private static let forecastDays = 10
     private static let liveWindMaxAge: TimeInterval = 10 * 60
     /// How far the watch goes before the wind where it was no longer stands
@@ -134,6 +147,7 @@ final class WatchWeatherStore {
                 var hours: [Date: CityWeather.Conditions] = [:]
                 var hourlyUVIndexes: [Date: Int] = [:]
                 var hourlyPressures: [Date: Measurement<UnitPressure>] = [:]
+                var hourlyHumidities: [Date: CityWeather.Humidity] = [:]
                 for hour in forecast {
                     // To the nearest hour, should one start a moment off it.
                     let start = Self.hourStart(of: hour.date.addingTimeInterval(1800))
@@ -145,6 +159,7 @@ final class WatchWeatherStore {
                     )
                     hourlyUVIndexes[start] = hour.uvIndex.value
                     hourlyPressures[start] = hour.pressure
+                    hourlyHumidities[start] = CityWeather.Humidity(relative: hour.humidity, dewPoint: hour.dewPoint)
                 }
                 let days = dailyForecast.map { day in
                     CityWeather.Day(
@@ -170,9 +185,11 @@ final class WatchWeatherStore {
                     uvIndex: current.uvIndex.value,
                     pressure: current.pressure,
                     pressureTrend: current.pressureTrend,
+                    humidity: CityWeather.Humidity(relative: current.humidity, dewPoint: current.dewPoint),
                     hours: hours,
                     hourlyUVIndexes: hourlyUVIndexes,
                     hourlyPressures: hourlyPressures,
+                    hourlyHumidities: hourlyHumidities,
                     days: days,
                     fetchDate: .now
                 )

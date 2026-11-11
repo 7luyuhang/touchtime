@@ -47,7 +47,7 @@ struct CityMapView<Footer: View>: View {
     private static var globeRoom: NamedCoordinateSpace { .named("CityMapView.globeRoom") }
 
     /// How far the globe reaches up into the navigation bar: through the
-    /// line under the watch's time, which World Clock leaves without a
+    /// line under the watch's time, which World Map leaves without a
     /// title, and short of the time, which takes about the bar's top half.
     private var globeRise: CGFloat {
         navigationBarHeight * 0.45

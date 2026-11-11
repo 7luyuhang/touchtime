@@ -438,9 +438,11 @@ private extension WindSpeedUnit {
         uvIndex: 3,
         pressure: Measurement(value: 1013, unit: .hectopascals),
         pressureTrend: .steady,
+        humidity: CityWeather.Humidity(relative: 0.6, dewPoint: Measurement(value: 6, unit: .celsius)),
         hours: [:],
         hourlyUVIndexes: [:],
         hourlyPressures: [:],
+        hourlyHumidities: [:],
         days: [],
         fetchDate: date
     )

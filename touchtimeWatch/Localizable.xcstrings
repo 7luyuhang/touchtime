@@ -526,6 +526,23 @@
         }
       }
     },
+    "Dew Point %@" : {
+      "comment" : "Read by VoiceOver after the humidity on Humidity, for the dew point shown over the chart after the humidity symbol, in whole degrees without the unit's letter, e.g. \"Dew Point 9°\": now for today, and the day's average for the days ahead.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "露点 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "露點 %@"
+          }
+        }
+      }
+    },
     "Display" : {
       "localizations" : {
         "zh-Hans" : {
@@ -929,6 +946,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "炎熱"
+          }
+        }
+      }
+    },
+    "Humidity" : {
+      "comment" : "The view of a city's relative humidity, in Choose View and Default View, and read by VoiceOver before the humidity on it.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "湿度"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "濕度"
           }
         }
       }
@@ -2005,18 +2039,18 @@
         }
       }
     },
-    "World Clock" : {
+    "World Map" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "世界时钟"
+            "value" : "世界地图"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "世界時鐘"
+            "value" : "世界地圖"
           }
         }
       }

@@ -16,6 +16,9 @@ import WeatherKit
 /// day after it, as far as the forecast goes, for the highest it gets that
 /// day.
 struct CityUVIndexView: View {
+    /// Between the gauge's room and the date under it.
+    private static let dateSpacing: CGFloat = 8
+
     let date: Date
     let timeZone: TimeZone
     /// The iPhone app's date style, for `Date.formattedDate(style:)`.
@@ -44,7 +47,7 @@ struct CityUVIndexView: View {
             }
         }
 
-        VStack(spacing: 8) {
+        VStack(spacing: Self.dateSpacing) {
             GeometryReader { geometry in
                 // Laid out as the daylight ring is, so the gauge's border is
                 // where the ring's edge is, and the arc as wide as the ring.
@@ -56,6 +59,11 @@ struct CityUVIndexView: View {
                 // width over the chart in the bottom of the circle.
                 let labelRoom = diameter * (0.5 - DayLineChart.heightShare) - chartLineWidth
                     - UVIndexGauge.endsDepth(diameter: diameter, ringWidth: ringWidth)
+                // Under the circle, which is centered in the room, to the date.
+                let chartOffset = DayLineChart.offset(
+                    lineWidth: chartLineWidth,
+                    spaceBelow: (geometry.size.height - diameter) / 2 + Self.dateSpacing
+                )
 
                 ZStack {
                     UVIndexGauge(
@@ -95,6 +103,7 @@ struct CityUVIndexView: View {
                             }
                         }
                         .frame(height: diameter * DayLineChart.heightShare)
+                        .offset(y: chartOffset)
                         .accessibilityHidden(true)
                     }
                     .frame(width: diameter - UVIndexGauge.bandWidth * 2, height: diameter, alignment: .bottom)
@@ -511,9 +520,11 @@ private extension View {
         uvIndex: 3,
         pressure: Measurement(value: 1013, unit: .hectopascals),
         pressureTrend: .steady,
+        humidity: CityWeather.Humidity(relative: 0.5, dewPoint: Measurement(value: 11, unit: .celsius)),
         hours: [:],
         hourlyUVIndexes: hourlyUVIndexes,
         hourlyPressures: [:],
+        hourlyHumidities: [:],
         days: days,
         fetchDate: date
     )

@@ -17445,18 +17445,18 @@
         }
       }
     },
-    "World Clock" : {
+    "World Map" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "世界时钟"
+            "value" : "世界地图"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "世界時鐘"
+            "value" : "世界地圖"
           }
         }
       }

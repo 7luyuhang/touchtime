@@ -14,6 +14,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     case weather
     case wind
     case uvIndex
+    case humidity
     case pressure
 
     /// The view every city's details show, as last chosen.
@@ -23,7 +24,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
 
     var title: LocalizedStringKey {
         switch self {
-        case .worldClock: "World Clock"
+        case .worldClock: "World Map"
         case .moonPhase: "Moon Phase"
         case .solarCurve: "Solar Curve"
         case .sunPosition: "Sun Position"
@@ -31,6 +32,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .weather: "Conditions"
         case .wind: "Wind"
         case .uvIndex: "UV Index"
+        case .humidity: "Humidity"
         case .pressure: "Pressure"
         }
     }
@@ -45,13 +47,14 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .weather: "cloud"
         case .wind: "wind"
         case .uvIndex: "beach.umbrella"
+        case .humidity: "humidity"
         case .pressure: "gauge.with.dots.needle.bottom.50percent"
         }
     }
 
     /// Whether the view shows the weather now, whatever time the clocks show.
     var showsNow: Bool {
-        self == .weather || self == .wind || self == .uvIndex || self == .pressure
+        self == .weather || self == .wind || self == .uvIndex || self == .humidity || self == .pressure
     }
 }
 
@@ -113,6 +116,7 @@ struct CityDetailDisplayPicker: View {
                     row(for: .weather)
                     row(for: .wind)
                     row(for: .uvIndex)
+                    row(for: .humidity)
                     row(for: .pressure)
                 }
             }

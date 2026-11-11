@@ -891,9 +891,11 @@ private extension View {
         uvIndex: 2,
         pressure: Measurement(value: 1013, unit: .hectopascals),
         pressureTrend: .steady,
+        humidity: CityWeather.Humidity(relative: 0.8, dewPoint: Measurement(value: 13, unit: .celsius)),
         hours: hours,
         hourlyUVIndexes: [:],
         hourlyPressures: [:],
+        hourlyHumidities: [:],
         days: days,
         fetchDate: date
     )

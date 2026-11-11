@@ -5,11 +5,12 @@
 
 import SwiftUI
 
-/// The chosen day's value through the day, under UV Index's and Pressure's
-/// gauges, from midnight at the left to midnight at the right, on a scale
-/// from its lower bound at the bottom to its upper at the top: a line in the
-/// scale's colors for how high it is at each point, and on today's, a dot at
-/// now, both as on the weather ring's temperatures, with the line before it
+/// The chosen day's value through the day, under UV Index's, Humidity's and
+/// Pressure's gauges, from midnight at the left to midnight at the right, on
+/// a scale as tall as the chart, raised or lowered so the line has as much
+/// room over it as under it, whatever its height: a line in the scale's
+/// colors for how high it is at each point, and on today's, a dot at now,
+/// both as on the weather ring's temperatures, with the line before it
 /// uncolored, as the ring's track is.
 /// From day to day, the line reshapes into the next day's rather than
 /// replacing it.
@@ -26,8 +27,8 @@ struct DayLineChart: View, Animatable {
 
     /// Evenly spaced through the day, from midnight to midnight.
     var samples: Samples
-    /// From the value at the bottom to the one at the top, where any beyond
-    /// sit too.
+    /// The values the chart's height spans, bottom to top. Any beyond are held
+    /// to its bounds.
     let scale: ClosedRange<Double>
     /// Up the scale, from its bottom to its top, or one for all of it.
     let colors: [Color]
@@ -67,12 +68,24 @@ struct DayLineChart: View, Animatable {
         ringWidth * 0.10
     }
 
+    /// How far down to move the chart from the bottom of the gauge's circle,
+    /// a line's width under the label over it, to sit as far below the label
+    /// as above the date `spaceBelow` under the circle.
+    static func offset(lineWidth: CGFloat, spaceBelow: CGFloat) -> CGFloat {
+        max(spaceBelow - lineWidth, 0) / 2
+    }
+
     var body: some View {
         GeometryReader { geometry in
             // In from the edges by the dot's reach, so neither it nor the line
-            // is cut off at the day's ends or the scale's.
-            let plot = CGRect(origin: .zero, size: geometry.size)
+            // is cut off.
+            let room = CGRect(origin: .zero, size: geometry.size)
                 .insetBy(dx: lineWidth * Self.dotReach, dy: lineWidth * Self.dotReach)
+            // The scale's, moved up or down for the line's lowest and highest
+            // points to be as far from the bottom of the room as from its top.
+            // Following the samples as they animate, the line stays there as
+            // it reshapes.
+            let plot = room.offsetBy(dx: 0, dy: (lineMiddle - 0.5) * room.height)
             let height = max(geometry.size.height, 1)
             let style = StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
             let dotPoint = point(at: nowFraction, value: value(at: nowFraction), in: plot)
@@ -150,12 +163,22 @@ struct DayLineChart: View, Animatable {
     }
 
     private func point(at fraction: Double, value: Double, in plot: CGRect) -> CGPoint {
+        CGPoint(x: plot.minX + plot.width * fraction, y: plot.maxY - plot.height * share(of: value))
+    }
+
+    /// Halfway between the line's lowest and highest points, as a share of
+    /// the scale from its bottom.
+    private var lineMiddle: Double {
+        let shares = samples.values.map(share(of:))
+        guard let lowest = shares.min(), let highest = shares.max() else { return 0.5 }
+        return (lowest + highest) / 2
+    }
+
+    /// How far up the scale `value` is, from 0 at its bottom to 1 at its top.
+    private func share(of value: Double) -> Double {
         let span = scale.upperBound - scale.lowerBound
-        let height = span > 0 ? (min(max(value, scale.lowerBound), scale.upperBound) - scale.lowerBound) / span : 0.5
-        return CGPoint(
-            x: plot.minX + plot.width * fraction,
-            y: plot.maxY - plot.height * height
-        )
+        guard span > 0 else { return 0.5 }
+        return (min(max(value, scale.lowerBound), scale.upperBound) - scale.lowerBound) / span
     }
 }
 

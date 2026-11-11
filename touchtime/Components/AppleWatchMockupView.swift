@@ -16,7 +16,7 @@ nonisolated enum AppleWatchPreviewScreen: CaseIterable {
     // Matches CityDetailDisplay's titles in the watch app
     var title: String {
         switch self {
-        case .worldClock: String(localized: "World Clock")
+        case .worldClock: String(localized: "World Map")
         case .solarCurve: String(localized: "Solar Curve")
         case .sunPosition: String(localized: "Sun Position")
         case .daylight: String(localized: "Daylight")
