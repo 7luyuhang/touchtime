@@ -527,7 +527,7 @@
       }
     },
     "Dew Point %@" : {
-      "comment" : "Read by VoiceOver after the humidity on Humidity, for the dew point shown over the chart after a drop with a degree sign, in whole degrees without the unit's letter, e.g. \"Dew Point 9°\": now for today, and the day's average for the days ahead.",
+      "comment" : "Read by VoiceOver after the humidity on Humidity, for the dew point shown over the chart after a drop, in whole degrees without the unit's letter, e.g. \"Dew Point 9°\": now for today, and the day's average for the days ahead.",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
