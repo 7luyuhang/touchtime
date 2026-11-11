@@ -9,10 +9,11 @@ import WeatherKit
 /// The city's sea-level pressure on a gauge laid out as UV Index's: an arc as
 /// wide as the daylight ring, lighter where the sky is, from deep lows at the
 /// bottom left, clockwise over standard pressure at the top, to strong highs
-/// at the bottom right, with a ring on it at the pressure, and around it the
-/// forecast's days, the chosen one on a pill. In the middle, the pressure over
-/// its unit, and below the arc, over the date, the chosen day's pressure hour
-/// by hour under which way it's going.
+/// at the bottom right, with a ring on it at the pressure, lit beside it for
+/// which way the pressure's going, and around it the forecast's days, the
+/// chosen one on a pill. In the middle, the pressure over its unit, and below
+/// the arc, over the date, the chosen day's pressure hour by hour under which
+/// way it's going.
 /// Today's is the pressure now, and the Digital Crown moves the pill to each
 /// day after it, as far as the forecast goes, for the day's average and which
 /// way it goes over the day.
@@ -67,7 +68,7 @@ struct CityPressureView: View {
                     PressureGauge(
                         diameter: diameter,
                         ringWidth: ringWidth,
-                        pressure: reading?.pressure,
+                        reading: reading,
                         dayNumbers: days.map { calendar.component(.day, from: $0.date) },
                         chosenDayIndex: chosenDayIndex
                     )
@@ -272,8 +273,8 @@ private enum PressureScale {
 /// outside of the arc, the one the Digital Crown has turned to cut out of a
 /// pill like the daylight ring's current hour's, inside a border like the
 /// daylight ring's edge; the arc, lighter where the sky is, as the border is;
-/// and on it, at the pressure, a ring like UV Index's sun. Below the arc's
-/// ends its edge and the border fade away.
+/// and on it, at the pressure, a ring like UV Index's sun, with light along
+/// the arc beside it. Below the arc's ends its edge and the border fade away.
 private struct PressureGauge: View {
     /// How far past the arc the days and their border reach, as the daylight
     /// ring's hours do.
@@ -294,7 +295,7 @@ private struct PressureGauge: View {
     let ringWidth: CGFloat
     /// Nil until the weather comes in, and on a day the forecast's hours
     /// don't cover.
-    let pressure: Measurement<UnitPressure>?
+    let reading: PressureReading?
     /// Each of the forecast's days from today, by its day of the month.
     let dayNumbers: [Int]
     /// The day the Digital Crown has turned to.
@@ -306,7 +307,10 @@ private struct PressureGauge: View {
         let labelRadius = (arcDiameter + Self.bandWidth - Self.lineWidth) / 2
         // Through the middle of the arc.
         let arcRadius = (arcDiameter - ringWidth) / 2
+        let pressure = reading?.pressure
         let markerAngle = pressure.map { PressureScale.angle(pressure: $0) } ?? .zero
+        // As big as the daylight ring's sun.
+        let markerDiameter = ringWidth * 0.60
         let dayCount = max(dayNumbers.count, PressureScale.forecastDays)
         let pillAngle = PressureScale.angle(day: chosenDayIndex, of: dayCount)
 
@@ -333,15 +337,34 @@ private struct PressureGauge: View {
             }
             .foregroundStyle(.white)
 
-            Circle()
-                .inset(by: ringWidth / 2)
-                // A circle's path starts at its right, a quarter turn past
-                // the top.
-                .rotation(PressureScale.startAngle - .degrees(90))
-                .trim(from: 0, to: PressureScale.sweep.degrees / 360)
-                .stroke(.white.opacity(Self.lineOpacity), style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
+            arc
+                .stroke(.white.opacity(Self.lineOpacity), style: arcStyle)
                 .frame(width: arcDiameter, height: arcDiameter)
                 .blendMode(.plusLighter)
+
+            // Turned to the pressure as the ring is, and kept to the arc, so
+            // near either end the light stops where the arc does.
+            ZStack {
+                if let trend = reading?.trend {
+                    PressureGlow(
+                        trend: trend,
+                        arcRadius: arcRadius,
+                        ringWidth: ringWidth,
+                        markerDiameter: markerDiameter
+                    )
+                    .transition(.opacity)
+                }
+            }
+            .frame(width: arcDiameter, height: arcDiameter)
+            .animation(.smooth, value: pressure != nil)
+            .rotationEffect(markerAngle)
+            .animation(nil, value: pressure != nil)
+            .mask {
+                arc
+                    .stroke(style: arcStyle)
+                    .frame(width: arcDiameter, height: arcDiameter)
+            }
+            .blendMode(.plusLighter)
 
             ZStack {
                 Circle()
@@ -374,8 +397,7 @@ private struct PressureGauge: View {
                         .transition(.blurReplace)
                 }
             }
-            // As big as the daylight ring's sun.
-            .frame(width: ringWidth * 0.60, height: ringWidth * 0.60)
+            .frame(width: markerDiameter, height: markerDiameter)
             // Coming in where it is…
             .animation(.smooth, value: pressure != nil)
             // Turned around the gauge's middle, from pressure to pressure
@@ -386,6 +408,21 @@ private struct PressureGauge: View {
             .animation(nil, value: pressure != nil)
         }
         .frame(width: diameter, height: diameter)
+    }
+
+    /// From its start to its end, through the middle of its width, in a frame
+    /// as wide as it is.
+    private var arc: some Shape {
+        Circle()
+            .inset(by: ringWidth / 2)
+            // A circle's path starts at its right, a quarter turn past the
+            // top.
+            .rotation(PressureScale.startAngle - .degrees(90))
+            .trim(from: 0, to: PressureScale.sweep.degrees / 360)
+    }
+
+    private var arcStyle: StrokeStyle {
+        StrokeStyle(lineWidth: ringWidth, lineCap: .round)
     }
 
     /// Each day at its place around a circle of `radius`, spaced for `count`.
@@ -430,6 +467,101 @@ private struct PressureGauge: View {
     private func height(at angle: Angle, radius: CGFloat) -> CGFloat {
         guard diameter > 0 else { return 0 }
         return 0.5 - radius * cos(angle.radians) / diameter
+    }
+}
+
+/// Light along the arc either side of the pressure's ring, as Weather lights
+/// the ticks either side of its pressure's, at the top of a frame as wide as
+/// the arc for the gauge to turn to the pressure. It shows which way the
+/// pressure's going too: while it rises or falls, the light trails behind the
+/// ring, back the way the pressure came, as a comet's tail does, and ends at
+/// the ring's middle ahead, rounded around the ring as the arc's ends are;
+/// while it holds steady, it fades away as far both ways.
+/// From one way to another, the light slides around the ring rather than
+/// fading from one side to the other.
+private struct PressureGlow: View, Animatable {
+    /// At the ring's middle, where it's brightest, on top of the arc's own.
+    private static let opacity = 0.25
+    /// Either side of the ring, for the light to fade smoothly.
+    private static let stopCount = 12
+
+    /// From the gauge's middle to the ring's.
+    let arcRadius: CGFloat
+    /// The arc's.
+    let ringWidth: CGFloat
+    let markerDiameter: CGFloat
+    /// How far the light would reach from the ring's middle either way
+    /// before it's faded away, in degrees around the gauge.
+    private var reach: Double
+    /// How far it goes from the ring's middle toward lower pressures before
+    /// it ends, in degrees around the gauge.
+    private var lowerLength: Double
+    /// And toward higher ones.
+    private var higherLength: Double
+
+    init(trend: PressureTrend, arcRadius: CGFloat, ringWidth: CGFloat, markerDiameter: CGFloat) {
+        self.arcRadius = arcRadius
+        self.ringWidth = ringWidth
+        self.markerDiameter = markerDiameter
+        let glow = trend.glow
+        reach = glow.reach
+        lowerLength = glow.lower
+        higherLength = glow.higher
+    }
+
+    var animatableData: AnimatablePair<Double, AnimatablePair<Double, Double>> {
+        get { AnimatablePair(reach, AnimatablePair(lowerLength, higherLength)) }
+        set { (reach, lowerLength, higherLength) = (newValue.first, newValue.second.first, newValue.second.second) }
+    }
+
+    var body: some View {
+        ZStack {
+            AngularGradient(
+                stops: stops,
+                center: .center,
+                // A gradient's angles start at its right, a quarter turn
+                // past the top.
+                startAngle: .degrees(-90 - reach),
+                endAngle: .degrees(-90 + reach)
+            )
+            // Ending as the arc does, so where it ends at the ring's middle,
+            // it rounds off around the ring.
+            .mask {
+                Circle()
+                    .inset(by: ringWidth / 2)
+                    // A circle's path starts at its right too.
+                    .rotation(.degrees(-90 - lowerLength))
+                    .trim(from: 0, to: (lowerLength + higherLength) / 360)
+                    .stroke(style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
+            }
+
+            // The arc's own color inside the ring, so the ring stands out
+            // from the light around it.
+            Circle()
+                .frame(width: markerDiameter, height: markerDiameter)
+                .offset(y: -arcRadius)
+                .blendMode(.destinationOut)
+        }
+        .compositingGroup()
+    }
+
+    /// From nothing at the reach one way up to the ring's middle, and on to
+    /// nothing at the reach the other way.
+    private var stops: [Gradient.Stop] {
+        (-Self.stopCount...Self.stopCount).map { step in
+            let distance = Double(step) / Double(Self.stopCount)
+            return Gradient.Stop(
+                color: .white.opacity(Self.opacity * Self.brightness(abs(distance))),
+                location: (distance + 1) / 2
+            )
+        }
+    }
+
+    /// `distance` of the way from the ring's middle to the reach, from all of
+    /// it to none along a bell curve: level at the ring's middle, so the
+    /// light fades off the ring's edges without a crease.
+    private static func brightness(_ distance: Double) -> Double {
+        distance < 1 ? exp(-6 * distance * distance) : 0
     }
 }
 
@@ -531,6 +663,21 @@ private extension PressureTrend {
             self = .falling
         } else {
             self = .steady
+        }
+    }
+
+    /// The light either side of the pressure's ring, in degrees around the
+    /// gauge: how far from the ring's middle it would reach either way
+    /// before it's faded away, and how far it goes toward lower pressures and
+    /// toward higher ones before it ends. While the pressure rises or falls,
+    /// a long way back the way it came, and ahead, only to the ring's middle;
+    /// while it holds, as far both ways as it reaches.
+    var glow: (reach: Double, lower: Double, higher: Double) {
+        switch self {
+        case .rising: (100, 100, 0)
+        case .falling: (100, 0, 100)
+        case .steady: (48, 48, 48)
+        @unknown default: (48, 48, 48)
         }
     }
 
