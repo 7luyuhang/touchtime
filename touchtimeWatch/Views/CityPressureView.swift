@@ -3,26 +3,35 @@
 //  touchtimeWatch
 //
 
+import CoreLocation
 import SwiftUI
 import WeatherKit
 
-/// The city's sea-level pressure on a gauge laid out as UV Index's: an arc as
-/// wide as the daylight ring, lighter where the sky is, from deep lows at the
-/// bottom left, clockwise over standard pressure at the top, to strong highs
-/// at the bottom right, with a ring on it at the pressure, lit beside it for
-/// which way the pressure's going, and around it the forecast's days, the
-/// chosen one on a pill. In the middle, the pressure over its unit, and below
-/// the arc, over the date, the chosen day's pressure hour by hour under which
-/// way it's going.
+/// The city's sea-level pressure on a gauge laid out as UV Index's: a glass
+/// arc as wide as the daylight ring, from deep lows at the bottom left,
+/// clockwise over standard pressure at the top, to strong highs at the bottom
+/// right, with a ring on it at the pressure, lit beside it for which way the
+/// pressure's going, and around it the forecast's days, the chosen one on a
+/// pill. In the middle, the pressure over its unit, and below the arc, over
+/// the date, the chosen day's pressure hour by hour under which way it's
+/// going.
 /// Today's is the pressure now, and the Digital Crown moves the pill to each
 /// day after it, as far as the forecast goes, for the day's average and which
 /// way it goes over the day.
+/// On the watch's own clock, tapping the arc turns on the barometer: in the
+/// middle, the pressure where the watch is, at its elevation rather than at
+/// sea level; the ring at that pressure brought down to sea level, to compare
+/// with the forecast's; where the watch is over the top of the gauge, once it
+/// knows; and the elevation in place of the date. Elsewhere, tapping it says
+/// so.
 struct CityPressureView: View {
     /// The least the chart spans, in hectopascals, so a calm spell's little
     /// ups and downs stay little.
     private static let leastChartSpan = 10.0
     /// Between the gauge's room and the date under it.
     private static let dateSpacing: CGFloat = 8
+    /// The arc's tint while the barometer's on, as Wind's glass's while live.
+    private static let liveColor = Color.yellow
 
     let date: Date
     let timeZone: TimeZone
@@ -32,21 +41,42 @@ struct CityPressureView: View {
     let dateStyle: String
     /// How many days after today the Digital Crown has turned to.
     @Binding var crownDays: Double
+    /// Whether tapping the arc turns on the barometer. Only the watch's own
+    /// clock does, as the barometer reads the air where the watch is rather
+    /// than the city's.
+    let canGoLive: Bool
+    /// Whether the barometer is on, which tapping the arc turns on and off.
+    @Binding var isLive: Bool
 
     @Environment(WatchWeatherStore.self) private var weatherStore
     @Environment(\.isPresented) private var isPresented
+    @Environment(\.locale) private var locale
+    @Environment(\.scenePhase) private var scenePhase
+    @State private var showsBarometerAlert = false
+    /// Made the first time the barometer turns on.
+    @State private var barometer: LiveBarometer?
     @FocusState private var isCrownFocused: Bool
 
     var body: some View {
         let weather = weatherStore.weather[timeZone.identifier]
-        let isLoading = weather == nil && !weatherStore.unavailableTimeZones.contains(timeZone.identifier)
         let days = days(in: weather)
         let chosenDayIndex = min(max(Int(crownDays.rounded()), 0), max(days.count - 1, 0))
         let chosenDay = days.indices.contains(chosenDayIndex) ? days[chosenDayIndex] : nil
-        let reading = chosenDayIndex == 0
+        let forecastReading = chosenDayIndex == 0
             ? weather.map { PressureReading(pressure: $0.pressure, trend: $0.pressureTrend) }
             : chosenDay.flatMap { day in weather.flatMap { reading(for: day, in: $0) } }
-        let chartSamples = chosenDay.flatMap { day in
+        let reading = isLive ? barometer?.pressure.map { PressureReading(pressure: $0) } : forecastReading
+        // At sea level, as the forecast's is: the barometer's once the watch
+        // knows its elevation, and the forecast's until then. Live, without
+        // which way it's going, as the barometer has no hours to go by.
+        let ringReading = isLive
+            ? (barometer?.seaLevelPressure ?? forecastReading?.pressure).map { PressureReading(pressure: $0) }
+            : forecastReading
+        let isLoading = isLive
+            ? reading == nil && barometer?.isUnavailable != true
+            : weather == nil && !weatherStore.unavailableTimeZones.contains(timeZone.identifier)
+        // The barometer has no hours to chart.
+        let chartSamples = isLive ? nil : chosenDay.flatMap { day in
             weather.flatMap { weather in
                 DayLineChart.Samples(hourly: weather.hourlyHectopascals, day: day.date, calendar: calendar)
                     .map { Self.fitted($0) }
@@ -72,13 +102,19 @@ struct CityPressureView: View {
                 )
 
                 ZStack {
+                    glass(diameter: diameter, ringWidth: ringWidth)
+
                     PressureGauge(
                         diameter: diameter,
                         ringWidth: ringWidth,
-                        reading: reading,
+                        reading: ringReading,
                         dayNumbers: days.map { calendar.component(.day, from: $0.date) },
-                        chosenDayIndex: chosenDayIndex
+                        chosenDayIndex: chosenDayIndex,
+                        isLive: isLive,
+                        coordinate: barometer?.coordinate
                     )
+                    // So taps on the ring reach the glass under it.
+                    .allowsHitTesting(false)
                     .accessibilityHidden(true)
 
                     PressureCenter(reading: reading, unit: pressureUnit, isLoading: isLoading)
@@ -114,8 +150,9 @@ struct CityPressureView: View {
                 .frame(width: geometry.size.width, height: geometry.size.height)
             }
 
-            // Today's until the days come in.
-            Text(dayLabel(chosenDay?.date ?? date))
+            // Today's until the days come in, and the watch's elevation while
+            // the barometer's on.
+            Text(isLive ? elevationLabel : dayLabel(chosenDay?.date ?? date))
                 .font(.subheadline)
                 .monospacedDigit()
                 .foregroundStyle(.primary)
@@ -133,11 +170,14 @@ struct CityPressureView: View {
         .padding(.bottom, 8)
         .animation(.smooth, value: weather?.fetchDate)
         .animation(.smooth, value: chosenDayIndex)
+        .animation(.smooth, value: barometer?.pressure)
+        .animation(.smooth, value: barometer?.elevation)
         // As on the details, not while sliding back to the list, so a quick
-        // turn scrolls the list rather than the days.
+        // turn scrolls the list rather than the days. Nor while the
+        // barometer's on, as it reads only now.
         .background {
             Color.clear
-                .focusable(isPresented)
+                .focusable(isPresented && !isLive)
                 .focused($isCrownFocused)
                 .digitalCrownRotation(
                     $crownDays,
@@ -153,17 +193,101 @@ struct CityPressureView: View {
                 )
         }
         .scrollIndicators(.hidden)
-        // A sheet takes the Digital Crown, and doesn't give it back.
         .onAppear {
-            isCrownFocused = true
+            // A sheet takes the Digital Crown, and doesn't give it back.
+            isCrownFocused = !isLive
+            if isLive {
+                startBarometer()
+            }
         }
         .onDisappear {
             isCrownFocused = false
+            barometer?.stop()
+        }
+        .onChange(of: isLive) { _, isLive in
+            isCrownFocused = !isLive
+            if isLive {
+                startBarometer()
+            } else {
+                barometer?.stop()
+            }
+        }
+        // Only while the watch is raised and the view is on screen.
+        .onChange(of: scenePhase) { _, phase in
+            guard isLive else { return }
+            if phase == .active {
+                startBarometer()
+            } else {
+                barometer?.stop()
+            }
         }
         // Every quarter hour, in case the weather has gone stale.
         .onChange(of: Int(date.timeIntervalSinceReferenceDate / 900), initial: true) {
             weatherStore.update(for: timeZone)
         }
+        // Untitled. Verbatim, so the string catalog doesn't gain an empty key
+        .alert(Text(verbatim: ""), isPresented: $showsBarometerAlert, actions: {}) {
+            Text("Barometer is only available for Local.")
+        }
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: showsBarometerAlert) { _, showsAlert in showsAlert }
+    }
+
+    /// The barometer's elevation, in whole feet where the watch's region
+    /// measures in US units and in whole meters elsewhere, or dashes until
+    /// it's known.
+    private var elevationLabel: String {
+        let style = Measurement<UnitLength>.FormatStyle(
+            width: .abbreviated,
+            locale: locale,
+            usage: .asProvided,
+            numberFormatStyle: .number.precision(.fractionLength(0))
+        )
+        let elevation = barometer?.elevation.map { elevation in
+            let converted = elevation.converted(to: locale.measurementSystem == .us ? .feet : .meters)
+            let rounded = converted.value.rounded()
+            // Just under sea level reads 0 rather than -0.
+            return Measurement(value: rounded == 0 ? 0 : rounded, unit: converted.unit).formatted(style)
+        }
+        return String(localized: "Elevation \(elevation ?? "--")")
+    }
+
+    /// The arc, glass, which turns the barometer on and off, tinted while
+    /// it's on.
+    private func glass(diameter: CGFloat, ringWidth: CGFloat) -> some View {
+        let arcDiameter = diameter - PressureGauge.bandWidth * 2
+        let band = PressureGauge.band(ringWidth: ringWidth)
+        let tint: Color? = isLive ? Self.liveColor : nil
+        let traits: AccessibilityTraits = isLive ? [.isButton, .isSelected] : .isButton
+
+        return Color.clear
+            .frame(width: arcDiameter, height: arcDiameter)
+            .glassEffect(.clear.tint(tint).interactive(), in: band)
+            .contentShape(band)
+            .onTapGesture(perform: tapGlass)
+            .sensoryFeedback(.start, trigger: isLive) { _, isLive in isLive }
+            .accessibilityElement()
+            .accessibilityLabel("Barometer")
+            .accessibilityAddTraits(traits)
+            .accessibilityAction {
+                tapGlass()
+            }
+    }
+
+    private func tapGlass() {
+        if canGoLive {
+            withAnimation(.smooth) {
+                isLive.toggle()
+            }
+        } else {
+            showsBarometerAlert = true
+        }
+    }
+
+    private func startBarometer() {
+        if barometer == nil {
+            barometer = LiveBarometer()
+        }
+        barometer?.start()
     }
 
     /// The city's, which the forecast's days are midnights in.
@@ -237,7 +361,8 @@ struct CityPressureView: View {
 /// A pressure, and which way it's going.
 private struct PressureReading {
     let pressure: Measurement<UnitPressure>
-    let trend: PressureTrend
+    /// Nil for the barometer's, which has no hours to go by.
+    var trend: PressureTrend?
 }
 
 /// Where things go around the gauge, as on UV Index's: from the bottom left,
@@ -277,19 +402,33 @@ private enum PressureScale {
     }
 }
 
-/// UV Index's gauge with its arc uncolored: the forecast's days around the
-/// outside of the arc, the one the Digital Crown has turned to cut out of a
-/// pill like the daylight ring's current hour's, inside a border like the
-/// daylight ring's edge; the arc, lighter where the sky is, as the border is;
-/// and on it, at the pressure, a ring like UV Index's sun, with light along
-/// the arc beside it. Below the arc's ends its edge and the border fade away.
+/// UV Index's gauge with its arc left to the glass under it: the forecast's
+/// days around the outside of the arc, the one the Digital Crown has turned
+/// to cut out of a pill like the daylight ring's current hour's, inside a
+/// border like the daylight ring's edge; and on the arc, at the pressure, a
+/// ring like UV Index's sun, with light along the arc beside it. Below the
+/// arc's ends its edge and the border fade away. While the barometer's on,
+/// they go all the way around, with where the watch is over the top in place
+/// of the days (the app's name until it knows), the barometer's name under
+/// the bottom, and a dot out from each end of the arc.
 private struct PressureGauge: View {
     /// How far past the arc the days and their border reach, as the daylight
     /// ring's hours do.
     static let bandWidth: CGFloat = 16
+    /// The days', and what's printed in their place.
+    private static let labelFont = Font.system(size: 11, weight: .semibold, design: .rounded)
+    /// Over the top while the barometer's on, until the watch knows where it
+    /// is, as a barometer's maker is printed on its dial.
+    private static let makerName = "TOUCH TIME"
+    /// Under the bottom while the barometer's on. Both are in English whatever
+    /// the watch's language, as is where the watch is.
+    private static let instrumentName = "BAROMETER"
+    /// The dots out from the arc's ends while the barometer's on, marking the
+    /// lowest and highest pressures it shows.
+    private static let endDotDiameter: CGFloat = 5
     /// The arc's edge and the border around the days, as the daylight ring's.
     private static let lineWidth: CGFloat = 1.5
-    /// Theirs, and the arc's too.
+    /// Theirs.
     private static let lineOpacity = 0.10
     /// The chosen day's pill, end to end along the gauge, as long as the
     /// daylight ring's current hour's.
@@ -301,13 +440,23 @@ private struct PressureGauge: View {
     let diameter: CGFloat
     /// The arc's, as wide as the daylight ring.
     let ringWidth: CGFloat
-    /// Nil until the weather comes in, and on a day the forecast's hours
-    /// don't cover.
+    /// At sea level, the barometer's too. Nil until the weather comes in, and
+    /// on a day the forecast's hours don't cover.
     let reading: PressureReading?
     /// Each of the forecast's days from today, by its day of the month.
     let dayNumbers: [Int]
     /// The day the Digital Crown has turned to.
     let chosenDayIndex: Int
+    /// Whether the barometer's on, which tints the glass under the arc, closes
+    /// the border, and prints where the watch is, the barometer's name and the
+    /// arc's ends around it in place of the days.
+    let isLive: Bool
+    /// Where the watch is. Nil until it knows.
+    let coordinate: CLLocationCoordinate2D?
+
+    /// Where the ring was last, so that when the pressure goes, the ring and
+    /// the light beside it fade away there rather than at the top.
+    @State private var lastMarkerAngle = Angle.zero
 
     var body: some View {
         let arcDiameter = diameter - Self.bandWidth * 2
@@ -316,39 +465,56 @@ private struct PressureGauge: View {
         // Through the middle of the arc.
         let arcRadius = (arcDiameter - ringWidth) / 2
         let pressure = reading?.pressure
-        let markerAngle = pressure.map { PressureScale.angle(pressure: $0) } ?? .zero
+        let markerAngle = pressure.map { PressureScale.angle(pressure: $0) } ?? lastMarkerAngle
         // As big as the daylight ring's sun.
         let markerDiameter = ringWidth * 0.60
         let dayCount = max(dayNumbers.count, PressureScale.forecastDays)
         let pillAngle = PressureScale.angle(day: chosenDayIndex, of: dayCount)
+        let coordinateText = Self.coordinateText(coordinate)
 
         ZStack {
-            // The days it covers cut out of the pill, so the sky shows through
-            // them as it moves from day to day.
-            ZStack {
-                // Clear of the pill, so as not to fill its cutouts back in.
+            if isLive {
                 ZStack {
-                    days(radius: labelRadius, count: dayCount)
-                    pill(radius: labelRadius, angle: pillAngle)
-                        .blendMode(.destinationOut)
+                    printed(coordinateText, radius: labelRadius, isAtBottom: false)
+                        .id(coordinateText)
+                        .transition(.blurReplace)
+                    printed(Self.instrumentName, radius: labelRadius, isAtBottom: true)
+                    ForEach([PressureScale.startAngle, PressureScale.startAngle + PressureScale.sweep], id: \.degrees) { angle in
+                        Circle()
+                            .fill(.white)
+                            .opacity(0.25)
+                            .blendMode(.plusLighter)
+                            .frame(width: Self.endDotDiameter, height: Self.endDotDiameter)
+                            .placed(at: angle, radius: labelRadius)
+                    }
                 }
-                .compositingGroup()
-
-                if !dayNumbers.isEmpty {
+                // From the app's name to where the watch is, and on as it moves.
+                .animation(.smooth, value: coordinateText)
+                .transition(.blurReplace)
+            } else {
+                // The days it covers cut out of the pill, so the sky shows
+                // through them as it moves from day to day.
+                ZStack {
+                    // Clear of the pill, so as not to fill its cutouts back in.
                     ZStack {
-                        pill(radius: labelRadius, angle: pillAngle)
                         days(radius: labelRadius, count: dayCount)
+                        pill(radius: labelRadius, angle: pillAngle)
                             .blendMode(.destinationOut)
                     }
                     .compositingGroup()
-                }
-            }
-            .foregroundStyle(.white)
 
-            arc
-                .stroke(.white.opacity(Self.lineOpacity), style: arcStyle)
-                .frame(width: arcDiameter, height: arcDiameter)
-                .blendMode(.plusLighter)
+                    if !dayNumbers.isEmpty {
+                        ZStack {
+                            pill(radius: labelRadius, angle: pillAngle)
+                            days(radius: labelRadius, count: dayCount)
+                                .blendMode(.destinationOut)
+                        }
+                        .compositingGroup()
+                    }
+                }
+                .foregroundStyle(.white)
+                .transition(.blurReplace)
+            }
 
             // Turned to the pressure as the ring is, and kept to the arc, so
             // near either end the light stops where the arc does.
@@ -368,8 +534,7 @@ private struct PressureGauge: View {
             .rotationEffect(markerAngle)
             .animation(nil, value: pressure != nil)
             .mask {
-                arc
-                    .stroke(style: arcStyle)
+                Self.band(ringWidth: ringWidth)
                     .frame(width: arcDiameter, height: arcDiameter)
             }
             .blendMode(.plusLighter)
@@ -383,16 +548,20 @@ private struct PressureGauge: View {
             }
             .opacity(Self.lineOpacity)
             // From the height of the arc's edge at its ends down, leaving the
-            // bottom to the chart.
+            // bottom to the chart, which the barometer doesn't have.
             .mask {
-                LinearGradient(
-                    stops: [
-                        .init(color: .white, location: height(at: PressureScale.startAngle, radius: arcDiameter / 2)),
-                        .init(color: .clear, location: height(at: PressureScale.fadeEndAngle, radius: arcDiameter / 2))
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
+                ZStack {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .white, location: height(at: PressureScale.startAngle, radius: arcDiameter / 2)),
+                            .init(color: .clear, location: height(at: PressureScale.fadeEndAngle, radius: arcDiameter / 2))
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    Color.white
+                        .opacity(isLive ? 1 : 0)
+                }
             }
             .blendMode(.plusLighter)
 
@@ -401,7 +570,8 @@ private struct PressureGauge: View {
             ZStack {
                 if pressure != nil {
                     Circle()
-                        .strokeBorder(.white, lineWidth: Self.markerLineWidth)
+                        // White would wash out on the glass's tint.
+                        .strokeBorder(isLive ? .black : .white, lineWidth: Self.markerLineWidth)
                         .transition(.blurReplace)
                 }
             }
@@ -412,25 +582,25 @@ private struct PressureGauge: View {
             // along the arc rather than across the gauge.
             .offset(y: -arcRadius)
             .rotationEffect(markerAngle)
-            // …rather than travelling there from the gauge's top.
+            // …rather than travelling there from where it last was.
             .animation(nil, value: pressure != nil)
         }
         .frame(width: diameter, height: diameter)
+        .onChange(of: markerAngle, initial: true) { _, angle in
+            lastMarkerAngle = angle
+        }
     }
 
-    /// From its start to its end, through the middle of its width, in a frame
-    /// as wide as it is.
-    private var arc: some Shape {
+    /// The arc `ringWidth` wide, from its start to its end, its ends round,
+    /// in a frame as wide as it is.
+    static func band(ringWidth: CGFloat) -> some Shape {
         Circle()
             .inset(by: ringWidth / 2)
             // A circle's path starts at its right, a quarter turn past the
             // top.
             .rotation(PressureScale.startAngle - .degrees(90))
             .trim(from: 0, to: PressureScale.sweep.degrees / 360)
-    }
-
-    private var arcStyle: StrokeStyle {
-        StrokeStyle(lineWidth: ringWidth, lineCap: .round)
+            .stroke(style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
     }
 
     /// Each day at its place around a circle of `radius`, spaced for `count`.
@@ -441,9 +611,39 @@ private struct PressureGauge: View {
                     .placed(at: PressureScale.angle(day: index, of: count), radius: radius)
             }
         }
-        .font(.system(size: 11, weight: .semibold, design: .rounded))
+        .font(Self.labelFont)
         // The whole gauge's, for the pill to mask.
         .frame(width: diameter, height: diameter)
+    }
+
+    /// `text` bent along a circle of `radius`, over the top, or under the
+    /// bottom turned to read left to right.
+    private func printed(_ text: String, radius: CGFloat, isAtBottom: Bool) -> some View {
+        CurvedText(
+            text: text,
+            font: Self.labelFont,
+            radius: radius,
+            maxAngle: PressureScale.sweep,
+            isAtBottom: isAtBottom
+        )
+    }
+
+    /// Like 51°30′N · 0°08′W, to the nearest minute of arc, or the app's name
+    /// until the watch knows where it is.
+    private static func coordinateText(_ coordinate: CLLocationCoordinate2D?) -> String {
+        guard let coordinate else { return makerName }
+        let latitude = degreesAndMinutes(coordinate.latitude, positive: "N", negative: "S")
+        let longitude = degreesAndMinutes(coordinate.longitude, positive: "E", negative: "W")
+        return "\(latitude) · \(longitude)"
+    }
+
+    /// `degrees` to the nearest minute of arc, then which side of the equator
+    /// or prime meridian it's on.
+    private static func degreesAndMinutes(_ degrees: Double, positive: String, negative: String) -> String {
+        let minutes = Int((abs(degrees) * 60).rounded())
+        // Just south or west of either reads as on it rather than 0°00′S.
+        let side = degrees < 0 && minutes > 0 ? negative : positive
+        return "\(minutes / 60)°" + String(format: "%02d′", minutes % 60) + side
     }
 
     /// The daylight ring's pill, bent along a circle of `radius` at `angle`.
@@ -574,7 +774,8 @@ private struct PressureCenter: View {
                 numberFormatStyle: .number.precision(.fractionLength(unit.fractionDigits))
             )
         )
-        return "\(pressure), \(reading.trend.displayName)"
+        guard let trend = reading.trend else { return pressure }
+        return "\(pressure), \(trend.displayName)"
     }
 }
 
@@ -683,6 +884,7 @@ private extension View {
 
 #Preview {
     @Previewable @State var crownDays: Double = 0
+    @Previewable @State var isLive = false
     let date = Date.now
     let today = Calendar.current.startOfDay(for: date)
     let days = (0..<10).map { index in
@@ -731,7 +933,9 @@ private extension View {
             timeZone: .current,
             pressureUnit: .millibars,
             dateStyle: "Relative",
-            crownDays: $crownDays
+            crownDays: $crownDays,
+            canGoLive: true,
+            isLive: $isLive
         )
         .ignoresSafeArea(edges: .bottom)
         .containerBackground(for: .navigation) {

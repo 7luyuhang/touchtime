@@ -29,7 +29,9 @@ struct CityDetailView: View {
     @State private var moonInfoDate = Date()
     @State private var showsSunTimes = false
     @State private var sunTimesDate = Date()
-    @State private var showsLiveCompass = false
+    /// Whether Sun Position's or Wind's compass, or Pressure's barometer, is
+    /// live: where the watch is rather than the city.
+    @State private var isLive = false
     /// Whether World Map's map has turned, or is turning, into the globe.
     @State private var showsGlobe = false
     /// Whether Conditions shows its days rather than its hours.
@@ -63,7 +65,7 @@ struct CityDetailView: View {
     }
 
     private var crownMovesTime: Bool {
-        !display.showsNow && !showsLiveCompass
+        !display.showsNow && !isLive
     }
 
     /// Whether the view shows a day after today rather than now.
@@ -132,7 +134,7 @@ struct CityDetailView: View {
                         dateLabel: shortDateLabel,
                         isAdjusting: isAdjusted,
                         canGoLive: city.isLocal,
-                        isLive: $showsLiveCompass
+                        isLive: $isLive
                     )
                 case .daylight:
                     CityDaylightView(
@@ -160,7 +162,7 @@ struct CityDetailView: View {
                         timeZone: city.timeZone,
                         windSpeedUnit: cityStore.windSpeedUnit,
                         canGoLive: city.isLocal,
-                        isLive: $showsLiveCompass
+                        isLive: $isLive
                     )
                 case .uvIndex:
                     CityUVIndexView(
@@ -183,7 +185,9 @@ struct CityDetailView: View {
                         timeZone: city.timeZone,
                         pressureUnit: cityStore.pressureUnit,
                         dateStyle: cityStore.dateStyle,
-                        crownDays: $crownDays
+                        crownDays: $crownDays,
+                        canGoLive: city.isLocal,
+                        isLive: $isLive
                     )
                 }
             }
@@ -300,7 +304,7 @@ struct CityDetailView: View {
             crownStart = adjustedDate
             crownReferenceDate = nil
             crownSteps = 0
-            showsLiveCompass = false
+            isLive = false
             showsGlobe = false
             showsWeatherDays = true
             crownDays = 0
@@ -308,9 +312,11 @@ struct CityDetailView: View {
                 showCurrentTime()
             }
         }
-        .onChange(of: showsLiveCompass) { _, showsLiveCompass in
-            if showsLiveCompass {
+        .onChange(of: isLive) { _, isLive in
+            // Live is now, and today rather than a day after it.
+            if isLive {
                 showCurrentTime()
+                crownDays = 0
             }
             isCrownFocused = crownMovesTime
         }

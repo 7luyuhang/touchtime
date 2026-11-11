@@ -296,6 +296,39 @@
         }
       }
     },
+    "Barometer" : {
+      "comment" : "Read by VoiceOver for Pressure's glass arc, which turns on the watch's own barometer: the air pressure where the watch is, at its elevation.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "气压计"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "氣壓計"
+          }
+        }
+      }
+    },
+    "Barometer is only available for Local." : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "气压计仅支持“本地”。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "氣壓計僅支援「本地」。"
+          }
+        }
+      }
+    },
     "Blizzard" : {
       "localizations" : {
         "zh-Hans" : {
@@ -603,6 +636,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "細雨"
+          }
+        }
+      }
+    },
+    "Elevation %@" : {
+      "comment" : "Under the gauge on Pressure while the barometer's on, in place of the date: the watch's height above sea level in whole meters or feet, e.g. \"Elevation 35 m\", or \"--\" until the watch knows it.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "海拔 %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "海拔 %@"
           }
         }
       }
