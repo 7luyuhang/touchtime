@@ -479,7 +479,7 @@ private struct PressureGauge: View {
 /// while it holds steady, it fades away as far both ways.
 private struct PressureGlow: View {
     /// At the ring's middle, where it's brightest, on top of the arc's own.
-    private static let opacity = 0.25
+    private static let opacity = 0.10
 
     let trend: PressureTrend
     /// From the gauge's middle to the ring's.
