@@ -483,7 +483,7 @@ private struct HumidityCenter: View {
     }
 }
 
-/// The dew point after the humidity symbol, just above the chart.
+/// The dew point after a drop with a degree sign, just above the chart.
 private struct DewPointLabel: View {
     /// Nil until the weather comes in, and on a day the forecast's hours
     /// don't cover.
@@ -494,7 +494,7 @@ private struct DewPointLabel: View {
         ZStack {
             if let dewPoint {
                 HStack(alignment: .firstTextBaseline, spacing: 3) {
-                    Image(systemName: "humidity.fill")
+                    Image(systemName: "drop.degreesign.fill")
                     Text(dewPoint.degrees(useCelsius: useCelsius))
                         .contentTransition(.numericText(value: dewPoint.converted(to: .celsius).value))
                 }
