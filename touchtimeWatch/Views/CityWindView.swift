@@ -242,33 +242,15 @@ struct CityWindView: View {
 
 /// The wind's measurements on the dial.
 private extension CompassDialLayout {
-    /// The arrow's corners' radius, as a share of the arrow's.
-    static let arrowCornerShare: CGFloat = 0.2
-
     /// The glass in the middle, with the speed on it.
     var glassDiameter: CGFloat { diameter * 0.3 }
     /// Through the middle of the labels over and under the glass, halfway from
     /// it to the track.
     var glassLabelRadius: CGFloat { (glassDiameter / 2 + trackInnerRadius) / 2 }
     var ringDiameter: CGFloat { trackWidth * 0.68 }
-    /// From the arrow's middle to where its sides would meet, for the arrow to
-    /// be as wide as the ring, which makes it look as big, being solid.
-    var arrowRadius: CGFloat {
-        // A 60° corner's circle sits twice its radius in from the corner, and
-        // the base's corners √3/2 of the arrow's radius out to the sides.
-        let halfWidth = sqrt(3) / 2 * (1 - 2 * Self.arrowCornerShare) + Self.arrowCornerShare
-        return ringDiameter / 2 / halfWidth
-    }
-    var arrowCornerRadius: CGFloat { arrowRadius * Self.arrowCornerShare }
-    /// Through the arrow's middle, set back from the track's so its rounded
-    /// point and its base sit as far inside the track's lines.
-    var arrowCenterRadius: CGFloat {
-        // A 60° corner's circle sits twice its radius in from the point, and
-        // the base half the arrow's radius in from its middle.
-        let point = arrowRadius - arrowCornerRadius
-        let base = arrowRadius / 2
-        return trackRadius - (point - base) / 2
-    }
+    /// From the arrow's point to its back corners: most of the way across the
+    /// track, which makes it look as big as the ring, being slimmer.
+    var arrowLength: CGFloat { trackWidth * 0.8 }
     /// Where the lines in from the ring and the arrow fade away: just clear of
     /// the labels, even of the baseline of the unit's letters, turned outward
     /// under the glass.
@@ -284,6 +266,12 @@ private struct WindMarks: View, Animatable {
     private static let ringLineWidth: CGFloat = 2
     /// As wide as the dial's ticks.
     private static let tailWidth: CGFloat = 1.5
+    /// The arrow, whose glyph fills its frame from its point at the top to its
+    /// back corners at the bottom.
+    private static let arrowSymbol = "location.north.fill"
+    /// How far the notch between the arrow's back corners reaches in toward
+    /// its point, as a share of its length.
+    private static let arrowNotchShare: CGFloat = 0.29
 
     /// Where the wind comes from, in degrees clockwise from the top of the
     /// screen.
@@ -297,15 +285,23 @@ private struct WindMarks: View, Animatable {
     }
 
     var body: some View {
-        let arrow = RoundedTriangle(cornerRadius: layout.arrowCornerRadius).rotation(.degrees(direction + 180))
+        let arrow = Image(systemName: Self.arrowSymbol)
+            .resizable()
+            .scaledToFit()
+            .frame(width: layout.arrowLength, height: layout.arrowLength)
+            .rotationEffect(.degrees(direction + 180))
 
         ZStack {
-            // From under the ring's line and the arrow's base, leaving no seam.
+            // From under the ring's line and the end of the arrow's notch,
+            // leaving no seam.
             tail(
                 atDegrees: direction,
                 from: layout.trackRadius - layout.ringDiameter / 2 + Self.ringLineWidth / 2
             )
-            tail(atDegrees: direction + 180, from: layout.arrowCenterRadius - layout.arrowRadius / 2 + 1)
+            tail(
+                atDegrees: direction + 180,
+                from: layout.trackRadius - layout.arrowLength * (0.5 - Self.arrowNotchShare) + 1
+            )
 
             Circle()
                 .strokeBorder(color, lineWidth: Self.ringLineWidth)
@@ -313,16 +309,15 @@ private struct WindMarks: View, Animatable {
                 .position(layout.point(atDegrees: direction, radius: layout.trackRadius))
 
             arrow
-                .fill(color)
+                .foregroundStyle(color)
                 .background {
                     arrow
-                        .fill(.black.opacity(0.05))
+                        .foregroundStyle(.black.opacity(0.05))
                         .blur(radius: 5)
                         .offset(y: 2.5)
                         .blendMode(.plusDarker)
                 }
-                .frame(width: layout.arrowRadius * 2, height: layout.arrowRadius * 2)
-                .position(layout.point(atDegrees: direction + 180, radius: layout.arrowCenterRadius))
+                .position(layout.point(atDegrees: direction + 180, radius: layout.trackRadius))
         }
         .frame(width: layout.diameter, height: layout.diameter)
     }
