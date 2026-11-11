@@ -411,9 +411,16 @@ private struct WeatherRingOutside: Shape {
 
 /// The ring's edges, and between them each slot's symbol. While the hours
 /// show, a half circle rounds the ring off at now, between it and the last
-/// hour, and while the days show, dividers set off their ends and a mark on
-/// the inner edge sits under the chosen day.
+/// hour, lit as Pressure's arc is around its ring, the light fading over the
+/// hours after now, and while the days show, dividers set off their ends and
+/// a mark on the inner edge sits under the chosen day.
 private struct WeatherRingConditions: View {
+    /// At now, where the light's brightest.
+    private static let glowOpacity = 0.10
+    /// How far the light at now would reach over the hours after it before
+    /// it's faded away, in degrees around the ring.
+    private static let glowReach = 120.0
+
     let diameter: CGFloat
     let ringWidth: CGFloat
     /// Each slot's symbol from the top, or nil where none shows, or until its
@@ -433,6 +440,20 @@ private struct WeatherRingConditions: View {
         let radius = (diameter - ringWidth) / 2
 
         ZStack {
+            // From the outer edge's line to the inner edge's, so it rounds
+            // off along the half circle at now.
+            RingGlow(
+                bandWidth: ringWidth - lineWidth / 2,
+                opacity: Self.glowOpacity,
+                reach: Self.glowReach,
+                counterclockwiseLength: 0,
+                clockwiseLength: Self.glowReach
+            )
+            .frame(width: diameter - lineWidth, height: diameter - lineWidth)
+            .rotationEffect(WeatherRing.angle(slot: nowSlot))
+            .opacity(showsDays ? 0 : 1)
+            .blendMode(.plusLighter)
+
             ZStack {
                 Circle()
                     .strokeBorder(.white, lineWidth: lineWidth)

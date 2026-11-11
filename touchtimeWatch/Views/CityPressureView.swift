@@ -477,63 +477,28 @@ private struct PressureGauge: View {
 /// ring, back the way the pressure came, as a comet's tail does, and ends at
 /// the ring's middle ahead, rounded around the ring as the arc's ends are;
 /// while it holds steady, it fades away as far both ways.
-/// From one way to another, the light slides around the ring rather than
-/// fading from one side to the other.
-private struct PressureGlow: View, Animatable {
+private struct PressureGlow: View {
     /// At the ring's middle, where it's brightest, on top of the arc's own.
     private static let opacity = 0.25
-    /// Either side of the ring, for the light to fade smoothly.
-    private static let stopCount = 12
 
+    let trend: PressureTrend
     /// From the gauge's middle to the ring's.
     let arcRadius: CGFloat
     /// The arc's.
     let ringWidth: CGFloat
     let markerDiameter: CGFloat
-    /// How far the light would reach from the ring's middle either way
-    /// before it's faded away, in degrees around the gauge.
-    private var reach: Double
-    /// How far it goes from the ring's middle toward lower pressures before
-    /// it ends, in degrees around the gauge.
-    private var lowerLength: Double
-    /// And toward higher ones.
-    private var higherLength: Double
-
-    init(trend: PressureTrend, arcRadius: CGFloat, ringWidth: CGFloat, markerDiameter: CGFloat) {
-        self.arcRadius = arcRadius
-        self.ringWidth = ringWidth
-        self.markerDiameter = markerDiameter
-        let glow = trend.glow
-        reach = glow.reach
-        lowerLength = glow.lower
-        higherLength = glow.higher
-    }
-
-    var animatableData: AnimatablePair<Double, AnimatablePair<Double, Double>> {
-        get { AnimatablePair(reach, AnimatablePair(lowerLength, higherLength)) }
-        set { (reach, lowerLength, higherLength) = (newValue.first, newValue.second.first, newValue.second.second) }
-    }
 
     var body: some View {
+        let glow = trend.glow
+
         ZStack {
-            AngularGradient(
-                stops: stops,
-                center: .center,
-                // A gradient's angles start at its right, a quarter turn
-                // past the top.
-                startAngle: .degrees(-90 - reach),
-                endAngle: .degrees(-90 + reach)
+            RingGlow(
+                bandWidth: ringWidth,
+                opacity: Self.opacity,
+                reach: glow.reach,
+                counterclockwiseLength: glow.lower,
+                clockwiseLength: glow.higher
             )
-            // Ending as the arc does, so where it ends at the ring's middle,
-            // it rounds off around the ring.
-            .mask {
-                Circle()
-                    .inset(by: ringWidth / 2)
-                    // A circle's path starts at its right too.
-                    .rotation(.degrees(-90 - lowerLength))
-                    .trim(from: 0, to: (lowerLength + higherLength) / 360)
-                    .stroke(style: StrokeStyle(lineWidth: ringWidth, lineCap: .round))
-            }
 
             // The arc's own color inside the ring, so the ring stands out
             // from the light around it.
@@ -543,25 +508,6 @@ private struct PressureGlow: View, Animatable {
                 .blendMode(.destinationOut)
         }
         .compositingGroup()
-    }
-
-    /// From nothing at the reach one way up to the ring's middle, and on to
-    /// nothing at the reach the other way.
-    private var stops: [Gradient.Stop] {
-        (-Self.stopCount...Self.stopCount).map { step in
-            let distance = Double(step) / Double(Self.stopCount)
-            return Gradient.Stop(
-                color: .white.opacity(Self.opacity * Self.brightness(abs(distance))),
-                location: (distance + 1) / 2
-            )
-        }
-    }
-
-    /// `distance` of the way from the ring's middle to the reach, from all of
-    /// it to none along a bell curve: level at the ring's middle, so the
-    /// light fades off the ring's edges without a crease.
-    private static func brightness(_ distance: Double) -> Double {
-        distance < 1 ? exp(-6 * distance * distance) : 0
     }
 }
 
