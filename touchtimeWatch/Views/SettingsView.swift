@@ -7,13 +7,17 @@ import SwiftUI
 
 /// The 24-Hour Format, Additional Time and Default View settings, how many
 /// cities the iPhone sent, links to send feedback and share the app, and the
-/// app's version.
+/// app's version, whose icon opens About.
 struct SettingsView: View {
     @Environment(WatchCityStore.self) private var cityStore
     @Environment(\.dismiss) private var dismiss
     @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
     @AppStorage(AdditionalTime.storageKey) private var additionalTime: AdditionalTime = .timeShift
     @AppStorage(DefaultCityDetailDisplay.storageKey) private var defaultDisplay: DefaultCityDetailDisplay = .lastUsed
+    @State private var showsAbout = false
+    /// The app's icon at the end of the list, in global coordinates, for
+    /// About to grow its icon out of and back into.
+    @State private var iconFrame = CGRect.zero
 
     /// The version and build, like "2.1.4 (223)", as in the iPhone app's About.
     private var version: String {
@@ -73,11 +77,24 @@ struct SettingsView: View {
                 }
 
                 VStack(spacing: 10) {
-                    Image("TouchTimeAppIcon")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 36, height: 36)
-                        .accessibilityHidden(true)
+                    Button {
+                        showsAbout = true
+                    } label: {
+                        Image("TouchTimeAppIcon")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 36, height: 36)
+                            // About's own icon stands in for it till it's back
+                            .opacity(showsAbout ? 0 : 1)
+                            .onGeometryChange(for: CGRect.self) { proxy in
+                                proxy.frame(in: .global)
+                            } action: { frame in
+                                iconFrame = frame
+                            }
+                            .accessibilityHidden(true)
+                    }
+                    // Just the icon, rather than the whole row
+                    .buttonStyle(.plain)
 
                     VStack(spacing: 0) {
                         Text(verbatim: "Touch Time")
@@ -92,12 +109,21 @@ struct SettingsView: View {
                 .listRowBackground(Color.clear)
                 .accessibilityElement(children: .combine)
             }
+            .scrollDisabled(showsAbout)
             .navigationTitle("Settings")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close", systemImage: "xmark") {
                         dismiss()
                     }
+                }
+            }
+        }
+        .accessibilityHidden(showsAbout)
+        .overlay {
+            if showsAbout {
+                AboutSheet(sourceFrame: iconFrame) {
+                    showsAbout = false
                 }
             }
         }

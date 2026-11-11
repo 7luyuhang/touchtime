@@ -559,6 +559,22 @@
         }
       }
     },
+    "Designed & built by yuhang in London" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "设计与开发：yuhang 于伦敦"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "設計與開發：yuhang 於倫敦"
+          }
+        }
+      }
+    },
     "Dew Point %@" : {
       "comment" : "Read by VoiceOver after the humidity on Humidity, for the dew point shown over the chart after a drop, in whole degrees without the unit's letter, e.g. \"Dew Point 9°\": now for today, and the day's average for the days ahead.",
       "localizations" : {
