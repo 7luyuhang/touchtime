@@ -37,9 +37,17 @@ struct SettingsView: View {
                     .pickerStyle(.navigationLink)
 
                     Picker("Default View", selection: $defaultDisplay) {
-                        ForEach(DefaultCityDetailDisplay.allCases) { option in
-                            Text(option.title)
-                                .tag(option)
+                        Section {
+                            Text(DefaultCityDetailDisplay.lastUsed.title)
+                                .tag(DefaultCityDetailDisplay.lastUsed)
+                        }
+                        ForEach(CityDetailDisplay.Category.allCases) { category in
+                            Section(category.title) {
+                                ForEach(category.displays) { display in
+                                    Text(display.title)
+                                        .tag(DefaultCityDetailDisplay.display(display))
+                                }
+                            }
                         }
                     }
                     .pickerStyle(.navigationLink)

@@ -56,19 +56,47 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     var showsNow: Bool {
         self == .weather || self == .wind || self == .uvIndex || self == .humidity || self == .pressure
     }
+
+    /// The section Choose View and Default View list the view in.
+    var category: Category {
+        switch self {
+        case .worldClock: .general
+        case .solarCurve, .sunPosition, .daylight, .moonPhase: .astronomy
+        case .weather, .wind, .uvIndex, .humidity, .pressure: .weather
+        }
+    }
+
+    /// The sections Choose View and Default View list the views in, in order.
+    enum Category: CaseIterable, Identifiable {
+        case general
+        case astronomy
+        case weather
+
+        var id: Self { self }
+
+        var title: LocalizedStringKey {
+            switch self {
+            case .general: "General"
+            case .astronomy: "Astronomy"
+            case .weather: "Weather"
+            }
+        }
+
+        /// In the order they're declared.
+        var displays: [CityDetailDisplay] {
+            CityDetailDisplay.allCases.filter { $0.category == self }
+        }
+    }
 }
 
 /// The watch app's Default View setting: the view the app opens on, or the
 /// one last chosen.
-enum DefaultCityDetailDisplay: RawRepresentable, CaseIterable, Identifiable, Hashable {
+enum DefaultCityDetailDisplay: RawRepresentable, Hashable {
     case lastUsed
     case display(CityDetailDisplay)
 
     /// The watch app's Default View setting.
     static let storageKey = "watchDefaultDetailDisplay"
-
-    /// Last Used, then every view in the order Choose View lists them.
-    static let allCases: [Self] = [.lastUsed] + CityDetailDisplay.allCases.map(Self.display)
 
     /// Last Used in place of a view that's no longer there.
     init(rawValue: String) {
@@ -81,8 +109,6 @@ enum DefaultCityDetailDisplay: RawRepresentable, CaseIterable, Identifiable, Has
         case .display(let display): display.rawValue
         }
     }
-
-    var id: Self { self }
 
     var title: LocalizedStringKey {
         switch self {
@@ -101,23 +127,12 @@ struct CityDetailDisplayPicker: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("General") {
-                    row(for: .worldClock)
-                }
-
-                Section("Astronomy") {
-                    row(for: .solarCurve)
-                    row(for: .sunPosition)
-                    row(for: .daylight)
-                    row(for: .moonPhase)
-                }
-
-                Section("Weather") {
-                    row(for: .weather)
-                    row(for: .wind)
-                    row(for: .uvIndex)
-                    row(for: .humidity)
-                    row(for: .pressure)
+                ForEach(CityDetailDisplay.Category.allCases) { category in
+                    Section(category.title) {
+                        ForEach(category.displays) { display in
+                            row(for: display)
+                        }
+                    }
                 }
             }
             .navigationTitle(cityName)
