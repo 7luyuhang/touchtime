@@ -2,8 +2,9 @@
 //  CityDetailView.swift
 //  touchtimeWatch
 //
-//  A city's world clock, moon phase, solar curve, sun position, daylight,
-//  weather, precipitation, wind, UV index, humidity, or pressure.
+//  A city's world clock, analogue clock, moon phase, solar curve, sun
+//  position, daylight, weather, precipitation, wind, UV index, humidity, or
+//  pressure.
 //  Turning the Digital Crown moves a day at a time in Moon Phase, and an hour
 //  in the other views, except in Weather, Precipitation, Wind, UV Index,
 //  Humidity, Pressure and Sun Position's live compass, which show now.
@@ -69,12 +70,18 @@ struct CityDetailView: View {
         !display.showsNow && !isLive
     }
 
+    /// Back to now, Analogue's hands take a little longer over the hours they
+    /// turn back through than over a step of the Digital Crown.
+    private var adjustedDateAnimation: Animation {
+        display == .analogue && !isAdjusted ? .smooth(duration: 0.8) : .smooth
+    }
+
     /// Whether the view shows a day after today rather than now.
     private var showsLaterDay: Bool {
         switch display {
         case .weather: showsWeatherDays && Int(crownDays.rounded()) > 0
         case .precipitation, .uvIndex, .humidity, .pressure: Int(crownDays.rounded()) > 0
-        case .worldClock, .solarCurve, .sunPosition, .daylight, .moonPhase, .wind: false
+        case .worldClock, .analogue, .solarCurve, .sunPosition, .daylight, .moonPhase, .wind: false
         }
     }
 
@@ -109,6 +116,13 @@ struct CityDetailView: View {
                         dateRow(date: date, label: dateLabel, showsTime: showsGlobe)
                     }
                     .accessibilityElement(children: .combine)
+                case .analogue:
+                    CityAnalogueView(
+                        date: date,
+                        timeZone: city.timeZone,
+                        isAdjusting: isAdjusted,
+                        referenceDate: isAdjusted ? context.date : nil
+                    )
                 case .moonPhase:
                     CityMoonPhaseView(date: date, timeZone: city.timeZone, dateLabel: dateLabel) {
                         moonInfoDate = date
@@ -204,7 +218,7 @@ struct CityDetailView: View {
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 switch display {
-                case .worldClock, .sunPosition, .weather, .precipitation, .wind, .uvIndex, .humidity, .pressure:
+                case .worldClock, .analogue, .sunPosition, .weather, .precipitation, .wind, .uvIndex, .humidity, .pressure:
                     CitySkyBackground(date: date, timeZone: city.timeZone)
                 case .moonPhase, .solarCurve, .daylight:
                     Color.black
@@ -214,7 +228,7 @@ struct CityDetailView: View {
             .navigationTitle(Text(verbatim: ""))
             .toolbarTitleDisplayMode(.inline)
             .toolbarForegroundStyle(.primary, for: .navigationBar)
-            .animation(.smooth, value: adjustedDate)
+            .animation(adjustedDateAnimation, value: adjustedDate)
             .onChange(of: stepOffset) { _, steps in
                 if steps == 0 {
                     adjustedDate = crownStart

@@ -7,6 +7,7 @@ import SwiftUI
 
 enum CityDetailDisplay: String, CaseIterable, Identifiable {
     case worldClock
+    case analogue
     case solarCurve
     case sunPosition
     case daylight
@@ -26,6 +27,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     var title: LocalizedStringKey {
         switch self {
         case .worldClock: "World Map"
+        case .analogue: "Analogue"
         case .moonPhase: "Moon Phase"
         case .solarCurve: "Solar Curve"
         case .sunPosition: "Sun Position"
@@ -42,6 +44,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     var symbolName: String {
         switch self {
         case .worldClock: "globe"
+        case .analogue: "watch.analog"
         case .moonPhase: "moonphase.waxing.gibbous"
         case .solarCurve: "sun.max"
         case .sunPosition: "safari"
@@ -64,7 +67,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     /// The section Choose View and Default View list the view in.
     var category: Category {
         switch self {
-        case .worldClock: .general
+        case .worldClock, .analogue: .general
         case .solarCurve, .sunPosition, .daylight, .moonPhase: .astronomy
         case .weather, .precipitation, .wind, .uvIndex, .humidity, .pressure: .weather
         }

@@ -257,6 +257,22 @@
         }
       }
     },
+    "Analogue" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模拟表盘"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "模擬錶盤"
+          }
+        }
+      }
+    },
     "Astronomy" : {
       "localizations" : {
         "zh-Hans" : {
