@@ -167,7 +167,7 @@ struct CityAnalogueView: View {
                 // its own, whose edges would round to whole pixels, leaving
                 // some ticks a pixel wider or longer than others.
                 RadialBar(start: layout.tickOuterRadius - length, end: layout.tickOuterRadius, width: layout.tickWidth)
-                    .fill(.white.opacity(second % 5 == 0 ? 1 : 0.5))
+                    .fill(.white.opacity(second % 5 == 0 ? 1 : 0.25))
                     .opacity(showsSeconds ? 1 : 0)
                     .blendMode(.plusLighter)
                     .rotationEffect(.degrees(Double(second) * 6))
