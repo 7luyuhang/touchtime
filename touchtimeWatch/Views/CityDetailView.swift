@@ -3,11 +3,12 @@
 //  touchtimeWatch
 //
 //  A city's world clock, moon phase, solar curve, sun position, daylight,
-//  weather, wind, UV index, humidity, or pressure.
+//  weather, precipitation, wind, UV index, humidity, or pressure.
 //  Turning the Digital Crown moves a day at a time in Moon Phase, and an hour
-//  in the other views, except in Weather, Wind, UV Index, Humidity, Pressure
-//  and Sun Position's live compass, which show now. Weather's, UV Index's,
-//  Humidity's and Pressure's days ahead take the Crown themselves.
+//  in the other views, except in Weather, Precipitation, Wind, UV Index,
+//  Humidity, Pressure and Sun Position's live compass, which show now.
+//  Weather's, Precipitation's, UV Index's, Humidity's and Pressure's days
+//  ahead take the Crown themselves.
 //
 
 import SwiftUI
@@ -37,7 +38,7 @@ struct CityDetailView: View {
     /// Whether Conditions shows its days rather than its hours.
     @State private var showsWeatherDays = true
     /// How many days after today the Digital Crown has turned to in
-    /// Conditions, UV Index, Humidity and Pressure.
+    /// Conditions, Precipitation, UV Index, Humidity and Pressure.
     @State private var crownDays: Double = 0
     /// Taps on Current Time, each felt. Not the adjusted date, which the
     /// Digital Crown and going live also clear, with haptics of their own.
@@ -72,7 +73,7 @@ struct CityDetailView: View {
     private var showsLaterDay: Bool {
         switch display {
         case .weather: showsWeatherDays && Int(crownDays.rounded()) > 0
-        case .uvIndex, .humidity, .pressure: Int(crownDays.rounded()) > 0
+        case .precipitation, .uvIndex, .humidity, .pressure: Int(crownDays.rounded()) > 0
         case .worldClock, .solarCurve, .sunPosition, .daylight, .moonPhase, .wind: false
         }
     }
@@ -156,6 +157,13 @@ struct CityDetailView: View {
                         showsDays: $showsWeatherDays,
                         crownDays: $crownDays
                     )
+                case .precipitation:
+                    CityPrecipitationView(
+                        date: date,
+                        timeZone: city.timeZone,
+                        dateStyle: cityStore.dateStyle,
+                        crownDays: $crownDays
+                    )
                 case .wind:
                     CityWindView(
                         date: date,
@@ -196,7 +204,7 @@ struct CityDetailView: View {
             .ignoresSafeArea(edges: .bottom)
             .containerBackground(for: .navigation) {
                 switch display {
-                case .worldClock, .sunPosition, .weather, .wind, .uvIndex, .humidity, .pressure:
+                case .worldClock, .sunPosition, .weather, .precipitation, .wind, .uvIndex, .humidity, .pressure:
                     CitySkyBackground(date: date, timeZone: city.timeZone)
                 case .moonPhase, .solarCurve, .daylight:
                     Color.black
@@ -288,8 +296,8 @@ struct CityDetailView: View {
             CitySunTimesSheet(date: sunTimesDate, timeZone: city.timeZone, dateStyle: cityStore.dateStyle)
         }
         .onAppear {
-            // Weather, Wind, UV Index, Humidity and Pressure show now, even
-            // after the analog clock moved every clock.
+            // Weather, Precipitation, Wind, UV Index, Humidity and Pressure
+            // show now, even after the analog clock moved every clock.
             if display.showsNow {
                 showCurrentTime()
             }

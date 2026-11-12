@@ -1394,6 +1394,23 @@
         }
       }
     },
+    "Precipitation" : {
+      "comment" : "The view of a city's chance of precipitation, in Choose View and Default View, and read by VoiceOver before the chance on it.",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "降水"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "降水"
+          }
+        }
+      }
+    },
     "Pressure" : {
       "localizations" : {
         "zh-Hans" : {

@@ -12,6 +12,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     case daylight
     case moonPhase
     case weather
+    case precipitation
     case wind
     case uvIndex
     case humidity
@@ -30,6 +31,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .sunPosition: "Sun Position"
         case .daylight: "Daylight"
         case .weather: "Conditions"
+        case .precipitation: "Precipitation"
         case .wind: "Wind"
         case .uvIndex: "UV Index"
         case .humidity: "Humidity"
@@ -45,6 +47,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         case .sunPosition: "safari"
         case .daylight: "rays"
         case .weather: "cloud"
+        case .precipitation: "umbrella"
         case .wind: "wind"
         case .uvIndex: "beach.umbrella"
         case .humidity: "humidity"
@@ -54,7 +57,8 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
 
     /// Whether the view shows the weather now, whatever time the clocks show.
     var showsNow: Bool {
-        self == .weather || self == .wind || self == .uvIndex || self == .humidity || self == .pressure
+        self == .weather || self == .precipitation || self == .wind || self == .uvIndex || self == .humidity
+            || self == .pressure
     }
 
     /// The section Choose View and Default View list the view in.
@@ -62,7 +66,7 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
         switch self {
         case .worldClock: .general
         case .solarCurve, .sunPosition, .daylight, .moonPhase: .astronomy
-        case .weather, .wind, .uvIndex, .humidity, .pressure: .weather
+        case .weather, .precipitation, .wind, .uvIndex, .humidity, .pressure: .weather
         }
     }
 

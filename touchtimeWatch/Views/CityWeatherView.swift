@@ -889,6 +889,7 @@ private extension View {
             lowTemperature: Measurement(value: day.1, unit: .celsius),
             condition: day.2,
             precipitationChance: day.3,
+            precipitationAmount: Measurement(value: 0, unit: .millimeters),
             uvIndex: 4
         )
     }

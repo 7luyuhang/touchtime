@@ -49,6 +49,8 @@ struct CityWeather {
         let condition: WeatherCondition
         /// How likely precipitation is, from 0 to 1.
         let precipitationChance: Double
+        /// How much precipitation falls over the day.
+        let precipitationAmount: Measurement<UnitLength>
         /// The highest the UV index gets.
         let uvIndex: Int
     }
@@ -87,7 +89,8 @@ final class WatchWeatherStore {
 
     private static let maxAge: TimeInterval = 30 * 60
     /// The days WeatherKit forecasts, every hour of which is fetched too, for
-    /// each day's UV index, pressure and humidity hour by hour.
+    /// each day's chance of precipitation, UV index, pressure and humidity
+    /// hour by hour.
     private static let forecastDays = 10
     private static let liveWindMaxAge: TimeInterval = 10 * 60
     /// How far the watch goes before the wind where it was no longer stands
@@ -170,6 +173,7 @@ final class WatchWeatherStore {
                         lowTemperature: day.lowTemperature,
                         condition: day.condition,
                         precipitationChance: day.precipitationChance,
+                        precipitationAmount: day.precipitationAmountByType.precipitation,
                         uvIndex: day.uvIndex.value
                     )
                 }

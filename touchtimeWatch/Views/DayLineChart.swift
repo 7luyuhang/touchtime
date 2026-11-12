@@ -5,13 +5,13 @@
 
 import SwiftUI
 
-/// The chosen day's value through the day, under UV Index's, Humidity's and
-/// Pressure's gauges, from midnight at the left to midnight at the right, on
-/// a scale as tall as the chart, raised or lowered so the line has as much
-/// room over it as under it, whatever its height: a line in the scale's
-/// colors for how high it is at each point, and on today's, a dot at now,
-/// both as on the weather ring's temperatures, with the line before it
-/// uncolored, as the ring's track is.
+/// The chosen day's value through the day, under Precipitation's, UV Index's,
+/// Humidity's and Pressure's gauges, from midnight at the left to midnight at
+/// the right, on a scale as tall as the chart, raised or lowered so the line
+/// has as much room over it as under it, whatever its height: a line in the
+/// scale's colors for how high it is at each point, and on today's, a dot at
+/// now, both as on the weather ring's temperatures, with the line before it,
+/// and any of it too low to color, uncolored, as the ring's track is.
 /// From day to day, the line reshapes into the next day's rather than
 /// replacing it, and without a day to chart, it blurs away.
 struct DayLineChart: View {
@@ -30,6 +30,9 @@ struct DayLineChart: View {
     let scale: ClosedRange<Double>
     /// Up the scale, from its bottom to its top, or one for all of it.
     let colors: [Color]
+    /// Where the line is under it, it's left uncolored, as what's gone by is.
+    /// Nil to color all the rest of the day.
+    var leastColoredValue: Double? = nil
     /// How far through today now is, where today's dot goes.
     let nowFraction: Double
     /// Whether the chosen day is today, the one with the dot.
@@ -50,11 +53,12 @@ struct DayLineChart: View {
 
     var body: some View {
         ZStack {
-            // What's gone by, uncolored as the weather ring's track is:
-            // lighter where the sky is, but on its own, since the color on it
-            // would wash out. Blended outside the blur it comes and goes
-            // with, so it lightens the sky as it blurs in and out too, rather
-            // than only once it's in.
+            // What's gone by, and any of the rest too low to color,
+            // uncolored as the weather ring's track is: lighter where the sky
+            // is, but on its own, since the color on it would wash out.
+            // Blended outside the blur it comes and goes with, so it lightens
+            // the sky as it blurs in and out too, rather than only once it's
+            // in.
             ZStack {
                 if let samples {
                     part(.past, samples: samples)
@@ -78,6 +82,7 @@ struct DayLineChart: View {
             samples: samples,
             scale: scale,
             colors: colors,
+            leastColoredValue: leastColoredValue,
             nowFraction: nowFraction,
             isToday: isToday,
             lineWidth: lineWidth
@@ -89,11 +94,16 @@ struct DayLineChart: View {
 /// part gone by can blend with the sky outside its blur.
 private struct DayLinePart: View, Animatable {
     enum Part {
-        /// What's gone by, with a hole where today's dot is.
+        /// What's gone by, and any of the rest too low to color, with a hole
+        /// where today's dot is.
         case past
-        /// The rest of the day, in the scale's colors, and today's dot.
+        /// The rest of the day where it's colored, in the scale's colors, and
+        /// today's dot.
         case ahead
     }
+
+    /// From `start` to `end` of the way through the day.
+    private typealias Stretch = (start: Double, end: Double)
 
     /// How far the dot and the sky ringing it reach from its middle, in line
     /// widths.
@@ -103,6 +113,7 @@ private struct DayLinePart: View, Animatable {
     var samples: DayLineChart.Samples
     let scale: ClosedRange<Double>
     let colors: [Color]
+    let leastColoredValue: Double?
     let nowFraction: Double
     let isToday: Bool
     let lineWidth: CGFloat
@@ -115,6 +126,7 @@ private struct DayLinePart: View, Animatable {
         samples: DayLineChart.Samples,
         scale: ClosedRange<Double>,
         colors: [Color],
+        leastColoredValue: Double?,
         nowFraction: Double,
         isToday: Bool,
         lineWidth: CGFloat
@@ -123,6 +135,7 @@ private struct DayLinePart: View, Animatable {
         self.samples = samples
         self.scale = scale
         self.colors = colors
+        self.leastColoredValue = leastColoredValue
         self.nowFraction = nowFraction
         self.isToday = isToday
         self.lineWidth = lineWidth
@@ -148,11 +161,12 @@ private struct DayLinePart: View, Animatable {
             let height = max(geometry.size.height, 1)
             let style = StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
             let dotPoint = point(at: nowFraction, value: value(at: nowFraction), in: plot)
+            let colored = coloredStretches
 
             switch part {
             case .past:
                 ZStack {
-                    line(from: 0, to: pastFraction, in: plot)
+                    line(along: uncoloredStretches(around: colored), in: plot)
                         .stroke(.white.opacity(0.10), style: style)
                     dot(isHole: true)
                         .position(dotPoint)
@@ -160,7 +174,7 @@ private struct DayLinePart: View, Animatable {
                 .compositingGroup()
             case .ahead:
                 ZStack {
-                    line(from: pastFraction, to: 1, in: plot)
+                    line(along: colored, in: plot)
                         .stroke(
                             // Up the scale, so each point takes the color at
                             // its value.
@@ -182,11 +196,63 @@ private struct DayLinePart: View, Animatable {
     /// From `start` to `end` of the way through the day.
     private func line(from start: Double, to end: Double, in plot: CGRect) -> Path {
         guard end > start else { return Path() }
-        let last = max(samples.values.count - 1, 1)
-        let between = (0...last).map { Double($0) / Double(last) }.filter { $0 > start && $0 < end }
         return Path { path in
-            path.addLines(([start] + between + [end]).map { point(at: $0, value: value(at: $0), in: plot) })
+            path.addLines(corners(from: start, to: end).map { point(at: $0, value: value(at: $0), in: plot) })
         }
+    }
+
+    private func line(along stretches: [Stretch], in plot: CGRect) -> Path {
+        Path { path in
+            for stretch in stretches {
+                path.addPath(line(from: stretch.start, to: stretch.end, in: plot))
+            }
+        }
+    }
+
+    /// `start`, `end`, and each sample's place between them, the line running
+    /// straight from one to the next.
+    private func corners(from start: Double, to end: Double) -> [Double] {
+        let last = max(samples.values.count - 1, 1)
+        return [start] + (0...last).map { Double($0) / Double(last) }.filter { $0 > start && $0 < end } + [end]
+    }
+
+    /// The rest of the day, or with a least value colored, only where the
+    /// line is at it or over.
+    private var coloredStretches: [Stretch] {
+        guard pastFraction < 1 else { return [] }
+        guard let leastColoredValue else { return [(pastFraction, 1)] }
+        let corners = corners(from: pastFraction, to: 1)
+        var stretches: [Stretch] = []
+        var stretchStart: Double? = value(at: pastFraction) >= leastColoredValue ? pastFraction : nil
+        for (previous, next) in zip(corners, corners.dropFirst()) {
+            let (previousValue, nextValue) = (value(at: previous), value(at: next))
+            guard (previousValue >= leastColoredValue) != (nextValue >= leastColoredValue) else { continue }
+            // Where the straight line between them crosses the least value.
+            let share = (leastColoredValue - previousValue) / (nextValue - previousValue)
+            let crossing = previous + (next - previous) * share
+            if let start = stretchStart {
+                stretches.append((start, crossing))
+                stretchStart = nil
+            } else {
+                stretchStart = crossing
+            }
+        }
+        if let start = stretchStart {
+            stretches.append((start, 1))
+        }
+        return stretches
+    }
+
+    /// What's gone by, and the rest of the day between `coloredStretches`.
+    private func uncoloredStretches(around coloredStretches: [Stretch]) -> [Stretch] {
+        var stretches: [Stretch] = []
+        var start = 0.0
+        for stretch in coloredStretches {
+            stretches.append((start, stretch.start))
+            start = stretch.end
+        }
+        stretches.append((start, 1))
+        return stretches
     }
 
     /// Today's, placed even while hidden so it comes and goes where it is, in

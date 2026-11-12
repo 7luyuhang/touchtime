@@ -494,6 +494,7 @@ private extension View {
             lowTemperature: Measurement(value: 16, unit: .celsius),
             condition: .clear,
             precipitationChance: 0,
+            precipitationAmount: Measurement(value: 0, unit: .millimeters),
             uvIndex: uvIndex
         )
     }
