@@ -8,10 +8,11 @@ import SwiftUI
 /// The city's time on a watch face as big as the daylight ring with its hours
 /// around it: the hours on a glass ring, fading from the city's hour now, or
 /// counting the seconds round it once it's tapped, and inside the ring its
-/// Additional Time over its day. The hands sweep round rather than tick, and as the
-/// Digital Crown moves the time an hour at a time, only the hour hand turns,
-/// the second hand fading out until the hands are back at now, which they take
-/// the short way round to.
+/// Additional Time, or the time while the Digital Crown shows another, over its
+/// day. The hands sweep round rather than tick, and as the Digital Crown moves
+/// the time an hour at a time, only the hour hand turns, the minute and second
+/// hands fading out where they are until it's back at now, which it takes the
+/// short way round to.
 struct CityAnalogueView: View {
     let date: Date
     let timeZone: TimeZone
@@ -57,15 +58,26 @@ struct CityAnalogueView: View {
         return [time.digits, time.period].compactMap { $0 }.joined(separator: " ")
     }
 
-    /// How far the city is from the watch's time zone, or from UTC. Local's
-    /// time shift gives way to its location, as in the list.
+    /// How far the city is from the watch's time zone, or from UTC, or while
+    /// the Digital Crown shows another time, that time, which the hands show
+    /// only to the hour. Local's time shift gives way to its location, as in
+    /// the list.
     @ViewBuilder
     private var additionalTimeLabel: some View {
-        if isLocal && additionalTime == .timeShift {
+        if isLocal && additionalTime == .timeShift && !isAdjusting {
             Image(systemName: "location.fill")
                 .accessibilityHidden(true)
+                .transition(.blurReplace)
         } else {
-            Text(additionalTime.text(for: timeZone, at: date))
+            let text = isAdjusting
+                ? WatchTimeFormat.time(date, in: timeZone, use24HourFormat: use24HourFormat).digits
+                : additionalTime.text(for: timeZone, at: date)
+
+            // One text for both, so that it rolls from one to the other.
+            Text(text)
+                // Read first already, as the hands' time.
+                .accessibilityHidden(isAdjusting)
+                .transition(.blurReplace)
         }
     }
 
@@ -84,46 +96,45 @@ struct CityAnalogueView: View {
             let turns = handTurnsAhead
 
             ZStack {
-                glassRing(layout: layout)
-                    .accessibilityHidden(true)
-
-                // Clear of the middle by as much above as below.
                 ZStack {
-                    additionalTimeLabel
-                        .frame(width: layout.textWidth)
-                        .position(x: layout.center.x, y: layout.center.y - layout.innerRadius * 0.47)
+                    glassRing(layout: layout)
+                        .accessibilityHidden(true)
 
-                    Text(dayLabel)
-                        .textCase(.uppercase)
-                        .frame(width: layout.textWidth)
-                        .position(x: layout.center.x, y: layout.center.y + layout.innerRadius * 0.47)
+                    // Clear of the middle by as much above as below.
+                    ZStack {
+                        additionalTimeLabel
+                            .frame(width: layout.textWidth)
+                            .position(x: layout.center.x, y: layout.center.y - layout.innerRadius * 0.47)
+
+                        Text(dayLabel)
+                            .textCase(.uppercase)
+                            .frame(width: layout.textWidth)
+                            .position(x: layout.center.x, y: layout.center.y + layout.innerRadius * 0.47)
+                    }
+                    .font(.system(.body, design: .rounded, weight: .medium))
+                    .contentTransition(.numericText())
+                    .foregroundStyle(.white)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+                    // Any larger and they run into the hands' middle.
+                    .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel { label in
+                        Text(spokenTime)
+                        label
+                    }
                 }
-                .font(.system(.body, design: .rounded, weight: .medium))
-                .contentTransition(.numericText())
-                .foregroundStyle(.white)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-                // Any larger and they run into the hands' middle.
-                .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel { label in
-                    Text(spokenTime)
-                    label
+                // Cut out inside the hands' bars, which the sky shows in.
+                .mask {
+                    TimelineView(.animation(paused: isAdjusting || isLuminanceReduced)) { context in
+                        hands(at: context.date, turns: turns, layout: layout, isCutout: true)
+                    }
                 }
 
                 // Not while the hands stop at the time the Digital Crown
                 // shows, nor once the screen dims with the wrist down.
                 TimelineView(.animation(paused: isAdjusting || isLuminanceReduced)) { context in
-                    AnalogueHands(
-                        // With the wrist down the hands keep to the minute,
-                        // but never back from where they stopped.
-                        now: DialTime(isLuminanceReduced ? max(context.date, date) : context.date, in: timeZone)
-                            .turned(by: turns),
-                        shown: DialTime(date, in: timeZone).turned(by: turns),
-                        adjustment: isAdjusting ? 1 : 0,
-                        showsSecondHand: !isLuminanceReduced,
-                        layout: layout
-                    )
+                    hands(at: context.date, turns: turns, layout: layout)
                 }
                 .accessibilityHidden(true)
                 // Taps on the ring under them reach it.
@@ -148,6 +159,27 @@ struct CityAnalogueView: View {
                 lastAdjustedDate = nil
             }
         }
+    }
+
+    /// The hands as they are at `timelineDate`, their timeline's date, or the
+    /// cutout of their bars that the dial under them is masked to.
+    private func hands(
+        at timelineDate: Date,
+        turns: Double,
+        layout: AnalogueDialLayout,
+        isCutout: Bool = false
+    ) -> AnalogueHands {
+        AnalogueHands(
+            // With the wrist down the hands keep to the minute, but never
+            // back from where they stopped.
+            now: DialTime(isLuminanceReduced ? max(timelineDate, date) : timelineDate, in: timeZone)
+                .turned(by: turns),
+            shown: DialTime(date, in: timeZone).turned(by: turns),
+            adjustment: isAdjusting ? 1 : 0,
+            showsSecondHand: !isLuminanceReduced,
+            layout: layout,
+            isCutout: isCutout
+        )
     }
 
     /// The hours upright around the glass ring, fading from the city's hour
@@ -266,6 +298,11 @@ private struct AnalogueDialLayout {
             .stroke(style: StrokeStyle(lineWidth: ringWidth))
     }
 
+    /// An hour or minute hand's bar, out from its neck to `length`.
+    func handBar(length: CGFloat) -> RadialBar {
+        RadialBar(start: neckLength, end: length, width: handWidth)
+    }
+
     /// `radius` from the middle, `hour` hours clockwise from 12 at the top.
     func point(atHour hour: Int, radius: CGFloat) -> CGPoint {
         let angle = Double(hour) / 12 * 2 * .pi
@@ -273,11 +310,11 @@ private struct AnalogueDialLayout {
     }
 }
 
-/// The hands, sweeping round with the time now, or stopped at the time the
-/// Digital Crown shows. From one to the other, and from hour to hour as the
-/// Digital Crown turns, the hour hand goes round through the hours between,
-/// and the minute hand only the short way to its minute. The second hand,
-/// which only ever shows now, fades out away from it.
+/// The hands, sweeping round with the time now, or the hour hand stopped at
+/// the time the Digital Crown shows. From one to the other, and from hour to
+/// hour as the Digital Crown turns, the hour hand goes round through the hours
+/// between. The minute and second hands only ever show now, fading out away
+/// from it.
 private struct AnalogueHands: View, Animatable {
     /// Now, to the frame.
     let now: DialTime
@@ -287,6 +324,9 @@ private struct AnalogueHands: View, Animatable {
     var adjustment: Double
     let showsSecondHand: Bool
     let layout: AnalogueDialLayout
+    /// Rather than the hands, everywhere but inside the hour and minute hands'
+    /// bars, for the dial under them to be masked to so the sky shows in them.
+    var isCutout = false
 
     var animatableData: AnimatablePair<AnimatablePair<Double, Double>, Double> {
         get { AnimatablePair(AnimatablePair(shown.hours, shown.minutes), adjustment) }
@@ -298,12 +338,30 @@ private struct AnalogueHands: View, Animatable {
 
     var body: some View {
         let time = now.moved(toward: shown, by: adjustment)
+        let minuteBar = layout.handBar(length: layout.minuteHandLength)
+            .rotationEffect(now.minuteAngle)
+            .opacity(1 - adjustment)
 
+        if isCutout {
+            cutout {
+                layout.handBar(length: layout.hourHandLength)
+                    .rotationEffect(time.hourAngle)
+                minuteBar
+            }
+        } else {
+            hands(at: time, under: minuteBar)
+        }
+    }
+
+    private func hands(at time: DialTime, under minuteBar: some View) -> some View {
         ZStack {
             AnalogueHand(length: layout.hourHandLength, layout: layout)
                 .rotationEffect(time.hourAngle)
+                // Under the minute hand's bar, as the dial is.
+                .mask { cutout { minuteBar } }
             AnalogueHand(length: layout.minuteHandLength, layout: layout)
-                .rotationEffect(time.minuteAngle)
+                .rotationEffect(now.minuteAngle)
+                .opacity(1 - adjustment)
             Circle()
                 .fill(.white)
                 .frame(width: layout.capDiameter, height: layout.capDiameter)
@@ -322,6 +380,19 @@ private struct AnalogueHands: View, Animatable {
                 .fill(.black)
                 .frame(width: layout.pinDiameter, height: layout.pinDiameter)
         }
+        .frame(width: layout.diameter, height: layout.diameter)
+    }
+
+    /// Everywhere but inside `bars`, out past the frame so as not to cut off
+    /// the glass's edge.
+    private func cutout(@ViewBuilder _ bars: () -> some View) -> some View {
+        ZStack {
+            Rectangle()
+                .padding(-layout.radius)
+            bars()
+                .blendMode(.destinationOut)
+        }
+        .compositingGroup()
         .frame(width: layout.diameter, height: layout.diameter)
     }
 }
@@ -377,25 +448,19 @@ extension DialTime {
 }
 
 /// An hour or minute hand pointing up from the dial's middle: a white neck out
-/// to a wider bar of frosted material edged in white.
+/// to a wider bar edged in white, empty inside for the sky to show in.
 private struct AnalogueHand: View {
     let length: CGFloat
     let layout: AnalogueDialLayout
 
     var body: some View {
         let edge = layout.handEdgeWidth
-        let bar = RadialBar(start: layout.neckLength, end: length, width: layout.handWidth)
 
         ZStack {
-            // Into the bar's edge, leaving no seam, but short of its middle,
-            // which it would show through.
+            // Into the bar's edge, leaving no seam, but short of its middle.
             RadialBar(start: 0, end: layout.neckLength + edge, width: layout.neckWidth)
                 .fill(.white)
-            // Light, as watchOS's dark materials leave the bar almost black.
-            bar
-                .fill(.ultraThinMaterial)
-                .environment(\.colorScheme, .light)
-            bar
+            layout.handBar(length: length)
                 .strokeBorder(.white, lineWidth: edge)
         }
     }
