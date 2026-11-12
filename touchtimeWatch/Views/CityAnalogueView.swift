@@ -174,28 +174,19 @@ struct CityAnalogueView: View {
                     .animation(tickAnimation(second: second), value: showsSeconds)
             }
 
-            // Transitioning inside the placement scales each number about
-            // itself rather than the ring's center.
             ForEach(1...12, id: \.self) { hour in
                 let number = showsSeconds ? hour * 5 : hour
 
-                ZStack {
-                    Text(verbatim: String(number))
-                        .font(.system(
-                            size: showsSeconds ? layout.secondFontSize : layout.hourFontSize,
-                            weight: .semibold,
-                            design: .rounded
-                        ))
-                        .foregroundStyle(.white.opacity(showsSeconds ? 1 : opacity(ofHour: hour)))
-                        // A new number is a new view, blurring in as the old
-                        // one blurs out.
-                        .id(number)
-                        .transition(LighterBlurReplace())
-                }
-                .position(layout.point(
-                    atHour: hour,
-                    radius: showsSeconds ? layout.secondNumberRadius : layout.hourRadius
-                ))
+                Text(verbatim: String(number))
+                    .font(.system(size: layout.hourFontSize, weight: .semibold, design: .rounded))
+                    .contentTransition(.numericText(value: Double(number)))
+                    .scaleEffect(showsSeconds ? layout.secondNumberScale : 1)
+                    .foregroundStyle(.white.opacity(showsSeconds ? 1 : opacity(ofHour: hour)))
+                    .blendMode(.plusLighter)
+                    .position(layout.point(
+                        atHour: hour,
+                        radius: showsSeconds ? layout.secondNumberRadius : layout.hourRadius
+                    ))
             }
         }
         // The brightness moves along to the next hour.
@@ -242,7 +233,9 @@ private struct AnalogueDialLayout {
     /// Through the middle of the ring.
     var hourRadius: CGFloat { radius - ringWidth / 2 }
     var hourFontSize: CGFloat { ringWidth * 0.62 }
-    var secondFontSize: CGFloat { ringWidth * 0.36 }
+    /// The seconds' size, as the hours shrunk rather than set smaller, so
+    /// that the numbers roll from one to the other in the same font.
+    var secondNumberScale: CGFloat { 0.36 / 0.62 }
     /// A second's tick reaching in from just inside the ring's outer edge,
     /// every fifth one longer, as wide as the hands' lines.
     var tickOuterRadius: CGFloat { radius - ringWidth * 0.07 }
@@ -479,19 +472,6 @@ private struct HourArc: Shape {
             clockwise: hours < 0
         )
         return path
-    }
-}
-
-/// Like `.blurReplace`, blurring and shrinking a view out and back in, but
-/// blended in lighter throughout, where `.blurReplace` blends it normally
-/// until it settles.
-private struct LighterBlurReplace: Transition {
-    func body(content: Content, phase: TransitionPhase) -> some View {
-        content
-            .blur(radius: phase.isIdentity ? 0 : 5)
-            .scaleEffect(phase.isIdentity ? 1 : 0.6)
-            .opacity(phase.isIdentity ? 1 : 0)
-            .blendMode(.plusLighter)
     }
 }
 
