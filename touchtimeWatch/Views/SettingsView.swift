@@ -95,6 +95,7 @@ struct SettingsView: View {
                     }
                     // Just the icon, rather than the whole row
                     .buttonStyle(.plain)
+                    .sensoryFeedback(.impact(flexibility: .soft), trigger: showsAbout) { _, showsAbout in showsAbout }
 
                     VStack(spacing: 0) {
                         Text(verbatim: "Touch Time")

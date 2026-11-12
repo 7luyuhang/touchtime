@@ -120,6 +120,7 @@ struct CityDetailView: View {
                     CityAnalogueView(
                         date: date,
                         timeZone: city.timeZone,
+                        isLocal: city.isLocal,
                         isAdjusting: isAdjusted,
                         referenceDate: isAdjusted ? context.date : nil
                     )
