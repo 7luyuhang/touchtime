@@ -10,8 +10,8 @@ import SwiftUI
 /// counting the seconds round it once it's tapped, and inside the ring its
 /// Additional Time over its day. The hands sweep round rather than tick, and as the
 /// Digital Crown moves the time an hour at a time, only the hour hand turns,
-/// trailing an arc from now round the ring's edge, the second hand fading out
-/// until the hands are back at now, which they take the short way round to.
+/// the second hand fading out until the hands are back at now, which they take
+/// the short way round to.
 struct CityAnalogueView: View {
     let date: Date
     let timeZone: TimeZone
@@ -115,18 +115,13 @@ struct CityAnalogueView: View {
                 // shows, nor once the screen dims with the wrist down.
                 TimelineView(.animation(paused: isAdjusting || isLuminanceReduced)) { context in
                     AnalogueHands(
-                        // With the wrist down the hands keep to now's minute,
-                        // where the arc starts, but never back from where
-                        // they stopped.
-                        now: DialTime(
-                            isLuminanceReduced ? max(context.date, referenceDate ?? date) : context.date,
-                            in: timeZone
-                        )
-                        .turned(by: turns),
+                        // With the wrist down the hands keep to the minute,
+                        // but never back from where they stopped.
+                        now: DialTime(isLuminanceReduced ? max(context.date, date) : context.date, in: timeZone)
+                            .turned(by: turns),
                         shown: DialTime(date, in: timeZone).turned(by: turns),
                         adjustment: isAdjusting ? 1 : 0,
                         showsSecondHand: !isLuminanceReduced,
-                        showsArc: isAdjusting,
                         layout: layout
                     )
                 }
@@ -254,7 +249,6 @@ private struct AnalogueDialLayout {
     var handWidth: CGFloat { radius * 0.074 }
     /// The white around the bars' material, as wide as their necks.
     var handEdgeWidth: CGFloat { neckWidth }
-    var arcWidth: CGFloat { radius * 0.032 }
     /// Almost to the dial's edge.
     var secondHandLength: CGFloat { radius * 0.98 }
     /// Back past the middle.
@@ -292,9 +286,6 @@ private struct AnalogueHands: View, Animatable {
     /// From 0, now, to 1, the time the Digital Crown shows.
     var adjustment: Double
     let showsSecondHand: Bool
-    /// While the Digital Crown shows another time, an arc round the dial's
-    /// edge from now to the hour hand.
-    let showsArc: Bool
     let layout: AnalogueDialLayout
 
     var animatableData: AnimatablePair<AnimatablePair<Double, Double>, Double> {
@@ -309,12 +300,6 @@ private struct AnalogueHands: View, Animatable {
         let time = now.moved(toward: shown, by: adjustment)
 
         ZStack {
-            // Fades out as it was: the hands' short way back to now can carry
-            // on round rather than turn back along it.
-            if showsArc {
-                HourArc(from: now, to: time)
-                    .stroke(.white, style: StrokeStyle(lineWidth: layout.arcWidth, lineCap: .round))
-            }
             AnalogueHand(length: layout.hourHandLength, layout: layout)
                 .rotationEffect(time.hourAngle)
             AnalogueHand(length: layout.minuteHandLength, layout: layout)
@@ -363,15 +348,10 @@ private struct DialTime {
         .degrees((minutes * 60).truncatingRemainder(dividingBy: 60) * 6)
     }
 
-    /// The hours from `other` on to this time, negative back from it.
-    func hours(from other: DialTime) -> Double {
-        hours - other.hours + (minutes - other.minutes) / 60
-    }
-
     /// The whole turns of the hour hand from `other` round to this time, to
     /// the nearest turn.
     func turns(from other: DialTime) -> Double {
-        (hours(from: other) / 12).rounded()
+        ((hours - other.hours + (minutes - other.minutes) / 60) / 12).rounded()
     }
 
     /// The same place on the dial, `turns` whole turns of the hour hand on.
@@ -447,31 +427,6 @@ private struct RadialBar: InsettableShape {
         var bar = self
         bar.insetAmount += amount
         return bar
-    }
-}
-
-/// From one time's hour round the edge of its frame to another's, clockwise
-/// to a later time and back to an earlier one, by less than a turn, as the
-/// hour hand shows.
-private struct HourArc: Shape {
-    let from: DialTime
-    let to: DialTime
-
-    func path(in rect: CGRect) -> Path {
-        let hours = to.hours(from: from)
-        let sweep = Angle.degrees(abs(hours).truncatingRemainder(dividingBy: 12) * 30)
-        let start = from.hourAngle - .degrees(90)
-        var path = Path()
-        guard sweep.degrees > 0 else { return path }
-        // Clockwise on screen, with y running down, is counterclockwise here.
-        path.addArc(
-            center: CGPoint(x: rect.midX, y: rect.midY),
-            radius: rect.width / 2,
-            startAngle: start,
-            endAngle: hours > 0 ? start + sweep : start - sweep,
-            clockwise: hours < 0
-        )
-        return path
     }
 }
 
