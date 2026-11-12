@@ -31,6 +31,7 @@ struct CityWeatherView: View {
     @Environment(WatchWeatherStore.self) private var weatherStore
     @Environment(\.isPresented) private var isPresented
     @FocusState private var crownHolder: CrownHolder?
+    @Namespace private var crownScope
 
     /// Who has the Digital Crown: the hours, doing nothing with it, or the
     /// days, turning from one to the next.
@@ -163,17 +164,22 @@ struct CityWeatherView: View {
         // A holder each for the hours and the days rather than one changing
         // between them, since a Digital Crown whose haptics have been on
         // keeps clicking with them off again. Both can take it for as long
-        // as the weather shows, since the days can't the moment they appear.
-        // As on the details, not while sliding back to the list, so a quick
-        // turn scrolls the list rather than the days.
+        // as the weather shows, since the days can't the moment they appear,
+        // so where the watch hands it over itself, as when the app opens or
+        // a sheet goes, it goes to the one for what's showing rather than to
+        // the hours' for coming first. As on the details, not while sliding
+        // back to the list, so a quick turn scrolls the list rather than the
+        // days.
         .background {
             Color.clear
                 .focusable(isPresented)
                 .focused($crownHolder, equals: .hours)
+                .prefersDefaultFocus(!showsDays, in: crownScope)
                 .digitalCrownRotation(.constant(0), from: 0, through: 1, isHapticFeedbackEnabled: false)
             Color.clear
                 .focusable(isPresented)
                 .focused($crownHolder, equals: .days)
+                .prefersDefaultFocus(showsDays, in: crownScope)
                 .digitalCrownRotation(
                     $crownDays,
                     from: 0,
@@ -187,6 +193,7 @@ struct CityWeatherView: View {
                     isHapticFeedbackEnabled: true
                 )
         }
+        .focusScope(crownScope)
         .scrollIndicators(.hidden)
         // A sheet takes the Digital Crown, and doesn't give it back.
         .onAppear {

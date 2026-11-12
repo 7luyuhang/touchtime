@@ -88,20 +88,15 @@ struct CityUVIndexView: View {
                             // Smaller at the largest text sizes rather than
                             // running into the arc's ends.
                             .frame(maxHeight: max(labelRoom, 0), alignment: .bottom)
-                        ZStack {
-                            if let chartSamples {
-                                DayLineChart(
-                                    samples: chartSamples,
-                                    // The gauge's, in its colors.
-                                    scale: 0...Double(UVIndexScale.highestIndex),
-                                    colors: UVIndexScale.colors,
-                                    nowFraction: nowFraction,
-                                    isToday: chosenDayIndex == 0,
-                                    lineWidth: chartLineWidth
-                                )
-                                .transition(.blurReplace)
-                            }
-                        }
+                        DayLineChart(
+                            samples: chartSamples,
+                            // The gauge's, in its colors.
+                            scale: 0...Double(UVIndexScale.highestIndex),
+                            colors: UVIndexScale.colors,
+                            nowFraction: nowFraction,
+                            isToday: chosenDayIndex == 0,
+                            lineWidth: chartLineWidth
+                        )
                         .frame(height: diameter * DayLineChart.heightShare)
                         .offset(y: chartOffset)
                         .accessibilityHidden(true)

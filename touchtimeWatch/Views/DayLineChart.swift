@@ -13,20 +13,18 @@ import SwiftUI
 /// both as on the weather ring's temperatures, with the line before it
 /// uncolored, as the ring's track is.
 /// From day to day, the line reshapes into the next day's rather than
-/// replacing it.
-struct DayLineChart: View, Animatable {
+/// replacing it, and without a day to chart, it blurs away.
+struct DayLineChart: View {
     /// Across the day, a quarter hour apart, as many for every day so one
     /// day's line can turn into another's.
     static let sampleCount = 96
     /// Of the gauge's diameter: room for the value to rise and fall, staying
     /// clear below the arc's ends and the days beside them.
     static let heightShare: CGFloat = 0.10
-    /// How far the dot and the sky ringing it reach from its middle, in line
-    /// widths.
-    private static let dotReach: CGFloat = 1.125
 
-    /// Evenly spaced through the day, from midnight to midnight.
-    var samples: Samples
+    /// Evenly spaced through the day, from midnight to midnight. Nil without
+    /// a day to chart.
+    let samples: Samples?
     /// The values the chart's height spans, bottom to top. Any beyond are held
     /// to its bounds.
     let scale: ClosedRange<Double>
@@ -37,31 +35,6 @@ struct DayLineChart: View, Animatable {
     /// Whether the chosen day is today, the one with the dot.
     let isToday: Bool
     let lineWidth: CGFloat
-    /// How much of the day has gone by: up to now on today, and none on the
-    /// days ahead.
-    private var pastFraction: Double
-
-    init(
-        samples: Samples,
-        scale: ClosedRange<Double>,
-        colors: [Color],
-        nowFraction: Double,
-        isToday: Bool,
-        lineWidth: CGFloat
-    ) {
-        self.samples = samples
-        self.scale = scale
-        self.colors = colors
-        self.nowFraction = nowFraction
-        self.isToday = isToday
-        self.lineWidth = lineWidth
-        pastFraction = isToday ? nowFraction : 0
-    }
-
-    var animatableData: AnimatablePair<Samples, Double> {
-        get { AnimatablePair(samples, pastFraction) }
-        set { (samples, pastFraction) = (newValue.first, newValue.second) }
-    }
 
     /// As thick as the weather ring's arc of temperatures.
     static func lineWidth(ringWidth: CGFloat) -> CGFloat {
@@ -73,6 +46,92 @@ struct DayLineChart: View, Animatable {
     /// as above the date `spaceBelow` under the circle.
     static func offset(lineWidth: CGFloat, spaceBelow: CGFloat) -> CGFloat {
         max(spaceBelow - lineWidth, 0) / 2
+    }
+
+    var body: some View {
+        ZStack {
+            // What's gone by, uncolored as the weather ring's track is:
+            // lighter where the sky is, but on its own, since the color on it
+            // would wash out. Blended outside the blur it comes and goes
+            // with, so it lightens the sky as it blurs in and out too, rather
+            // than only once it's in.
+            ZStack {
+                if let samples {
+                    part(.past, samples: samples)
+                        .transition(.blurReplace)
+                }
+            }
+            .blendMode(.plusLighter)
+
+            ZStack {
+                if let samples {
+                    part(.ahead, samples: samples)
+                        .transition(.blurReplace)
+                }
+            }
+        }
+    }
+
+    private func part(_ part: DayLinePart.Part, samples: Samples) -> DayLinePart {
+        DayLinePart(
+            part: part,
+            samples: samples,
+            scale: scale,
+            colors: colors,
+            nowFraction: nowFraction,
+            isToday: isToday,
+            lineWidth: lineWidth
+        )
+    }
+}
+
+/// One of the chart's parts, which blur in and out each on its own, so the
+/// part gone by can blend with the sky outside its blur.
+private struct DayLinePart: View, Animatable {
+    enum Part {
+        /// What's gone by, with a hole where today's dot is.
+        case past
+        /// The rest of the day, in the scale's colors, and today's dot.
+        case ahead
+    }
+
+    /// How far the dot and the sky ringing it reach from its middle, in line
+    /// widths.
+    private static let dotReach: CGFloat = 1.125
+
+    let part: Part
+    var samples: DayLineChart.Samples
+    let scale: ClosedRange<Double>
+    let colors: [Color]
+    let nowFraction: Double
+    let isToday: Bool
+    let lineWidth: CGFloat
+    /// How much of the day has gone by: up to now on today, and none on the
+    /// days ahead.
+    private var pastFraction: Double
+
+    init(
+        part: Part,
+        samples: DayLineChart.Samples,
+        scale: ClosedRange<Double>,
+        colors: [Color],
+        nowFraction: Double,
+        isToday: Bool,
+        lineWidth: CGFloat
+    ) {
+        self.part = part
+        self.samples = samples
+        self.scale = scale
+        self.colors = colors
+        self.nowFraction = nowFraction
+        self.isToday = isToday
+        self.lineWidth = lineWidth
+        pastFraction = isToday ? nowFraction : 0
+    }
+
+    var animatableData: AnimatablePair<DayLineChart.Samples, Double> {
+        get { AnimatablePair(samples, pastFraction) }
+        set { (samples, pastFraction) = (newValue.first, newValue.second) }
     }
 
     var body: some View {
@@ -90,10 +149,8 @@ struct DayLineChart: View, Animatable {
             let style = StrokeStyle(lineWidth: lineWidth, lineCap: .round, lineJoin: .round)
             let dotPoint = point(at: nowFraction, value: value(at: nowFraction), in: plot)
 
-            ZStack {
-                // What's gone by, uncolored as the weather ring's track is:
-                // lighter where the sky is, but on its own, since the color
-                // on it would wash out.
+            switch part {
+            case .past:
                 ZStack {
                     line(from: 0, to: pastFraction, in: plot)
                         .stroke(.white.opacity(0.10), style: style)
@@ -101,8 +158,7 @@ struct DayLineChart: View, Animatable {
                         .position(dotPoint)
                 }
                 .compositingGroup()
-                .blendMode(.plusLighter)
-
+            case .ahead:
                 ZStack {
                     line(from: pastFraction, to: 1, in: plot)
                         .stroke(

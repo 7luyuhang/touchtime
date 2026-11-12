@@ -128,19 +128,14 @@ struct CityPressureView: View {
                     VStack(spacing: chartLineWidth) {
                         PressureTrendSymbol(trend: reading?.trend)
                             .frame(maxHeight: max(trendRoom, 0), alignment: .bottom)
-                        ZStack {
-                            if let chartSamples {
-                                DayLineChart(
-                                    samples: chartSamples,
-                                    scale: 0...1,
-                                    colors: [.purple],
-                                    nowFraction: nowFraction,
-                                    isToday: chosenDayIndex == 0,
-                                    lineWidth: chartLineWidth
-                                )
-                                .transition(.blurReplace)
-                            }
-                        }
+                        DayLineChart(
+                            samples: chartSamples,
+                            scale: 0...1,
+                            colors: [.purple],
+                            nowFraction: nowFraction,
+                            isToday: chosenDayIndex == 0,
+                            lineWidth: chartLineWidth
+                        )
                         .frame(height: diameter * DayLineChart.heightShare)
                         .offset(y: chartOffset)
                         .accessibilityHidden(true)
@@ -479,14 +474,6 @@ private struct PressureGauge: View {
                         .id(coordinateText)
                         .transition(.blurReplace)
                     printed(Self.instrumentName, radius: labelRadius, isAtBottom: true)
-                    ForEach([PressureScale.startAngle, PressureScale.startAngle + PressureScale.sweep], id: \.degrees) { angle in
-                        Circle()
-                            .fill(.white)
-                            .opacity(0.25)
-                            .blendMode(.plusLighter)
-                            .frame(width: Self.endDotDiameter, height: Self.endDotDiameter)
-                            .placed(at: angle, radius: labelRadius)
-                    }
                 }
                 // From the app's name to where the watch is, and on as it moves.
                 .animation(.smooth, value: coordinateText)
@@ -515,6 +502,22 @@ private struct PressureGauge: View {
                 .foregroundStyle(.white)
                 .transition(.blurReplace)
             }
+
+            // Blended outside the transition, so the dots blend with the sky
+            // as they blur in and out too, rather than only once they're in.
+            ZStack {
+                if isLive {
+                    ForEach([PressureScale.startAngle, PressureScale.startAngle + PressureScale.sweep], id: \.degrees) { angle in
+                        Circle()
+                            .fill(.white)
+                            .opacity(0.25)
+                            .frame(width: Self.endDotDiameter, height: Self.endDotDiameter)
+                            .placed(at: angle, radius: labelRadius)
+                            .transition(.blurReplace)
+                    }
+                }
+            }
+            .blendMode(.plusLighter)
 
             // Turned to the pressure as the ring is, and kept to the arc, so
             // near either end the light stops where the arc does.

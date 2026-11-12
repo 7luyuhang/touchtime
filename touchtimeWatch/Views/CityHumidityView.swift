@@ -95,20 +95,15 @@ struct CityHumidityView: View {
                             // or on the smaller watches the days beside them,
                             // at the largest text sizes.
                             .frame(maxWidth: labelWidth, maxHeight: max(labelRoom, 0), alignment: .bottom)
-                        ZStack {
-                            if let chartSamples {
-                                DayLineChart(
-                                    samples: chartSamples,
-                                    // The gauge's.
-                                    scale: 0...1,
-                                    colors: HumidityScale.colors,
-                                    nowFraction: nowFraction,
-                                    isToday: chosenDayIndex == 0,
-                                    lineWidth: chartLineWidth
-                                )
-                                .transition(.blurReplace)
-                            }
-                        }
+                        DayLineChart(
+                            samples: chartSamples,
+                            // The gauge's.
+                            scale: 0...1,
+                            colors: HumidityScale.colors,
+                            nowFraction: nowFraction,
+                            isToday: chosenDayIndex == 0,
+                            lineWidth: chartLineWidth
+                        )
                         .frame(height: diameter * DayLineChart.heightShare)
                         .offset(y: chartOffset)
                         .accessibilityHidden(true)
