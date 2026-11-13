@@ -13,6 +13,15 @@
             ]
           }
         },
+        "ja" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "${applicationName}でアラームを開く",
+              "${applicationName}のアラームを表示"
+            ]
+          }
+        },
         "zh-Hans" : {
           "stringSet" : {
             "state" : "translated",
@@ -45,6 +54,15 @@
             ]
           }
         },
+        "ja" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "${applicationName}でカウントダウンを開く",
+              "${applicationName}のカウントダウンを表示"
+            ]
+          }
+        },
         "zh-Hans" : {
           "stringSet" : {
             "state" : "translated",
@@ -74,6 +92,15 @@
             "values" : [
               "Open the timer in ${applicationName}",
               "Set a timer in ${applicationName}"
+            ]
+          }
+        },
+        "ja" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "${applicationName}でタイマーを開く",
+              "${applicationName}でタイマーを設定"
             ]
           }
         },

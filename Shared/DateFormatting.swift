@@ -16,18 +16,21 @@ private enum DateFormatterCache {
     }()
     
     static func dateFormatter(for timeZone: TimeZone, includesWeekday: Bool) -> DateFormatter {
-        let isZh = Locale.current.language.languageCode?.identifier == "zh"
-        let key = "\(timeZone.identifier)_\(isZh)_\(includesWeekday)" as NSString
+        let languageCode = Locale.current.language.languageCode?.identifier ?? ""
+        let key = "\(timeZone.identifier)_\(languageCode)_\(includesWeekday)" as NSString
         if let cached = cache.object(forKey: key) {
             return cached
         }
         let formatter = DateFormatter()
         formatter.locale = Locale.current
         formatter.timeZone = timeZone
-        if includesWeekday {
-            formatter.dateFormat = isZh ? "MMMd日 E" : "E, d MMM"
-        } else {
-            formatter.dateFormat = isZh ? "MMMd日" : "d MMM"
+        switch languageCode {
+        case "zh":
+            formatter.dateFormat = includesWeekday ? "MMMd日 E" : "MMMd日"
+        case "ja":
+            formatter.dateFormat = includesWeekday ? "MMMd日(E)" : "MMMd日"
+        default:
+            formatter.dateFormat = includesWeekday ? "E, d MMM" : "d MMM"
         }
         cache.setObject(formatter, forKey: key)
         return formatter

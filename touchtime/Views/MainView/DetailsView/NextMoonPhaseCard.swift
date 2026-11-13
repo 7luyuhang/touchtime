@@ -91,10 +91,13 @@ struct NextMoonPhaseCard: View {
         let startOfTargetDay = calendar.startOfDay(for: phase.date)
         let days = max(calendar.dateComponents([.day], from: startOfToday, to: startOfTargetDay).day ?? 0, 0)
 
-        if Locale.current.language.languageCode?.identifier == "zh" {
+        switch Locale.current.language.languageCode?.identifier {
+        case "zh":
             return "\(days)天"
+        case "ja":
+            return "\(days)日後"
+        default:
+            return days == 1 ? "1 day" : "\(days) days"
         }
-
-        return days == 1 ? "1 day" : "\(days) days"
     }
 }

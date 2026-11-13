@@ -191,7 +191,9 @@ struct CountdownWidgetView: View {
             return String(localized: "Today")
         }
         let unit = abs(days) == 1 ? String(localized: "day") : String(localized: "days")
-        let interval = "\(abs(days)) \(unit)"
+        // Count and unit go through the catalog ("%lld %@") so languages
+        // that set them solid, like Japanese ("3日"), can drop the space.
+        let interval = String(localized: "\(abs(days)) \(unit)")
         return days < 0
             ? String(format: String(localized: "%@ ago"), interval)
             : String(format: String(localized: "in %@"), interval)

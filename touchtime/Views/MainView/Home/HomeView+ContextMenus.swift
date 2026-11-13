@@ -208,11 +208,14 @@ extension HomeView {
         }
         let timeString = formatter.string(from: adjustedDate)
 
-        // Format date - use different format for Chinese locale
+        // Format date - use different formats for Chinese and Japanese locales
         formatter.locale = Locale.current
-        if Locale.current.language.languageCode?.identifier == "zh" {
+        switch Locale.current.language.languageCode?.identifier {
+        case "zh":
             formatter.dateFormat = "MMMd日 E"
-        } else {
+        case "ja":
+            formatter.dateFormat = "MMMd日(E)"
+        default:
             formatter.dateFormat = "E, d MMM"
         }
         let dateString = formatter.string(from: adjustedDate)

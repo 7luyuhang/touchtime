@@ -1,0 +1,14 @@
+/* Photo Library Additions - shown when user saves a city or countdown card to Photos */
+"NSPhotoLibraryAddUsageDescription" = "カード画像を写真ライブラリに保存します。";
+
+/* Camera - shown when user enables live camera background */
+"NSCameraUsageDescription" = "ライブカメラ背景を表示するために、カメラへのアクセスを許可してください。";
+
+/* AlarmKit - shown when user sets alarms in app */
+"NSAlarmKitUsageDescription" = "アプリでローカルアラームを設定するために、アラームへのアクセスを許可してください。";
+
+/* Home Screen quick actions - shown when user long-presses the app icon */
+"Set Timer" = "タイマーを設定";
+
+/* Countdown file type - shown for countdowns shared to another phone, e.g. in Files and AirDrop */
+"Touch Time Countdown" = "Touch Timeカウントダウン";

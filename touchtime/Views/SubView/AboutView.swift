@@ -35,6 +35,8 @@ struct AboutView: View {
             return "简体中文"
         case "zh-Hant":
             return "繁體中文"
+        case "ja":
+            return "日本語"
         case "en":
             return "English"
         default:

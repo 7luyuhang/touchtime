@@ -23,10 +23,13 @@ struct CitySelectionSheet: View {
         
         let dateFormatter = DateFormatter()
         dateFormatter.locale = Locale.current
-        // Use different format for Chinese locale
-        if Locale.current.language.languageCode?.identifier == "zh" {
+        // Use different formats for Chinese and Japanese locales
+        switch Locale.current.language.languageCode?.identifier {
+        case "zh":
             dateFormatter.dateFormat = "MMMd日 E"
-        } else {
+        case "ja":
+            dateFormatter.dateFormat = "MMMd日(E)"
+        default:
             dateFormatter.dateFormat = "EEE, MMM d"
         }
         let date = dateFormatter.string(from: now)

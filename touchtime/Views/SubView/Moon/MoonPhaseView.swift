@@ -140,7 +140,12 @@ struct MoonPhaseView: View {
     
     private let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
-        formatter.dateFormat = "MMMM yyyy"
+        if Locale.current.language.languageCode?.identifier == "ja" {
+            // Japanese puts the year first, e.g. "2026年11月"
+            formatter.setLocalizedDateFormatFromTemplate("yMMMM")
+        } else {
+            formatter.dateFormat = "MMMM yyyy"
+        }
         return formatter
     }()
     

@@ -484,25 +484,27 @@ enum CountdownShare {
             to: calendar.startOfDay(for: targetDate)
         )
 
+        // Count and unit go through the catalog ("%lld %@") so languages
+        // that set them solid, like Japanese ("3日"), can drop the space.
         var parts: [String] = []
         if let years = difference.year, years != 0 {
             let unit = abs(years) == 1 ? String(localized: "year") : String(localized: "years")
-            parts.append("\(abs(years)) \(unit)")
+            parts.append(String(localized: "\(abs(years)) \(unit)"))
         }
         if let months = difference.month, months != 0 {
             let unit = abs(months) == 1 ? String(localized: "month") : String(localized: "months")
-            parts.append("\(abs(months)) \(unit)")
+            parts.append(String(localized: "\(abs(months)) \(unit)"))
         }
         if let days = difference.day, days != 0 {
             let unit = abs(days) == 1 ? String(localized: "day") : String(localized: "days")
-            parts.append("\(abs(days)) \(unit)")
+            parts.append(String(localized: "\(abs(days)) \(unit)"))
         }
 
         // The target is closer than any enabled unit: fall back to days.
         if parts.isEmpty {
             let dayCount = dayDifference(from: now, to: targetDate)
             let unit = abs(dayCount) == 1 ? String(localized: "day") : String(localized: "days")
-            parts.append("\(abs(dayCount)) \(unit)")
+            parts.append(String(localized: "\(abs(dayCount)) \(unit)"))
         }
 
         return parts.joined(separator: " ")
