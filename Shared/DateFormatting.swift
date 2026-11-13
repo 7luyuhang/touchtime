@@ -29,6 +29,8 @@ private enum DateFormatterCache {
             formatter.dateFormat = includesWeekday ? "MMMd日 E" : "MMMd日"
         case "ja":
             formatter.dateFormat = includesWeekday ? "MMMd日(E)" : "MMMd日"
+        case "ko":
+            formatter.dateFormat = includesWeekday ? "MMM d일 (E)" : "MMM d일"
         default:
             formatter.dateFormat = includesWeekday ? "E, d MMM" : "d MMM"
         }

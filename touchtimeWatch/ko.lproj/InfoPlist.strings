@@ -1,0 +1,5 @@
+/* Location - shown when the compass or barometer first asks for the current location */
+"NSLocationWhenInUseUsageDescription" = "현재 위치의 좌표와 태양 위치, 바람을 표시하려면 위치 접근을 허용하세요.";
+
+/* Motion & Fitness - shown when the barometer first reads air pressure and elevation */
+"NSMotionUsageDescription" = "현재 위치의 기압과 해발 고도를 표시하려면 동작 및 피트니스 접근을 허용하세요.";

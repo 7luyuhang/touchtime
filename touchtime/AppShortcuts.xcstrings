@@ -22,6 +22,15 @@
             ]
           }
         },
+        "ko" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "${applicationName}에서 알람 열기",
+              "${applicationName} 알람 보기"
+            ]
+          }
+        },
         "zh-Hans" : {
           "stringSet" : {
             "state" : "translated",
@@ -63,6 +72,15 @@
             ]
           }
         },
+        "ko" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "${applicationName}에서 카운트다운 열기",
+              "${applicationName} 카운트다운 보기"
+            ]
+          }
+        },
         "zh-Hans" : {
           "stringSet" : {
             "state" : "translated",
@@ -101,6 +119,15 @@
             "values" : [
               "${applicationName}でタイマーを開く",
               "${applicationName}でタイマーを設定"
+            ]
+          }
+        },
+        "ko" : {
+          "stringSet" : {
+            "state" : "translated",
+            "values" : [
+              "${applicationName}에서 타이머 열기",
+              "${applicationName}에서 타이머 설정"
             ]
           }
         },

@@ -206,13 +206,15 @@ struct EarthView: View {
                     }
                     let timeString = formatter.string(from: currentDate)
                     
-                    // Format date - use different formats for Chinese and Japanese locales
+                    // Format date - use different formats for Chinese, Japanese and Korean locales
                     formatter.locale = Locale.current
                     switch Locale.current.language.languageCode?.identifier {
                     case "zh":
                         formatter.dateFormat = "MMMd日 E"
                     case "ja":
                         formatter.dateFormat = "MMMd日(E)"
+                    case "ko":
+                        formatter.dateFormat = "MMM d일 (E)"
                     default:
                         formatter.dateFormat = "E, d MMM"
                     }

@@ -1,0 +1,17 @@
+/* Photo Library Additions - shown when user saves a city or countdown card to Photos */
+"NSPhotoLibraryAddUsageDescription" = "카드 이미지를 사진 보관함에 저장합니다.";
+
+/* Camera - shown when user enables live camera background */
+"NSCameraUsageDescription" = "실시간 카메라 배경을 표시하려면 카메라 접근을 허용하세요.";
+
+/* AlarmKit - shown when user sets alarms in app */
+"NSAlarmKitUsageDescription" = "앱에서 로컬 알람을 설정하려면 알람 접근을 허용하세요.";
+
+/* Calendar - shown when user adds an event from a city */
+"NSCalendarsUsageDescription" = "조정한 시간으로 이벤트를 추가하려면 캘린더 접근을 허용하세요.";
+
+/* Home Screen quick actions - shown when user long-presses the app icon */
+"Set Timer" = "타이머 설정";
+
+/* Countdown file type - shown for countdowns shared to another phone, e.g. in Files and AirDrop */
+"Touch Time Countdown" = "Touch Time 카운트다운";

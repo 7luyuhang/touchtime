@@ -96,6 +96,8 @@ struct NextMoonPhaseCard: View {
             return "\(days)天"
         case "ja":
             return "\(days)日後"
+        case "ko":
+            return "\(days)일 후"
         default:
             return days == 1 ? "1 day" : "\(days) days"
         }

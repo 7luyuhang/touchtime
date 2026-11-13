@@ -37,6 +37,8 @@ struct AboutView: View {
             return "繁體中文"
         case "ja":
             return "日本語"
+        case "ko":
+            return "한국어"
         case "en":
             return "English"
         default:

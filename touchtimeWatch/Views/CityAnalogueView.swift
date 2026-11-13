@@ -8,11 +8,12 @@ import SwiftUI
 /// The city's time on a watch face as big as the daylight ring with its hours
 /// around it: the hours on a glass ring, fading from the city's hour now, or
 /// counting the seconds round it once it's tapped, and inside the ring its
-/// Additional Time, or the time while the Digital Crown shows another, over its
-/// day. The hands sweep round rather than tick, and as the Digital Crown moves
-/// the time an hour at a time, only the hour hand turns, the minute and second
-/// hands fading out where they are until it's back at now, which it takes the
-/// short way round to.
+/// Additional Time over its day. While the Digital Crown shows another time,
+/// the ring keeps to the hours, only that time's lit, and inside the ring that
+/// time shows over the watch's own. The hands sweep round rather than tick,
+/// and as the Digital Crown moves the time an hour at a time, only the hour
+/// hand turns, the minute and second hands fading out where they are until
+/// it's back at now, which it takes the short way round to.
 struct CityAnalogueView: View {
     let date: Date
     let timeZone: TimeZone
@@ -35,25 +36,27 @@ struct CityAnalogueView: View {
     @State private var lastAdjustedDate: Date?
     /// Whether the ring counts the seconds round it: a tick for each second
     /// round its outer edge, every fifth one longer, and inside them the
-    /// seconds in fives, as bright as each other.
+    /// seconds in fives, as bright as each other. Never while the Digital
+    /// Crown shows another time, which the hours show instead.
     @State private var showsSeconds = false
 
     /// The city's hour now, 1 to 12, which stays now while the Digital Crown
     /// shows another time, as on the daylight ring's hours.
     private var currentHour: Int {
+        dialHour(of: referenceDate ?? date)
+    }
+
+    /// `date`'s hour on the city's clock, 1 to 12.
+    private func dialHour(of date: Date) -> Int {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = timeZone
-        let hour = calendar.component(.hour, from: referenceDate ?? date) % 12
+        let hour = calendar.component(.hour, from: date) % 12
         return hour == 0 ? 12 : hour
     }
 
-    /// The day of the week and of the month, as a watch face's date shows them.
-    private var dayLabel: String {
-        date.formatted(Date.FormatStyle(locale: locale, timeZone: timeZone).weekday(.abbreviated).day())
-    }
-
-    /// The hands' time as VoiceOver reads a clock's digits, with AM or PM.
-    private var spokenTime: String {
+    /// The hands' time on `timeZone`'s clock as VoiceOver reads a clock's
+    /// digits, with AM or PM.
+    private func spokenTime(in timeZone: TimeZone) -> String {
         let time = WatchTimeFormat.time(date, in: timeZone, use24HourFormat: use24HourFormat)
         return [time.digits, time.period].compactMap { $0 }.joined(separator: " ")
     }
@@ -78,6 +81,28 @@ struct CityAnalogueView: View {
                 // Read first already, as the hands' time.
                 .accessibilityHidden(isAdjusting)
                 .transition(.blurReplace)
+        }
+    }
+
+    /// The day of the week and of the month, as a watch face's date shows them,
+    /// or while the Digital Crown shows another time, the watch's own time then
+    /// after its location. Only the time, even where the watch's day is another.
+    private var dayLabel: some View {
+        let day = date.formatted(Date.FormatStyle(locale: locale, timeZone: timeZone).weekday(.abbreviated).day())
+        let localTime = WatchTimeFormat.time(date, in: .autoupdatingCurrent, use24HourFormat: use24HourFormat)
+
+        return HStack(spacing: 2) {
+            if isAdjusting {
+                Image(systemName: "location.fill")
+                    .font(.footnote)
+                    .accessibilityLabel("Local")
+                    .transition(.blurReplace)
+            }
+
+            // One text for both, so that it rolls from one to the other.
+            Text(isAdjusting ? localTime.digits : day)
+                .textCase(.uppercase)
+                .accessibilityLabel(isAdjusting ? spokenTime(in: .autoupdatingCurrent) : day)
         }
     }
 
@@ -106,8 +131,7 @@ struct CityAnalogueView: View {
                             .frame(width: layout.textWidth)
                             .position(x: layout.center.x, y: layout.center.y - layout.innerRadius * 0.47)
 
-                        Text(dayLabel)
-                            .textCase(.uppercase)
+                        dayLabel
                             .frame(width: layout.textWidth)
                             .position(x: layout.center.x, y: layout.center.y + layout.innerRadius * 0.47)
                     }
@@ -120,7 +144,7 @@ struct CityAnalogueView: View {
                     .dynamicTypeSize(...DynamicTypeSize.xxxLarge)
                     .accessibilityElement(children: .combine)
                     .accessibilityLabel { label in
-                        Text(spokenTime)
+                        Text(spokenTime(in: timeZone))
                         label
                     }
                 }
@@ -152,9 +176,14 @@ struct CityAnalogueView: View {
                 lastAdjustedDate = date
             }
         }
-        // Kept, so that the hands count on from the turn they went back to.
         .onChange(of: isAdjusting) {
-            if !isAdjusting {
+            if isAdjusting {
+                withAnimation(.smooth) {
+                    showsSeconds = false
+                }
+            } else {
+                // Kept, so that the hands count on from the turn they went
+                // back to.
                 turnsAhead = handTurnsAhead
                 lastAdjustedDate = nil
             }
@@ -226,7 +255,11 @@ struct CityAnalogueView: View {
                 showsSeconds.toggle()
             }
         }
-        .sensoryFeedback(.impact(flexibility: .soft), trigger: showsSeconds)
+        // Not while the Digital Crown shows another time, glass and all.
+        .allowsHitTesting(!isAdjusting)
+        // Felt for taps, not as the Digital Crown takes the seconds away with
+        // clicks of its own.
+        .sensoryFeedback(.impact(flexibility: .soft), trigger: showsSeconds) { _, _ in !isAdjusting }
     }
 
     /// The ticks come in one after another round from the top, and go back
@@ -238,8 +271,11 @@ struct CityAnalogueView: View {
     }
 
     /// The city's hour now at full brightness, each hour after it round the
-    /// dial a step dimmer, down to a quarter for the hour before it.
+    /// dial a step dimmer, down to a quarter for the hour before it, or while
+    /// the Digital Crown shows another time, its hour at full brightness and
+    /// every other at a fifth.
     private func opacity(ofHour hour: Int) -> Double {
+        guard !isAdjusting else { return hour == dialHour(of: date) ? 1 : 0.2 }
         let hoursAfter = (hour - currentHour + 12) % 12
         return 1 - 0.75 * Double(hoursAfter) / 11
     }

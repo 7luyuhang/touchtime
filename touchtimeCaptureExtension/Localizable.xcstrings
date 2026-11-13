@@ -9,6 +9,12 @@
             "value" : "カメラを開く"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카메라 열기"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -31,6 +37,12 @@
             "value" : "Touch Timeでカメラを開きます。"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch Time에서 카메라를 엽니다."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -51,6 +63,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "続けるにはロックを解除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "계속하려면 잠금 해제"
           }
         },
         "zh-Hans" : {

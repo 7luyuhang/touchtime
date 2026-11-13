@@ -67,10 +67,12 @@ struct DetailsDateFormat {
         formatter.locale = Locale.current
 
         // Use short date format
-        let languageCode = Locale.current.language.languageCode?.identifier
-        if languageCode == "zh" || languageCode == "ja" {
+        switch Locale.current.language.languageCode?.identifier {
+        case "zh", "ja":
             formatter.dateFormat = "MMMd日"
-        } else {
+        case "ko":
+            formatter.dateFormat = "MMM d일"
+        default:
             formatter.dateFormat = "MMM d"
         }
 
@@ -86,8 +88,9 @@ struct DetailsDateFormat {
         switch Locale.current.language.languageCode?.identifier {
         case "zh":
             formatter.dateFormat = "y年MMMd日"
-        case "ja":
-            // Follows the device calendar, e.g. "2026年10月25日" or "令和8年10月25日"
+        case "ja", "ko":
+            // Follows the device calendar, e.g. "2026年10月25日" or "令和8年10月25日",
+            // and "2026년 10월 25일" in Korean
             formatter.setLocalizedDateFormatFromTemplate("yMMMd")
         default:
             formatter.dateFormat = "MMM d, y"

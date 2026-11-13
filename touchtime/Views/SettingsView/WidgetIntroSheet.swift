@@ -80,6 +80,8 @@ struct WidgetIntroSheet: View {
             region = "zh-tw"
         case "ja":
             region = "ja-jp"
+        case "ko":
+            region = "ko-kr"
         default:
             region = "en-gb"
         }

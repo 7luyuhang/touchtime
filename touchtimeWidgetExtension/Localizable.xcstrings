@@ -14,6 +14,12 @@
             "value" : "%@前"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 전"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -37,6 +43,12 @@
             "state" : "translated",
             "value" : "%d時間"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d시간"
+          }
         }
       }
     },
@@ -50,6 +62,12 @@
           }
         },
         "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$lld%2$@"
+          }
+        },
+        "ko" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%1$lld%2$@"
@@ -78,6 +96,12 @@
             "state" : "translated",
             "value" : "+%d時間"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+%d시간"
+          }
         }
       }
     },
@@ -90,6 +114,12 @@
             "state" : "translated",
             "value" : "アラーム"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "알람"
+          }
         }
       }
     },
@@ -99,6 +129,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "アナログ時計"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "아날로그 시계"
           }
         },
         "zh-Hans" : {
@@ -124,6 +160,12 @@
             "state" : "translated",
             "value" : "毎年"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "매년"
+          }
         }
       }
     },
@@ -135,6 +177,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "猛吹雪"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "눈보라"
           }
         }
       }
@@ -148,6 +196,12 @@
             "state" : "translated",
             "value" : "砂ぼこり"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "흙먼지"
+          }
         }
       }
     },
@@ -159,6 +213,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "地吹雪"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "날림 눈"
           }
         }
       }
@@ -172,6 +232,12 @@
             "state" : "translated",
             "value" : "やや強風"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "미풍"
+          }
         }
       }
     },
@@ -181,6 +247,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カメラ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카메라"
           }
         },
         "zh-Hans" : {
@@ -206,6 +278,12 @@
             "value" : "キャンセル"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "취소"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -229,6 +307,12 @@
             "state" : "translated",
             "value" : "タイマーをキャンセル"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "타이머 취소"
+          }
         }
       }
     },
@@ -238,6 +322,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "表示する都市とコンプリケーションを選択します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "표시할 도시와 컴플리케이션을 선택합니다."
           }
         },
         "zh-Hans" : {
@@ -264,6 +354,12 @@
             "value" : "表示する都市を選択します。"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "표시할 도시를 선택합니다."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -284,6 +380,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "表示するコンプリケーションを選択します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "표시할 컴플리케이션을 선택합니다."
           }
         },
         "zh-Hans" : {
@@ -308,6 +410,12 @@
             "value" : "表示するカウントダウンを選択します。"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "표시할 카운트다운을 선택합니다."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -330,6 +438,12 @@
             "value" : "都市"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도시"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -350,6 +464,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "都市の時刻"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도시 시간"
           }
         },
         "zh-Hans" : {
@@ -375,6 +495,12 @@
             "state" : "translated",
             "value" : "快晴"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "청명함"
+          }
         }
       }
     },
@@ -387,6 +513,12 @@
             "state" : "translated",
             "value" : "曇り"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "흐림"
+          }
         }
       }
     },
@@ -396,6 +528,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "コンプリケーション"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "컴플리케이션"
           }
         },
         "zh-Hans" : {
@@ -420,6 +558,12 @@
             "value" : "カウントダウン"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카운트다운"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -442,6 +586,12 @@
             "value" : "日"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -462,6 +612,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "昼と夜"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "낮과 밤"
           }
         },
         "zh-Hans" : {
@@ -488,6 +644,12 @@
             "value" : "日照時間"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일광 시간"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -508,6 +670,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "日"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일"
           }
         },
         "zh-Hans" : {
@@ -533,6 +701,12 @@
             "state" : "translated",
             "value" : "霧雨"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이슬비"
+          }
         }
       }
     },
@@ -545,6 +719,12 @@
             "state" : "translated",
             "value" : "%dか月ごと"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d개월마다"
+          }
         }
       }
     },
@@ -554,6 +734,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%d週間ごと"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d주마다"
           }
         }
       }
@@ -567,6 +753,12 @@
             "state" : "translated",
             "value" : "%d年ごと"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d년마다"
+          }
         }
       }
     },
@@ -576,6 +768,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "上弦の月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상현달"
           }
         },
         "zh-Hans" : {
@@ -601,6 +799,12 @@
             "state" : "translated",
             "value" : "にわか雪"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "눈발"
+          }
         }
       }
     },
@@ -612,6 +816,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "霧"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "안개"
           }
         }
       }
@@ -625,6 +835,12 @@
             "state" : "translated",
             "value" : "着氷性の霧雨"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "어는 이슬비"
+          }
         }
       }
     },
@@ -636,6 +852,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "着氷性の雨"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "어는 비"
           }
         }
       }
@@ -649,6 +871,12 @@
             "state" : "translated",
             "value" : "極寒"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "혹한"
+          }
         }
       }
     },
@@ -658,6 +886,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "満月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "만월"
           }
         },
         "zh-Hans" : {
@@ -683,6 +917,12 @@
             "state" : "translated",
             "value" : "ひょう"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "우박"
+          }
         }
       }
     },
@@ -694,6 +934,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "もや"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연무"
           }
         }
       }
@@ -707,6 +953,12 @@
             "state" : "translated",
             "value" : "大雨"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "호우"
+          }
         }
       }
     },
@@ -718,6 +970,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "大雪"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "폭설"
           }
         }
       }
@@ -731,6 +989,12 @@
             "state" : "translated",
             "value" : "猛暑"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "더움"
+          }
         }
       }
     },
@@ -743,6 +1007,12 @@
             "state" : "translated",
             "value" : "ハリケーン"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "태풍"
+          }
         }
       }
     },
@@ -753,6 +1023,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "あと%@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ 남음"
           }
         },
         "zh-Hans" : {
@@ -778,6 +1054,12 @@
             "state" : "translated",
             "value" : "ところにより雷雨"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "국지성 뇌우"
+          }
         }
       }
     },
@@ -788,6 +1070,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ラップ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "랩"
           }
         },
         "zh-Hans" : {
@@ -813,6 +1101,12 @@
             "state" : "translated",
             "value" : "ストップウォッチのラップまたはリセット"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "스톱워치 랩 또는 재설정"
+          }
         }
       }
     },
@@ -822,6 +1116,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下弦の月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하현달"
           }
         },
         "zh-Hans" : {
@@ -847,6 +1147,12 @@
             "state" : "translated",
             "value" : "毎月"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "매월"
+          }
         }
       }
     },
@@ -856,6 +1162,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "月齢カレンダー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "달 위상 캘린더"
           }
         },
         "zh-Hans" : {
@@ -878,6 +1190,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "月の位相"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "달의 위상"
           }
         },
         "zh-Hans" : {
@@ -903,6 +1221,12 @@
             "state" : "translated",
             "value" : "ほぼ快晴"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대체로 청명함"
+          }
         }
       }
     },
@@ -915,6 +1239,12 @@
             "state" : "translated",
             "value" : "曇り時々晴れ"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "대체로 흐림"
+          }
         }
       }
     },
@@ -925,6 +1255,12 @@
             "state" : "translated",
             "value" : "しない"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "안 함"
+          }
         }
       }
     },
@@ -934,6 +1270,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "新月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "신월"
           }
         },
         "zh-Hans" : {
@@ -959,6 +1301,12 @@
             "value" : "お正月"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "새해"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -979,6 +1327,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カウントダウンなし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카운트다운 없음"
           }
         },
         "zh-Hans" : {
@@ -1004,6 +1358,12 @@
             "state" : "translated",
             "value" : "通知"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "알림"
+          }
         }
       }
     },
@@ -1013,6 +1373,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "カメラを開く"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카메라 열기"
           }
         },
         "zh-Hans" : {
@@ -1035,6 +1401,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Touch Timeでカメラを開きます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Touch Time에서 카메라를 엽니다."
           }
         },
         "zh-Hans" : {
@@ -1060,6 +1432,12 @@
             "state" : "translated",
             "value" : "やや曇り"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "부분적으로 흐림"
+          }
         }
       }
     },
@@ -1070,6 +1448,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "一時停止"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일시 정지"
           }
         },
         "zh-Hans" : {
@@ -1095,6 +1479,12 @@
             "state" : "translated",
             "value" : "タイマーを一時停止または再開"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "타이머 일시 정지 또는 재개"
+          }
         }
       }
     },
@@ -1107,6 +1497,12 @@
             "state" : "translated",
             "value" : "雨"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "비"
+          }
         }
       }
     },
@@ -1117,6 +1513,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "リセット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재설정"
           }
         },
         "zh-Hans" : {
@@ -1142,6 +1544,12 @@
             "value" : "再開"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재개"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1165,6 +1573,12 @@
             "state" : "translated",
             "value" : "ところにより雷雨"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "산발적인 뇌우"
+          }
         }
       }
     },
@@ -1174,6 +1588,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "都市を選択"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "도시 선택"
           }
         },
         "zh-Hans" : {
@@ -1199,6 +1619,12 @@
             "value" : "フルカラーで表示"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "풀 컬러로 표시"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1219,6 +1645,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "月の位相の名前を表示"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "달의 위상 이름 표시"
           }
         },
         "zh-Hans" : {
@@ -1245,6 +1677,12 @@
             "value" : "24時間の空のリングの中央に都市の時刻を表示します。"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "24시간 하늘 링의 가운데에 도시의 시간을 표시합니다."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1265,6 +1703,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "昼夜の境界線とともに、世界地図上に都市の時刻を表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "낮과 밤의 경계선이 있는 세계 지도 위에 도시의 시간을 표시합니다."
           }
         },
         "zh-Hans" : {
@@ -1289,6 +1733,12 @@
             "value" : "中央のコンプリケーションとともに都市の時刻を表示します。"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가운데의 컴플리케이션과 함께 도시의 시간을 표시합니다."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1309,6 +1759,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "4つの都市をひと目で確認できます。都市をタップすると空の背景が切り替わります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "네 개 도시를 한눈에 보여 줍니다. 도시를 탭하면 하늘 배경이 전환됩니다."
           }
         },
         "zh-Hans" : {
@@ -1333,6 +1789,12 @@
             "value" : "現在の月の位相を表示します。"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "현재 달의 위상을 표시합니다."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1353,6 +1815,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "中央のカバーとともに、イベントまでの日数を表示します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가운데의 커버와 함께 이벤트까지 남은 일수를 표시합니다."
           }
         },
         "zh-Hans" : {
@@ -1377,6 +1845,12 @@
             "value" : "タップした都市の空をウィジェットの背景に表示します。"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "탭한 도시의 하늘을 위젯 배경으로 표시합니다."
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1397,6 +1871,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "今月の月の満ち欠けを表示し、今日をマークします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "이번 달의 달 위상을 표시하고 오늘 날짜를 강조합니다."
           }
         },
         "zh-Hans" : {
@@ -1422,6 +1902,12 @@
             "state" : "translated",
             "value" : "みぞれ"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "진눈깨비"
+          }
         }
       }
     },
@@ -1433,6 +1919,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "煙霧"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "연기"
           }
         }
       }
@@ -1446,6 +1938,12 @@
             "state" : "translated",
             "value" : "雪"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "눈"
+          }
         }
       }
     },
@@ -1455,6 +1953,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "ソーラーカーブ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "태양 곡선"
           }
         },
         "zh-Hans" : {
@@ -1480,6 +1984,12 @@
             "value" : "開始"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "시작"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1501,6 +2011,12 @@
             "state" : "translated",
             "value" : "ストップウォッチを開始または停止"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "스톱워치 시작 또는 중단"
+          }
         }
       }
     },
@@ -1511,6 +2027,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "停止"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "중단"
           }
         },
         "zh-Hans" : {
@@ -1536,6 +2058,12 @@
             "state" : "translated",
             "value" : "激しい雷雨"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "강한 뇌우"
+          }
         }
       }
     },
@@ -1545,6 +2073,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "太陽の方位角"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "태양 방위각"
           }
         },
         "zh-Hans" : {
@@ -1567,6 +2101,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "太陽高度"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "태양 고도"
           }
         },
         "zh-Hans" : {
@@ -1592,6 +2132,12 @@
             "state" : "translated",
             "value" : "日差しのあるにわか雪"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "여우눈"
+          }
         }
       }
     },
@@ -1604,6 +2150,12 @@
             "state" : "translated",
             "value" : "天気雨"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "여우비"
+          }
         }
       }
     },
@@ -1613,6 +2165,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "日の出と日の入"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일출 및 일몰"
           }
         },
         "zh-Hans" : {
@@ -1638,6 +2196,12 @@
             "value" : "タップして追加"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "탭하여 추가"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1661,6 +2225,12 @@
             "state" : "translated",
             "value" : "雷雨"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "뇌우"
+          }
         }
       }
     },
@@ -1671,6 +2241,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "今日"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "오늘"
           }
         },
         "zh-Hans" : {
@@ -1696,6 +2272,12 @@
             "state" : "translated",
             "value" : "明日"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "내일"
+          }
         }
       }
     },
@@ -1707,6 +2289,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "熱帯低気圧"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "열대 폭풍"
           }
         }
       }
@@ -1720,6 +2308,12 @@
             "state" : "translated",
             "value" : "不明"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "알 수 없음"
+          }
         }
       }
     },
@@ -1729,6 +2323,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "有明月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "그믐달"
           }
         },
         "zh-Hans" : {
@@ -1753,6 +2353,12 @@
             "value" : "寝待月"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "하현망간의 달"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1773,6 +2379,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "三日月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "초승달"
           }
         },
         "zh-Hans" : {
@@ -1797,6 +2409,12 @@
             "value" : "十日夜"
           }
         },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "상현망간의 달"
+          }
+        },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
@@ -1818,6 +2436,12 @@
             "state" : "translated",
             "value" : "毎週"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "매주"
+          }
         }
       }
     },
@@ -1829,6 +2453,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "強風"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "바람"
           }
         }
       }
@@ -1842,6 +2472,12 @@
             "state" : "translated",
             "value" : "雨または雪"
           }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "진눈깨비"
+          }
         }
       }
     },
@@ -1851,6 +2487,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "世界の都市"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "세계 도시"
           }
         },
         "zh-Hans" : {
@@ -1875,6 +2517,12 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "昨日"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "어제"
           }
         }
       }
