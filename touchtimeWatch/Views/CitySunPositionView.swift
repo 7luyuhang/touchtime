@@ -92,13 +92,18 @@ struct CitySunPositionView: View {
                     .animation(.smooth, value: displayedAzimuth)
 
                     SunPositionLabel(
-                        // Live, it's always now.
+                        // Live, it's always now: the watch's heading leads
+                        // instead, once it's known.
                         dateLabel: isLive ? nil : dateLabel,
+                        heading: displayedHeading,
+                        showsHeading: heading != nil,
                         azimuth: azimuth,
                         isSunInTopHalf: isLive ? isLiveSunInTopHalf : cos(position.azimuth * .pi / 180) > 0,
                         layout: layout
                     )
                     .animation(.smooth, value: displayedAzimuth)
+                    // The compass's first heading comes in unanimated.
+                    .animation(.smooth, value: heading != nil)
                 }
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel("Sun Position")
@@ -343,15 +348,21 @@ private struct SunOrbit: View, Animatable {
 }
 
 /// The sun's direction, in degrees and on the compass, after the day if
-/// there is one, along its track: across the top while the sun is in the
-/// bottom half, and across the bottom while it's in the top half. The
-/// degrees count along as the sun moves.
+/// there is one, or live, after the watch's heading once it's known, along
+/// its track: across the top while the sun is in the bottom half, and across
+/// the bottom while it's in the top half. The degrees count along as the sun
+/// moves and the dial turns.
 private struct SunPositionLabel: View, Animatable {
     private static let font = Font.system(.footnote, weight: .medium).monospacedDigit()
     /// Clear of the sun, which is always in the other half.
     private static let maxAngle = Angle.degrees(140)
 
     let dateLabel: String?
+    /// Degrees clockwise from north that the top of the watch faces, as far
+    /// as the dial has turned. Set even while hidden, so it comes in where
+    /// the dial is rather than counting from a stand-in.
+    var heading: Double
+    let showsHeading: Bool
     /// Degrees clockwise from north.
     var azimuth: Double
     /// Where the sun is headed, rather than where it is on the way, sets the
@@ -359,14 +370,18 @@ private struct SunPositionLabel: View, Animatable {
     let isSunInTopHalf: Bool
     let layout: CompassDialLayout
 
-    var animatableData: Double {
-        get { azimuth }
-        set { azimuth = newValue }
+    var animatableData: AnimatablePair<Double, Double> {
+        get { AnimatablePair(heading, azimuth) }
+        set {
+            heading = newValue.first
+            azimuth = newValue.second
+        }
     }
 
     var body: some View {
+        let lead = dateLabel ?? (showsHeading ? CompassDial.bearing(heading) : nil)
         let direction = CompassDial.bearing(azimuth)
-        let text = dateLabel.map { "\($0) · \(direction)" } ?? direction
+        let text = lead.map { "\($0) · \(direction)" } ?? direction
 
         ZStack {
             // Two views, so the label blurs from one side to the other.
@@ -390,8 +405,8 @@ private struct SunPositionLabel: View, Animatable {
             isAtBottom: isAtBottom
         )
         .transition(.blurReplace)
-        // Blurs into the other as the day comes and goes, too.
-        .id(dateLabel == nil)
+        // Blurs into the other as the day or the heading comes and goes, too.
+        .id([dateLabel == nil, showsHeading])
     }
 }
 
