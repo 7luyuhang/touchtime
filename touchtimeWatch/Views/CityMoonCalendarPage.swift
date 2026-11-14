@@ -85,6 +85,10 @@ struct CityMoonCalendarPage: View {
         .scenePadding(.navigationBar, edges: .horizontal)
         .padding(.bottom, 8)
         .ignoresSafeArea(edges: .bottom)
+        // Gray, as the moons around new moon are lost against black. On the
+        // page itself, as in a sheet a container background either doesn't
+        // show or shows through the glass, nearly black.
+        .background(Color(white: 0.1).gradient)
     }
 
     @ViewBuilder
