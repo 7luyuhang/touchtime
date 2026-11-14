@@ -412,10 +412,12 @@ private struct AnalogueHands: View, Animatable {
             .rotationEffect(now.secondAngle)
             .opacity(showsSecondHand ? 1 - adjustment : 0)
 
+            // Open to the sky, as the bars are.
             Circle()
-                .fill(.black)
                 .frame(width: layout.pinDiameter, height: layout.pinDiameter)
+                .blendMode(.destinationOut)
         }
+        .compositingGroup()
         .frame(width: layout.diameter, height: layout.diameter)
     }
 
