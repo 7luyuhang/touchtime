@@ -2,18 +2,18 @@
 //  WatchCityStore.swift
 //  touchtimeWatch
 //
-//  The iPhone app's saved cities, date style, first day of the week, and
-//  temperature, wind speed and pressure units, received over
-//  WatchConnectivity.
+//  The iPhone app's saved cities, date style, first day of the week,
+//  temperature, wind speed and pressure units, and countdowns, received
+//  over WatchConnectivity.
 //
 
 import Foundation
 import Observation
 import WatchConnectivity
 
-/// The cities the watch shows: the iPhone app's saved list, kept in the
-/// watch's own defaults so it's there right away on the next launch, even
-/// with the iPhone out of reach.
+/// The cities and countdowns the watch shows: the iPhone app's saved lists,
+/// kept in the watch's own defaults so they're there right away on the next
+/// launch, even with the iPhone out of reach.
 @Observable
 final class WatchCityStore: NSObject, WCSessionDelegate {
     private(set) var cities: [WatchCity]
@@ -28,6 +28,9 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     private(set) var windSpeedUnit: WindSpeedUnit
     /// The iPhone app's pressure unit.
     private(set) var pressureUnit: PressureUnit
+    /// The iPhone app's countdowns, in the order its countdown sheet lists
+    /// them.
+    private(set) var countdowns: [WatchCountdown]
 
     private static let citiesKey = "cities"
     private static let dateStyleKey = "dateStyle"
@@ -35,6 +38,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     private static let useCelsiusKey = "useCelsius"
     private static let windSpeedUnitKey = "windSpeedUnit"
     private static let pressureUnitKey = "pressureUnit"
+    private static let countdownsKey = "countdowns"
 
     override init() {
         let defaults = UserDefaults.standard
@@ -56,6 +60,9 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         // Millibars, as on the iPhone until its settings pick another unit
         pressureUnit = defaults.string(forKey: Self.pressureUnitKey).flatMap(PressureUnit.init(rawValue:))
             ?? .millibars
+        // None until the iPhone first syncs
+        countdowns = defaults.data(forKey: Self.countdownsKey)
+            .flatMap { try? JSONDecoder().decode([WatchCountdown].self, from: $0) } ?? []
         super.init()
 
         if savedCities == nil {
@@ -75,7 +82,8 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         firstWeekday: Int?,
         useCelsius: Bool?,
         windSpeedUnit: String?,
-        pressureUnit: String?
+        pressureUnit: String?,
+        countdownsData: Data?
     ) {
         let defaults = UserDefaults.standard
         if let citiesData,
@@ -115,6 +123,13 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             }
             defaults.set(pressureUnit.rawValue, forKey: Self.pressureUnitKey)
         }
+        if let countdownsData,
+           let receivedCountdowns = try? JSONDecoder().decode([WatchCountdown].self, from: countdownsData) {
+            if receivedCountdowns != countdowns {
+                countdowns = receivedCountdowns
+            }
+            defaults.set(countdownsData, forKey: Self.countdownsKey)
+        }
     }
 
     nonisolated private func receive(_ context: [String: Any]) {
@@ -124,6 +139,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         let useCelsius = context[WatchSyncKeys.useCelsius] as? Bool
         let windSpeedUnit = context[WatchSyncKeys.windSpeedUnit] as? String
         let pressureUnit = context[WatchSyncKeys.pressureUnit] as? String
+        let countdownsData = context[WatchSyncKeys.countdowns] as? Data
         Task { @MainActor in
             self.apply(
                 citiesData: citiesData,
@@ -131,7 +147,8 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
                 firstWeekday: firstWeekday,
                 useCelsius: useCelsius,
                 windSpeedUnit: windSpeedUnit,
-                pressureUnit: pressureUnit
+                pressureUnit: pressureUnit,
+                countdownsData: countdownsData
             )
         }
     }

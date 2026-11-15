@@ -10,14 +10,9 @@ struct CityListView: View {
     let cities: [ClockCity]
     @Binding var selection: String?
     /// The time every clock shows in place of now, or nil for now.
-    @Binding var adjustedDate: Date?
-    let onAnalogClockTap: () -> Void
+    let adjustedDate: Date?
 
     @Environment(WatchCityStore.self) private var cityStore
-    @State private var showsSettings = false
-    /// Taps on Current Time, each felt. Not the adjusted date, which a city's
-    /// details and the analog clock also clear, with haptics of their own.
-    @State private var currentTimeTaps = 0
 
     var body: some View {
         TimelineView(.everyMinute) { context in
@@ -32,38 +27,6 @@ struct CityListView: View {
                 }
             }
             .animation(.smooth, value: adjustedDate)
-            .toolbar {
-                // While adjusting time, a reset button takes the analog clock
-                // button's place, as it takes the back button's on a city's
-                // details.
-                ToolbarItem(placement: .topBarLeading) {
-                    if adjustedDate != nil {
-                        Button("Current Time", systemImage: "xmark") {
-                            currentTimeTaps += 1
-                            showCurrentTime()
-                        }
-                    } else {
-                        Button("Analog Clock", systemImage: "clock", action: onAnalogClockTap)
-                    }
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Settings", systemImage: "gear") {
-                        showsSettings = true
-                    }
-                }
-            }
-        }
-        .toolbarForegroundStyle(.primary, for: .navigationBar)
-        .sensoryFeedback(.impact(flexibility: .soft), trigger: currentTimeTaps)
-        .sheet(isPresented: $showsSettings) {
-            SettingsView()
-        }
-    }
-
-    /// Back to now on every clock.
-    private func showCurrentTime() {
-        withAnimation(.smooth) {
-            adjustedDate = nil
         }
     }
 }

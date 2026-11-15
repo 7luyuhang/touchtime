@@ -4,7 +4,7 @@
 //
 //  The app's root, laid out like the system World Clock: it opens on a
 //  city's details, with the list of cities a tap away, and from the list,
-//  the analog clock on a sheet.
+//  the analog clock on a sheet and the countdowns a swipe across.
 //
 
 import SwiftUI
@@ -24,6 +24,10 @@ struct WorldClockView: View {
     /// When the app last stopped being active, or nil since it launched.
     @State private var leftDate: Date?
     @State private var showsAnalogClock = false
+    @State private var showsSettings = false
+    /// Taps on Current Time, each felt. Not the adjusted date, which a city's
+    /// details and the analog clock also clear, with haptics of their own.
+    @State private var currentTimeTaps = 0
     /// Shows the welcome sheet on launch until Continue is first tapped.
     @AppStorage("showsOnboarding") private var showsOnboarding = true
     /// The time every clock shows in place of now, once moved by the Digital
@@ -34,11 +38,41 @@ struct WorldClockView: View {
         let cities = [ClockCity.local] + cityStore.cities.map { ClockCity($0) }
 
         NavigationSplitView {
-            CityListView(cities: cities, selection: selection(among: cities), adjustedDate: $adjustedDate) {
-                showsAnalogClock = true
+            TabView {
+                CityListView(cities: cities, selection: selection(among: cities), adjustedDate: adjustedDate)
+                CountdownListView()
             }
+            .tabViewStyle(.page)
+            // Over both pages, staying put as they swipe across
+            .toolbar {
+                // While adjusting time, a reset button takes the analog clock
+                // button's place, as it takes the back button's on a city's
+                // details.
+                ToolbarItem(placement: .topBarLeading) {
+                    if adjustedDate != nil {
+                        Button("Current Time", systemImage: "xmark") {
+                            currentTimeTaps += 1
+                            showCurrentTime()
+                        }
+                    } else {
+                        Button("Analog Clock", systemImage: "clock") {
+                            showsAnalogClock = true
+                        }
+                    }
+                }
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Settings", systemImage: "gear") {
+                        showsSettings = true
+                    }
+                }
+            }
+            .toolbarForegroundStyle(.primary, for: .navigationBar)
+            .sensoryFeedback(.impact(flexibility: .soft), trigger: currentTimeTaps)
             .sheet(isPresented: $showsAnalogClock) {
                 AnalogClockHomeView(cities: cities, adjustedDate: $adjustedDate)
+            }
+            .sheet(isPresented: $showsSettings) {
+                SettingsView()
             }
         } detail: {
             if let city = cities.first(where: { $0.id == selectedCityID }) {
@@ -72,6 +106,13 @@ struct WorldClockView: View {
     private func showDefaultDisplay() {
         if case .display(let display) = defaultDisplay {
             self.display = display
+        }
+    }
+
+    /// Back to now on every clock.
+    private func showCurrentTime() {
+        withAnimation(.smooth) {
+            adjustedDate = nil
         }
     }
 

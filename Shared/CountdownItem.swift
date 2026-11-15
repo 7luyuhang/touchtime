@@ -3,7 +3,9 @@
 //  touchtime
 //
 //  The countdown model, shared with the widget extension so the Countdown
-//  widget can decode the app's saved countdowns from the App Group.
+//  widget can decode the app's saved countdowns from the App Group, and
+//  with the Apple Watch app, which rolls repeating countdowns forward the
+//  same way.
 //
 
 import Foundation

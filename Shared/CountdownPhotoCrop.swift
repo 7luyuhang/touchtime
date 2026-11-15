@@ -33,6 +33,9 @@ extension CountdownItem {
             )
         }
 
+        // Not on watchOS, which has no UIGraphicsImageRenderer: the iPhone
+        // sends the watch its photos already cut.
+        #if !os(watchOS)
         /// The framed square cut from `image` at the photo's own
         /// resolution. Everything that shows the photo (badge, blurred card
         /// background, widget) draws this instead of the full photo, so a
@@ -54,5 +57,6 @@ extension CountdownItem {
                 ))
             }
         }
+        #endif
     }
 }

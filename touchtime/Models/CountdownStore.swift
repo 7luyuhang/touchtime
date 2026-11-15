@@ -101,8 +101,39 @@ final class CountdownStore {
         UserDefaults.standard.set(data, forKey: storageKey)
         // Mirror into the App Group and refresh the Countdown widget right
         // away, so an edit shows on the Home Screen without waiting for the
-        // app to be backgrounded.
+        // app to be backgrounded; the Apple Watch app gets it right away too.
         SharedWidgetStore.saveCountdowns(data)
         WidgetCenter.shared.reloadTimelines(ofKind: SharedWidgetStore.countdownWidgetKind)
+        WatchSyncManager.shared.sync()
+    }
+}
+
+/// How the countdown sheet lists countdowns after the pinned ones: by when
+/// they were created, newest or oldest first. The Apple Watch app lists
+/// them the same way.
+enum CountdownSortOrder: String, CaseIterable {
+    case newestFirst
+    case oldestFirst
+
+    static let storageKey = "countdownSortOrder"
+
+    /// The order picked in the countdown sheet, newest first until one is.
+    static var saved: CountdownSortOrder {
+        UserDefaults.standard.string(forKey: storageKey).flatMap(CountdownSortOrder.init(rawValue:)) ?? .newestFirst
+    }
+
+    /// Pinned countdowns first, then the rest by creation date in this order.
+    func sorted(_ countdowns: [CountdownItem]) -> [CountdownItem] {
+        countdowns.sorted { lhs, rhs in
+            if lhs.isPinned != rhs.isPinned {
+                return lhs.isPinned
+            }
+            switch self {
+            case .newestFirst:
+                return lhs.createdAt > rhs.createdAt
+            case .oldestFirst:
+                return lhs.createdAt < rhs.createdAt
+            }
+        }
     }
 }

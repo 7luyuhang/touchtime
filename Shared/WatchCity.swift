@@ -38,4 +38,7 @@ nonisolated enum WatchSyncKeys {
     static let windSpeedUnit = "windSpeedUnit"
     /// The iPhone app's pressure unit: a `PressureUnit`'s raw value.
     static let pressureUnit = "pressureUnit"
+    /// JSON-encoded `[WatchCountdown]`, in the order the iPhone's countdown
+    /// sheet lists them.
+    static let countdowns = "countdowns"
 }

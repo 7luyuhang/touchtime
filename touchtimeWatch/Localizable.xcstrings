@@ -317,6 +317,35 @@
         }
       }
     },
+    "Add countdowns on iPhone." : {
+      "comment" : "Shown under No Countdowns on the countdowns page.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カウントダウンの追加はiPhoneで行います。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카운트다운 추가는 iPhone에서 할 수 있습니다."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iPhone 中添加倒计时。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在 iPhone 上新增倒數計時。"
+          }
+        }
+      }
+    },
     "Add, delete or arrange cities on iPhone." : {
       "localizations" : {
         "ja" : {
@@ -373,6 +402,34 @@
         }
       }
     },
+    "Alarm" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アラーム"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "알람"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闹钟"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "鬧鐘"
+          }
+        }
+      }
+    },
     "Analog Clock" : {
       "localizations" : {
         "ja" : {
@@ -425,6 +482,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "模擬錶盤"
+          }
+        }
+      }
+    },
+    "Annually" : {
+      "comment" : "Countdown repeat frequency.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎年"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "매년"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每年"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每年"
           }
         }
       }
@@ -891,6 +977,35 @@
         }
       }
     },
+    "d" : {
+      "comment" : "Compact day unit shown after the day count on countdown rows.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "日"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "天"
+          }
+        }
+      }
+    },
     "Daylight" : {
       "localizations" : {
         "ja" : {
@@ -1170,6 +1285,93 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@後結束"
+          }
+        }
+      }
+    },
+    "Every %d Months" : {
+      "comment" : "Custom countdown repeat frequency; the count is 2 or more.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%dか月ごと"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d개월마다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d个月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d個月"
+          }
+        }
+      }
+    },
+    "Every %d Weeks" : {
+      "comment" : "Custom countdown repeat frequency; the count is 2 or more.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d週間ごと"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d주마다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d周"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d週"
+          }
+        }
+      }
+    },
+    "Every %d Years" : {
+      "comment" : "Custom countdown repeat frequency; the count is 2 or more.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d年ごと"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%d년마다"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d年"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每%d年"
           }
         }
       }
@@ -1595,6 +1797,64 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "冰雹"
+          }
+        }
+      }
+    },
+    "Happened" : {
+      "comment" : "Read by VoiceOver for the arrow on a countdown whose day has passed.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "過去"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "지남"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已发生"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已發生"
+          }
+        }
+      }
+    },
+    "Happening" : {
+      "comment" : "Read by VoiceOver for the arrow on a countdown whose day is still to come.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "今後"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "예정"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即将发生"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "即將發生"
           }
         }
       }
@@ -2110,6 +2370,35 @@
         }
       }
     },
+    "Monthly" : {
+      "comment" : "Countdown repeat frequency.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "매월"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每月"
+          }
+        }
+      }
+    },
     "Moon Phase" : {
       "localizations" : {
         "ja" : {
@@ -2250,6 +2539,35 @@
         }
       }
     },
+    "Never" : {
+      "comment" : "Countdown repeat frequency: does not repeat.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "しない"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "안 함"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "永不"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "永不"
+          }
+        }
+      }
+    },
     "New" : {
       "comment" : "Short label for the new moon in the upcoming phases cards.",
       "localizations" : {
@@ -2337,6 +2655,63 @@
         }
       }
     },
+    "No Countdowns" : {
+      "comment" : "Shown on the countdowns page while the iPhone app has none.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "カウントダウンなし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "카운트다운 없음"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无倒计时"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫無倒數計時"
+          }
+        }
+      }
+    },
+    "Notification" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "알림"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "通知"
+          }
+        }
+      }
+    },
     "Now" : {
       "comment" : "The current hour around the weather ring.",
       "localizations" : {
@@ -2390,6 +2765,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "局部多雲"
+          }
+        }
+      }
+    },
+    "Paused" : {
+      "comment" : "Read by VoiceOver for the symbol on a paused countdown.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "一時停止中"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "일시 정지됨"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已暂停"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "已暫停"
           }
         }
       }
@@ -2475,6 +2879,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "小雨"
+          }
+        }
+      }
+    },
+    "Repeat" : {
+      "comment" : "Read by VoiceOver for the symbol on a repeating countdown.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "繰り返し"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "반복"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重复"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重複"
           }
         }
       }
@@ -3518,6 +3951,34 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "天氣"
+          }
+        }
+      }
+    },
+    "Weekly" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "毎週"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "매주"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每周"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "每週"
           }
         }
       }

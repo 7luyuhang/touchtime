@@ -47,11 +47,6 @@ private enum CountdownFilter: CaseIterable {
 }
 
 struct CountdownSheet: View {
-    private enum CountdownSortOrder: String, CaseIterable {
-        case newestFirst
-        case oldestFirst
-    }
-
     @Environment(\.dismiss) private var dismiss
     @Environment(CountdownStore.self) private var countdownStore
     @AppStorage("hapticEnabled") private var hapticEnabled = true
@@ -59,7 +54,7 @@ struct CountdownSheet: View {
     @AppStorage("countdownShowYears") private var showYears = false
     @AppStorage("countdownShowMonths") private var showMonths = false
     @AppStorage("countdownShowDays") private var showDays = true
-    @AppStorage("countdownSortOrder") private var countdownSortOrderRawValue = CountdownSortOrder.newestFirst.rawValue
+    @AppStorage(CountdownSortOrder.storageKey) private var countdownSortOrderRawValue = CountdownSortOrder.newestFirst.rawValue
     /// Show as Preview: each countdown as the editor's preview card
     /// instead of the compact alarm-style row.
     @AppStorage("countdownShowAsPreview") private var showAsPreview = false
@@ -524,17 +519,7 @@ struct CountdownSheet: View {
     /// Pinned countdowns first, then by creation date according to the
     /// selected sort order.
     private var sortedCountdowns: [CountdownItem] {
-        countdowns.sorted { lhs, rhs in
-            if lhs.isPinned != rhs.isPinned {
-                return lhs.isPinned
-            }
-            switch countdownSortOrder {
-            case .newestFirst:
-                return lhs.createdAt > rhs.createdAt
-            case .oldestFirst:
-                return lhs.createdAt < rhs.createdAt
-            }
-        }
+        countdownSortOrder.sorted(countdowns)
     }
 
     private func addCountdown(title: String, targetDate: Date, emoji: String?, photoData: Data?, photoCrop: CountdownItem.PhotoCrop?, isPinned: Bool, repeatFrequency: CountdownItem.RepeatFrequency, reminderTime: Date?, reminderCity: WorldClock?, reminderLeadDays: Int, reminderKind: CountdownItem.ReminderKind, contact: CountdownItem.LinkedContact?, scheduledMessage: String?, pausedAt: Date?) {
