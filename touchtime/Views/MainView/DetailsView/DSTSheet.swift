@@ -10,7 +10,7 @@ import UIKit
 
 /// The next DST change: the city's clock now beside what it will read at
 /// the same moment once the change is in, e.g. 20:00 and 19:00 (-1h).
-/// Zooms out of the DST pill.
+/// Zooms out of the DST card.
 struct DSTSheet: View {
     let transitionDate: Date
     let isStart: Bool
@@ -37,7 +37,7 @@ struct DSTSheet: View {
         offsetAfterChange - timeZone.secondsFromGMT(for: transitionDate.addingTimeInterval(-1))
     }
 
-    /// The change as the DST pill writes it, e.g. "-1h". Lord Howe Island's
+    /// The change as the DST card writes it, e.g. "-1h". Lord Howe Island's
     /// clocks move half an hour, which whole hours can't show.
     private var offsetChangeText: String {
         guard offsetChange.isMultiple(of: 3_600) else {

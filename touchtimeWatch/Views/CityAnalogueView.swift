@@ -12,7 +12,7 @@ import SwiftUI
 /// the ring keeps to the hours, only that time's lit, and inside the ring that
 /// time shows over the watch's own. The hands sweep round rather than tick,
 /// and as the Digital Crown moves the time an hour at a time, only the hour
-/// hand turns, the minute and second hands fading out where they are until
+/// hand turns, the minute and second hands blurring out where they are until
 /// it's back at now, which it takes the short way round to.
 struct CityAnalogueView: View {
     let date: Date
@@ -205,7 +205,8 @@ struct CityAnalogueView: View {
                 .turned(by: turns),
             shown: DialTime(date, in: timeZone).turned(by: turns),
             adjustment: isAdjusting ? 1 : 0,
-            showsSecondHand: !isLuminanceReduced,
+            showsMinuteHand: !isAdjusting,
+            showsSecondHand: !isAdjusting && !isLuminanceReduced,
             layout: layout,
             isCutout: isCutout
         )
@@ -349,7 +350,7 @@ private struct AnalogueDialLayout {
 /// The hands, sweeping round with the time now, or the hour hand stopped at
 /// the time the Digital Crown shows. From one to the other, and from hour to
 /// hour as the Digital Crown turns, the hour hand goes round through the hours
-/// between. The minute and second hands only ever show now, fading out away
+/// between. The minute and second hands only ever show now, blurring out away
 /// from it.
 private struct AnalogueHands: View, Animatable {
     /// Now, to the frame.
@@ -358,6 +359,7 @@ private struct AnalogueHands: View, Animatable {
     var shown: DialTime
     /// From 0, now, to 1, the time the Digital Crown shows.
     var adjustment: Double
+    let showsMinuteHand: Bool
     let showsSecondHand: Bool
     let layout: AnalogueDialLayout
     /// Rather than the hands, everywhere but inside the hour and minute hands'
@@ -374,9 +376,6 @@ private struct AnalogueHands: View, Animatable {
 
     var body: some View {
         let time = now.moved(toward: shown, by: adjustment)
-        let minuteBar = layout.handBar(length: layout.minuteHandLength)
-            .rotationEffect(now.minuteAngle)
-            .opacity(1 - adjustment)
 
         if isCutout {
             cutout {
@@ -385,32 +384,47 @@ private struct AnalogueHands: View, Animatable {
                 minuteBar
             }
         } else {
-            hands(at: time, under: minuteBar)
+            hands(at: time)
         }
     }
 
-    private func hands(at time: DialTime, under minuteBar: some View) -> some View {
+    /// The minute hand's bar, blurring in and out with the minute hand, so
+    /// that what's cut out under it goes with it.
+    @ViewBuilder
+    private var minuteBar: some View {
+        if showsMinuteHand {
+            layout.handBar(length: layout.minuteHandLength)
+                .rotationEffect(now.minuteAngle)
+                .transition(.blurReplace)
+        }
+    }
+
+    private func hands(at time: DialTime) -> some View {
         ZStack {
             AnalogueHand(length: layout.hourHandLength, layout: layout)
                 .rotationEffect(time.hourAngle)
                 // Under the minute hand's bar, as the dial is.
                 .mask { cutout { minuteBar } }
-            AnalogueHand(length: layout.minuteHandLength, layout: layout)
-                .rotationEffect(now.minuteAngle)
-                .opacity(1 - adjustment)
+            if showsMinuteHand {
+                AnalogueHand(length: layout.minuteHandLength, layout: layout)
+                    .rotationEffect(now.minuteAngle)
+                    .transition(.blurReplace)
+            }
             Circle()
                 .fill(.white)
                 .frame(width: layout.capDiameter, height: layout.capDiameter)
 
-            ZStack {
-                RadialBar(start: -layout.secondHandTail, end: layout.secondHandLength, width: layout.secondHandWidth)
-                    .fill(.red)
-                Circle()
-                    .fill(.red)
-                    .frame(width: layout.secondCapDiameter, height: layout.secondCapDiameter)
+            if showsSecondHand {
+                ZStack {
+                    RadialBar(start: -layout.secondHandTail, end: layout.secondHandLength, width: layout.secondHandWidth)
+                        .fill(.red)
+                    Circle()
+                        .fill(.red)
+                        .frame(width: layout.secondCapDiameter, height: layout.secondCapDiameter)
+                }
+                .rotationEffect(now.secondAngle)
+                .transition(.blurReplace)
             }
-            .rotationEffect(now.secondAngle)
-            .opacity(showsSecondHand ? 1 - adjustment : 0)
 
             // Open to the sky, as the bars are.
             Circle()

@@ -78,7 +78,8 @@ struct CityDetailView: View {
 
     /// Whether the view shows a day after today rather than now.
     private var showsLaterDay: Bool {
-        switch display {
+        guard !isLive else { return false }
+        return switch display {
         case .weather: showsWeatherDays && Int(crownDays.rounded()) > 0
         case .precipitation, .uvIndex, .humidity, .pressure: Int(crownDays.rounded()) > 0
         case .worldClock, .analogue, .solarCurve, .sunPosition, .daylight, .moonPhase, .wind: false
@@ -336,10 +337,10 @@ struct CityDetailView: View {
             }
         }
         .onChange(of: isLive) { _, isLive in
-            // Live is now, and today rather than a day after it.
+            // Live is now. Pressure's day stays where the Digital Crown left
+            // it, to go back to once the barometer's off.
             if isLive {
                 showCurrentTime()
-                crownDays = 0
             }
             isCrownFocused = crownMovesTime
         }

@@ -45,9 +45,9 @@ struct SunriseSunsetSheet: View {
     @State private var isWeatherExpanded = false // Track weather section expansion
     @State private var showDaylightSheet = false // Track daylight sheet
     @State private var showDSTSheet = false // Track DST sheet
-    @Namespace private var dstZoomNamespace // Pairs the DST pill with the sheet that zooms out of it
-    @State private var floatingDSTPillHeight: CGFloat = 0 // Rounds the zoom's start into the pill's capsule
+    @Namespace private var dstZoomNamespace // Pairs the DST card with the sheet that zooms out of it
     @State private var currentDetent: PresentationDetent // Track current sheet size
+    @State private var showsResetButton: Bool // Track scrolled time, for the reset button
     @State private var showMoonPhaseView = false // Track moon phase view navigation
     @State private var showWidgetIntroSheet = false // Track widget intro sheet
     @State private var sunTimes: (sunrise: Date?, sunset: Date?)?
@@ -72,16 +72,11 @@ struct SunriseSunsetSheet: View {
         self.splitAxis = splitAxis
         self.largeDetentOnly = largeDetentOnly
         _currentDetent = State(initialValue: largeDetentOnly ? .large : .medium)
+        _showsResetButton = State(initialValue: timeOffset != 0)
     }
 
     private var isEmbedded: Bool {
         splitAxis != nil
-    }
-
-    /// Beside the list the bottom bar moves into the vertical bar, which has
-    /// no room for the DST pill, so the pill floats over the content instead.
-    private var floatsDSTPill: Bool {
-        splitAxis == .horizontal
     }
 
     private static let dstZoomSourceID = "dst"
@@ -291,6 +286,24 @@ struct SunriseSunsetSheet: View {
                             .transition(.blurReplace())
                     }
 
+                    // Next DST change, for cities that observe DST
+                    if let dst = dstInfo, let transitionDate = dst.transitionDate {
+                        DSTCard(
+                            isStart: dst.isStart,
+                            transitionDate: transitionDate,
+                            offsetHours: dst.offsetHours,
+                            dateFormat: dateFormat,
+                            showsDSTSheet: $showDSTSheet
+                        )
+                        // Zoom sources only clip to rounded rectangles; this
+                        // one rounds like the card
+                        .matchedTransitionSource(id: Self.dstZoomSourceID, in: dstZoomNamespace) { source in
+                            source.clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.top, 16)
+                    }
+
                     // Weather section - only show if weather is enabled in settings
                     if showWeather {
                         WeatherSection(
@@ -313,7 +326,7 @@ struct SunriseSunsetSheet: View {
                             sunset: times.sunset,
                             goldenHourStart: eveningGoldenHour?.start,
                             goldenHourEnd: eveningGoldenHour?.end,
-                            headerTopPadding: (showWeather && (currentWeather != nil || weatherLoadAttempted)) || isExpanded ? 24 : 8,
+                            headerTopPadding: (showWeather && (currentWeather != nil || weatherLoadAttempted)) || dstInfo != nil || isExpanded ? 24 : 8,
                             currentDate: currentDate,
                             timeOffset: timeOffset,
                             dateFormat: dateFormat,
@@ -350,6 +363,10 @@ struct SunriseSunsetSheet: View {
                 .animation(.bouncy(), value: currentDetent)
             }
             .scrollIndicators(.hidden)
+            // While the sheet presents, iOS 27 lays the page out short of the
+            // bottom safe area, which would cut the cards off above bare glass
+            // until it lands. The sheet still clips them at its own edge.
+            .scrollClipDisabled(!isEmbedded)
             // Above the list it fades out toward the fold
             .foldEdgeFade(.bottom, splitAxis: splitAxis)
             .safeAreaInset(edge: .top, spacing: 0) {
@@ -372,33 +389,6 @@ struct SunriseSunsetSheet: View {
                     }
                 }
                 .animation(.bouncy(), value: currentDetent)
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                if floatsDSTPill, let dst = dstInfo, let transitionDate = dst.transitionDate {
-                    Button(action: openDSTSheet) {
-                        DSTLabel(isStart: dst.isStart, transitionDate: transitionDate, offsetHours: dst.offsetHours, dateFormat: dateFormat)
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 12)
-                            .contentShape(Capsule(style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
-                    // DSTLabel's own animation doesn't reach the capsule around it
-                    .animation(.spring(), value: transitionDate)
-                    .onGeometryChange(for: CGFloat.self) { proxy in
-                        proxy.size.height
-                    } action: { height in
-                        floatingDSTPillHeight = height
-                    }
-                    // Zoom sources only clip to rounded rectangles
-                    .matchedTransitionSource(id: Self.dstZoomSourceID, in: dstZoomNamespace) { source in
-                        source.clipShape(RoundedRectangle(cornerRadius: floatingDSTPillHeight / 2, style: .continuous))
-                    }
-                    // Level with the list's Slide to Adjust bar: as tall as
-                    // ScrollTimeView's controls (52pt) and as far up (8pt)
-                    .frame(minHeight: 52)
-                    .padding(.bottom, 8)
-                }
             }
             .background {
                 sheetSkyBackground
@@ -437,9 +427,18 @@ struct SunriseSunsetSheet: View {
                     refreshAstronomyData(referenceDate: now)
                 }
             }
-            .onChange(of: timeOffset) { _, _ in
+            .onChange(of: timeOffset) { _, newValue in
                 // Keep sun/moon data in sync when scroll time is reset while the sheet is open
                 refreshAstronomyData(referenceDate: currentDate)
+                // Not animated, though the reset changes the offset in a
+                // spring: removed animated from the iPhone Duo's vertical bar,
+                // the button leaves its glass behind, empty, fading out at the
+                // bottom of the sheet
+                var update = Transaction()
+                update.disablesAnimations = true
+                withTransaction(update) {
+                    showsResetButton = newValue != 0
+                }
             }
             .onChange(of: currentDetent) { oldValue, newValue in
                 if newValue == .large && hapticEnabled {
@@ -475,47 +474,24 @@ struct SunriseSunsetSheet: View {
                             Image(systemName: "xmark")
                         }
                     }
-                }
-                
-                // Bottom bar: DST (if any) + reset (if time is scrolled).
-                // The detail pane leaves the reset to the list's Slide to Adjust
-                // bar, and beside the list its DST pill floats over the content.
-                // DST information in bottom bar
-                if !floatsDSTPill, let dst = dstInfo, let transitionDate = dst.transitionDate {
-                    ToolbarItem(placement: .bottomBar) {
-                        Button(action: openDSTSheet) {
-                            DSTLabel(isStart: dst.isStart, transitionDate: transitionDate, offsetHours: dst.offsetHours, dateFormat: dateFormat)
-                                .frame(maxWidth: .infinity)
-                                .padding(.horizontal, 16)
-                                .padding(.vertical, 8)
-                        }
-                    }
-                    .matchedTransitionSource(id: Self.dstZoomSourceID, in: dstZoomNamespace)
-                }
-                
-                if !isEmbedded && timeOffset != 0 {
-                    // DST pill already expands to fill the middle; without it,
-                    // a flexible spacer pushes the reset button to the far right.
-                    if dstInfo != nil {
-                        ToolbarSpacer(.fixed, placement: .bottomBar)
-                    } else {
-                        ToolbarSpacer(.flexible, placement: .bottomBar)
-                    }
-                    
-                    // Reset scroll time
-                    ToolbarItem(placement: .bottomBar) {
-                        Button {
-                            if hapticEnabled {
-                                UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+
+                    // Reset scroll time. The detail pane leaves this to the
+                    // list's Slide to Adjust bar.
+                    if showsResetButton {
+                        ToolbarItem(placement: .topBarTrailing) {
+                            Button {
+                                if hapticEnabled {
+                                    UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+                                }
+                                NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
+                            } label: {
+                                Image(systemName: "arrow.counterclockwise")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.black)
                             }
-                            NotificationCenter.default.post(name: NSNotification.Name("ResetScrollTime"), object: nil)
-                        } label: {
-                            Image(systemName: "arrow.counterclockwise")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(.black)
+                            .buttonStyle(.borderedProminent)
+                            .tint(.white)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.white)
                     }
                 }
             }
@@ -549,13 +525,6 @@ struct SunriseSunsetSheet: View {
                 }
             }
         }
-    }
-
-    private func openDSTSheet() {
-        if hapticEnabled {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
-        showDSTSheet = true
     }
 }
 

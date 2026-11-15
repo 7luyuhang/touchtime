@@ -22,8 +22,8 @@ import WeatherKit
 /// middle, the pressure where the watch is, at its elevation rather than at
 /// sea level; the ring at that pressure brought down to sea level, to compare
 /// with the forecast's; where the watch is over the top of the gauge, once it
-/// knows; and the elevation in place of the date. Elsewhere, tapping it says
-/// so.
+/// knows; and the elevation in place of the date. Turned off again, the pill's
+/// back on the day it was on. Elsewhere, tapping it says so.
 struct CityPressureView: View {
     /// The least the chart spans, in hectopascals, so a calm spell's little
     /// ups and downs stay little.
@@ -67,10 +67,11 @@ struct CityPressureView: View {
             : chosenDay.flatMap { day in weather.flatMap { reading(for: day, in: $0) } }
         let reading = isLive ? barometer?.pressure.map { PressureReading(pressure: $0) } : forecastReading
         // At sea level, as the forecast's is: the barometer's once the watch
-        // knows its elevation, and the forecast's until then. Live, without
-        // which way it's going, as the barometer has no hours to go by.
+        // knows its elevation, and the forecast's for now until then, whatever
+        // day the pill's on. Live, without which way it's going, as the
+        // barometer has no hours to go by.
         let ringReading = isLive
-            ? (barometer?.seaLevelPressure ?? forecastReading?.pressure).map { PressureReading(pressure: $0) }
+            ? (barometer?.seaLevelPressure ?? weather?.pressure).map { PressureReading(pressure: $0) }
             : forecastReading
         let isLoading = isLive
             ? reading == nil && barometer?.isUnavailable != true
