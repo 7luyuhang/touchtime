@@ -31,6 +31,8 @@ struct WatchCountdown: Codable, Identifiable, Hashable {
     let repeatFrequency: CountdownItem.RepeatFrequency
     /// When counting was paused, or nil while it counts.
     let pausedAt: Date?
+    /// Pinned to Home on the iPhone.
+    let isPinned: Bool
     /// Nil when the cover gave none, as for a countdown saved without one.
     let background: Background?
 

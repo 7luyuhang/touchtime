@@ -23,6 +23,8 @@ struct WorldClockView: View {
     @AppStorage(DefaultCityDetailDisplay.storageKey) private var defaultDisplay: DefaultCityDetailDisplay = .lastUsed
     /// When the app last stopped being active, or nil since it launched.
     @State private var leftDate: Date?
+    /// The list of cities, or the countdowns a swipe across.
+    @State private var page = Page.cities
     @State private var showsAnalogClock = false
     @State private var showsSettings = false
     /// Taps on Current Time, each felt. Not the adjusted date, which a city's
@@ -38,11 +40,14 @@ struct WorldClockView: View {
         let cities = [ClockCity.local] + cityStore.cities.map { ClockCity($0) }
 
         NavigationSplitView {
-            TabView {
+            TabView(selection: $page) {
                 CityListView(cities: cities, selection: selection(among: cities), adjustedDate: adjustedDate)
+                    .tag(Page.cities)
                 CountdownListView()
+                    .tag(Page.countdowns)
             }
             .tabViewStyle(.page)
+            .sensoryFeedback(.selection, trigger: page)
             // Over both pages, staying put as they swipe across
             .toolbar {
                 // While adjusting time, a reset button takes the analog clock
@@ -125,5 +130,11 @@ struct WorldClockView: View {
         } set: { id in
             selectedCityID = id ?? ""
         }
+    }
+
+    /// The two pages, a swipe apart.
+    private enum Page {
+        case cities
+        case countdowns
     }
 }

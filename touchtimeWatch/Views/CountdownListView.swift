@@ -6,29 +6,50 @@
 import SwiftUI
 import UIKit
 
-/// The iPhone app's countdowns, a swipe across from the list of cities. Each
-/// row is laid out like a city's, and filled like the countdown's card on
-/// iPhone: with its cover emoji's colour, or its photo blurred. The cover
-/// itself doesn't show.
+/// The iPhone app's countdowns, or just its pinned ones, as the Countdowns
+/// View setting chooses, a swipe across from the list of cities. Each row is
+/// laid out like a city's, and filled like the countdown's card on iPhone:
+/// with its cover emoji's colour, or its photo blurred. The cover itself
+/// doesn't show.
 struct CountdownListView: View {
     @Environment(WatchCityStore.self) private var cityStore
+    @AppStorage(CountdownListFilter.storageKey) private var filter: CountdownListFilter = .all
 
     var body: some View {
+        let countdowns = filter.apply(to: cityStore.countdowns)
+
         if cityStore.countdowns.isEmpty {
-            ContentUnavailableView {
-                Label("No Countdowns", systemImage: "hourglass")
-            } description: {
-                Text("Add countdowns on iPhone.")
-            }
+            emptyState("No Countdowns")
+        } else if countdowns.isEmpty {
+            emptyState("No Pinned Countdowns")
         } else {
             // Each minute, so the day counts turn over at midnight
             TimelineView(.everyMinute) { context in
-                List(cityStore.countdowns) { countdown in
+                List(countdowns) { countdown in
                     CountdownRow(countdown: countdown, now: context.date)
                         .listRowBackground(countdown.background.map { CountdownRowBackground(background: $0) })
                 }
             }
         }
+    }
+
+    /// Only `title`, in a label with no icon: bare text in its place isn't
+    /// styled as the title.
+    private func emptyState(_ title: LocalizedStringKey) -> some View {
+        ContentUnavailableView {
+            Label {
+                Text(title)
+            } icon: {
+                EmptyView()
+            }
+        }
+        // Left to fill the page, the view sets its content at the top;
+        // sized to the title instead, it's centred between the toolbar and
+        // the page dots, which need less room than the bottom safe area
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxHeight: .infinity)
+        .padding(.bottom, 20)
+        .ignoresSafeArea(edges: .bottom)
     }
 }
 

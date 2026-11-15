@@ -93,6 +93,7 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
                 targetDate: item.targetDate,
                 repeatFrequency: item.repeatFrequency,
                 pausedAt: item.pausedAt,
+                isPinned: item.isPinned,
                 background: background(of: item, withPhoto: withPhotos)
             )
         }
