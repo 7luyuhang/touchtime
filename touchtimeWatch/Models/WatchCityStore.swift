@@ -3,8 +3,8 @@
 //  touchtimeWatch
 //
 //  The iPhone app's saved cities, date style, first day of the week,
-//  temperature, wind speed and pressure units, and countdowns with their
-//  cover photos, received over WatchConnectivity.
+//  temperature, wind speed and pressure units, and countdowns, received
+//  over WatchConnectivity.
 //
 
 import Foundation
@@ -12,9 +12,8 @@ import Observation
 import WatchConnectivity
 
 /// The cities and countdowns the watch shows: the iPhone app's saved lists,
-/// kept in the watch's own defaults, and the countdowns' cover photos in
-/// files beside them, so they're there right away on the next launch, even
-/// with the iPhone out of reach.
+/// kept in the watch's own defaults so they're there right away on the next
+/// launch, even with the iPhone out of reach.
 @Observable
 final class WatchCityStore: NSObject, WCSessionDelegate {
     private(set) var cities: [WatchCity]
@@ -32,11 +31,6 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     /// The iPhone app's countdowns, in the order its countdown sheet lists
     /// them.
     private(set) var countdowns: [WatchCountdown]
-    /// The names of the cover photo files the iPhone has sent.
-    private var coverPhotoFileNames: Set<String>
-
-    nonisolated private static let coverPhotosDirectory = URL.applicationSupportDirectory
-        .appending(path: "Cover Photos", directoryHint: .isDirectory)
 
     private static let citiesKey = "cities"
     private static let dateStyleKey = "dateStyle"
@@ -69,11 +63,6 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         // None until the iPhone first syncs
         countdowns = defaults.data(forKey: Self.countdownsKey)
             .flatMap { try? JSONDecoder().decode([WatchCountdown].self, from: $0) } ?? []
-        let coverPhotoFiles = try? FileManager.default.contentsOfDirectory(
-            at: Self.coverPhotosDirectory,
-            includingPropertiesForKeys: nil
-        )
-        coverPhotoFileNames = Set((coverPhotoFiles ?? []).map(\.lastPathComponent))
         super.init()
 
         if savedCities == nil {
@@ -85,12 +74,6 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             WCSession.default.delegate = self
             WCSession.default.activate()
         }
-    }
-
-    /// The file `countdown`'s cover photo came in, or nil before it arrives.
-    func coverPhotoURL(of countdown: WatchCountdown) -> URL? {
-        guard let name = countdown.coverPhotoFileName, coverPhotoFileNames.contains(name) else { return nil }
-        return Self.coverPhotosDirectory.appending(path: name)
     }
 
     private func apply(
@@ -146,19 +129,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
                 countdowns = receivedCountdowns
             }
             defaults.set(countdownsData, forKey: Self.countdownsKey)
-            removeCoverPhotos(except: Set(receivedCountdowns.compactMap(\.coverPhotoFileName)))
         }
-    }
-
-    /// Clears away the cover photos other than those named in `kept`, the
-    /// ones the countdowns still show.
-    private func removeCoverPhotos(except kept: Set<String>) {
-        let unused = coverPhotoFileNames.subtracting(kept)
-        guard !unused.isEmpty else { return }
-        for name in unused {
-            try? FileManager.default.removeItem(at: Self.coverPhotosDirectory.appending(path: name))
-        }
-        coverPhotoFileNames.subtract(unused)
     }
 
     nonisolated private func receive(_ context: [String: Any]) {
@@ -191,18 +162,5 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
 
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
         receive(applicationContext)
-    }
-
-    nonisolated func session(_ session: WCSession, didReceive file: WCSessionFile) {
-        guard let name = file.metadata?[WatchSyncKeys.coverPhotoFileName] as? String else { return }
-        // Moved before returning, after which the system deletes the file
-        let fileManager = FileManager.default
-        let destination = Self.coverPhotosDirectory.appending(path: name)
-        try? fileManager.createDirectory(at: Self.coverPhotosDirectory, withIntermediateDirectories: true)
-        try? fileManager.removeItem(at: destination)
-        guard (try? fileManager.moveItem(at: file.fileURL, to: destination)) != nil else { return }
-        Task { @MainActor in
-            self.coverPhotoFileNames.insert(name)
-        }
     }
 }

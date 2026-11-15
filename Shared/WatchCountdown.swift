@@ -35,11 +35,10 @@ struct WatchCountdown: Codable, Identifiable, Hashable {
     let isPinned: Bool
     /// The cover emoji, which a cover photo takes the place of.
     let emoji: String?
-    /// The name of the file the cover photo comes to the watch in, apart
-    /// from the countdowns: as framed in its badge and as sharp as the
-    /// details show it. Each new cover photo comes in a new file; nil
-    /// without one.
-    let coverPhotoFileName: String?
+    /// The cover photo as framed in its badge, as a JPEG as sharp as the
+    /// details show it. Nil without one, and when the photos are too much
+    /// to send: the background's few pixels stand in for it then.
+    let coverPhoto: Data?
     /// Nil when the cover gave none, as for a countdown saved without one.
     let background: Background?
 

@@ -3,19 +3,17 @@
 //  touchtime
 //
 //  Sends the saved cities, the date style, the first day of the week, the
-//  temperature, wind speed and pressure units, and the countdowns with
-//  their cover photos to the Apple Watch app.
+//  temperature, wind speed and pressure units, and the countdowns to the
+//  Apple Watch app.
 //
 
-import CryptoKit
 import Foundation
 import UIKit
 import WatchConnectivity
 
 /// Keeps the Apple Watch app's cities and countdowns in step with the
 /// iPhone's. The latest of them travel as the WatchConnectivity application
-/// context, which the watch receives even when its app isn't running; the
-/// countdowns' cover photos, too big for it, follow as files.
+/// context, which the watch receives even when its app isn't running.
 final class WatchSyncManager: NSObject, WCSessionDelegate {
     static let shared = WatchSyncManager()
 
@@ -25,11 +23,8 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
     /// context small.
     private static let photoThumbnailSide: CGFloat = 24
     /// How many pixels across the cover photo is for a countdown's details:
-    /// twice as many as the watch's circle has. Halved evenly onto the
-    /// screen, it comes out sharper than a photo the circle's size, and
-    /// stays sharp as the circle swells under a press.
-    private static let coverPhotoSide: CGFloat = 352
-    private static let coverPhotoQuality: CGFloat = 0.9
+    /// twice the points of the watch's circle, so it's as sharp there.
+    private static let coverPhotoSide: CGFloat = 176
 
     private var session: WCSession? {
         WCSession.isSupported() ? WCSession.default : nil
@@ -64,16 +59,31 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
             WatchSyncKeys.pressureUnit: UserDefaults.standard.string(forKey: PressureUnit.storageKey)
                 ?? PressureUnit.millibars.rawValue
         ]
-        context[WatchSyncKeys.countdowns] = Self.encoded(countdowns, withPhotos: true)
-        do {
-            try session.updateApplicationContext(context)
-        } catch WCError.payloadTooLarge {
-            // The photos' thumbnails are most of it: without them, the
-            // countdowns and everything else still get to the watch.
-            context[WatchSyncKeys.countdowns] = Self.encoded(countdowns, withPhotos: false)
-            try? session.updateApplicationContext(context)
-        } catch {}
-        Self.sendCoverPhotos(of: countdowns, over: session)
+        // The photos are most of it: past the size limit, the covers go,
+        // then the thumbnails too, so the countdowns and everything else
+        // still get to the watch.
+        for photos in PhotoDetail.allCases {
+            context[WatchSyncKeys.countdowns] = Self.encoded(countdowns, photos: photos)
+            do {
+                try session.updateApplicationContext(context)
+                return
+            } catch WCError.payloadTooLarge {
+                continue
+            } catch {
+                return
+            }
+        }
+    }
+
+    /// How much of the countdowns' cover photos goes to the watch, from
+    /// the most.
+    private enum PhotoDetail: CaseIterable {
+        /// The cover for the details and the thumbnail behind the row.
+        case covers
+        /// Only the thumbnail.
+        case thumbnails
+        /// Neither.
+        case none
     }
 
     /// The saved cities, or the defaults the app starts with before it has
@@ -95,9 +105,10 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
         return countdowns
     }
 
-    /// `countdowns` as the watch shows them, JSON-encoded. Without
-    /// `withPhotos`, those with a cover photo go without a background.
-    private static func encoded(_ countdowns: [CountdownItem], withPhotos: Bool) -> Data? {
+    /// `countdowns` as the watch shows them, JSON-encoded, with as much of
+    /// their cover photos as `photos` allows. Without any, those with a
+    /// cover photo go without a background.
+    private static func encoded(_ countdowns: [CountdownItem], photos: PhotoDetail) -> Data? {
         let watchCountdowns = countdowns.map { item in
             WatchCountdown(
                 id: item.id,
@@ -107,66 +118,19 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
                 pausedAt: item.pausedAt,
                 isPinned: item.isPinned,
                 emoji: item.emoji,
-                coverPhotoFileName: coverPhotoFileName(of: item),
-                background: background(of: item, withPhoto: withPhotos)
+                coverPhoto: photos == .covers ? coverPhoto(of: item) : nil,
+                background: background(of: item, withPhoto: photos != .none)
             )
         }
         return try? JSONEncoder().encode(watchCountdowns)
     }
 
-    /// The name of the file `item`'s cover photo goes to the watch in, or
-    /// nil without one: a digest of the photo, its framing and its size and
-    /// quality, so a new cover, or one sent sharper, goes in a new file.
-    private static func coverPhotoFileName(of item: CountdownItem) -> String? {
-        guard let photoData = item.photoData else { return nil }
-        var hasher = SHA256()
-        hasher.update(data: photoData)
-        var rendering = "\(coverPhotoSide) \(coverPhotoQuality)"
-        if let crop = item.photoCrop {
-            rendering += " \(crop.scale) \(crop.offset.width) \(crop.offset.height)"
-        }
-        hasher.update(data: Data(rendering.utf8))
-        let digest = hasher.finalize().prefix(8).map { String(format: "%02x", $0) }.joined()
-        return "\(digest).jpg"
-    }
-
-    /// Sends the watch the cover photos of `countdowns` it hasn't been sent,
-    /// as files: too big for the application context. Each stays in the
-    /// session's watch directory once sent, until no countdown shows it any
-    /// more; the system clears that directory away with the watch app, so
-    /// a reinstalled one is sent them all again.
-    private static func sendCoverPhotos(of countdowns: [CountdownItem], over session: WCSession) {
-        guard let directory = coverPhotosDirectory(of: session) else { return }
-        let fileManager = FileManager.default
-        try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
-
-        var unsent: [String: CountdownItem] = [:]
-        for item in countdowns {
-            if let name = coverPhotoFileName(of: item) {
-                unsent[name] = item
-            }
-        }
-        let sent = (try? fileManager.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil)) ?? []
-        for file in sent {
-            if unsent.removeValue(forKey: file.lastPathComponent) == nil {
-                try? fileManager.removeItem(at: file)
-            }
-        }
-
-        for (name, item) in unsent {
-            guard let photoData = item.photoData,
-                  let photo = CountdownPreviewCard.cachedImage(from: photoData, crop: item.photoCrop),
-                  let jpeg = jpeg(of: photo, longerSide: coverPhotoSide, quality: coverPhotoQuality) else { continue }
-            let file = directory.appending(path: name)
-            guard (try? jpeg.write(to: file)) != nil else { continue }
-            session.transferFile(file, metadata: [WatchSyncKeys.coverPhotoFileName: name])
-        }
-    }
-
-    /// Where the cover photos sent to the watch are kept: in the session's
-    /// directory for its watch app, nil without one.
-    nonisolated private static func coverPhotosDirectory(of session: WCSession) -> URL? {
-        session.watchDirectoryURL?.appending(path: "Cover Photos", directoryHint: .isDirectory)
+    /// `item`'s cover photo as framed in its badge, as sharp as the watch's
+    /// details show it, or nil without one.
+    private static func coverPhoto(of item: CountdownItem) -> Data? {
+        guard let photoData = item.photoData,
+              let photo = CountdownPreviewCard.cachedImage(from: photoData, crop: item.photoCrop) else { return nil }
+        return jpeg(of: photo, longerSide: coverPhotoSide)
     }
 
     /// What fills `item`'s card, as on the iPhone: its photo blurred, or
@@ -175,7 +139,7 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
         if let photoData = item.photoData {
             guard withPhoto else { return nil }
             if let photo = CountdownPreviewCard.cachedImage(from: photoData, crop: item.photoCrop),
-               let thumbnail = jpeg(of: photo, longerSide: photoThumbnailSide, quality: 0.7) {
+               let thumbnail = jpeg(of: photo, longerSide: photoThumbnailSide) {
                 return .photo(thumbnail)
             }
         }
@@ -183,9 +147,8 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
         return .color(hue: color.hue, saturation: color.saturation, brightness: color.brightness)
     }
 
-    /// `photo` shrunk to `longerSide` pixels on its longer side, as a JPEG
-    /// of `quality`, from 0 to 1.
-    private static func jpeg(of photo: UIImage, longerSide targetSide: CGFloat, quality: CGFloat) -> Data? {
+    /// `photo` shrunk to `longerSide` pixels on its longer side, as a JPEG.
+    private static func jpeg(of photo: UIImage, longerSide targetSide: CGFloat) -> Data? {
         let longerSide = max(photo.size.width, photo.size.height)
         guard longerSide > 0 else { return nil }
         let scale = min(1, targetSide / longerSide)
@@ -197,7 +160,7 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
         let format = UIGraphicsImageRendererFormat()
         format.scale = 1
         format.preferredRange = .standard
-        return UIGraphicsImageRenderer(size: size, format: format).jpegData(withCompressionQuality: quality) { context in
+        return UIGraphicsImageRenderer(size: size, format: format).jpegData(withCompressionQuality: 0.7) { context in
             context.cgContext.interpolationQuality = .high
             photo.draw(in: CGRect(origin: .zero, size: size))
         }
@@ -217,14 +180,6 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
         Task { @MainActor in
             self.sync()
         }
-    }
-
-    nonisolated func session(_ session: WCSession, didFinish fileTransfer: WCSessionFileTransfer, error: Error?) {
-        // Cleared away, so the next sync sends it again
-        guard error != nil,
-              let name = fileTransfer.file.metadata?[WatchSyncKeys.coverPhotoFileName] as? String,
-              let directory = Self.coverPhotosDirectory(of: session) else { return }
-        try? FileManager.default.removeItem(at: directory.appending(path: name))
     }
 
     nonisolated func sessionDidBecomeInactive(_ session: WCSession) {}

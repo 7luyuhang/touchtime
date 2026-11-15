@@ -41,7 +41,4 @@ nonisolated enum WatchSyncKeys {
     /// JSON-encoded `[WatchCountdown]`, in the order the iPhone's countdown
     /// sheet lists them.
     static let countdowns = "countdowns"
-    /// In the metadata of a cover photo's file transfer: the name the file
-    /// goes by, as in its countdowns' `coverPhotoFileName`.
-    static let coverPhotoFileName = "coverPhotoFileName"
 }

@@ -54,11 +54,11 @@ struct CountdownDetailView: View {
 
 /// A countdown's cover photo, or its emoji, in a glass circle. Every
 /// countdown has one on the iPhone; as in the Countdown widget, an
-/// hourglass stands in for one the watch hasn't been sent yet.
+/// hourglass stands in for one the watch hasn't been sent: before the
+/// iPhone first sends covers, or for a photo too big to send with no emoji
+/// under it.
 private struct CountdownCover: View {
     let countdown: WatchCountdown
-
-    @Environment(WatchCityStore.self) private var cityStore
 
     private static let diameter: CGFloat = 88
 
@@ -84,12 +84,11 @@ private struct CountdownCover: View {
         .accessibilityHidden(true)
     }
 
-    /// The cover photo, or until it arrives, the few pixels of it behind the
-    /// row.
+    /// The cover photo, or the few pixels of it behind the row when it was
+    /// too much to send.
     private var photo: UIImage? {
-        if let url = cityStore.coverPhotoURL(of: countdown),
-           let photo = UIImage(contentsOfFile: url.path(percentEncoded: false)) {
-            return photo
+        if let coverPhoto = countdown.coverPhoto {
+            return UIImage(data: coverPhoto)
         }
         if case .photo(let thumbnail) = countdown.background {
             return UIImage(data: thumbnail)
