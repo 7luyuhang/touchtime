@@ -8,10 +8,10 @@
 
 import Foundation
 
-/// A countdown as the watch shows it. The watch shows no cover, only the
-/// background the iPhone's card takes from it, worked out on the iPhone:
-/// the watch can't measure an emoji's colour, and the photo is too big to
-/// send as it is.
+/// A countdown as the watch shows it: its row filled with the background
+/// the iPhone's card takes from its cover, and its details with the cover
+/// itself. Both are worked out on the iPhone: the watch can't measure an
+/// emoji's colour, and the photo is too big to send as it is.
 struct WatchCountdown: Codable, Identifiable, Hashable {
     /// What fills the card behind the countdown.
     enum Background: Codable, Hashable {
@@ -19,7 +19,7 @@ struct WatchCountdown: Codable, Identifiable, Hashable {
         case color(hue: Double, saturation: Double, brightness: Double)
         /// The cover photo as framed in its badge, shrunk to a JPEG a few
         /// pixels across: blurred over the card, that's all of it that
-        /// shows.
+        /// shows there.
         case photo(Data)
     }
 
@@ -33,6 +33,13 @@ struct WatchCountdown: Codable, Identifiable, Hashable {
     let pausedAt: Date?
     /// Pinned to Home on the iPhone.
     let isPinned: Bool
+    /// The cover emoji, which a cover photo takes the place of.
+    let emoji: String?
+    /// The name of the file the cover photo comes to the watch in, apart
+    /// from the countdowns: as framed in its badge and as sharp as the
+    /// details show it. Each new cover photo comes in a new file; nil
+    /// without one.
+    let coverPhotoFileName: String?
     /// Nil when the cover gave none, as for a countdown saved without one.
     let background: Background?
 

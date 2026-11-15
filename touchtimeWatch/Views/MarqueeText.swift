@@ -5,11 +5,13 @@
 
 import SwiftUI
 
-/// One line of text, centered when it fits. When it's too long, it fades out
-/// at the trailing edge and, a moment after it appears, scrolls through once
-/// until it comes back around to its start, like a long navigation title.
+/// One line of text, at `alignment` when it fits. When it's too long, it
+/// fades out at the trailing edge and, a moment after it appears, scrolls
+/// through once until it comes back around to its start, like a long
+/// navigation title.
 struct MarqueeText: View {
     let content: String
+    let alignment: HorizontalAlignment
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
@@ -24,8 +26,9 @@ struct MarqueeText: View {
     private static let speed: CGFloat = 30
     private static let delay: Duration = .seconds(1)
 
-    init(_ content: String) {
+    init(_ content: String, alignment: HorizontalAlignment = .center) {
         self.content = content
+        self.alignment = alignment
     }
 
     /// From the text's start to where it comes around again, or zero when
@@ -58,7 +61,7 @@ struct MarqueeText: View {
                     }
                 }
                 .fixedSize()
-                .modifier(MarqueeScroll(travelled: travelled, distance: distance, fadeWidth: Self.fadeWidth))
+                .modifier(MarqueeScroll(travelled: travelled, distance: distance, fadeWidth: Self.fadeWidth, alignment: alignment))
             }
             .task(id: reduceMotion || isLuminanceReduced ? 0 : distance) {
                 travelled = 0
@@ -81,11 +84,12 @@ struct MarqueeText: View {
 
 /// The line moved `travelled` points toward its leading edge. While it
 /// overflows, its trailing edge fades, and so does its leading edge once the
-/// text has moved off it.
+/// text has moved off it. At `alignment` while it fits.
 private struct MarqueeScroll: ViewModifier, Animatable {
     var travelled: CGFloat
     let distance: CGFloat
     let fadeWidth: CGFloat
+    let alignment: HorizontalAlignment
 
     var animatableData: CGFloat {
         get { travelled }
@@ -100,7 +104,7 @@ private struct MarqueeScroll: ViewModifier, Animatable {
 
         content
             .offset(x: -travelled)
-            .frame(minWidth: 0, maxWidth: .infinity, alignment: overflows ? .leading : .center)
+            .frame(minWidth: 0, maxWidth: .infinity, alignment: overflows ? .leading : Alignment(horizontal: alignment, vertical: .center))
             .mask {
                 HStack(spacing: 0) {
                     LinearGradient(colors: [.black.opacity(1 - leadingFade), .black], startPoint: .leading, endPoint: .trailing)

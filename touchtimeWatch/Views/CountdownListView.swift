@@ -9,8 +9,8 @@ import UIKit
 /// The iPhone app's countdowns, or just its pinned ones, as the Countdowns
 /// View setting chooses, a swipe across from the list of cities. Each row is
 /// laid out like a city's, and filled like the countdown's card on iPhone:
-/// with its cover emoji's colour, or its photo blurred. The cover itself
-/// doesn't show.
+/// with its cover emoji's colour, or its photo blurred. It opens the
+/// countdown's details, where the cover itself shows.
 struct CountdownListView: View {
     @Environment(WatchCityStore.self) private var cityStore
     @AppStorage(CountdownListFilter.storageKey) private var filter: CountdownListFilter = .all
@@ -26,8 +26,12 @@ struct CountdownListView: View {
             // Each minute, so the day counts turn over at midnight
             TimelineView(.everyMinute) { context in
                 List(countdowns) { countdown in
-                    CountdownRow(countdown: countdown, now: context.date)
-                        .listRowBackground(countdown.background.map { CountdownRowBackground(background: $0) })
+                    NavigationLink {
+                        CountdownDetailView(countdown: countdown)
+                    } label: {
+                        CountdownRow(countdown: countdown, now: context.date)
+                    }
+                    .listRowBackground(countdown.background.map { CountdownRowBackground(background: $0) })
                 }
             }
         }
@@ -59,29 +63,12 @@ private struct CountdownRow: View {
     let countdown: WatchCountdown
     let now: Date
 
-    /// As big as a city's time in the list.
-    @ScaledMetric(relativeTo: .largeTitle) private var digitsSize: CGFloat = 36
-    @ScaledMetric(relativeTo: .largeTitle) private var unitSize: CGFloat = 20
-
-    /// Whole calendar days from `start` to `targetDate`; negative once the
-    /// event has happened.
-    private func dayDifference(from start: Date, to targetDate: Date) -> Int {
-        let calendar = Calendar.current
-        return calendar.dateComponents(
-            [.day],
-            from: calendar.startOfDay(for: start),
-            to: calendar.startOfDay(for: targetDate)
-        ).day ?? 0
-    }
-
     var body: some View {
         let targetDate = countdown.effectiveTargetDate(at: now)
-        // Held at the pause date while paused
-        let days = dayDifference(from: countdown.pausedAt ?? now, to: targetDate)
         // The year only for a date a year or more from today, leaving the
         // title more of the row: nearer, the day count and the symbol
         // beside it tell which year
-        let dateFormat: Date.FormatStyle = abs(dayDifference(from: now, to: targetDate)) < 365
+        let dateFormat: Date.FormatStyle = abs(CountdownDays.dayDifference(from: now, to: targetDate)) < 365
             ? .dateTime.month().day()
             : .dateTime.year().month().day()
 
@@ -101,24 +88,76 @@ private struct CountdownRow: View {
                     .layoutPriority(1)
             }
 
-            HStack(alignment: .lastTextBaseline) {
-                dayCount(days)
-
-                Spacer(minLength: 4)
-
-                let status = status(days: days)
-                Image(systemName: status.symbolName)
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .blendMode(.plusLighter)
-                    .accessibilityLabel(Text(status.label))
-            }
+            CountdownDays(countdown: countdown, now: now)
         }
         // As a city's row, less below, as the digits leave the space under
         // their baseline empty
         .padding(.top, 12)
         .padding(.bottom, 4)
         .accessibilityElement(children: .combine)
+    }
+}
+
+/// A countdown's day count and after it, as on its card on iPhone, the
+/// arrow back or ahead, or the repeat or pause symbol.
+struct CountdownDays: View {
+    enum Size {
+        /// As big as a city's time in the list.
+        case list
+        /// As big as a city's time in its details.
+        case large
+    }
+
+    let countdown: WatchCountdown
+    let now: Date
+    var size: Size = .list
+
+    @ScaledMetric(relativeTo: .largeTitle) private var listDigitsSize: CGFloat = 36
+    @ScaledMetric(relativeTo: .largeTitle) private var listUnitSize: CGFloat = 20
+    @ScaledMetric(relativeTo: .largeTitle) private var largeDigitsSize: CGFloat = 40
+    @ScaledMetric(relativeTo: .largeTitle) private var largeUnitSize: CGFloat = 22
+
+    /// Whole calendar days from `start` to `targetDate`; negative once the
+    /// event has happened.
+    static func dayDifference(from start: Date, to targetDate: Date) -> Int {
+        let calendar = Calendar.current
+        return calendar.dateComponents(
+            [.day],
+            from: calendar.startOfDay(for: start),
+            to: calendar.startOfDay(for: targetDate)
+        ).day ?? 0
+    }
+
+    var body: some View {
+        // Held at the pause date while paused
+        let days = Self.dayDifference(from: countdown.pausedAt ?? now, to: countdown.effectiveTargetDate(at: now))
+
+        HStack(alignment: .lastTextBaseline) {
+            dayCount(days)
+
+            Spacer(minLength: 4)
+
+            let status = status(days: days)
+            Image(systemName: status.symbolName)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .blendMode(.plusLighter)
+                .accessibilityLabel(Text(status.label))
+        }
+    }
+
+    private var digitsSize: CGFloat {
+        switch size {
+        case .list: listDigitsSize
+        case .large: largeDigitsSize
+        }
+    }
+
+    private var unitSize: CGFloat {
+        switch size {
+        case .list: listUnitSize
+        case .large: largeUnitSize
+        }
     }
 
     /// The days to go, or gone, with the day unit after them; Today on the
@@ -172,7 +211,7 @@ private struct CountdownRowBackground: View {
 
     var body: some View {
         let shape = RoundedRectangle(cornerRadius: 22, style: .continuous)
-        fill
+        CountdownBackground(background: background)
             .clipShape(shape)
             .overlay {
                 shape
@@ -180,21 +219,26 @@ private struct CountdownRowBackground: View {
                     .blendMode(.plusLighter)
             }
     }
+}
 
-    @ViewBuilder
-    private var fill: some View {
+/// What fills a countdown's card on iPhone: its cover emoji's colour, or
+/// its photo blurred.
+struct CountdownBackground: View {
+    let background: WatchCountdown.Background
+
+    var body: some View {
         switch background {
         case .color(let hue, let saturation, let brightness):
             Color(hue: hue, saturation: saturation, brightness: brightness)
         case .photo(let data):
-            // In an overlay, so the photo fills the row without sizing it
+            // In an overlay, so the photo fills its space without sizing it
             Color.clear
                 .overlay {
                     if let photo = UIImage(data: data) {
                         Image(uiImage: photo)
                             .resizable()
                             .scaledToFill()
-                            // As blurred for the row's width as the card's
+                            // As blurred for a row's width as the card's
                             // photo is for its own on iPhone
                             .blur(radius: 12, opaque: true)
                             // Darkened a touch for the text, as on iPhone
