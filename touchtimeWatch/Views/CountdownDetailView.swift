@@ -14,6 +14,11 @@ import UIKit
 struct CountdownDetailView: View {
     let countdown: WatchCountdown
 
+    @Environment(WatchCityStore.self) private var cityStore
+    /// The unit a tap on the count switched it to, or nil for the one its
+    /// card on iPhone counts in. Not kept: the details open in that one again.
+    @State private var unit: CountdownUnit?
+
     var body: some View {
         // Each minute, so the count turns over at midnight, and a
         // repeating countdown's date moves on once it passes
@@ -25,12 +30,17 @@ struct CountdownDetailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.bottom, 4)
 
-                CountdownDays(countdown: countdown, now: context.date, size: .large)
+                CountdownDays(countdown: countdown, now: context.date, size: .large, unit: unit)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     // The digits can shrink to fit, so the stack would
                     // otherwise squeeze them to make room for the cover
                     .fixedSize(horizontal: false, vertical: true)
                     .scenePadding(.navigationBar, edges: .horizontal)
+                    .contentShape(.rect)
+                    .onTapGesture {
+                        switchUnit(at: context.date)
+                    }
+                    .sensoryFeedback(.impact(flexibility: .soft), trigger: unit)
 
                 HStack(alignment: .firstTextBaseline) {
                     MarqueeText(countdown.title, alignment: .leading)
@@ -47,6 +57,9 @@ struct CountdownDetailView: View {
             // leave the cover room above them
             .ignoresSafeArea(edges: .bottom)
             .accessibilityElement(children: .combine)
+            .accessibilityAction {
+                switchUnit(at: context.date)
+            }
             .navigationTitle(Text(targetDate, format: .dateTime.year().month().day()))
         }
         .containerBackground(for: .navigation) {
@@ -55,6 +68,21 @@ struct CountdownDetailView: View {
             }
         }
         .toolbarForegroundStyle(.primary, for: .navigationBar)
+    }
+
+    /// From years to months to days and round again, past a unit without a
+    /// whole one to go, or gone: less than a month off, there's only days.
+    private func switchUnit(at now: Date) {
+        let shownUnit = CountdownDays.count(of: countdown, in: unit ?? cityStore.countdownUnit, now: now).unit
+        let nextUnit: CountdownUnit = switch shownUnit {
+        case .years: .months
+        case .months: .days
+        case .days: .years
+        }
+        guard CountdownDays.count(of: countdown, in: nextUnit, now: now).unit != shownUnit else { return }
+        withAnimation(.smooth) {
+            unit = nextUnit
+        }
     }
 }
 

@@ -110,6 +110,8 @@ struct CountdownDays: View {
     let countdown: WatchCountdown
     let now: Date
     var size: Size = .list
+    /// In place of the unit its card on iPhone counts in.
+    var unit: CountdownUnit? = nil
 
     @Environment(WatchCityStore.self) private var cityStore
     @Environment(\.fontResolutionContext) private var fontResolutionContext
@@ -132,9 +134,13 @@ struct CountdownDays: View {
         ).day ?? 0
     }
 
+    /// `countdown`'s count in `unit`, held at the pause date while paused.
+    static func count(of countdown: WatchCountdown, in unit: CountdownUnit, now: Date) -> CountdownCount {
+        unit.count(from: countdown.pausedAt ?? now, to: countdown.effectiveTargetDate(at: now))
+    }
+
     var body: some View {
-        // Held at the pause date while paused
-        countText(cityStore.countdownUnit.count(from: countdown.pausedAt ?? now, to: countdown.effectiveTargetDate(at: now)))
+        countText(Self.count(of: countdown, in: unit ?? cityStore.countdownUnit, now: now))
     }
 
     private var digitsSize: CGFloat {
@@ -185,6 +191,7 @@ struct CountdownDays: View {
             }
             .lineLimit(1)
             .minimumScaleFactor(0.5)
+            .contentTransition(.numericText(value: Double(abs(count.value))))
             // The first digit's ink, rather than its box, starts at the
             // leading edge, in line with the title; a share of the width, as
             // the count can shrink to fit
