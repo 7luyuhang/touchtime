@@ -1641,6 +1641,9 @@ struct CountdownPreviewCard: View {
                             .scaledToFill()
                             .blur(radius: 24, opaque: true)
                             .overlay(Color.black.opacity(0.25))
+                            // Filled, the photo's frame runs far past the
+                            // card's top and bottom, over whatever sits there.
+                            .accessibilityHidden(true)
                     } else if let emojiColor {
                         emojiColor
                     }
@@ -1657,6 +1660,10 @@ struct CountdownPreviewCard: View {
             .clipShape(
                 RoundedRectangle(cornerRadius: 26, style: .continuous)
             )
+            // Clipping only hides the photo where it runs past the card; it
+            // would still take the taps there, which in the editor land on
+            // the Event Name field below.
+            .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
             .glassEffect(
                 .clear,
                 in: RoundedRectangle(cornerRadius: 26, style: .continuous)
