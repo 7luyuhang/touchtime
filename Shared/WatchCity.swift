@@ -41,4 +41,8 @@ nonisolated enum WatchSyncKeys {
     /// JSON-encoded `[WatchCountdown]`, in the order the iPhone's countdown
     /// sheet lists them.
     static let countdowns = "countdowns"
+    /// The largest unit switched on in the iPhone's countdown sheet's Time
+    /// Display, which the countdowns count in: a `CountdownUnit`'s raw
+    /// value.
+    static let countdownUnit = "countdownUnit"
 }

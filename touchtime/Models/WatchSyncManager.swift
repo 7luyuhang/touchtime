@@ -3,8 +3,8 @@
 //  touchtime
 //
 //  Sends the saved cities, the date style, the first day of the week, the
-//  temperature, wind speed and pressure units, and the countdowns to the
-//  Apple Watch app.
+//  temperature, wind speed and pressure units, and the countdowns and the
+//  unit they count in to the Apple Watch app.
 //
 
 import Foundation
@@ -57,7 +57,11 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
             WatchSyncKeys.windSpeedUnit: UserDefaults.standard.string(forKey: WindSpeedUnit.storageKey)
                 ?? WindSpeedUnit.kilometersPerHour.rawValue,
             WatchSyncKeys.pressureUnit: UserDefaults.standard.string(forKey: PressureUnit.storageKey)
-                ?? PressureUnit.millibars.rawValue
+                ?? PressureUnit.millibars.rawValue,
+            WatchSyncKeys.countdownUnit: CountdownUnit(
+                showYears: UserDefaults.standard.bool(forKey: "countdownShowYears"),
+                showMonths: UserDefaults.standard.bool(forKey: "countdownShowMonths")
+            ).rawValue
         ]
         // The photos are most of it: past the size limit, the covers go,
         // then the thumbnails too, so the countdowns and everything else

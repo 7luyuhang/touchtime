@@ -34,6 +34,8 @@ struct ContentView: View {
     @AppStorage(WindSpeedUnit.storageKey) private var windSpeedUnit = WindSpeedUnit.kilometersPerHour
     @AppStorage(PressureUnit.storageKey) private var pressureUnit = PressureUnit.millibars
     @AppStorage(CountdownSortOrder.storageKey) private var countdownSortOrder = CountdownSortOrder.newestFirst
+    @AppStorage("countdownShowYears") private var countdownShowYears = false
+    @AppStorage("countdownShowMonths") private var countdownShowMonths = false
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
@@ -98,7 +100,7 @@ struct ContentView: View {
             // The Apple Watch app shows the same cities, in the same date style,
             // with temperatures, wind speeds and pressures in the same units,
             // starts its moon calendar's weeks on the same day, and lists the
-            // countdowns in the same order
+            // countdowns in the same order, counted in the same unit
             .onChange(of: worldClocks) { _, clocks in
                 WatchSyncManager.shared.sync(clocks: clocks)
             }
@@ -118,6 +120,12 @@ struct ContentView: View {
                 WatchSyncManager.shared.sync()
             }
             .onChange(of: countdownSortOrder) {
+                WatchSyncManager.shared.sync()
+            }
+            .onChange(of: countdownShowYears) {
+                WatchSyncManager.shared.sync()
+            }
+            .onChange(of: countdownShowMonths) {
                 WatchSyncManager.shared.sync()
             }
             // Quick actions (Home Screen icon menu / Spotlight App Shortcuts)

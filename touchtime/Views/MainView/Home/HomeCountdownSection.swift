@@ -11,12 +11,12 @@ import UIKit
 /// Pinned countdowns shown below the home timer: one preview card per
 /// pinned countdown, in the order passed in (arranged in Arrange, see
 /// `CountdownStore.pinnedCountdowns(at:)`), or folded into a stack from a
-/// card's context menu. Day counts follow the scrubbed time passed in as
+/// card's context menu. Counts follow the scrubbed time passed in as
 /// `now`.
 struct HomeCountdownSection: View {
     let countdowns: [CountdownItem]
     /// Reference "now" (current time plus the Slide to Adjust offset)
-    /// used for the day counts.
+    /// used for the counts.
     let now: Date
     /// Set by Home after Collapse in a card's context menu: two or more
     /// cards then fold into one stack, like the Smart Stack on Apple Watch,
@@ -452,6 +452,7 @@ enum CountdownShare {
             isRepeating: isRepeating,
             now: now,
             pausedAt: pausedAt,
+            largestUnit: CountdownUnit(showYears: showYears, showMonths: showMonths),
             footerText: footerText(from: pausedAt ?? now, to: targetDate, showYears: showYears, showMonths: showMonths, showDays: showDays),
             aspectRatio: aspectRatio
         )
@@ -528,11 +529,14 @@ struct CountdownCardSnapshotView: View {
     /// True for repeating countdowns; swaps the top-left arrow for a
     /// repeat symbol.
     let isRepeating: Bool
-    /// Reference "now" for the day count (scrubbed time on Home).
+    /// Reference "now" for the count (scrubbed time on Home).
     let now: Date
-    /// Set while the countdown is paused: the day count holds as of this
-    /// date, and a pause symbol takes the top-left arrow's place.
+    /// Set while the countdown is paused: the count holds as of this date,
+    /// and a pause symbol takes the top-left arrow's place.
     var pausedAt: Date? = nil
+    /// The largest unit switched on in Time Display, as the live card
+    /// counts in.
+    let largestUnit: CountdownUnit
     /// Context line under the card, e.g. "in 1 year 4 days".
     let footerText: String
     /// Frame of the image: a centred crop of the 9:16 layout, so the card
@@ -594,17 +598,21 @@ struct CountdownCardSnapshotView: View {
         return hasHappened ? "arrow.left" : "arrow.right"
     }
 
-    private var bigText: String {
-        dayDifference == 0 ? String(localized: "Today") : "\(abs(dayDifference))"
+    private var count: CountdownCount {
+        largestUnit.count(from: pausedAt ?? now, to: targetDate)
     }
 
-    private var dayUnit: String {
-        String(localized: "d")
+    private var bigText: String {
+        count.value == 0 ? String(localized: "Today") : "\(abs(count.value))"
+    }
+
+    private var unitText: String {
+        CountdownPreviewCard.unitSymbol(for: count.unit)
     }
 
     /// Same CJK baseline lift as the live card.
-    private var dayUnitBaselineOffset: CGFloat {
-        dayUnit.unicodeScalars.contains { $0.properties.isIdeographic } ? 1.8 : 0
+    private var unitBaselineOffset: CGFloat {
+        unitText.unicodeScalars.contains { $0.properties.isIdeographic } ? 1.8 : 0
     }
 
     private var hasCenterBadge: Bool {
@@ -659,7 +667,7 @@ struct CountdownCardSnapshotView: View {
                                 .blendMode(.plusLighter)
                         }
 
-                        // Event title bottom-left, day count bottom-right
+                        // Event title bottom-left, count bottom-right
                         HStack(alignment: .lastTextBaseline) {
                             Text(title.isEmpty ? String(localized: "Event Name") : title)
                                 .font(.headline)
@@ -677,11 +685,11 @@ struct CountdownCardSnapshotView: View {
                                     .fontDesign(.rounded)
                                     .monospacedDigit()
 
-                                // Day unit, hidden when the card reads "Today"
-                                if dayDifference != 0 {
-                                    Text(dayUnit)
+                                // Unit, hidden when the card reads "Today"
+                                if count.value != 0 {
+                                    Text(unitText)
                                         .font(.system(size: 20, weight: .regular, design: .rounded))
-                                        .baselineOffset(dayUnitBaselineOffset)
+                                        .baselineOffset(unitBaselineOffset)
                                 }
                             }
                         }

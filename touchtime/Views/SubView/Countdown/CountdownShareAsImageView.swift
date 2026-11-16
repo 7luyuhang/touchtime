@@ -26,9 +26,9 @@ struct CountdownShareAsImageView: View {
     /// True for repeating countdowns; swaps the card's arrow for a
     /// repeat symbol.
     let isRepeating: Bool
-    /// Reference "now" for the day count and the footer line.
+    /// Reference "now" for the count and the footer line.
     var now: Date = Date()
-    /// Set while the countdown is paused: the day count and the footer
+    /// Set while the countdown is paused: the count and the footer
     /// line hold as of this date, and the card shows a pause symbol.
     var pausedAt: Date? = nil
 
@@ -43,6 +43,7 @@ struct CountdownShareAsImageView: View {
                 isRepeating: isRepeating,
                 now: now,
                 pausedAt: pausedAt,
+                largestUnit: CountdownUnit(showYears: showYears, showMonths: showMonths),
                 footerText: CountdownShare.footerText(
                     from: pausedAt ?? now,
                     to: targetDate,

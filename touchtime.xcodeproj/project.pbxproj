@@ -131,6 +131,7 @@
 			membershipExceptions = (
 				CountdownItem.swift,
 				CountdownPhotoCrop.swift,
+				CountdownUnit.swift,
 				DateFormatting.swift,
 				DaylightRing.swift,
 				DotsWorldMap.swift,

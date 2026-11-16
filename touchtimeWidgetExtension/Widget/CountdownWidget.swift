@@ -4,10 +4,11 @@
 //
 //  Small widget, laid out like City Time: event name on top, the
 //  countdown's cover (emoji or photo) in the centre circle (80x80), the
-//  days to the event at the bottom. Every countdown has a cover, and the
-//  background follows it the way the app's countdown card does — the
-//  emoji's dominant colour, or the photo blurred. In the Clear and Tinted
-//  Home Screen modes the cover is desaturated with the rest of the widget
+//  time to the event at the bottom, counted in the same unit as the app's
+//  countdown cards. Every countdown has a cover, and the background
+//  follows it the way the app's countdown card does — the emoji's
+//  dominant colour, or the photo blurred. In the Clear and Tinted Home
+//  Screen modes the cover is desaturated with the rest of the widget
 //  unless the edit-widget toggle keeps it in full colour.
 //
 
@@ -22,8 +23,8 @@ struct CountdownWidgetEntry: TimelineEntry {
         let title: String
         /// Rolled forward to the next occurrence for repeating countdowns.
         let targetDate: Date
-        /// Set while the countdown is paused: the day count holds as of
-        /// this date instead of following the entry's date.
+        /// Set while the countdown is paused: the count holds as of this
+        /// date instead of following the entry's date.
         let pausedAt: Date?
         let emoji: String?
         let photoData: Data?
@@ -34,6 +35,8 @@ struct CountdownWidgetEntry: TimelineEntry {
     let date: Date
     /// Nil when the app has no countdowns yet: the widget shows its empty state.
     let countdown: Countdown?
+    /// The largest unit switched on in the app's Time Display.
+    let unit: CountdownUnit
     /// Edit-widget toggle: keep the cover in colour in the Clear and Tinted
     /// Home Screen modes instead of desaturating it with the rest of the widget.
     let showCoverInFullColor: Bool
@@ -70,6 +73,7 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
         return CountdownWidgetEntry(
             date: date,
             countdown: countdown,
+            unit: SharedWidgetStore.countdownUnit(),
             showCoverInFullColor: showCoverInFullColor
         )
     }
@@ -89,6 +93,7 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
                 photoData: nil,
                 photoCrop: nil
             ),
+            unit: SharedWidgetStore.countdownUnit(),
             showCoverInFullColor: false
         )
     }
@@ -112,9 +117,9 @@ struct CountdownWidgetProvider: AppIntentTimelineProvider {
         let now = Date()
         let item = resolveCountdown(for: configuration, now: now)
 
-        // Only the day count changes: one entry now, then one at each of
-        // the next seven midnights. The app reloads the timeline whenever
-        // a countdown is edited.
+        // The count only changes at midnight: one entry now, then one at
+        // each of the next seven midnights. The app reloads the timeline
+        // whenever a countdown is edited.
         let calendar = Calendar.current
         var dates = [now]
         var day = calendar.startOfDay(for: now)
@@ -170,31 +175,25 @@ struct CountdownWidgetView: View {
         entry.showCoverInFullColor ? .fullColor : .desaturated
     }
 
-    /// Whole calendar days from the entry's date (or the pause date, while
-    /// paused) to the event; negative once the event has happened.
-    private var dayDifference: Int {
-        guard let countdown else { return 0 }
-        let calendar = Calendar.current
-        return calendar.dateComponents(
-            [.day],
-            from: calendar.startOfDay(for: countdown.pausedAt ?? entry.date),
-            to: calendar.startOfDay(for: countdown.targetDate)
-        ).day ?? 0
-    }
-
-    /// "in 3 days" / "1 day ago" / "Today", phrased like the app's shared
+    /// "in 3 days" / "6 months ago" / "Today", phrased like the app's shared
     /// countdown footer; a hint to add one in the empty state.
     private var countdownString: String {
-        guard countdown != nil else { return String(localized: "Tap to add") }
-        let days = dayDifference
-        if days == 0 {
+        guard let countdown else { return String(localized: "Tap to add") }
+        // Held at the pause date while paused
+        let count = entry.unit.count(from: countdown.pausedAt ?? entry.date, to: countdown.targetDate)
+        if count.value == 0 {
             return String(localized: "Today")
         }
-        let unit = abs(days) == 1 ? String(localized: "day") : String(localized: "days")
+        let isOne = abs(count.value) == 1
+        let unit = switch count.unit {
+        case .years: isOne ? String(localized: "year") : String(localized: "years")
+        case .months: isOne ? String(localized: "month") : String(localized: "months")
+        case .days: isOne ? String(localized: "day") : String(localized: "days")
+        }
         // Count and unit go through the catalog ("%lld %@") so languages
         // that set them solid, like Japanese ("3日"), can drop the space.
-        let interval = String(localized: "\(abs(days)) \(unit)")
-        return days < 0
+        let interval = String(localized: "\(abs(count.value)) \(unit)")
+        return count.value < 0
             ? String(format: String(localized: "%@ ago"), interval)
             : String(format: String(localized: "in %@"), interval)
     }
@@ -338,7 +337,7 @@ struct CountdownWidget: Widget {
             CountdownWidgetView(entry: entry)
         }
         .configurationDisplayName("Countdown")
-        .description("Shows the days to an event with its cover in the center.")
+        .description("Shows the time to an event with its cover in the center.")
         .supportedFamilies([.systemSmall])
         .contentMarginsDisabled()
     }

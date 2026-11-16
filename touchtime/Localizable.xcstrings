@@ -17182,6 +17182,35 @@
         }
       }
     },
+    "mo" : {
+      "comment" : "Compact month unit shown after the month count on countdown cards.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "か月"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "개월"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "个月"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "個月"
+          }
+        }
+      }
+    },
     "Moderate" : {
       "comment" : "UV index exposure category for an index of 3–5, shown after the index, e.g. “4 · Moderate”.",
       "localizations" : {
@@ -29967,6 +29996,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "X"
+          }
+        }
+      }
+    },
+    "y" : {
+      "comment" : "Compact year unit shown after the year count on countdown cards.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "년"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "年"
           }
         }
       }

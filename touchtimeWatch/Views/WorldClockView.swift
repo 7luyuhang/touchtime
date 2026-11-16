@@ -17,8 +17,8 @@ struct WorldClockView: View {
     @Environment(WatchCityStore.self) private var cityStore
     @Environment(\.scenePhase) private var scenePhase
     /// The city whose details are showing, or empty for the list. Kept
-    /// across launches; the watch's own time zone the first time.
-    @AppStorage("selectedCityID") private var selectedCityID = ClockCity.localID
+    /// across launches; the list the first time, under the welcome sheet.
+    @AppStorage("selectedCityID") private var selectedCityID = ""
     @AppStorage(CityDetailDisplay.storageKey) private var display: CityDetailDisplay = .worldClock
     @AppStorage(DefaultCityDetailDisplay.storageKey) private var defaultDisplay: DefaultCityDetailDisplay = .lastUsed
     /// When the app last stopped being active, or nil since it launched.

@@ -7,14 +7,15 @@ import SwiftUI
 import UIKit
 
 /// A countdown laid out like a city's World Time: its cover in glass, as in
-/// the middle of its card on iPhone, where the map is, its day count where
-/// the time is, and its title along the bottom, with its date at the top,
-/// over the background its row is filled with.
+/// the middle of its card on iPhone, where the map is, its count where the
+/// time is, and its title along the bottom, with the arrow back or ahead,
+/// or the repeat or pause symbol, after it, and its date at the top, over
+/// the background its row is filled with.
 struct CountdownDetailView: View {
     let countdown: WatchCountdown
 
     var body: some View {
-        // Each minute, so the day count turns over at midnight, and a
+        // Each minute, so the count turns over at midnight, and a
         // repeating countdown's date moves on once it passes
         TimelineView(.everyMinute) { context in
             let targetDate = countdown.effectiveTargetDate(at: context.date)
@@ -25,19 +26,24 @@ struct CountdownDetailView: View {
                     .padding(.bottom, 4)
 
                 CountdownDays(countdown: countdown, now: context.date, size: .large)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     // The digits can shrink to fit, so the stack would
                     // otherwise squeeze them to make room for the cover
                     .fixedSize(horizontal: false, vertical: true)
                     .scenePadding(.navigationBar, edges: .horizontal)
 
-                MarqueeText(countdown.title, alignment: .leading)
-                    .foregroundStyle(.secondary)
-                    .blendMode(.plusLighter)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .scenePadding(.navigationBar, edges: .horizontal)
-                    .padding(.bottom, 14)
+                HStack(alignment: .firstTextBaseline) {
+                    MarqueeText(countdown.title, alignment: .leading)
+                        .foregroundStyle(.secondary)
+                        .blendMode(.plusLighter)
+
+                    CountdownStatusSymbol(countdown: countdown, now: context.date)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .scenePadding(.navigationBar, edges: .horizontal)
+                .padding(.bottom, 14)
             }
-            // As in World Time, the day count and title sit low enough to
+            // As in World Time, the count and title sit low enough to
             // leave the cover room above them
             .ignoresSafeArea(edges: .bottom)
             .accessibilityElement(children: .combine)

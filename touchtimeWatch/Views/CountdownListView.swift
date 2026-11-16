@@ -23,7 +23,7 @@ struct CountdownListView: View {
         } else if countdowns.isEmpty {
             emptyState("No Pinned Countdowns")
         } else {
-            // Each minute, so the day counts turn over at midnight
+            // Each minute, so the counts turn over at midnight
             TimelineView(.everyMinute) { context in
                 List(countdowns) { countdown in
                     NavigationLink {
@@ -57,8 +57,8 @@ struct CountdownListView: View {
     }
 }
 
-/// The countdown's title and date above its day count and, as on its card
-/// on iPhone, the arrow back or ahead, or the repeat or pause symbol.
+/// The countdown's title and date above its count and, as on its card on
+/// iPhone, the arrow back or ahead, or the repeat or pause symbol.
 private struct CountdownRow: View {
     let countdown: WatchCountdown
     let now: Date
@@ -66,7 +66,7 @@ private struct CountdownRow: View {
     var body: some View {
         let targetDate = countdown.effectiveTargetDate(at: now)
         // The year only for a date a year or more from today, leaving the
-        // title more of the row: nearer, the day count and the symbol
+        // title more of the row: nearer, the count and the symbol
         // beside it tell which year
         let dateFormat: Date.FormatStyle = abs(CountdownDays.dayDifference(from: now, to: targetDate)) < 365
             ? .dateTime.month().day()
@@ -88,7 +88,13 @@ private struct CountdownRow: View {
                     .layoutPriority(1)
             }
 
-            CountdownDays(countdown: countdown, now: now)
+            HStack(alignment: .lastTextBaseline) {
+                CountdownDays(countdown: countdown, now: now)
+
+                Spacer(minLength: 4)
+
+                CountdownStatusSymbol(countdown: countdown, now: now)
+            }
         }
         // As a city's row, less below, as the digits leave the space under
         // their baseline empty
@@ -98,8 +104,7 @@ private struct CountdownRow: View {
     }
 }
 
-/// A countdown's day count and after it, as on its card on iPhone, the
-/// arrow back or ahead, or the repeat or pause symbol.
+/// A countdown's count, in the unit its card on iPhone counts in.
 struct CountdownDays: View {
     enum Size {
         /// As big as a city's time in the list.
@@ -111,6 +116,8 @@ struct CountdownDays: View {
     let countdown: WatchCountdown
     let now: Date
     var size: Size = .list
+
+    @Environment(WatchCityStore.self) private var cityStore
 
     @ScaledMetric(relativeTo: .largeTitle) private var listDigitsSize: CGFloat = 36
     @ScaledMetric(relativeTo: .largeTitle) private var listUnitSize: CGFloat = 20
@@ -130,20 +137,7 @@ struct CountdownDays: View {
 
     var body: some View {
         // Held at the pause date while paused
-        let days = Self.dayDifference(from: countdown.pausedAt ?? now, to: countdown.effectiveTargetDate(at: now))
-
-        HStack(alignment: .lastTextBaseline) {
-            dayCount(days)
-
-            Spacer(minLength: 4)
-
-            let status = status(days: days)
-            Image(systemName: status.symbolName)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .blendMode(.plusLighter)
-                .accessibilityLabel(Text(status.label))
-        }
+        countText(cityStore.countdownUnit.count(from: countdown.pausedAt ?? now, to: countdown.effectiveTargetDate(at: now)))
     }
 
     private var digitsSize: CGFloat {
@@ -160,47 +154,85 @@ struct CountdownDays: View {
         }
     }
 
-    /// The days to go, or gone, with the day unit after them; Today on the
-    /// day itself.
+    /// The years, months or days to go, or gone, with the unit after them;
+    /// Today on the day itself.
     @ViewBuilder
-    private func dayCount(_ days: Int) -> some View {
+    private func countText(_ count: CountdownCount) -> some View {
         // Proportional, unlike a clock's digits, as the count doesn't tick:
         // a leading 1 starts in line with the title
         let digitsFont = Font.system(size: digitsSize, design: .rounded)
-        if days == 0 {
+        if count.value == 0 {
             Text("Today")
                 .font(digitsFont)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
         } else {
-            let unit = String(localized: "d")
+            let unit = Self.unitSymbol(for: count.unit)
             HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(verbatim: "\(abs(days))")
+                Text(verbatim: "\(abs(count.value))")
                     .font(digitsFont)
                 Text(unit)
                     .font(.system(size: unitSize, design: .rounded))
                     // Ideographs sink about a tenth of their size below the
                     // Latin baseline, so a CJK unit is lifted onto the
-                    // digits' as the Latin "d" sits
+                    // digits' as a Latin one sits
                     .baselineOffset(unit.unicodeScalars.contains { $0.properties.isIdeographic } ? unitSize * 0.09 : 0)
             }
             .lineLimit(1)
             .minimumScaleFactor(0.5)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Duration.seconds(abs(days) * 86_400).formatted(.units(allowed: [.days], width: .wide)))
+            .accessibilityLabel(Self.spokenCount(count))
         }
     }
 
-    /// Repeat for repeating countdowns, pause while paused, otherwise an
-    /// arrow back once the event has happened, or ahead to it.
-    private func status(days: Int) -> (symbolName: String, label: LocalizedStringKey) {
+    /// Localized compact unit after the count: "y", "mo" or "d" in English,
+    /// "年", "个月" or "天" in Chinese.
+    private static func unitSymbol(for unit: CountdownUnit) -> String {
+        switch unit {
+        case .years: String(localized: "y")
+        case .months: String(localized: "mo")
+        case .days: String(localized: "d")
+        }
+    }
+
+    /// The count in words, e.g. "6 months".
+    private static func spokenCount(_ count: CountdownCount) -> String {
+        var components = DateComponents()
+        switch count.unit {
+        case .years: components.year = abs(count.value)
+        case .months: components.month = abs(count.value)
+        case .days: components.day = abs(count.value)
+        }
+        return DateComponentsFormatter.localizedString(from: components, unitsStyle: .full) ?? ""
+    }
+}
+
+/// As on a countdown's card on iPhone: the repeat symbol for a repeating
+/// countdown, pause while paused, otherwise the arrow back once the event
+/// has happened, or ahead to it.
+struct CountdownStatusSymbol: View {
+    let countdown: WatchCountdown
+    let now: Date
+
+    var body: some View {
+        let status = self.status
+        Image(systemName: status.symbolName)
+            .font(.subheadline.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .blendMode(.plusLighter)
+            .accessibilityLabel(Text(status.label))
+    }
+
+    private var status: (symbolName: String, label: LocalizedStringKey) {
         if countdown.repeatFrequency != .never {
             return ("repeat", "Repeat")
         }
         if countdown.pausedAt != nil {
             return ("pause", "Paused")
         }
-        return days < 0 ? ("arrow.left", "Happened") : ("arrow.right", "Happening")
+        return CountdownDays.dayDifference(from: now, to: countdown.effectiveTargetDate(at: now)) < 0
+            ? ("arrow.left", "Happened")
+            : ("arrow.right", "Happening")
     }
 }
 
@@ -221,15 +253,16 @@ private struct CountdownRowBackground: View {
     }
 }
 
-/// What fills a countdown's card on iPhone: its cover emoji's colour, or
-/// its photo blurred.
+/// What fills a countdown's card on iPhone: its cover emoji's colour, here
+/// as the system's gradient of it, or its photo blurred.
 struct CountdownBackground: View {
     let background: WatchCountdown.Background
 
     var body: some View {
         switch background {
         case .color(let hue, let saturation, let brightness):
-            Color(hue: hue, saturation: saturation, brightness: brightness)
+            Rectangle()
+                .fill(Color(hue: hue, saturation: saturation, brightness: brightness).gradient)
         case .photo(let data):
             // In an overlay, so the photo fills its space without sizing it
             Color.clear

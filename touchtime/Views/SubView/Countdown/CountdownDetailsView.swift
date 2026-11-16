@@ -1439,7 +1439,7 @@ struct CountdownDetailsView: View {
 /// Live preview card for a countdown, styled after the Settings preview
 /// card: a happened/happening arrow (or a repeat symbol for repeating
 /// countdowns, a pause symbol for paused ones) top-left, event title
-/// bottom-left, the day count as a large bare number on the right, and a
+/// bottom-left, the count as a large bare number on the right, and a
 /// complication-sized emoji in the middle whose dominant colour fills the
 /// card. Also reused on the Home screen; without `onEmojiTap` the emoji is
 /// display-only.
@@ -1452,15 +1452,15 @@ struct CountdownPreviewCard: View {
     var photoData: Data? = nil
     /// How the photo is framed in the badge; nil shows it centred.
     var photoCrop: CountdownItem.PhotoCrop? = nil
-    /// Reference "now" for the day count; the Home screen passes the
-    /// scrubbed time so the number follows Slide to Adjust.
+    /// Reference "now" for the count; the Home screen passes the scrubbed
+    /// time so the number follows Slide to Adjust.
     var now: Date = Date()
     /// True for repeating countdowns; swaps the top-left arrow for a
     /// repeat symbol.
     var isRepeating: Bool = false
-    /// Set while the countdown is paused: the day count holds as of this
-    /// date instead of following `now`, and a pause symbol takes the
-    /// top-left arrow's place.
+    /// Set while the countdown is paused: the count holds as of this date
+    /// instead of following `now`, and a pause symbol takes the top-left
+    /// arrow's place.
     var pausedAt: Date? = nil
     /// Shows a pin after the date, top-right, where the countdown sheet's
     /// compact rows have theirs. Off on Home, where every card is pinned.
@@ -1471,6 +1471,11 @@ struct CountdownPreviewCard: View {
     var onEmojiTap: (() -> Void)? = nil
 
     @Environment(\.colorScheme) private var systemColorScheme
+
+    // Time Display settings from the countdown sheet: the count is in the
+    // largest unit switched on.
+    @AppStorage("countdownShowYears") private var showYears = false
+    @AppStorage("countdownShowMonths") private var showMonths = false
 
     /// Derived directly from the current emoji (with a cache) so the card
     /// never renders a stale colour when it is reused with new data.
@@ -1488,8 +1493,8 @@ struct CountdownPreviewCard: View {
         Calendar.current
     }
 
-    /// The date the day count is measured from: `now`, or the pause date
-    /// while paused, which holds the count where it stopped.
+    /// The date the count is measured from: `now`, or the pause date while
+    /// paused, which holds the count where it stopped.
     private var countingDate: Date {
         pausedAt ?? now
     }
@@ -1520,20 +1525,36 @@ struct CountdownPreviewCard: View {
         return hasHappened ? "arrow.left" : "arrow.right"
     }
 
-    private var bigText: String {
-        dayDifference == 0 ? String(localized: "Today") : "\(abs(dayDifference))"
+    /// In whole years, months or days: the largest unit switched on in Time
+    /// Display, or a smaller one while there isn't a whole one of it.
+    private var count: CountdownCount {
+        CountdownUnit(showYears: showYears, showMonths: showMonths)
+            .count(from: countingDate, to: targetDate)
     }
 
-    /// Localized compact day unit: "d" in English, "天" in Chinese.
-    private var dayUnit: String {
-        String(localized: "d")
+    private var bigText: String {
+        count.value == 0 ? String(localized: "Today") : "\(abs(count.value))"
+    }
+
+    /// Localized compact unit after the count: "y", "mo" or "d" in English,
+    /// "年", "个月" or "天" in Chinese.
+    static func unitSymbol(for unit: CountdownUnit) -> String {
+        switch unit {
+        case .years: String(localized: "y")
+        case .months: String(localized: "mo")
+        case .days: String(localized: "d")
+        }
+    }
+
+    private var unitText: String {
+        Self.unitSymbol(for: count.unit)
     }
 
     /// PingFang ideographs sink ~0.1em below the Latin baseline (measured
-    /// ~1.8pt at 20pt), so the CJK unit needs a lift to sit visually on
-    /// the digits' baseline the way the Latin "d" does.
-    private var dayUnitBaselineOffset: CGFloat {
-        dayUnit.unicodeScalars.contains { $0.properties.isIdeographic } ? 1.8 : 0
+    /// ~1.8pt at 20pt), so a CJK unit needs a lift to sit visually on the
+    /// digits' baseline the way a Latin one does.
+    private var unitBaselineOffset: CGFloat {
+        unitText.unicodeScalars.contains { $0.properties.isIdeographic } ? 1.8 : 0
     }
 
     /// The centre badge is present in the editor (always a button) or on
@@ -1576,7 +1597,7 @@ struct CountdownPreviewCard: View {
                     }
                 }
 
-                // Event title bottom-left, day count bottom-right
+                // Event title bottom-left, count bottom-right
                 HStack(alignment: .lastTextBaseline) {
                     Text(title.isEmpty ? String(localized: "Event Name") : title)
                         .font(.headline)
@@ -1598,11 +1619,11 @@ struct CountdownPreviewCard: View {
                             .monospacedDigit()
                             .contentTransition(.numericText())
 
-                        // Day unit, hidden when the card reads "Today"
-                        if dayDifference != 0 {
-                            Text(dayUnit)
+                        // Unit, hidden when the card reads "Today"
+                        if count.value != 0 {
+                            Text(unitText)
                                 .font(.system(size: 20, weight: .regular, design: .rounded))
-                                .baselineOffset(dayUnitBaselineOffset)
+                                .baselineOffset(unitBaselineOffset)
                                 .transition(.blurReplace)
                         }
                     }

@@ -3,8 +3,8 @@
 //  touchtimeWatch
 //
 //  The iPhone app's saved cities, date style, first day of the week,
-//  temperature, wind speed and pressure units, and countdowns, received
-//  over WatchConnectivity.
+//  temperature, wind speed and pressure units, and countdowns and the unit
+//  they count in, received over WatchConnectivity.
 //
 
 import Foundation
@@ -31,6 +31,9 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     /// The iPhone app's countdowns, in the order its countdown sheet lists
     /// them.
     private(set) var countdowns: [WatchCountdown]
+    /// The unit the countdowns count in: the largest one switched on in the
+    /// iPhone app's countdown sheet's Time Display.
+    private(set) var countdownUnit: CountdownUnit
 
     private static let citiesKey = "cities"
     private static let dateStyleKey = "dateStyle"
@@ -39,6 +42,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     private static let windSpeedUnitKey = "windSpeedUnit"
     private static let pressureUnitKey = "pressureUnit"
     private static let countdownsKey = "countdowns"
+    private static let countdownUnitKey = "countdownUnit"
 
     override init() {
         let defaults = UserDefaults.standard
@@ -63,6 +67,9 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         // None until the iPhone first syncs
         countdowns = defaults.data(forKey: Self.countdownsKey)
             .flatMap { try? JSONDecoder().decode([WatchCountdown].self, from: $0) } ?? []
+        // Days, as on the iPhone until its Time Display picks a larger unit
+        countdownUnit = defaults.string(forKey: Self.countdownUnitKey).flatMap(CountdownUnit.init(rawValue:))
+            ?? .days
         super.init()
 
         if savedCities == nil {
@@ -83,7 +90,8 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         useCelsius: Bool?,
         windSpeedUnit: String?,
         pressureUnit: String?,
-        countdownsData: Data?
+        countdownsData: Data?,
+        countdownUnit: String?
     ) {
         let defaults = UserDefaults.standard
         if let citiesData,
@@ -130,6 +138,12 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             }
             defaults.set(countdownsData, forKey: Self.countdownsKey)
         }
+        if let countdownUnit = countdownUnit.flatMap(CountdownUnit.init(rawValue:)) {
+            if countdownUnit != self.countdownUnit {
+                self.countdownUnit = countdownUnit
+            }
+            defaults.set(countdownUnit.rawValue, forKey: Self.countdownUnitKey)
+        }
     }
 
     nonisolated private func receive(_ context: [String: Any]) {
@@ -140,6 +154,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         let windSpeedUnit = context[WatchSyncKeys.windSpeedUnit] as? String
         let pressureUnit = context[WatchSyncKeys.pressureUnit] as? String
         let countdownsData = context[WatchSyncKeys.countdowns] as? Data
+        let countdownUnit = context[WatchSyncKeys.countdownUnit] as? String
         Task { @MainActor in
             self.apply(
                 citiesData: citiesData,
@@ -148,7 +163,8 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
                 useCelsius: useCelsius,
                 windSpeedUnit: windSpeedUnit,
                 pressureUnit: pressureUnit,
-                countdownsData: countdownsData
+                countdownsData: countdownsData,
+                countdownUnit: countdownUnit
             )
         }
     }

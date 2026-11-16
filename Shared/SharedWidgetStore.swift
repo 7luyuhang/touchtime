@@ -28,6 +28,10 @@ enum SharedWidgetStore {
     static let countdownsKey = "savedCountdowns"
     // The Countdown widget's kind, for targeted timeline reloads from the app.
     static let countdownWidgetKind = "CountdownWidget"
+    // The countdown sheet's Time Display, mirrored so the Countdown widget
+    // counts in the same unit as the app's countdown cards.
+    static let countdownShowYearsKey = "countdownShowYears"
+    static let countdownShowMonthsKey = "countdownShowMonths"
 
     // Conditions older than this are ignored by the widget: the app may not
     // have been opened for a long time, and stale "rain" is worse than none.
@@ -70,6 +74,15 @@ enum SharedWidgetStore {
     // App side: mirror the encoded countdown list into the shared container.
     static func saveCountdowns(_ data: Data) {
         sharedDefaults?.set(data, forKey: countdownsKey)
+    }
+
+    // Widget side: the unit the app's countdown cards count in; days until
+    // the app has synced its Time Display.
+    static func countdownUnit() -> CountdownUnit {
+        CountdownUnit(
+            showYears: sharedDefaults?.bool(forKey: countdownShowYearsKey) ?? false,
+            showMonths: sharedDefaults?.bool(forKey: countdownShowMonthsKey) ?? false
+        )
     }
 
     // Widget side: complication customisations chosen in the app, so widgets
@@ -172,5 +185,7 @@ enum SharedWidgetStore {
         shared.set(standard.bool(forKey: analogClockShowUTCHandKey), forKey: analogClockShowUTCHandKey)
         shared.set(standard.bool(forKey: solarCurveShowSunKey), forKey: solarCurveShowSunKey)
         shared.set(standard.object(forKey: firstWeekdayKey) as? Int ?? defaultFirstWeekday, forKey: firstWeekdayKey)
+        shared.set(standard.bool(forKey: countdownShowYearsKey), forKey: countdownShowYearsKey)
+        shared.set(standard.bool(forKey: countdownShowMonthsKey), forKey: countdownShowMonthsKey)
     }
 }

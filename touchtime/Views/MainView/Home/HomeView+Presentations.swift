@@ -201,7 +201,7 @@ extension HomeView {
             }
 
             // Share as Image for a pinned card: same full-screen preview as
-            // the countdown editor, with the day count at the scrubbed time
+            // the countdown editor, with the count at the scrubbed time
             .fullScreenCover(item: $countdownShareData) { share in
                 CountdownShareAsImageView(
                     title: share.item.title,
