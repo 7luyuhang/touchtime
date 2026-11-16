@@ -80,9 +80,6 @@ struct WorldClockView: View {
             }
             .toolbarForegroundStyle(.primary, for: .navigationBar)
             .sensoryFeedback(.impact(flexibility: .soft), trigger: currentTimeTaps)
-            .sheet(isPresented: $showsHomeDisplayPicker) {
-                HomeDisplayPicker(selection: $homeDisplay)
-            }
             .sheet(isPresented: $showsSettings) {
                 SettingsView()
             }
@@ -101,6 +98,11 @@ struct WorldClockView: View {
                         .id(countdown.id)
                 }
             }
+        }
+        // On the split view rather than its sidebar, where the sheet would
+        // close without its animation as a list takes the analog clock's place
+        .sheet(isPresented: $showsHomeDisplayPicker) {
+            HomeDisplayPicker(selection: $homeDisplay)
         }
         .sheet(isPresented: $showsOnboarding) {
             OnboardingSheet()
