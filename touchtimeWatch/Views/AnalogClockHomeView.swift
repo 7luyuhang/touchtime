@@ -2,9 +2,9 @@
 //  AnalogClockHomeView.swift
 //  touchtimeWatch
 //
-//  The iPhone app's analog clock, one city at a time, on a sheet over the
-//  list. Tapping a dot moves on to its city. Turning the Digital Crown moves
-//  the time an hour at a time, as on a city's details.
+//  The iPhone app's analog clock, one city at a time, in the list's place
+//  once chosen. Tapping a dot moves on to its city. Turning the Digital
+//  Crown moves the time an hour at a time, as on a city's details.
 //
 
 import SwiftUI
@@ -15,10 +15,8 @@ struct AnalogClockHomeView: View {
     @Binding var adjustedDate: Date?
 
     @Environment(WatchCityStore.self) private var cityStore
-    @Environment(\.dismiss) private var dismiss
     /// The city on the clock, kept across launches.
     @AppStorage("analogClockCityID") private var cityID = ClockCity.localID
-    @AppStorage(AdditionalTime.storageKey) private var additionalTime: AdditionalTime = .timeShift
     /// How many hours the Digital Crown has moved.
     @State private var crownSteps: Double = 0
     /// The time the Digital Crown's steps count from: the clocks' time when
@@ -26,9 +24,6 @@ struct AnalogClockHomeView: View {
     @State private var crownStart: Date?
     /// Freeze "now" on the first step so minute ticks cannot shift the adjustment.
     @State private var crownReferenceDate: Date?
-    /// Taps on Current Time, each felt. Not the adjusted date, which the
-    /// Digital Crown also clears, with a haptic of its own.
-    @State private var currentTimeTaps = 0
     @FocusState private var isCrownFocused: Bool
 
     /// A year in either direction, as on a city's details.
@@ -42,106 +37,83 @@ struct AnalogClockHomeView: View {
     var body: some View {
         let city = cities[cityIndex]
 
-        NavigationStack {
-            TimelineView(.everyMinute) { context in
-                let date = adjustedDate ?? context.date
+        TimelineView(.everyMinute) { context in
+            let date = adjustedDate ?? context.date
 
-                GeometryReader { geometry in
-                    AnalogClockDial(
-                        city: city,
-                        cities: cities,
-                        date: date,
-                        now: context.date,
-                        dateStyle: cityStore.dateStyle,
-                        layout: AnalogClockDialLayout(
-                            diameter: max(0, min(geometry.size.width - 16, geometry.size.height - 12))
-                        ),
-                        onDotTap: { cityID = $0.id }
-                    )
-                    .frame(width: geometry.size.width, height: geometry.size.height)
-                }
-                // The circle's narrow top fits between the toolbar controls.
-                .padding(.top, -24)
-                .ignoresSafeArea(edges: .bottom)
-                .containerBackground(for: .navigation) {
-                    CitySkyBackground(date: date, timeZone: city.timeZone)
-                }
-                .navigationTitle(additionalTime.text(for: city.timeZone, at: date))
-                .animation(.smooth, value: adjustedDate)
+            GeometryReader { geometry in
+                AnalogClockDial(
+                    city: city,
+                    cities: cities,
+                    date: date,
+                    now: context.date,
+                    dateStyle: cityStore.dateStyle,
+                    layout: AnalogClockDialLayout(
+                        diameter: max(0, min(geometry.size.width - 16, geometry.size.height - 12))
+                    ),
+                    onDotTap: { cityID = $0.id }
+                )
+                .frame(width: geometry.size.width, height: geometry.size.height)
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityAction {
-                showNextCity()
+            // The circle's narrow top fits between the toolbar controls.
+            .padding(.top, -24)
+            .ignoresSafeArea(edges: .bottom)
+            .containerBackground(for: .navigation) {
+                CitySkyBackground(date: date, timeZone: city.timeZone)
             }
-            .accessibilityAdjustableAction { direction in
-                switch direction {
-                case .increment:
-                    crownSteps += 1
-                case .decrement:
-                    crownSteps -= 1
-                @unknown default:
-                    break
-                }
+            .animation(.smooth, value: adjustedDate)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityAction {
+            showNextCity()
+        }
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment:
+                crownSteps += 1
+            case .decrement:
+                crownSteps -= 1
+            @unknown default:
+                break
             }
-            .focusable()
-            .focused($isCrownFocused)
-            .digitalCrownRotation(
-                $crownSteps,
-                from: -Self.crownRange,
-                through: Self.crownRange,
-                by: 1,
-                sensitivity: .medium,
-                isContinuous: false,
-                isHapticFeedbackEnabled: true
-            )
-            .toolbar {
-                // In place of the sheet's own close button. While adjusting
-                // time, a reset button takes the list button's place, as it
-                // takes the back button's on a city's details.
-                ToolbarItem(placement: .cancellationAction) {
-                    if adjustedDate != nil {
-                        Button("Current Time", systemImage: "xmark") {
-                            currentTimeTaps += 1
-                            showCurrentTime()
-                        }
-                    } else {
-                        Button("Cities", systemImage: "list.bullet") {
-                            dismiss()
-                        }
-                    }
-                }
+        }
+        .focusable()
+        .focused($isCrownFocused)
+        .digitalCrownRotation(
+            $crownSteps,
+            from: -Self.crownRange,
+            through: Self.crownRange,
+            by: 1,
+            sensitivity: .medium,
+            isContinuous: false,
+            isHapticFeedbackEnabled: true
+        )
+        .onChange(of: Int(crownSteps.rounded())) { _, steps in
+            if steps == 0 {
+                adjustedDate = crownStart
+                crownReferenceDate = nil
+            } else {
+                let referenceDate = crownReferenceDate ?? crownStart ?? .now
+                crownReferenceDate = referenceDate
+                adjustedDate = crownDate(steps, from: referenceDate, in: city.timeZone)
             }
-            .toolbarForegroundStyle(.primary, for: .navigationBar)
-            .sensoryFeedback(.impact(flexibility: .soft), trigger: currentTimeTaps)
-            .onChange(of: Int(crownSteps.rounded())) { _, steps in
-                if steps == 0 {
-                    adjustedDate = crownStart
-                    crownReferenceDate = nil
-                } else {
-                    let referenceDate = crownReferenceDate ?? crownStart ?? .now
-                    crownReferenceDate = referenceDate
-                    adjustedDate = crownDate(steps, from: referenceDate, in: city.timeZone)
-                }
+        }
+        // Back to now from the toolbar's Current Time, the Digital Crown
+        // comes to rest too, so its next turn counts from now
+        .onChange(of: adjustedDate) { _, adjustedDate in
+            if adjustedDate == nil {
+                crownStart = nil
+                crownReferenceDate = nil
+                crownSteps = 0
             }
-            .onAppear {
-                crownStart = adjustedDate
-                isCrownFocused = true
-            }
+        }
+        .onAppear {
+            crownStart = adjustedDate
+            isCrownFocused = true
         }
     }
 
     private func showNextCity() {
         cityID = cities[(cityIndex + 1) % cities.count].id
-    }
-
-    /// Back to now on every clock, with the Digital Crown at rest.
-    private func showCurrentTime() {
-        withAnimation(.smooth) {
-            crownStart = nil
-            crownReferenceDate = nil
-            crownSteps = 0
-            adjustedDate = nil
-        }
     }
 
     /// `steps` whole hours on from `date`, on the city's clock.

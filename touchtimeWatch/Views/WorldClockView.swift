@@ -3,8 +3,8 @@
 //  touchtimeWatch
 //
 //  The app's root, laid out like the system World Clock: it opens on a
-//  city's details, with the list of cities a tap away, and from the list,
-//  the analog clock on a sheet and the countdowns a swipe across.
+//  city's details, with the list of cities a tap away. Chosen from the
+//  list's corner, the analog clock or the countdowns take the list's place.
 //
 
 import SwiftUI
@@ -26,11 +26,12 @@ struct WorldClockView: View {
     @State private var selectedCountdownID: WatchCountdown.ID?
     @AppStorage(CityDetailDisplay.storageKey) private var display: CityDetailDisplay = .worldClock
     @AppStorage(DefaultCityDetailDisplay.storageKey) private var defaultDisplay: DefaultCityDetailDisplay = .lastUsed
+    /// The list of cities, the analog clock or the countdowns, kept across
+    /// launches.
+    @AppStorage(HomeDisplay.storageKey) private var homeDisplay: HomeDisplay = .list
     /// When the app last stopped being active, or nil since it launched.
     @State private var leftDate: Date?
-    /// The list of cities, or the countdowns a swipe across.
-    @State private var page = Page.cities
-    @State private var showsAnalogClock = false
+    @State private var showsHomeDisplayPicker = false
     @State private var showsSettings = false
     /// Taps on Current Time, each felt. Not the adjusted date, which a city's
     /// details and the analog clock also clear, with haptics of their own.
@@ -45,18 +46,19 @@ struct WorldClockView: View {
         let cities = [ClockCity.local] + cityStore.cities.map { ClockCity($0) }
 
         NavigationSplitView {
-            TabView(selection: $page) {
-                CityListView(cities: cities, selection: selection(among: cities), adjustedDate: adjustedDate)
-                    .tag(Page.cities)
-                CountdownListView(selection: countdownSelection)
-                    .tag(Page.countdowns)
+            Group {
+                switch homeDisplay {
+                case .list:
+                    CityListView(cities: cities, selection: selection(among: cities), adjustedDate: adjustedDate)
+                case .clock:
+                    AnalogClockHomeView(cities: cities, adjustedDate: $adjustedDate)
+                case .countdowns:
+                    CountdownListView(selection: countdownSelection)
+                }
             }
-            .tabViewStyle(.page)
-            // Over both pages, staying put as they swipe across
             .toolbar {
-                // While adjusting time, a reset button takes the analog clock
-                // button's place, as it takes the back button's on a city's
-                // details.
+                // While adjusting time, a reset button takes Choose View's
+                // place, as it takes the back button's on a city's details.
                 ToolbarItem(placement: .topBarLeading) {
                     if adjustedDate != nil {
                         Button("Current Time", systemImage: "xmark") {
@@ -64,9 +66,10 @@ struct WorldClockView: View {
                             showCurrentTime()
                         }
                     } else {
-                        Button("Analog Clock", systemImage: "clock") {
-                            showsAnalogClock = true
+                        Button("Choose View", systemImage: "ellipsis") {
+                            showsHomeDisplayPicker = true
                         }
+                        .accessibilityValue(Text(homeDisplay.title))
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
@@ -77,19 +80,26 @@ struct WorldClockView: View {
             }
             .toolbarForegroundStyle(.primary, for: .navigationBar)
             .sensoryFeedback(.impact(flexibility: .soft), trigger: currentTimeTaps)
-            .sheet(isPresented: $showsAnalogClock) {
-                AnalogClockHomeView(cities: cities, adjustedDate: $adjustedDate)
+            .sheet(isPresented: $showsHomeDisplayPicker) {
+                HomeDisplayPicker(selection: $homeDisplay)
             }
             .sheet(isPresented: $showsSettings) {
                 SettingsView()
             }
         } detail: {
-            if let countdown = cityStore.countdowns.first(where: { $0.id == selectedCountdownID }) {
-                CountdownDetailView(countdown: countdown)
-                    .id(countdown.id)
-            } else if let city = cities.first(where: { $0.id == selectedCityID }) {
-                CityDetailView(city: city, mapCities: cities, adjustedDate: $adjustedDate)
-                    .id(city.id)
+            switch homeDisplay {
+            case .list:
+                if let city = cities.first(where: { $0.id == selectedCityID }) {
+                    CityDetailView(city: city, mapCities: cities, adjustedDate: $adjustedDate)
+                        .id(city.id)
+                }
+            case .clock:
+                EmptyView()
+            case .countdowns:
+                if let countdown = cityStore.countdowns.first(where: { $0.id == selectedCountdownID }) {
+                    CountdownDetailView(countdown: countdown)
+                        .id(countdown.id)
+                }
             }
         }
         .sheet(isPresented: $showsOnboarding) {
@@ -147,11 +157,5 @@ struct WorldClockView: View {
         } set: { id in
             selectedCountdownID = id
         }
-    }
-
-    /// The two pages, a swipe apart.
-    private enum Page {
-        case cities
-        case countdowns
     }
 }

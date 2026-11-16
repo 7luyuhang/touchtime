@@ -6,10 +6,10 @@
 import SwiftUI
 import UIKit
 
-/// The iPhone app's countdowns, a swipe across from the list of cities. Each
-/// row is laid out like a city's, and filled like the countdown's card on
-/// iPhone: with its cover emoji's colour, or its photo blurred. It opens the
-/// countdown's details, where the cover itself shows.
+/// The iPhone app's countdowns, in the list of cities' place once chosen.
+/// Each row is laid out like a city's, and filled like the countdown's card
+/// on iPhone: with its cover emoji's colour, or its photo blurred. It opens
+/// the countdown's details, where the cover itself shows.
 struct CountdownListView: View {
     @Binding var selection: WatchCountdown.ID?
 
@@ -41,13 +41,10 @@ struct CountdownListView: View {
                 EmptyView()
             }
         }
-        // Left to fill the page, the view sets its content at the top;
-        // sized to the title instead, it's centred between the toolbar and
-        // the page dots, which need less room than the bottom safe area
+        // Left to fill the screen, the view sets its content at the top;
+        // sized to the title instead, it's centred below the toolbar
         .fixedSize(horizontal: false, vertical: true)
         .frame(maxHeight: .infinity)
-        .padding(.bottom, 20)
-        .ignoresSafeArea(edges: .bottom)
     }
 }
 
