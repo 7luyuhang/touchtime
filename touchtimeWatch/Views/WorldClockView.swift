@@ -52,7 +52,6 @@ struct WorldClockView: View {
                     .tag(Page.countdowns)
             }
             .tabViewStyle(.page)
-            .sensoryFeedback(.selection, trigger: page)
             // Over both pages, staying put as they swipe across
             .toolbar {
                 // While adjusting time, a reset button takes the analog clock
