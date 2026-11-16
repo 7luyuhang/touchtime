@@ -19,6 +19,11 @@ struct WorldClockView: View {
     /// The city whose details are showing, or empty for the list. Kept
     /// across launches; the list the first time, under the welcome sheet.
     @AppStorage("selectedCityID") private var selectedCityID = ""
+    /// The countdown whose details are showing, or nil for the list.
+    /// Selected, as a city is, rather than pushed: going back to the list,
+    /// pushed details sink away below a band of black, where selected ones
+    /// shrink into their row.
+    @State private var selectedCountdownID: WatchCountdown.ID?
     @AppStorage(CityDetailDisplay.storageKey) private var display: CityDetailDisplay = .worldClock
     @AppStorage(DefaultCityDetailDisplay.storageKey) private var defaultDisplay: DefaultCityDetailDisplay = .lastUsed
     /// When the app last stopped being active, or nil since it launched.
@@ -43,7 +48,7 @@ struct WorldClockView: View {
             TabView(selection: $page) {
                 CityListView(cities: cities, selection: selection(among: cities), adjustedDate: adjustedDate)
                     .tag(Page.cities)
-                CountdownListView()
+                CountdownListView(selection: countdownSelection)
                     .tag(Page.countdowns)
             }
             .tabViewStyle(.page)
@@ -80,7 +85,10 @@ struct WorldClockView: View {
                 SettingsView()
             }
         } detail: {
-            if let city = cities.first(where: { $0.id == selectedCityID }) {
+            if let countdown = cityStore.countdowns.first(where: { $0.id == selectedCountdownID }) {
+                CountdownDetailView(countdown: countdown)
+                    .id(countdown.id)
+            } else if let city = cities.first(where: { $0.id == selectedCityID }) {
                 CityDetailView(city: city, mapCities: cities, adjustedDate: $adjustedDate)
                     .id(city.id)
             }
@@ -129,6 +137,16 @@ struct WorldClockView: View {
             cities.contains { $0.id == selectedCityID } ? selectedCityID : nil
         } set: { id in
             selectedCityID = id ?? ""
+        }
+    }
+
+    /// Read back as the cities' selection is; nil, so the list shows, once
+    /// the countdown is gone from the iPhone.
+    private var countdownSelection: Binding<WatchCountdown.ID?> {
+        Binding {
+            cityStore.countdowns.contains { $0.id == selectedCountdownID } ? selectedCountdownID : nil
+        } set: { id in
+            selectedCountdownID = id
         }
     }
 

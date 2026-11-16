@@ -63,10 +63,17 @@ struct ClockTimeText: View {
     /// How far in from the leading edge the ink of `digits` starts, as a share
     /// of their width.
     private func leadingInkInset(of digits: String) -> CGFloat {
-        let ctFont = font.resolve(in: fontResolutionContext).ctFont
-        let line = CTLineCreateWithAttributedString(NSAttributedString(string: digits, attributes: [.font: ctFont]))
-        let width = CTLineGetBoundsWithOptions(line, []).width
-        guard width > 0 else { return 0 }
-        return CTLineGetBoundsWithOptions(line, .useGlyphPathBounds).minX / width
+        let metrics = font.resolve(in: fontResolutionContext).metrics(of: digits)
+        guard metrics.width > 0 else { return 0 }
+        return metrics.leadingInkInset / metrics.width
+    }
+}
+
+extension Font.Resolved {
+    /// How wide `text` is in this font, and how far in from its leading edge
+    /// its ink starts.
+    func metrics(of text: String) -> (width: CGFloat, leadingInkInset: CGFloat) {
+        let line = CTLineCreateWithAttributedString(NSAttributedString(string: text, attributes: [.font: ctFont]))
+        return (CTLineGetBoundsWithOptions(line, []).width, CTLineGetBoundsWithOptions(line, .useGlyphPathBounds).minX)
     }
 }

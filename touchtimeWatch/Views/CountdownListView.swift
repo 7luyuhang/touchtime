@@ -12,6 +12,8 @@ import UIKit
 /// with its cover emoji's colour, or its photo blurred. It opens the
 /// countdown's details, where the cover itself shows.
 struct CountdownListView: View {
+    @Binding var selection: WatchCountdown.ID?
+
     @Environment(WatchCityStore.self) private var cityStore
     @AppStorage(CountdownListFilter.storageKey) private var filter: CountdownListFilter = .all
 
@@ -25,10 +27,8 @@ struct CountdownListView: View {
         } else {
             // Each minute, so the counts turn over at midnight
             TimelineView(.everyMinute) { context in
-                List(countdowns) { countdown in
-                    NavigationLink {
-                        CountdownDetailView(countdown: countdown)
-                    } label: {
+                List(countdowns, selection: $selection) { countdown in
+                    NavigationLink(value: countdown.id) {
                         CountdownRow(countdown: countdown, now: context.date)
                     }
                     .listRowBackground(countdown.background.map { CountdownRowBackground(background: $0) })
@@ -118,11 +118,14 @@ struct CountdownDays: View {
     var size: Size = .list
 
     @Environment(WatchCityStore.self) private var cityStore
+    @Environment(\.fontResolutionContext) private var fontResolutionContext
 
     @ScaledMetric(relativeTo: .largeTitle) private var listDigitsSize: CGFloat = 36
     @ScaledMetric(relativeTo: .largeTitle) private var listUnitSize: CGFloat = 20
     @ScaledMetric(relativeTo: .largeTitle) private var largeDigitsSize: CGFloat = 40
     @ScaledMetric(relativeTo: .largeTitle) private var largeUnitSize: CGFloat = 22
+
+    private static let unitSpacing: CGFloat = 2
 
     /// Whole calendar days from `start` to `targetDate`; negative once the
     /// event has happened.
@@ -154,25 +157,33 @@ struct CountdownDays: View {
         }
     }
 
+    /// Proportional, unlike a clock's digits, as the count doesn't tick.
+    private var digitsFont: Font {
+        .system(size: digitsSize, design: .rounded)
+    }
+
+    private var unitFont: Font {
+        .system(size: unitSize, design: .rounded)
+    }
+
     /// The years, months or days to go, or gone, with the unit after them;
     /// Today on the day itself.
     @ViewBuilder
     private func countText(_ count: CountdownCount) -> some View {
-        // Proportional, unlike a clock's digits, as the count doesn't tick:
-        // a leading 1 starts in line with the title
-        let digitsFont = Font.system(size: digitsSize, design: .rounded)
         if count.value == 0 {
             Text("Today")
                 .font(digitsFont)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
         } else {
+            let digits = "\(abs(count.value))"
             let unit = Self.unitSymbol(for: count.unit)
-            HStack(alignment: .lastTextBaseline, spacing: 2) {
-                Text(verbatim: "\(abs(count.value))")
+            let inkInset = leadingInkInset(of: digits, before: unit)
+            HStack(alignment: .lastTextBaseline, spacing: Self.unitSpacing) {
+                Text(verbatim: digits)
                     .font(digitsFont)
                 Text(unit)
-                    .font(.system(size: unitSize, design: .rounded))
+                    .font(unitFont)
                     // Ideographs sink about a tenth of their size below the
                     // Latin baseline, so a CJK unit is lifted onto the
                     // digits' as a Latin one sits
@@ -180,9 +191,23 @@ struct CountdownDays: View {
             }
             .lineLimit(1)
             .minimumScaleFactor(0.5)
+            // The first digit's ink, rather than its box, starts at the
+            // leading edge, in line with the title; a share of the width, as
+            // the count can shrink to fit
+            .visualEffect { content, geometry in
+                content.offset(x: -inkInset * geometry.size.width)
+            }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Self.spokenCount(count))
         }
+    }
+
+    /// How far in from the leading edge the ink of `digits` starts, as a share
+    /// of the count's width, with `unit` after them.
+    private func leadingInkInset(of digits: String, before unit: String) -> CGFloat {
+        let digitsMetrics = digitsFont.resolve(in: fontResolutionContext).metrics(of: digits)
+        let unitWidth = unitFont.resolve(in: fontResolutionContext).metrics(of: unit).width
+        return digitsMetrics.leadingInkInset / (digitsMetrics.width + Self.unitSpacing + unitWidth)
     }
 
     /// Localized compact unit after the count: "y", "mo" or "d" in English,
