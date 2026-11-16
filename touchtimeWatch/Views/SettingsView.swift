@@ -6,16 +6,14 @@
 import SwiftUI
 
 /// The 24-Hour Format, Additional Time and Default View settings, how many
-/// cities the iPhone sent, which of its countdowns show, links to send
-/// feedback and share the app, and the app's version, whose icon opens
-/// About.
+/// cities the iPhone sent, links to send feedback and share the app, and the
+/// app's version, whose icon opens About.
 struct SettingsView: View {
     @Environment(WatchCityStore.self) private var cityStore
     @Environment(\.dismiss) private var dismiss
     @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
     @AppStorage(AdditionalTime.storageKey) private var additionalTime: AdditionalTime = .timeShift
     @AppStorage(DefaultCityDetailDisplay.storageKey) private var defaultDisplay: DefaultCityDetailDisplay = .lastUsed
-    @AppStorage(CountdownListFilter.storageKey) private var countdownListFilter: CountdownListFilter = .all
     @State private var showsAbout = false
     /// The app's icon at the end of the list, in global coordinates, for
     /// About to grow its icon out of and back into.
@@ -64,16 +62,6 @@ struct SettingsView: View {
                         .foregroundStyle(.secondary)
                 } footer: {
                     Text("Add, delete or arrange cities on iPhone.")
-                }
-
-                Section("Countdowns") {
-                    Picker("Countdowns View", selection: $countdownListFilter) {
-                        ForEach(CountdownListFilter.allCases) { option in
-                            Text(option.title)
-                                .tag(option)
-                        }
-                    }
-                    .pickerStyle(.navigationLink)
                 }
 
                 Link(

@@ -31,8 +31,6 @@ struct WatchCountdown: Codable, Identifiable, Hashable {
     let repeatFrequency: CountdownItem.RepeatFrequency
     /// When counting was paused, or nil while it counts.
     let pausedAt: Date?
-    /// Pinned to Home on the iPhone.
-    let isPinned: Bool
     /// The cover emoji, which a cover photo takes the place of.
     let emoji: String?
     /// The cover photo as framed in its badge, as a JPEG as sharp as the
