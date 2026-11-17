@@ -4,7 +4,8 @@
 //
 //  The app's root, laid out like the system World Clock: it opens on a
 //  city's details, with the list of cities a tap away. Chosen from the
-//  list's corner, the analog clock or the countdowns take the list's place.
+//  list's corner, the analog clock, the countdowns or the timer take the
+//  list's place.
 //
 
 import SwiftUI
@@ -26,8 +27,8 @@ struct WorldClockView: View {
     @State private var selectedCountdownID: WatchCountdown.ID?
     @AppStorage(CityDetailDisplay.storageKey) private var display: CityDetailDisplay = .worldClock
     @AppStorage(DefaultCityDetailDisplay.storageKey) private var defaultDisplay: DefaultCityDetailDisplay = .lastUsed
-    /// The list of cities, the analog clock or the countdowns, kept across
-    /// launches.
+    /// The list of cities, the analog clock, the countdowns or the timer,
+    /// kept across launches.
     @AppStorage(HomeDisplay.storageKey) private var homeDisplay: HomeDisplay = .list
     /// When the app last stopped being active, or nil since it launched.
     @State private var leftDate: Date?
@@ -54,6 +55,8 @@ struct WorldClockView: View {
                     AnalogClockHomeView(cities: cities, adjustedDate: $adjustedDate)
                 case .countdowns:
                     CountdownListView(selection: countdownSelection)
+                case .timer:
+                    TimerHomeView()
                 }
             }
             .toolbar {
@@ -90,7 +93,7 @@ struct WorldClockView: View {
                     CityDetailView(city: city, mapCities: cities, adjustedDate: $adjustedDate)
                         .id(city.id)
                 }
-            case .clock:
+            case .clock, .timer:
                 EmptyView()
             case .countdowns:
                 if let countdown = cityStore.countdowns.first(where: { $0.id == selectedCountdownID }) {

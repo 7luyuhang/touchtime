@@ -283,7 +283,8 @@ struct CityAnalogueView: View {
 }
 
 /// The face's measurements, in proportion to its diameter like a watch face's.
-private struct AnalogueDialLayout {
+/// The timer's ring keeps to them too, to count round it as the face does.
+struct AnalogueDialLayout {
     let diameter: CGFloat
 
     var radius: CGFloat { diameter / 2 }
@@ -520,7 +521,7 @@ private struct AnalogueHand: View {
 
 /// A bar with round ends on the line up from the middle of its frame, from
 /// `start` to `end` along it. Below the middle where `start` is negative.
-private struct RadialBar: InsettableShape {
+struct RadialBar: InsettableShape {
     var start: CGFloat
     var end: CGFloat
     let width: CGFloat

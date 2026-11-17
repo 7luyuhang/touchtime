@@ -5,12 +5,13 @@
 
 import SwiftUI
 
-/// What the app's home shows: the list of cities, the analog clock, or the
-/// countdowns.
+/// What the app's home shows: the list of cities, the analog clock, the
+/// countdowns, or the timer.
 enum HomeDisplay: String, CaseIterable, Identifiable {
     case list
     case clock
     case countdowns
+    case timer
 
     /// The view the home shows, as last chosen.
     static let storageKey = "watchHomeDisplay"
@@ -22,6 +23,7 @@ enum HomeDisplay: String, CaseIterable, Identifiable {
         case .list: "List"
         case .clock: "Clock"
         case .countdowns: "Countdowns"
+        case .timer: "Timer"
         }
     }
 
@@ -30,19 +32,29 @@ enum HomeDisplay: String, CaseIterable, Identifiable {
         case .list: "list.bullet"
         case .clock: "clock"
         case .countdowns: "hourglass"
+        case .timer: "timer"
         }
     }
 }
 
-/// A full-screen list of the home's views, with the current choice checked.
+/// The home's views full screen, each a pill that switches to it.
 struct HomeDisplayPicker: View {
     @Binding var selection: HomeDisplay
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
-            List(HomeDisplay.allCases) { display in
-                row(for: display)
+            ScrollView {
+                VStack {
+                    ForEach(HomeDisplay.allCases) { display in
+                        Button(display.title, systemImage: display.symbolName) {
+                            selection = display
+                            dismiss()
+                        }
+                        .buttonBorderShape(.capsule)
+                        .accessibilityAddTraits(selection == display ? .isSelected : [])
+                    }
+                }
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -52,25 +64,5 @@ struct HomeDisplayPicker: View {
                 }
             }
         }
-    }
-
-    private func row(for display: HomeDisplay) -> some View {
-        Button {
-            selection = display
-            dismiss()
-        } label: {
-            HStack {
-                Label(display.title, systemImage: display.symbolName)
-                    .symbolRenderingMode(.monochrome)
-                Spacer(minLength: 4)
-                if selection == display {
-                    Image(systemName: "checkmark")
-                        .fontWeight(.semibold)
-                        .foregroundStyle(.primary)
-                        .accessibilityHidden(true)
-                }
-            }
-        }
-        .accessibilityAddTraits(selection == display ? .isSelected : [])
     }
 }
