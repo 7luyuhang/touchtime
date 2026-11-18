@@ -45,4 +45,7 @@ nonisolated enum WatchSyncKeys {
     /// Display, which the countdowns count in: a `CountdownUnit`'s raw
     /// value.
     static let countdownUnit = "countdownUnit"
+    /// JSON-encoded `[WatchRecentTimer]`, in the order the iPhone's timer
+    /// sheet lists them under Recents.
+    static let recentTimers = "recentTimers"
 }

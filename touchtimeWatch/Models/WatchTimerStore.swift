@@ -106,6 +106,13 @@ final class WatchTimerStore: NSObject, UNUserNotificationCenterDelegate {
         refreshNotification(requestingAuthorization: true)
     }
 
+    /// Sets the timer to `seconds`, kept within its range as the iPhone
+    /// keeps a recent timer's, and starts it.
+    func start(seconds: Int) {
+        duration = min(max(seconds, 1), Self.maxSeconds)
+        start()
+    }
+
     func pause() {
         let now = Date.now
         guard case .running(let endDate) = phase(at: now) else { return }

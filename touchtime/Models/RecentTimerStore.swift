@@ -46,6 +46,7 @@ enum RecentTimerStore {
     static func save(_ timers: [RecentTimer]) {
         guard let data = try? JSONEncoder().encode(timers) else { return }
         UserDefaults.standard.set(data, forKey: storageKey)
+        WatchSyncManager.shared.sync()
     }
 
     /// Inserts a newly started timer at the front, capping the history size.

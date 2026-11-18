@@ -27,9 +27,11 @@ struct TimerHomeView: View {
     }
 
     @Environment(WatchTimerStore.self) private var timerStore
+    @Environment(WatchCityStore.self) private var cityStore
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     /// The box the Digital Crown turns, whose value the dot marks.
     @FocusState private var focusedField: Field?
+    @State private var showsRecents = false
 
     var body: some View {
         TimelineView(CountdownSchedule(endDate: timerStore.endDate)) { context in
@@ -87,6 +89,11 @@ struct TimerHomeView: View {
                 case .idle, .paused: .stop
                 case .finished: .success
                 }
+            }
+        }
+        .sheet(isPresented: $showsRecents) {
+            RecentTimersSheet { timer in
+                timerStore.start(seconds: timer.durationSeconds)
             }
         }
     }
@@ -215,15 +222,21 @@ struct TimerHomeView: View {
     }
 
     /// Start, Pause or Resume in the corner, as the system's time pickers
-    /// confirm there, across from Cancel, there all along but only to be
-    /// tapped once the timer's started.
+    /// confirm there, across from the iPhone's recent timers to start
+    /// instead, there once it's sent some, or Cancel once started.
     @ToolbarContentBuilder
     private func controls(for phase: WatchTimerStore.Phase) -> some ToolbarContent {
         ToolbarItemGroup(placement: .bottomBar) {
-            Button("Cancel", systemImage: "xmark") {
-                timerStore.cancel()
+            if phase == .idle {
+                Button("Recents", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
+                    showsRecents = true
+                }
+                .disabled(cityStore.recentTimers.isEmpty)
+            } else {
+                Button("Cancel", systemImage: "xmark") {
+                    timerStore.cancel()
+                }
             }
-            .disabled(phase == .idle)
             Spacer()
             switch phase {
             case .idle:
@@ -380,4 +393,5 @@ private nonisolated struct CountdownSchedule: TimelineSchedule {
         TimerHomeView()
     }
     .environment(WatchTimerStore())
+    .environment(WatchCityStore())
 }

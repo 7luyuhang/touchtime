@@ -3,17 +3,17 @@
 //  touchtimeWatch
 //
 //  The iPhone app's saved cities, date style, first day of the week,
-//  temperature, wind speed and pressure units, and countdowns and the unit
-//  they count in, received over WatchConnectivity.
+//  temperature, wind speed and pressure units, countdowns and the unit they
+//  count in, and recent timers, received over WatchConnectivity.
 //
 
 import Foundation
 import Observation
 import WatchConnectivity
 
-/// The cities and countdowns the watch shows: the iPhone app's saved lists,
-/// kept in the watch's own defaults so they're there right away on the next
-/// launch, even with the iPhone out of reach.
+/// The cities, countdowns and recent timers the watch shows: the iPhone
+/// app's saved lists, kept in the watch's own defaults so they're there
+/// right away on the next launch, even with the iPhone out of reach.
 @Observable
 final class WatchCityStore: NSObject, WCSessionDelegate {
     private(set) var cities: [WatchCity]
@@ -34,6 +34,9 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     /// The unit the countdowns count in: the largest one switched on in the
     /// iPhone app's countdown sheet's Time Display.
     private(set) var countdownUnit: CountdownUnit
+    /// The timers started on the iPhone, in the order its timer sheet lists
+    /// them under Recents.
+    private(set) var recentTimers: [WatchRecentTimer]
 
     private static let citiesKey = "cities"
     private static let dateStyleKey = "dateStyle"
@@ -43,6 +46,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     private static let pressureUnitKey = "pressureUnit"
     private static let countdownsKey = "countdowns"
     private static let countdownUnitKey = "countdownUnit"
+    private static let recentTimersKey = "recentTimers"
 
     override init() {
         let defaults = UserDefaults.standard
@@ -70,6 +74,9 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         // Days, as on the iPhone until its Time Display picks a larger unit
         countdownUnit = defaults.string(forKey: Self.countdownUnitKey).flatMap(CountdownUnit.init(rawValue:))
             ?? .days
+        // None until the iPhone first syncs
+        recentTimers = defaults.data(forKey: Self.recentTimersKey)
+            .flatMap { try? JSONDecoder().decode([WatchRecentTimer].self, from: $0) } ?? []
         super.init()
 
         if savedCities == nil {
@@ -91,7 +98,8 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         windSpeedUnit: String?,
         pressureUnit: String?,
         countdownsData: Data?,
-        countdownUnit: String?
+        countdownUnit: String?,
+        recentTimersData: Data?
     ) {
         let defaults = UserDefaults.standard
         if let citiesData,
@@ -144,6 +152,13 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             }
             defaults.set(countdownUnit.rawValue, forKey: Self.countdownUnitKey)
         }
+        if let recentTimersData,
+           let receivedRecentTimers = try? JSONDecoder().decode([WatchRecentTimer].self, from: recentTimersData) {
+            if receivedRecentTimers != recentTimers {
+                recentTimers = receivedRecentTimers
+            }
+            defaults.set(recentTimersData, forKey: Self.recentTimersKey)
+        }
     }
 
     nonisolated private func receive(_ context: [String: Any]) {
@@ -155,6 +170,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         let pressureUnit = context[WatchSyncKeys.pressureUnit] as? String
         let countdownsData = context[WatchSyncKeys.countdowns] as? Data
         let countdownUnit = context[WatchSyncKeys.countdownUnit] as? String
+        let recentTimersData = context[WatchSyncKeys.recentTimers] as? Data
         Task { @MainActor in
             self.apply(
                 citiesData: citiesData,
@@ -164,7 +180,8 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
                 windSpeedUnit: windSpeedUnit,
                 pressureUnit: pressureUnit,
                 countdownsData: countdownsData,
-                countdownUnit: countdownUnit
+                countdownUnit: countdownUnit,
+                recentTimersData: recentTimersData
             )
         }
     }

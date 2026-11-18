@@ -147,6 +147,7 @@
 				TimeZoneCoordinates.swift,
 				WatchCity.swift,
 				WatchCountdown.swift,
+				WatchRecentTimer.swift,
 				WeatherConditionHelper.swift,
 				WindSpeedUnit.swift,
 				WorldClock.swift,

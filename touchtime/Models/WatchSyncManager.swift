@@ -3,17 +3,18 @@
 //  touchtime
 //
 //  Sends the saved cities, the date style, the first day of the week, the
-//  temperature, wind speed and pressure units, and the countdowns and the
-//  unit they count in to the Apple Watch app.
+//  temperature, wind speed and pressure units, the countdowns and the unit
+//  they count in, and the recent timers to the Apple Watch app.
 //
 
 import Foundation
 import UIKit
 import WatchConnectivity
 
-/// Keeps the Apple Watch app's cities and countdowns in step with the
-/// iPhone's. The latest of them travel as the WatchConnectivity application
-/// context, which the watch receives even when its app isn't running.
+/// Keeps the Apple Watch app's cities, countdowns and recent timers in step
+/// with the iPhone's. The latest of them travel as the WatchConnectivity
+/// application context, which the watch receives even when its app isn't
+/// running.
 final class WatchSyncManager: NSObject, WCSessionDelegate {
     static let shared = WatchSyncManager()
 
@@ -36,8 +37,8 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
         session.activate()
     }
 
-    /// Sends `clocks`, or the saved cities when nil, and the saved
-    /// countdowns.
+    /// Sends `clocks`, or the saved cities when nil, the saved countdowns
+    /// and the recent timers.
     func sync(clocks: [WorldClock]? = nil) {
         guard let session,
               session.activationState == .activated,
@@ -45,7 +46,11 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
               session.isWatchAppInstalled else { return }
 
         let cities = (clocks ?? Self.savedClocks()).map { WatchCity($0) }
-        guard let citiesData = try? JSONEncoder().encode(cities) else { return }
+        let recentTimers = RecentTimerStore.load().map {
+            WatchRecentTimer(id: $0.id, name: $0.name, durationSeconds: $0.durationSeconds)
+        }
+        guard let citiesData = try? JSONEncoder().encode(cities),
+              let recentTimersData = try? JSONEncoder().encode(recentTimers) else { return }
         let countdowns = CountdownSortOrder.saved.sorted(Self.savedCountdowns())
 
         var context: [String: Any] = [
@@ -61,7 +66,8 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
             WatchSyncKeys.countdownUnit: CountdownUnit(
                 showYears: UserDefaults.standard.bool(forKey: "countdownShowYears"),
                 showMonths: UserDefaults.standard.bool(forKey: "countdownShowMonths")
-            ).rawValue
+            ).rawValue,
+            WatchSyncKeys.recentTimers: recentTimersData
         ]
         // The photos are most of it: past the size limit, the covers go,
         // then the thumbnails too, so the countdowns and everything else
