@@ -159,6 +159,8 @@ struct TimerHomeView: View {
             .frame(width: layout.boxSize, height: layout.boxSize)
             .overlay {
                 box.strokeBorder(isFocused ? Color.green : TimerDial.lineColor, lineWidth: isFocused ? 1.5 : 1)
+                    // Also as focus comes back after a sheet, outside any transaction of ours
+                    .animation(.smooth, value: isFocused)
             }
             .contentShape(box)
             .focusable()
@@ -243,7 +245,7 @@ struct TimerHomeView: View {
                 Button("Start", systemImage: "play.fill") {
                     timerStore.start()
                 }
-                .tint(.orange)
+                .tint(timerStore.duration == 0 ? nil : .orange)
                 .disabled(timerStore.duration == 0)
             case .running:
                 Button("Pause", systemImage: "pause.fill") {
