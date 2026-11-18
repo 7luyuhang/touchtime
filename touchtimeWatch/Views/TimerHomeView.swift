@@ -167,7 +167,7 @@ struct TimerHomeView: View {
             // The border shows the focus instead.
             .focusEffectDisabled()
             .focused($focusedField, equals: field)
-            .digitalCrownRotation(detent: crownValue, from: 0, through: 60, by: 1, sensitivity: .medium, isContinuous: true)
+            .digitalCrownRotation(detent: crownValue, from: 0, through: 60, by: 1, sensitivity: .low, isContinuous: true)
             // The indicator beside the crown goes with the scroll indicators,
             // and the number shows the turning instead.
             .scrollIndicators(.hidden)
