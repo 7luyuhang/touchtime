@@ -129,6 +129,8 @@ struct DotsGlobeCanvas: View, Animatable {
     /// Scales the globe's land dots' opacity, for a background that washes
     /// them out, like the watch's daytime sky. The flat map keeps the map's.
     let landDotOpacityScale: Double
+    /// Whether a faint line rings the globe.
+    let showsOutline: Bool
 
     /// Where the sun is overhead, which animates like the map's, sweeping
     /// the terminator and the night side along when the time animates.
@@ -141,7 +143,8 @@ struct DotsGlobeCanvas: View, Animatable {
         orientation: GlobeOrientation,
         mapFrame: CGRect? = nil,
         highlightedTimeZoneIdentifier: String? = nil,
-        landDotOpacityScale: Double = 1
+        landDotOpacityScale: Double = 1,
+        showsOutline: Bool = false
     ) {
         self.timeZoneIdentifiers = timeZoneIdentifiers
         self.orientation = orientation
@@ -149,6 +152,7 @@ struct DotsGlobeCanvas: View, Animatable {
         self.mapFrame = mapFrame
         self.highlightedTimeZoneIdentifier = highlightedTimeZoneIdentifier
         self.landDotOpacityScale = landDotOpacityScale
+        self.showsOutline = showsOutline
         let subsolar = SolarCalculator.subsolarPoint(date: date)
         subsolarPoint = DotsWorldMapCanvas.SubsolarPoint(latitude: subsolar.latitude, longitude: subsolar.longitude)
     }
@@ -299,8 +303,8 @@ struct DotsGlobeCanvas: View, Animatable {
         dots.fill(in: context)
 
         // Over the dots, as on the map. The map's terminator is gone before
-        // the map has moved much, and the globe's shows up only once the map
-        // has wrapped up
+        // the map has moved much, and the globe's, with its outline, shows up
+        // only once the map has wrapped up
         let mapTerminatorOpacity = 1 - smoothstep(0, 0.15, morph)
         if mapTerminatorOpacity > 0 {
             var terminatorContext = context
@@ -319,6 +323,9 @@ struct DotsGlobeCanvas: View, Animatable {
             var terminatorContext = context
             terminatorContext.opacity = globeTerminatorOpacity
             drawGlobeTerminator(in: terminatorContext, globe: surface.globe, subsolar: subsolar)
+            if showsOutline {
+                drawGlobeOutline(in: terminatorContext, globe: surface.globe)
+            }
         }
     }
 
@@ -388,14 +395,8 @@ struct DotsGlobeCanvas: View, Animatable {
         var curveContext = context
         curveContext.blendMode = .plusLighter
         curveContext.clipToLayer { mask in
-            let globeRect = CGRect(
-                x: globe.center.x - globe.radius,
-                y: globe.center.y - globe.radius,
-                width: globe.radius * 2,
-                height: globe.radius * 2
-            )
             mask.fill(
-                Path(ellipseIn: globeRect),
+                Path(ellipseIn: globe.bounds),
                 with: .radialGradient(Self.terminatorRimFade, center: globe.center, startRadius: 0, endRadius: globe.radius)
             )
         }
@@ -403,6 +404,17 @@ struct DotsGlobeCanvas: View, Animatable {
             curve,
             with: .color(.white.opacity(0.25)),
             style: StrokeStyle(lineWidth: 1.5, lineCap: .round, lineJoin: .round)
+        )
+    }
+
+    /// The globe's rim, stroked like the terminator but fainter.
+    private func drawGlobeOutline(in context: GraphicsContext, globe: GlobeProjection) {
+        var outlineContext = context
+        outlineContext.blendMode = .plusLighter
+        outlineContext.stroke(
+            Path(ellipseIn: globe.bounds),
+            with: .color(.white.opacity(0.1)),
+            lineWidth: 1.5
         )
     }
 
@@ -488,6 +500,11 @@ struct GlobeProjection {
         east = SIMD3(-sin(yaw), cos(yaw), 0)
         north = SIMD3(-sin(pitch) * cos(yaw), -sin(pitch) * sin(yaw), cos(pitch))
         forward = SIMD3(cos(pitch) * cos(yaw), cos(pitch) * sin(yaw), sin(pitch))
+    }
+
+    /// The square around the globe's disc.
+    var bounds: CGRect {
+        CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)
     }
 
     /// For a point on the unit sphere: its screen offset from the centre in

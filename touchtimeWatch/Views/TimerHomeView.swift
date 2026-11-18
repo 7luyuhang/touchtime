@@ -49,7 +49,8 @@ struct TimerHomeView: View {
                             layout: layout,
                             markedValue: focusedField == .seconds ? timerStore.duration % 60 : timerStore.duration / 60,
                             showsMark: phase == .idle,
-                            litTicks: (remaining + 59) / 60
+                            litTicks: (remaining + 59) / 60,
+                            glows: phase != .idle && !isLuminanceReduced
                         )
                         .accessibilityHidden(true)
 
@@ -280,7 +281,8 @@ private extension AnalogueDialLayout {
 /// every fifth one longer, and inside them the fives, in two figures as the
 /// boxes' numbers are, from 00 at the top rather than 60. While the timer's
 /// set, a dot stands in for the tick of the value being set; while it runs, a
-/// tick is lit from the top for each minute left.
+/// tick is lit from the top for each minute left, the ring glowing behind
+/// them.
 private struct TimerDial: View {
     /// The ring's edges, and the boxes' unless focused.
     static let lineColor = Color.white.opacity(0.2)
@@ -290,6 +292,9 @@ private struct TimerDial: View {
     let markedValue: Int
     let showsMark: Bool
     let litTicks: Int
+    /// Whether the ring glows behind the lit ticks, as it does once started,
+    /// paused too, with the wrist up.
+    let glows: Bool
     /// The dot's place, which counts on past 59 and back below 0, for the
     /// dot to go on round to the value rather than back the long way, and
     /// which stays where the dot went while it's gone.
@@ -297,6 +302,25 @@ private struct TimerDial: View {
 
     var body: some View {
         ZStack {
+            // From the top to midway between the last lit tick and the next,
+            // orange at the ring's outer edge fading out by its inner one
+            Circle()
+                .inset(by: layout.ringWidth / 2)
+                .trim(from: 0, to: max(0, Double(litTicks) - 0.5) / 60)
+                .stroke(
+                    RadialGradient(
+                        colors: [.orange.opacity(0), .orange.opacity(0.25)],
+                        center: .center,
+                        startRadius: layout.innerRadius,
+                        endRadius: layout.radius
+                    ),
+                    style: StrokeStyle(lineWidth: layout.ringWidth)
+                )
+                .rotationEffect(.degrees(-90))
+                .opacity(glows ? 1 : 0)
+                .animation(.smooth, value: litTicks)
+                .animation(.smooth, value: glows)
+
             layout.ring
                 .stroke(Self.lineColor, lineWidth: 1)
 

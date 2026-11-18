@@ -222,7 +222,8 @@ private struct CityGlobePane: View {
                 orientation: motion.orientation(at: context.date, spinSpeed: spinSpeed),
                 mapFrame: mapFrame,
                 highlightedTimeZoneIdentifier: highlightedTimeZoneIdentifier,
-                landDotOpacityScale: Self.landDotOpacityScale
+                landDotOpacityScale: Self.landDotOpacityScale,
+                showsOutline: true
             )
         }
         .onGeometryChange(for: CGSize.self) { proxy in
