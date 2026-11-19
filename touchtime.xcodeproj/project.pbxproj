@@ -13,6 +13,7 @@
 		E100000000000000000000AD /* touchtimeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E100000000000000000000A1 /* touchtimeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E200000000000000000000AD /* touchtimeCaptureExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = E200000000000000000000A1 /* touchtimeCaptureExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E300000000000000000000AD /* touchtimeWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = E300000000000000000000A1 /* touchtimeWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		E400000000000000000000AD /* touchtimeWatchWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E400000000000000000000A1 /* touchtimeWatchWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -36,6 +37,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = E300000000000000000000A2;
 			remoteInfo = touchtimeWatch;
+		};
+		E400000000000000000000AE /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5A42D3702E82CDCE0048963E /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E400000000000000000000A2;
+			remoteInfo = touchtimeWatchWidgetExtension;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -73,6 +81,17 @@
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E400000000000000000000AC /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				E400000000000000000000AD /* touchtimeWatchWidgetExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -81,6 +100,7 @@
 		E100000000000000000000A1 /* touchtimeWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = touchtimeWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E200000000000000000000A1 /* touchtimeCaptureExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.extensionkit-extension"; includeInIndex = 0; path = touchtimeCaptureExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		E300000000000000000000A1 /* touchtimeWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = touchtimeWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E400000000000000000000A1 /* touchtimeWatchWidgetExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = touchtimeWatchWidgetExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -154,6 +174,46 @@
 			);
 			target = E300000000000000000000A2 /* touchtimeWatch */;
 		};
+		E400000000000000000000AB /* Exceptions for "touchtimeWatchWidgetExtension" folder in "touchtimeWatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = E400000000000000000000A2 /* touchtimeWatchWidgetExtension */;
+		};
+		E400000000000000000000B0 /* Exceptions for "Shared" folder in "touchtimeWatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				DateFormatting.swift,
+				SkyColorGradient.swift,
+				SolarCalculator.swift,
+				TimeZoneCoordinates.swift,
+				WatchCity.swift,
+				WeatherConditionHelper.swift,
+				WorldClock.swift,
+			);
+			target = E400000000000000000000A2 /* touchtimeWatchWidgetExtension */;
+		};
+		E400000000000000000000B1 /* Exceptions for "touchtimeWatch" folder in "touchtimeWatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Localizable.xcstrings,
+				Models/AdditionalTime.swift,
+				Models/ClockCity.swift,
+				Models/WatchTimeFormat.swift,
+				Models/WatchWidgetStore.swift,
+				Views/CityCard.swift,
+				Views/ClockTimeText.swift,
+			);
+			target = E400000000000000000000A2 /* touchtimeWatchWidgetExtension */;
+		};
+		E400000000000000000000B2 /* Exceptions for "touchtimeWidgetExtension" folder in "touchtimeWatchWidgetExtension" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				WidgetStarsView.swift,
+			);
+			target = E400000000000000000000A2 /* touchtimeWatchWidgetExtension */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -171,6 +231,7 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				E100000000000000000000AB /* Exceptions for "touchtimeWidgetExtension" folder in "touchtimeWidgetExtension" target */,
+				E400000000000000000000B2 /* Exceptions for "touchtimeWidgetExtension" folder in "touchtimeWatchWidgetExtension" target */,
 			);
 			path = touchtimeWidgetExtension;
 			sourceTree = "<group>";
@@ -180,6 +241,7 @@
 			exceptions = (
 				E200000000000000000000B1 /* Exceptions for "Shared" folder in "touchtimeCaptureExtension" target */,
 				E300000000000000000000B1 /* Exceptions for "Shared" folder in "touchtimeWatch" target */,
+				E400000000000000000000B0 /* Exceptions for "Shared" folder in "touchtimeWatchWidgetExtension" target */,
 			);
 			path = Shared;
 			sourceTree = "<group>";
@@ -194,7 +256,18 @@
 		};
 		E300000000000000000000A9 /* touchtimeWatch */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E400000000000000000000B1 /* Exceptions for "touchtimeWatch" folder in "touchtimeWatchWidgetExtension" target */,
+			);
 			path = touchtimeWatch;
+			sourceTree = "<group>";
+		};
+		E400000000000000000000A9 /* touchtimeWatchWidgetExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E400000000000000000000AB /* Exceptions for "touchtimeWatchWidgetExtension" folder in "touchtimeWatchWidgetExtension" target */,
+			);
+			path = touchtimeWatchWidgetExtension;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -231,6 +304,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E400000000000000000000A4 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -242,6 +322,7 @@
 				E100000000000000000000A9 /* touchtimeWidgetExtension */,
 				E200000000000000000000A9 /* touchtimeCaptureExtension */,
 				E300000000000000000000A9 /* touchtimeWatch */,
+				E400000000000000000000A9 /* touchtimeWatchWidgetExtension */,
 				5A42D3792E82CDCE0048963E /* Products */,
 				5AEB89DD2EA8FA7A0089C60A /* Frameworks */,
 			);
@@ -254,6 +335,7 @@
 				E100000000000000000000A1 /* touchtimeWidgetExtension.appex */,
 				E200000000000000000000A1 /* touchtimeCaptureExtension.appex */,
 				E300000000000000000000A1 /* touchtimeWatch.app */,
+				E400000000000000000000A1 /* touchtimeWatchWidgetExtension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -352,10 +434,12 @@
 				E300000000000000000000A3 /* Sources */,
 				E300000000000000000000A4 /* Frameworks */,
 				E300000000000000000000A5 /* Resources */,
+				E400000000000000000000AC /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				E400000000000000000000AF /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				E300000000000000000000A9 /* touchtimeWatch */,
@@ -366,6 +450,28 @@
 			productName = touchtimeWatch;
 			productReference = E300000000000000000000A1 /* touchtimeWatch.app */;
 			productType = "com.apple.product-type.application";
+		};
+		E400000000000000000000A2 /* touchtimeWatchWidgetExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = E400000000000000000000A6 /* Build configuration list for PBXNativeTarget "touchtimeWatchWidgetExtension" */;
+			buildPhases = (
+				E400000000000000000000A3 /* Sources */,
+				E400000000000000000000A4 /* Frameworks */,
+				E400000000000000000000A5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				E400000000000000000000A9 /* touchtimeWatchWidgetExtension */,
+			);
+			name = touchtimeWatchWidgetExtension;
+			packageProductDependencies = (
+			);
+			productName = touchtimeWatchWidgetExtension;
+			productReference = E400000000000000000000A1 /* touchtimeWatchWidgetExtension.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -387,6 +493,9 @@
 						CreatedOnToolsVersion = 26.0;
 					};
 					E300000000000000000000A2 = {
+						CreatedOnToolsVersion = 26.0;
+					};
+					E400000000000000000000A2 = {
 						CreatedOnToolsVersion = 26.0;
 					};
 				};
@@ -417,6 +526,7 @@
 				E100000000000000000000A2 /* touchtimeWidgetExtension */,
 				E200000000000000000000A2 /* touchtimeCaptureExtension */,
 				E300000000000000000000A2 /* touchtimeWatch */,
+				E400000000000000000000A2 /* touchtimeWatchWidgetExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -444,6 +554,13 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		E300000000000000000000A5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E400000000000000000000A5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -481,6 +598,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		E400000000000000000000A3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -498,6 +622,11 @@
 			isa = PBXTargetDependency;
 			target = E300000000000000000000A2 /* touchtimeWatch */;
 			targetProxy = E300000000000000000000AE /* PBXContainerItemProxy */;
+		};
+		E400000000000000000000AF /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E400000000000000000000A2 /* touchtimeWatchWidgetExtension */;
+			targetProxy = E400000000000000000000AE /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -882,6 +1011,7 @@
 				MARKETING_VERSION = 2.1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.time.touchtime.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -918,6 +1048,71 @@
 				MARKETING_VERSION = 2.1.7;
 				PRODUCT_BUNDLE_IDENTIFIER = com.time.touchtime.watchkitapp;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Release;
+		};
+		E400000000000000000000A7 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = touchtimeWatchWidgetExtension/touchtimeWatchWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 263;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = touchtimeWatchWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Touch Time";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.1.7;
+				PRODUCT_BUNDLE_IDENTIFIER = com.time.touchtime.watchkitapp.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 26.0;
+			};
+			name = Debug;
+		};
+		E400000000000000000000A8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = touchtimeWatchWidgetExtension/touchtimeWatchWidgetExtension.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 263;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = touchtimeWatchWidgetExtension/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = "Touch Time";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 2.1.7;
+				PRODUCT_BUNDLE_IDENTIFIER = com.time.touchtime.watchkitapp.widget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -975,6 +1170,15 @@
 			buildConfigurations = (
 				E300000000000000000000A7 /* Debug */,
 				E300000000000000000000A8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		E400000000000000000000A6 /* Build configuration list for PBXNativeTarget "touchtimeWatchWidgetExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				E400000000000000000000A7 /* Debug */,
+				E400000000000000000000A8 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

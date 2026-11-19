@@ -128,5 +128,11 @@ struct SettingsView: View {
                 }
             }
         }
+        .onChange(of: use24HourFormat) {
+            WatchWidgetStore.saveSettings()
+        }
+        .onChange(of: additionalTime) {
+            WatchWidgetStore.saveSettings()
+        }
     }
 }

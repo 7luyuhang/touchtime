@@ -14,6 +14,10 @@ struct ClockTimeText: View {
         case large
         /// A clock's time in the city list.
         case list
+        /// A clock's time in the City Time widget, as big as in the list at
+        /// the default text size. The widget can get a smaller text size than
+        /// the app, so a size scaled with it would come out smaller there.
+        case widget
         /// A prominent time inside a chart or ring.
         case title
         /// A time in a full-width detail row.
@@ -30,8 +34,11 @@ struct ClockTimeText: View {
     /// as wide as the widest, so a 1 otherwise starts well in from the edge.
     var alignsLeadingInk = false
 
+    /// The list's digits at the default text size.
+    private static let listDigitsDefaultSize: CGFloat = 36
+
     @ScaledMetric(relativeTo: .largeTitle) private var largeDigitsSize: CGFloat = 40
-    @ScaledMetric(relativeTo: .largeTitle) private var listDigitsSize: CGFloat = 36
+    @ScaledMetric(relativeTo: .largeTitle) private var listDigitsSize = ClockTimeText.listDigitsDefaultSize
     @AppStorage(WatchTimeFormat.use24HourFormatKey) private var use24HourFormat = WatchTimeFormat.systemUses24HourFormat
     @Environment(\.fontResolutionContext) private var fontResolutionContext
 
@@ -54,6 +61,7 @@ struct ClockTimeText: View {
         switch size {
         case .large: .system(size: largeDigitsSize, design: .rounded).monospacedDigit()
         case .list: .system(size: listDigitsSize, design: .rounded).monospacedDigit()
+        case .widget: .system(size: Self.listDigitsDefaultSize, design: .rounded).monospacedDigit()
         case .title: .system(.title3, design: .rounded, weight: .medium).monospacedDigit()
         case .medium: .system(.body, design: .rounded, weight: .medium).monospacedDigit()
         case .small: .system(.caption2, design: .rounded, weight: .medium).monospacedDigit()

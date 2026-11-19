@@ -197,6 +197,7 @@ final class WatchWeatherStore {
                     days: days,
                     fetchDate: .now
                 )
+                WatchWidgetStore.save(current.condition, for: identifier)
             } catch {
                 print("Failed to fetch weather for \(identifier): \(error)")
                 // Older weather still beats none.

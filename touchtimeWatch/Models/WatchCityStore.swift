@@ -83,6 +83,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             // Saved, so the selected city is still there after a relaunch
             defaults.set(try? JSONEncoder().encode(cities), forKey: Self.citiesKey)
         }
+        WatchWidgetStore.save(cities: cities, dateStyle: dateStyle)
 
         if WCSession.isSupported() {
             WCSession.default.delegate = self
@@ -115,6 +116,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             }
             defaults.set(dateStyle, forKey: Self.dateStyleKey)
         }
+        WatchWidgetStore.save(cities: cities, dateStyle: self.dateStyle)
         if let firstWeekday, (1...7).contains(firstWeekday) {
             if firstWeekday != self.firstWeekday {
                 self.firstWeekday = firstWeekday
