@@ -5,9 +5,9 @@
 //  The timer, in the list's place once chosen. Its minutes and seconds are
 //  set in two boxes the Digital Crown turns, inside the analogue face's
 //  ring as it counts the seconds round it, with a dot round the ring at the
-//  value being set, as on the system's time pickers. Running, the time left
-//  counts down in the boxes' place, with a tick lit round the ring for
-//  each minute of it.
+//  value being set, as on the system's time pickers, or set straight to one
+//  of the ring's numbers with a tap. Running, the time left counts down in
+//  the boxes' place, with a tick lit round the ring for each minute of it.
 //
 
 import SwiftUI
@@ -47,9 +47,10 @@ struct TimerHomeView: View {
                     ZStack {
                         TimerDial(
                             layout: layout,
-                            markedValue: focusedField == .seconds ? timerStore.duration % 60 : timerStore.duration / 60,
+                            markedValue: value(of: markedField).wrappedValue,
                             showsMark: phase == .idle,
-                            litTicks: (remaining + 59) / 60
+                            litTicks: (remaining + 59) / 60,
+                            onNumberTap: { value(of: markedField).wrappedValue = $0 }
                         )
                         .accessibilityHidden(true)
 
@@ -109,24 +110,38 @@ struct TimerHomeView: View {
         }
     }
 
-    /// The minutes and seconds the timer's set to, each up to 59, as on
-    /// iPhone, with the minutes' taking the Digital Crown first.
-    private func numberBoxes(layout: AnalogueDialLayout) -> some View {
-        let minutes = Binding {
-            timerStore.duration / 60
-        } set: { minutes in
-            timerStore.duration = minutes * 60 + timerStore.duration % 60
-        }
-        let seconds = Binding {
-            timerStore.duration % 60
-        } set: { seconds in
-            timerStore.duration = timerStore.duration / 60 * 60 + seconds
-        }
+    /// The box whose value the dot marks and a tap on one of the ring's
+    /// numbers sets: the minutes' unless the seconds' is focused.
+    private var markedField: Field {
+        focusedField ?? .minutes
+    }
 
-        return HStack(alignment: .firstTextBaseline, spacing: 0) {
-            numberBox("Minutes", value: minutes, field: .minutes, layout: layout)
+    /// The minutes or the seconds the timer's set to, each up to 59, as on
+    /// iPhone.
+    private func value(of field: Field) -> Binding<Int> {
+        switch field {
+        case .minutes:
+            Binding {
+                timerStore.duration / 60
+            } set: { minutes in
+                timerStore.duration = minutes * 60 + timerStore.duration % 60
+            }
+        case .seconds:
+            Binding {
+                timerStore.duration % 60
+            } set: { seconds in
+                timerStore.duration = timerStore.duration / 60 * 60 + seconds
+            }
+        }
+    }
+
+    /// The minutes and seconds the timer's set to, with the minutes' taking
+    /// the Digital Crown first.
+    private func numberBoxes(layout: AnalogueDialLayout) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 0) {
+            numberBox("Minutes", value: value(of: .minutes), field: .minutes, layout: layout)
             colon(layout: layout)
-            numberBox("Seconds", value: seconds, field: .seconds, layout: layout)
+            numberBox("Seconds", value: value(of: .seconds), field: .seconds, layout: layout)
         }
         .onAppear {
             focusedField = .minutes
@@ -273,6 +288,9 @@ private extension AnalogueDialLayout {
     var colonDotGap: CGFloat { boxFontSize * 0.2 }
     /// The time left's, bigger, without the boxes round it.
     var countdownFontSize: CGFloat { innerRadius * 0.5 }
+    /// How far from one of the ring's numbers a tap sets its value: halfway
+    /// to the next number round.
+    var numberReach: CGFloat { secondNumberRadius * sin(.pi / 12) }
 }
 
 /// The analogue face's ring as it counts the seconds round it once tapped,
@@ -290,10 +308,15 @@ private struct TimerDial: View {
     let markedValue: Int
     let showsMark: Bool
     let litTicks: Int
+    /// Called with a number's value, 0 to 55, for a tap on it while the
+    /// timer's set.
+    let onNumberTap: (Int) -> Void
     /// The dot's place, which counts on past 59 and back below 0, for the
     /// dot to go on round to the value rather than back the long way, and
     /// which stays where the dot went while it's gone.
     @State private var markPosition: Int?
+    /// Taps on the numbers, each felt, as the Digital Crown's turns are.
+    @State private var numberTaps = 0
 
     var body: some View {
         ZStack {
@@ -340,6 +363,13 @@ private struct TimerDial: View {
         }
         .animation(.smooth, value: markedValue)
         .frame(width: layout.diameter, height: layout.diameter)
+        .contentShape(.circle)
+        .onTapGesture(coordinateSpace: .local) { location in
+            guard showsMark, let value = value(tappedAt: location) else { return }
+            numberTaps += 1
+            onNumberTap(value)
+        }
+        .sensoryFeedback(.selection, trigger: numberTaps)
         .onAppear {
             markPosition = markedValue
         }
@@ -358,6 +388,15 @@ private struct TimerDial: View {
                 markPosition = markedValue
             }
         }
+    }
+
+    /// The value of the number a tap at `location` is within reach of.
+    private func value(tappedAt location: CGPoint) -> Int? {
+        let hour = (1...12).first { hour in
+            let number = layout.point(atHour: hour, radius: layout.secondNumberRadius)
+            return hypot(number.x - location.x, number.y - location.y) <= layout.numberReach
+        }
+        return hour.map { $0 * 5 % 60 }
     }
 
     /// The ticks light one after another round from the top, and go out the
