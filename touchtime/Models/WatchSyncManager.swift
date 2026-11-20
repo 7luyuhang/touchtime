@@ -2,9 +2,9 @@
 //  WatchSyncManager.swift
 //  touchtime
 //
-//  Sends the saved cities, the date style, the first day of the week, the
-//  temperature, wind speed and pressure units, the countdowns and the unit
-//  they count in, and the recent timers to the Apple Watch app.
+//  Sends the saved cities and collections, the date style, the first day of
+//  the week, the temperature, wind speed and pressure units, the countdowns
+//  and the unit they count in, and the recent timers to the Apple Watch app.
 //
 
 import Foundation
@@ -37,8 +37,8 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
         session.activate()
     }
 
-    /// Sends `clocks`, or the saved cities when nil, the saved countdowns
-    /// and the recent timers.
+    /// Sends `clocks`, or the saved cities when nil, the saved collections
+    /// and countdowns, and the recent timers.
     func sync(clocks: [WorldClock]? = nil) {
         guard let session,
               session.activationState == .activated,
@@ -46,15 +46,20 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
               session.isWatchAppInstalled else { return }
 
         let cities = (clocks ?? Self.savedClocks()).map { WatchCity($0) }
+        let collections = CollectionsStore.load().map {
+            WatchCollection(id: $0.id, name: $0.name, cities: $0.cities.map { WatchCity($0) })
+        }
         let recentTimers = RecentTimerStore.load().map {
             WatchRecentTimer(id: $0.id, name: $0.name, durationSeconds: $0.durationSeconds)
         }
         guard let citiesData = try? JSONEncoder().encode(cities),
+              let collectionsData = try? JSONEncoder().encode(collections),
               let recentTimersData = try? JSONEncoder().encode(recentTimers) else { return }
         let countdowns = CountdownSortOrder.saved.sorted(Self.savedCountdowns())
 
         var context: [String: Any] = [
             WatchSyncKeys.cities: citiesData,
+            WatchSyncKeys.collections: collectionsData,
             WatchSyncKeys.dateStyle: UserDefaults.standard.string(forKey: "dateStyle") ?? "Relative",
             WatchSyncKeys.firstWeekday: UserDefaults.standard.object(forKey: SharedWidgetStore.firstWeekdayKey) as? Int
                 ?? SharedWidgetStore.defaultFirstWeekday,

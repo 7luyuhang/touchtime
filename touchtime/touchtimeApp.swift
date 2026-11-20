@@ -117,8 +117,9 @@ struct touchtimeApp: App {
                 // Keep the widget's city list and time format up to date
                 SharedWidgetStore.syncFromApp()
                 WidgetCenter.shared.reloadAllTimelines()
-                // And the Apple Watch app's cities, date style, first day of
-                // the week, units and countdowns, whichever screen changed them
+                // And the Apple Watch app's cities, collections, date style,
+                // first day of the week, units and countdowns, whichever screen
+                // changed them
                 WatchSyncManager.shared.sync()
             }
         }

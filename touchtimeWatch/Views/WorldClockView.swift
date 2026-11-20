@@ -3,9 +3,10 @@
 //  touchtimeWatch
 //
 //  The app's root, laid out like the system World Clock: it opens on a
-//  city's details, with the list of cities a tap away. Chosen from the
-//  list's corner, the analog clock, the countdowns or the timer take the
-//  list's place.
+//  city's details, with the list of cities a tap away. The iPhone's
+//  collections each get a page of the list, to the right of every city's.
+//  Chosen from the list's corner, the analog clock, the countdowns or the
+//  timer take the list's place.
 //
 
 import SwiftUI
@@ -20,6 +21,9 @@ struct WorldClockView: View {
     /// The city whose details are showing, or empty for the list. Kept
     /// across launches; the list the first time, under the welcome sheet.
     @AppStorage("selectedCityID") private var selectedCityID = ""
+    /// The collection whose page the list is on, or empty for every city's.
+    /// Kept across launches.
+    @AppStorage("selectedCollectionID") private var selectedCollectionID = ""
     /// The countdown whose details are showing, or nil for the list.
     /// Selected, as a city is, rather than pushed: going back to the list,
     /// pushed details sink away below a band of black, where selected ones
@@ -45,12 +49,14 @@ struct WorldClockView: View {
 
     var body: some View {
         let cities = [ClockCity.local] + cityStore.cities.map { ClockCity($0) }
+        // The cities on the list's page, which a city's details dot on the map
+        let pageCities = selectedCollection.map(Self.cities(in:)) ?? cities
 
         NavigationSplitView {
             Group {
                 switch homeDisplay {
                 case .list:
-                    CityListView(cities: cities, selection: selection(among: cities), adjustedDate: adjustedDate)
+                    cityList(cities)
                 case .clock:
                     AnalogClockHomeView(cities: cities, adjustedDate: $adjustedDate)
                 case .countdowns:
@@ -81,7 +87,8 @@ struct WorldClockView: View {
                     }
                 }
             }
-            .toolbarForegroundStyle(.primary, for: .navigationBar)
+            // Here rather than on the collections' pages, which this one would override
+            .toolbarForegroundStyle(homeDisplay == .list && selectedCollection != nil ? .yellow : Color.primary, for: .navigationBar)
             .sensoryFeedback(.impact(flexibility: .soft), trigger: currentTimeTaps)
             .sheet(isPresented: $showsSettings) {
                 SettingsView()
@@ -89,8 +96,8 @@ struct WorldClockView: View {
         } detail: {
             switch homeDisplay {
             case .list:
-                if let city = cities.first(where: { $0.id == selectedCityID }) {
-                    CityDetailView(city: city, mapCities: cities, adjustedDate: $adjustedDate)
+                if let city = pageCities.first(where: { $0.id == selectedCityID }) {
+                    CityDetailView(city: city, mapCities: pageCities, adjustedDate: $adjustedDate)
                         .id(city.id)
                 }
             case .clock, .timer:
@@ -143,15 +150,63 @@ struct WorldClockView: View {
         }
     }
 
+    /// Every city's list, then a page to its right for each of the iPhone's
+    /// collections, titled with the collection's name.
+    @ViewBuilder
+    private func cityList(_ cities: [ClockCity]) -> some View {
+        let allCitiesList = CityListView(cities: cities, selection: selection(among: cities, in: nil), adjustedDate: adjustedDate)
+        if cityStore.collections.isEmpty {
+            allCitiesList
+        } else {
+            TabView(selection: collectionSelection) {
+                allCitiesList
+                    .tag(WatchCollection.ID?.none)
+                ForEach(cityStore.collections) { collection in
+                    let collectionCities = Self.cities(in: collection)
+                    CityListView(
+                        cities: collectionCities,
+                        selection: selection(among: collectionCities, in: collection.id),
+                        adjustedDate: adjustedDate
+                    )
+                    .tag(Optional(collection.id))
+                }
+            }
+            .tabViewStyle(.page)
+            .navigationTitle(selectedCollection?.name ?? "")
+        }
+    }
+
     /// The split view reads the selection back through this binding right
     /// after its list button clears it, so the getter reads the stored ID
-    /// rather than a city looked up when the body ran.
-    private func selection(among cities: [ClockCity]) -> Binding<String?> {
+    /// rather than a city looked up when the body ran. Only the page showing
+    /// has the selection, so the details shrink back into its row, not into
+    /// the same city's row on another page.
+    private func selection(among cities: [ClockCity], in collectionID: WatchCollection.ID?) -> Binding<String?> {
         Binding {
-            cities.contains { $0.id == selectedCityID } ? selectedCityID : nil
+            selectedCollection?.id == collectionID && cities.contains { $0.id == selectedCityID } ? selectedCityID : nil
         } set: { id in
             selectedCityID = id ?? ""
         }
+    }
+
+    private var collectionSelection: Binding<WatchCollection.ID?> {
+        Binding {
+            selectedCollection?.id
+        } set: { id in
+            selectedCollectionID = id?.uuidString ?? ""
+        }
+    }
+
+    /// Nil for every city's page, which the list goes back to once the
+    /// collection is gone from the iPhone.
+    private var selectedCollection: WatchCollection? {
+        cityStore.collections.first { $0.id.uuidString == selectedCollectionID }
+    }
+
+    /// Local, then `collection`'s cities, as every city's page starts with
+    /// Local too.
+    private static func cities(in collection: WatchCollection) -> [ClockCity] {
+        [ClockCity.local] + collection.cities.map { ClockCity($0) }
     }
 
     /// Read back as the cities' selection is; nil, so the list shows, once

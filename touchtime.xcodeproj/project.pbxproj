@@ -166,6 +166,7 @@
 				StarsView.swift,
 				TimeZoneCoordinates.swift,
 				WatchCity.swift,
+				WatchCollection.swift,
 				WatchCountdown.swift,
 				WatchRecentTimer.swift,
 				WeatherConditionHelper.swift,

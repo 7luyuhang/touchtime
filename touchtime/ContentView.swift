@@ -36,6 +36,8 @@ struct ContentView: View {
     @AppStorage(CountdownSortOrder.storageKey) private var countdownSortOrder = CountdownSortOrder.newestFirst
     @AppStorage("countdownShowYears") private var countdownShowYears = false
     @AppStorage("countdownShowMonths") private var countdownShowMonths = false
+    // Written straight to UserDefaults by every screen that edits collections
+    @AppStorage(CollectionsStore.collectionsKey) private var collectionsData = Data()
     
     // UserDefaults key for storing world clocks
     private let worldClocksKey = "savedWorldClocks"
@@ -97,12 +99,16 @@ struct ContentView: View {
                 }
                 await AppleWatchMockupView.preload()
             }
-            // The Apple Watch app shows the same cities, in the same date style,
-            // with temperatures, wind speeds and pressures in the same units,
-            // starts its moon calendar's weeks on the same day, and lists the
-            // countdowns in the same order, counted in the same unit
+            // The Apple Watch app shows the same cities and collections, in the
+            // same date style, with temperatures, wind speeds and pressures in
+            // the same units, starts its moon calendar's weeks on the same day,
+            // and lists the countdowns in the same order, counted in the same
+            // unit
             .onChange(of: worldClocks) { _, clocks in
                 WatchSyncManager.shared.sync(clocks: clocks)
+            }
+            .onChange(of: collectionsData) {
+                WatchSyncManager.shared.sync()
             }
             .onChange(of: dateStyle) {
                 WatchSyncManager.shared.sync()

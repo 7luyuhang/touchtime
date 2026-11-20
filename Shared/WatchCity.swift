@@ -26,6 +26,8 @@ extension WatchCity {
 nonisolated enum WatchSyncKeys {
     /// JSON-encoded `[WatchCity]`, in the iPhone's order.
     static let cities = "cities"
+    /// JSON-encoded `[WatchCollection]`, in the iPhone's order.
+    static let collections = "collections"
     /// The iPhone's date style: "Relative", "With Weekday" or "Date Only".
     static let dateStyle = "dateStyle"
     /// The iPhone's first day of the week, chosen in its Calendar settings:

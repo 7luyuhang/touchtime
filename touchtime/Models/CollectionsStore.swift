@@ -8,7 +8,7 @@
 import Foundation
 
 enum CollectionsStore {
-    private static let collectionsKey = "savedCityCollections"
+    static let collectionsKey = "savedCityCollections"
     
     static func load() -> [CityCollection] {
         guard let data = UserDefaults.standard.data(forKey: collectionsKey),
