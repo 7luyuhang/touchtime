@@ -8,6 +8,8 @@
 //  value being set, as on the system's time pickers, or set straight to one
 //  of the ring's numbers with a tap. Running, the time left counts down in
 //  the boxes' place, with a tick lit round the ring for each minute of it.
+//  Run down, the middle is tinted orange with Done in it for a while, unless
+//  dismissed sooner.
 //
 
 import SwiftUI
@@ -54,12 +56,16 @@ struct TimerHomeView: View {
                         )
                         .accessibilityHidden(true)
 
-                        if phase == .idle {
+                        switch phase {
+                        case .idle:
                             numberBoxes(layout: layout)
                                 .transition(.blurReplace)
-                        } else {
+                        case .running, .paused:
                             let isPaused = if case .paused = phase { true } else { false }
                             countdown(remaining, isPaused: isPaused, layout: layout)
+                                .transition(.blurReplace)
+                        case .done:
+                            doneCircle(layout: layout)
                                 .transition(.blurReplace)
                         }
                     }
@@ -79,8 +85,9 @@ struct TimerHomeView: View {
             .padding(.top, -20)
             .padding(.bottom, 8)
             .ignoresSafeArea(edges: .bottom)
-            // Also as the run ends, outside any button's transaction
-            .animation(.smooth, value: phase == .idle)
+            // Also as the run ends, and as Done goes by itself, outside any
+            // button's transaction
+            .animation(.smooth, value: phase)
             .toolbar {
                 controls(for: phase)
             }
@@ -100,13 +107,12 @@ struct TimerHomeView: View {
     }
 
     private func status(of phase: WatchTimerStore.Phase, at date: Date) -> Status {
-        if timerStore.isFinished(at: date) {
-            return .finished
-        }
         switch phase {
-        case .idle: return .idle
-        case .running: return .running
-        case .paused: return .paused
+        // Still finished once Done goes by itself, which isn't felt
+        case .idle: timerStore.isFinished(at: date) ? .finished : .idle
+        case .running: .running
+        case .paused: .paused
+        case .done: .finished
         }
     }
 
@@ -173,7 +179,7 @@ struct TimerHomeView: View {
             .font(Self.digitsFont(size: layout.boxFontSize))
             .frame(width: layout.boxSize, height: layout.boxSize)
             .overlay {
-                box.strokeBorder(isFocused ? Color.green : TimerDial.lineColor, lineWidth: isFocused ? 1.5 : 1)
+                box.strokeBorder(isFocused ? Color.green : SecondsDial.lineColor, lineWidth: isFocused ? 1.5 : 1)
                     // Also as focus comes back after a sheet, outside any transaction of ours
                     .animation(.smooth, value: isFocused)
             }
@@ -213,6 +219,19 @@ struct TimerHomeView: View {
             .accessibilityValue(isPaused ? Text("Paused") : Text(verbatim: ""))
     }
 
+    /// The middle tinted orange, with Done in orange where the time left ran
+    /// out.
+    private func doneCircle(layout: AnalogueDialLayout) -> some View {
+        Text("Done")
+            .font(.system(size: layout.countdownFontSize, weight: .semibold, design: .rounded))
+            .foregroundStyle(.orange)
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            .frame(width: layout.doneTextWidth)
+            .frame(width: layout.doneDiameter, height: layout.doneDiameter)
+            .background(.orange.opacity(0.2), in: .circle)
+    }
+
     /// Two dots level with the middle of the figures, where the font's colon
     /// sits lower, on their baseline.
     private func colon(layout: AnalogueDialLayout) -> some View {
@@ -239,17 +258,19 @@ struct TimerHomeView: View {
     }
 
     /// Start, Pause or Resume in the corner, as the system's time pickers
-    /// confirm there, across from the iPhone's recent timers to start
-    /// instead, there once it's sent some, or Cancel once started.
+    /// confirm there, or Done once it's run down, across from the iPhone's
+    /// recent timers to start instead, there once it's sent some, or Cancel
+    /// while it runs or is paused.
     @ToolbarContentBuilder
     private func controls(for phase: WatchTimerStore.Phase) -> some ToolbarContent {
         ToolbarItemGroup(placement: .bottomBar) {
-            if phase == .idle {
+            switch phase {
+            case .idle, .done:
                 Button("Recents", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
                     showsRecents = true
                 }
                 .disabled(cityStore.recentTimers.isEmpty)
-            } else {
+            case .running, .paused:
                 Button("Cancel", systemImage: "xmark") {
                     timerStore.cancel()
                 }
@@ -272,6 +293,11 @@ struct TimerHomeView: View {
                     timerStore.resume()
                 }
                 .tint(.orange)
+            case .done:
+                Button("Done", systemImage: "checkmark") {
+                    timerStore.cancel()
+                }
+                .tint(.orange)
             }
         }
     }
@@ -288,21 +314,19 @@ private extension AnalogueDialLayout {
     var colonDotGap: CGFloat { boxFontSize * 0.2 }
     /// The time left's, bigger, without the boxes round it.
     var countdownFontSize: CGFloat { innerRadius * 0.5 }
+    /// The middle tinted orange once the timer's done, over the ring's inner
+    /// edge, with Done in it as big as the time left was.
+    var doneDiameter: CGFloat { innerRadius * 2 + 1 }
+    var doneTextWidth: CGFloat { innerRadius * 1.5 }
     /// How far from one of the ring's numbers a tap sets its value: halfway
     /// to the next number round.
     var numberReach: CGFloat { secondNumberRadius * sin(.pi / 12) }
 }
 
-/// The analogue face's ring as it counts the seconds round it once tapped,
-/// outlined rather than glass: a tick for each one round its outer edge,
-/// every fifth one longer, and inside them the fives, in two figures as the
-/// boxes' numbers are, from 00 at the top rather than 60. While the timer's
-/// set, a dot stands in for the tick of the value being set; while it runs, a
-/// tick is lit from the top for each minute left.
+/// The seconds' ring, its fives in two figures as the boxes' numbers are.
+/// While the timer's set, a dot stands in for the tick of the value being
+/// set; while it runs, a tick is lit from the top for each minute left.
 private struct TimerDial: View {
-    /// The ring's edges, and the boxes' unless focused.
-    static let lineColor = Color.white.opacity(0.2)
-
     let layout: AnalogueDialLayout
     /// The value being set, 0 to 59.
     let markedValue: Int
@@ -320,33 +344,7 @@ private struct TimerDial: View {
 
     var body: some View {
         ZStack {
-            layout.ring
-                .stroke(Self.lineColor, lineWidth: 1)
-
-            ForEach(0..<60, id: \.self) { tick in
-                let isLit = tick < litTicks
-                RadialBar(
-                    start: layout.tickOuterRadius - (tick % 5 == 0 ? layout.majorTickLength : layout.tickLength),
-                    end: layout.tickOuterRadius,
-                    width: layout.tickWidth
-                )
-                // The shorter ticks as bright on black as the face's are on
-                // its glass
-                .fill(isLit ? Color.orange : .white.opacity(tick % 5 == 0 ? 1 : 0.375))
-                .opacity(showsMark && tick == markedValue ? 0 : 1)
-                .rotationEffect(.degrees(Double(tick) * 6))
-                .animation(tickAnimation(tick: tick, isLit: isLit), value: isLit)
-            }
-
-            ForEach(1...12, id: \.self) { hour in
-                Text(verbatim: String(format: "%02d", hour * 5 % 60))
-                    // Shrunk as the face's seconds are, rather than set
-                    // smaller, so they look the same
-                    .font(.system(size: layout.hourFontSize, weight: .semibold, design: .rounded))
-                    .scaleEffect(layout.secondNumberScale)
-                    .foregroundStyle(.white)
-                    .position(layout.point(atHour: hour, radius: layout.secondNumberRadius))
-            }
+            SecondsDial(layout: layout, litTicks: litTicks, hiddenTick: showsMark ? markedValue : nil)
 
             // Going and coming as the boxes do, blurred in its own place
             // rather than toward the middle
@@ -398,34 +396,30 @@ private struct TimerDial: View {
         }
         return hour.map { $0 * 5 % 60 }
     }
-
-    /// The ticks light one after another round from the top, and go out the
-    /// other way, quicker, as the face's seconds come in and go.
-    private func tickAnimation(tick: Int, isLit: Bool) -> Animation {
-        isLit
-            ? .smooth(duration: 0.35).delay(Double(tick) / 60 * 0.4)
-            : .smooth(duration: 0.25).delay(Double(59 - tick) / 60 * 0.2)
-    }
 }
 
 /// When the time left turns over, up to the end: each second, or with the
-/// wrist down, each minute, as only its minutes show then. Just the once
-/// while nothing counts down.
+/// wrist down, each minute, as only its minutes show then. Then when Done
+/// goes by itself. Just the once while nothing counts down or is done.
 private nonisolated struct CountdownSchedule: TimelineSchedule {
     let endDate: Date?
 
     func entries(from startDate: Date, mode: TimelineScheduleMode) -> [Date] {
-        guard let endDate, endDate > startDate else { return [startDate] }
+        guard let endDate else { return [startDate] }
+        let doneEndDate = endDate.addingTimeInterval(WatchTimerStore.doneDuration)
+        guard doneEndDate > startDate else { return [startDate] }
         // The seconds left, rounded up, turn over a whole number of seconds
         // before the end, and the whole minutes in them a second after a
-        // whole number of minutes before it.
-        let secondsLeft = Int(endDate.timeIntervalSince(startDate).rounded(.up))
+        // whole number of minutes before it. None once it's done.
+        let secondsLeft = max(Int(endDate.timeIntervalSince(startDate).rounded(.up)), 0)
         let turns = (0..<secondsLeft).reversed().filter { seconds in
             mode != .lowFrequency || seconds == 0 || (seconds + 1) % 60 == 0
         }
-        // One more after the end, as the view never updates for the last
-        // date of a schedule, which would leave the run at 00:01.
-        return [startDate] + turns.map { endDate.addingTimeInterval(-TimeInterval($0)) } + [endDate.addingTimeInterval(1)]
+        // One more after Done goes, as the view never updates for the last
+        // date of a schedule, which would leave Done showing.
+        return [startDate]
+            + turns.map { endDate.addingTimeInterval(-TimeInterval($0)) }
+            + [doneEndDate, doneEndDate.addingTimeInterval(1)]
     }
 }
 

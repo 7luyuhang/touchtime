@@ -18,12 +18,18 @@ import UserNotifications
 final class WatchTimerStore: NSObject, UNUserNotificationCenterDelegate {
     /// As on iPhone, the timer runs for at most 59:59.
     static let maxSeconds = 59 * 60 + 59
+    /// How long the timer stays done once it's run down, unless dismissed
+    /// sooner, before going back to the time it's set to by itself.
+    nonisolated static let doneDuration: TimeInterval = 60
 
     enum Phase: Equatable {
-        /// Set, but not started, cancelled, or run down to zero.
+        /// Set, but not started, cancelled, or run down and dismissed.
         case idle
         case running(endDate: Date)
         case paused(remaining: TimeInterval)
+        /// Run down to zero, until dismissed, or by itself after
+        /// `doneDuration`.
+        case done
     }
 
     private enum Key {
@@ -74,15 +80,16 @@ final class WatchTimerStore: NSObject, UNUserNotificationCenterDelegate {
         if case .running(let endDate) = phase { endDate } else { nil }
     }
 
-    /// The run at `date`, idle once its end has passed.
+    /// The run at `date`: done once its end has passed, for `doneDuration`,
+    /// then idle.
     func phase(at date: Date) -> Phase {
         if case .running(let endDate) = phase, endDate <= date {
-            return .idle
+            return date < endDate.addingTimeInterval(Self.doneDuration) ? .done : .idle
         }
         return phase
     }
 
-    /// Counted down to zero, and not started again since.
+    /// Counted down to zero, and neither dismissed nor started again since.
     func isFinished(at date: Date) -> Bool {
         if case .running(let endDate) = phase { endDate <= date } else { false }
     }
@@ -91,7 +98,7 @@ final class WatchTimerStore: NSObject, UNUserNotificationCenterDelegate {
     /// second shows as 00:01 rather than 00:00.
     func remainingSeconds(at date: Date) -> Int {
         switch phase(at: date) {
-        case .idle:
+        case .idle, .done:
             0
         case .running(let endDate):
             Int(endDate.timeIntervalSince(date).rounded(.up))

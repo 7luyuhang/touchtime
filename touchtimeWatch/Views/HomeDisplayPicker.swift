@@ -6,12 +6,13 @@
 import SwiftUI
 
 /// What the app's home shows: the list of cities, the analog clock, the
-/// countdowns, or the timer.
+/// countdowns, the timer, or the stopwatch.
 enum HomeDisplay: String, CaseIterable, Identifiable {
     case list
     case clock
     case countdowns
     case timer
+    case stopwatch
 
     /// The view the home shows, as last chosen.
     static let storageKey = "watchHomeDisplay"
@@ -24,6 +25,7 @@ enum HomeDisplay: String, CaseIterable, Identifiable {
         case .clock: "Clock"
         case .countdowns: "Countdowns"
         case .timer: "Timer"
+        case .stopwatch: "Stopwatch"
         }
     }
 
@@ -33,6 +35,7 @@ enum HomeDisplay: String, CaseIterable, Identifiable {
         case .clock: "clock"
         case .countdowns: "hourglass"
         case .timer: "timer"
+        case .stopwatch: "stopwatch"
         }
     }
 }

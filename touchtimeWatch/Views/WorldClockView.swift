@@ -5,8 +5,8 @@
 //  The app's root, laid out like the system World Clock: it opens on a
 //  city's details, with the list of cities a tap away. The iPhone's
 //  collections each get a page of the list, to the right of every city's.
-//  Chosen from the list's corner, the analog clock, the countdowns or the
-//  timer take the list's place.
+//  Chosen from the list's corner, the analog clock, the countdowns, the
+//  timer or the stopwatch take the list's place.
 //
 
 import SwiftUI
@@ -31,8 +31,8 @@ struct WorldClockView: View {
     @State private var selectedCountdownID: WatchCountdown.ID?
     @AppStorage(CityDetailDisplay.storageKey) private var display: CityDetailDisplay = .worldClock
     @AppStorage(DefaultCityDetailDisplay.storageKey) private var defaultDisplay: DefaultCityDetailDisplay = .lastUsed
-    /// The list of cities, the analog clock, the countdowns or the timer,
-    /// kept across launches.
+    /// The list of cities, the analog clock, the countdowns, the timer or the
+    /// stopwatch, kept across launches.
     @AppStorage(HomeDisplay.storageKey) private var homeDisplay: HomeDisplay = .list
     /// When the app last stopped being active, or nil since it launched.
     @State private var leftDate: Date?
@@ -63,6 +63,8 @@ struct WorldClockView: View {
                     CountdownListView(selection: countdownSelection)
                 case .timer:
                     TimerHomeView()
+                case .stopwatch:
+                    StopwatchHomeView()
                 }
             }
             .toolbar {
@@ -100,7 +102,7 @@ struct WorldClockView: View {
                     CityDetailView(city: city, mapCities: pageCities, adjustedDate: $adjustedDate)
                         .id(city.id)
                 }
-            case .clock, .timer:
+            case .clock, .timer, .stopwatch:
                 EmptyView()
             case .countdowns:
                 if let countdown = cityStore.countdowns.first(where: { $0.id == selectedCountdownID }) {

@@ -1262,6 +1262,35 @@
         }
       }
     },
+    "Done" : {
+      "comment" : "Shown in the middle of the timer once it's run down, and read by VoiceOver for the button that takes it back to the time it's set to.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完了"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "완료"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "完成"
+          }
+        }
+      }
+    },
     "Download Touch Time." : {
       "localizations" : {
         "ja" : {
@@ -1517,6 +1546,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "下降"
+          }
+        }
+      }
+    },
+    "Fastest Lap" : {
+      "comment" : "Read by VoiceOver for the mark beside the shortest of the stopwatch's laps in the list of laps.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最速ラップ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가장 빠른 랩"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最快计次"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最快計次"
           }
         }
       }
@@ -2200,6 +2258,64 @@
         }
       }
     },
+    "Lap" : {
+      "comment" : "The stopwatch's button that ends the lap under way and starts the next.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラップ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "랩"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "计次"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "計次"
+          }
+        }
+      }
+    },
+    "Lap %lld" : {
+      "comment" : "A lap of the stopwatch by its number, counting from 1, e.g. \"Lap 3\": under each lap's time in the list of laps, and read by VoiceOver for the time of the lap under way.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラップ%lld"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "랩 %lld"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 圈"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "第 %lld 圈"
+          }
+        }
+      }
+    },
     "Last" : {
       "comment" : "Short label for the last quarter moon in the upcoming phases cards.",
       "localizations" : {
@@ -2857,6 +2973,35 @@
         }
       }
     },
+    "No Laps" : {
+      "comment" : "Shown on the stopwatch's page of laps until the first lap.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ラップなし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "랩 없음"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无计次"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫無計次"
+          }
+        }
+      }
+    },
     "Notification" : {
       "localizations" : {
         "ja" : {
@@ -3137,6 +3282,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "重複"
+          }
+        }
+      }
+    },
+    "Reset" : {
+      "comment" : "The stopwatch's button that sets it back to zero and clears its laps, once it's stopped.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "リセット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "재설정"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "重置"
           }
         }
       }
@@ -3424,6 +3598,35 @@
         }
       }
     },
+    "Slowest Lap" : {
+      "comment" : "Read by VoiceOver for the mark beside the longest of the stopwatch's laps in the list of laps.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最遅ラップ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "가장 느린 랩"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最慢计次"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最慢計次"
+          }
+        }
+      }
+    },
     "Smoky" : {
       "localizations" : {
         "ja" : {
@@ -3590,6 +3793,63 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "穩定"
+          }
+        }
+      }
+    },
+    "Stop" : {
+      "comment" : "The stopwatch's button that stops it while it runs.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "중단"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "停止"
+          }
+        }
+      }
+    },
+    "Stopwatch" : {
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ストップウォッチ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "스톱워치"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秒表"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "秒錶"
           }
         }
       }
