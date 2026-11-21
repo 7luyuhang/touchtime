@@ -1263,7 +1263,7 @@
       }
     },
     "Done" : {
-      "comment" : "Shown in the middle of the timer once it's run down, and read by VoiceOver for the button that takes it back to the time it's set to.",
+      "comment" : "Shown in the middle of the timer once it's run down.",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -3258,7 +3258,7 @@
       }
     },
     "Repeat" : {
-      "comment" : "Read by VoiceOver for the symbol on a repeating countdown.",
+      "comment" : "Read by VoiceOver for the symbol on a repeating countdown, and for the button that runs the timer again once it's run down.",
       "localizations" : {
         "ja" : {
           "stringUnit" : {

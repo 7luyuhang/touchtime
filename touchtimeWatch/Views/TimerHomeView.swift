@@ -8,8 +8,8 @@
 //  value being set, as on the system's time pickers, or set straight to one
 //  of the ring's numbers with a tap. Running, the time left counts down in
 //  the boxes' place, with a tick lit round the ring for each minute of it.
-//  Run down, the middle is tinted orange with Done in it for a while, unless
-//  dismissed sooner.
+//  Run down, the screen turns orange with Done in the middle for a while,
+//  unless dismissed sooner.
 //
 
 import SwiftUI
@@ -65,7 +65,7 @@ struct TimerHomeView: View {
                             countdown(remaining, isPaused: isPaused, layout: layout)
                                 .transition(.blurReplace)
                         case .done:
-                            doneCircle(layout: layout)
+                            doneText(layout: layout)
                                 .transition(.blurReplace)
                         }
                     }
@@ -85,6 +85,23 @@ struct TimerHomeView: View {
             .padding(.top, -20)
             .padding(.bottom, 8)
             .ignoresSafeArea(edges: .bottom)
+            .containerBackground(for: .navigation) {
+                // Drawn by the container, out of reach of the content's
+                // animation below
+                ZStack {
+                    if phase == .done {
+                        Rectangle()
+                            .fill(Color.orange)
+                            .overlay {
+                                LinearGradient(colors: [.clear, .black], startPoint: .top, endPoint: .bottom)
+                                    .blendMode(.plusDarker)
+                            }
+                            .transition(.opacity)
+                            .opacity(0.25)
+                    }
+                }
+                .animation(.smooth, value: phase)
+            }
             // Also as the run ends, and as Done goes by itself, outside any
             // button's transaction
             .animation(.smooth, value: phase)
@@ -219,17 +236,14 @@ struct TimerHomeView: View {
             .accessibilityValue(isPaused ? Text("Paused") : Text(verbatim: ""))
     }
 
-    /// The middle tinted orange, with Done in orange where the time left ran
-    /// out.
-    private func doneCircle(layout: AnalogueDialLayout) -> some View {
+    /// Done where the time left ran out, as big as it was.
+    private func doneText(layout: AnalogueDialLayout) -> some View {
         Text("Done")
             .font(.system(size: layout.countdownFontSize, weight: .semibold, design: .rounded))
             .foregroundStyle(.orange)
             .lineLimit(1)
             .minimumScaleFactor(0.5)
             .frame(width: layout.doneTextWidth)
-            .frame(width: layout.doneDiameter, height: layout.doneDiameter)
-            .background(.orange.opacity(0.2), in: .circle)
     }
 
     /// Two dots level with the middle of the figures, where the font's colon
@@ -258,20 +272,25 @@ struct TimerHomeView: View {
     }
 
     /// Start, Pause or Resume in the corner, as the system's time pickers
-    /// confirm there, or Done once it's run down, across from the iPhone's
-    /// recent timers to start instead, there once it's sent some, or Cancel
-    /// while it runs or is paused.
+    /// confirm there, or Repeat once it's run down. Across from it, the
+    /// iPhone's recent timers to start instead, there once it's sent some,
+    /// Cancel while it runs or is paused, or Close to dismiss it once it's
+    /// run down.
     @ToolbarContentBuilder
     private func controls(for phase: WatchTimerStore.Phase) -> some ToolbarContent {
         ToolbarItemGroup(placement: .bottomBar) {
             switch phase {
-            case .idle, .done:
+            case .idle:
                 Button("Recents", systemImage: "clock.arrow.trianglehead.counterclockwise.rotate.90") {
                     showsRecents = true
                 }
                 .disabled(cityStore.recentTimers.isEmpty)
             case .running, .paused:
                 Button("Cancel", systemImage: "xmark") {
+                    timerStore.cancel()
+                }
+            case .done:
+                Button("Close", systemImage: "xmark") {
                     timerStore.cancel()
                 }
             }
@@ -294,8 +313,8 @@ struct TimerHomeView: View {
                 }
                 .tint(.orange)
             case .done:
-                Button("Done", systemImage: "checkmark") {
-                    timerStore.cancel()
+                Button("Repeat", systemImage: "arrow.counterclockwise") {
+                    timerStore.start()
                 }
                 .tint(.orange)
             }
@@ -314,9 +333,7 @@ private extension AnalogueDialLayout {
     var colonDotGap: CGFloat { boxFontSize * 0.2 }
     /// The time left's, bigger, without the boxes round it.
     var countdownFontSize: CGFloat { innerRadius * 0.5 }
-    /// The middle tinted orange once the timer's done, over the ring's inner
-    /// edge, with Done in it as big as the time left was.
-    var doneDiameter: CGFloat { innerRadius * 2 + 1 }
+    /// Done's room inside the ring once the timer's done.
     var doneTextWidth: CGFloat { innerRadius * 1.5 }
     /// How far from one of the ring's numbers a tap sets its value: halfway
     /// to the next number round.
