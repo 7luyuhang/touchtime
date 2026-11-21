@@ -50,7 +50,7 @@ struct WorldClockView: View {
     var body: some View {
         let cities = [ClockCity.local] + cityStore.cities.map { ClockCity($0) }
         // The cities on the list's page, which a city's details dot on the map
-        let pageCities = selectedCollection.map(Self.cities(in:)) ?? cities
+        let pageCities = selectedCollection.map { Self.cities(in: $0) } ?? cities
 
         NavigationSplitView {
             Group {
