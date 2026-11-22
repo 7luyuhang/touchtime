@@ -11,8 +11,15 @@
 //
 
 import SwiftUI
+import WatchKit
 
 struct StopwatchHomeView: View {
+    /// The ring's page, and the laps' to its right.
+    private enum Page {
+        case dial
+        case laps
+    }
+
     @Environment(WatchStopwatchStore.self) private var stopwatch
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     /// Whole turns the second hand, and the minutes' hand, have gone on round
@@ -20,18 +27,23 @@ struct StopwatchHomeView: View {
     /// a chronograph's hands fly back.
     @State private var secondTurns: Double = 0
     @State private var minuteTurns: Double = 0
+    /// The page shown, kept here, as the page view left to itself goes back
+    /// to the ring when the first lap takes No Laps' place.
+    @State private var page = Page.dial
 
     var body: some View {
         TimelineView(StopwatchSchedule(zeroDate: stopwatch.zeroDate)) { context in
             let phase = stopwatch.phase(at: context.date)
 
-            TabView {
+            TabView(selection: $page) {
                 dial(at: context.date, phase: phase)
+                    .tag(Page.dial)
                 StopwatchLapsList(laps: stopwatch.laps)
+                    .tag(Page.laps)
             }
             .tabViewStyle(.page)
             .toolbar {
-                controls(for: phase)
+                controls(at: context.date, phase: phase)
             }
             .sensoryFeedback(trigger: phase) { _, phase in
                 switch phase {
@@ -56,7 +68,7 @@ struct StopwatchHomeView: View {
                 )
 
                 ZStack {
-                    SecondsDial(layout: layout)
+                    SecondsDial(layout: layout, countsToSixty: true)
                         .accessibilityHidden(true)
                     MinuteDial(layout: layout)
                         .accessibilityHidden(true)
@@ -137,10 +149,53 @@ struct StopwatchHomeView: View {
             )
     }
 
+    /// The time on the stopwatch in figures on glass on the laps' page, at
+    /// `date`, and every frame after that while it runs, as the ring has
+    /// them.
+    private func figuresCapsule(at date: Date, phase: WatchStopwatchStore.Phase) -> some View {
+        // Its room, held on the ring's page too, as the toolbar pops items
+        // that come and go, and keeps an item the size it first was. Sized by
+        // the figures before the first hour, for it not to change as the
+        // hours come, theirs made smaller to fit
+        Text(verbatim: "00:00.00")
+            .hidden()
+            .padding(.horizontal, 10)
+            // As tall as the buttons either side
+            .padding(.vertical, 7)
+            // No wider than the figures are on a 46mm watch, as on smaller
+            // ones they'd reach the buttons: the toolbar makes room for all
+            // it's given by pushing them out
+            .frame(maxWidth: WKInterfaceDevice.current().screenBounds.width * 0.43)
+            .overlay {
+                if page == .laps {
+                    TimelineView(.animation(paused: phase != .running || isLuminanceReduced)) { frame in
+                        let elapsed = stopwatch.elapsed(at: max(frame.date, date))
+
+                        Text(verbatim: WatchStopwatchStore.figures(for: elapsed, showsSeconds: !(isLuminanceReduced && phase == .running)))
+                            .foregroundStyle(.white)
+                            // Straight to zero on reset, as the ring's figures go
+                            .contentTransition(.identity)
+                            .padding(.horizontal, 10)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
+                            .glassEffect()
+                            .accessibilityLabel(Self.spokenTime(elapsed))
+                            .accessibilityAddTraits(phase == .running ? .updatesFrequently : [])
+                    }
+                    .transition(.blurReplace)
+                }
+            }
+            .font(.system(.body, design: .rounded, weight: .medium).monospacedDigit())
+            .lineLimit(1)
+            .minimumScaleFactor(0.5)
+            // As the page view turns the page unanimated
+            .transaction(value: page) { $0.animation = .smooth }
+    }
+
     /// Lap while it runs, or Reset once it's stopped, across from Start or
-    /// Stop in the corner where the timer's Start is.
+    /// Stop in the corner where the timer's Start is, and on the laps' page,
+    /// where the ring isn't there to show it, the time between them.
     @ToolbarContentBuilder
-    private func controls(for phase: WatchStopwatchStore.Phase) -> some ToolbarContent {
+    private func controls(at date: Date, phase: WatchStopwatchStore.Phase) -> some ToolbarContent {
         ToolbarItemGroup(placement: .bottomBar) {
             let showsReset = switch phase {
             case .idle, .running: false
@@ -149,18 +204,36 @@ struct StopwatchHomeView: View {
             // One button turning from one into the other, rather than one in
             // the other's place, which the animated reset would fade in over
             // the pressed Reset, cutting its glass off
-            Button(showsReset ? "Reset" : "Lap", systemImage: showsReset ? "arrow.counterclockwise" : "stopwatch") {
+            Button {
                 if showsReset {
                     reset()
                 } else {
                     stopwatch.lap()
                 }
+            } label: {
+                Label {
+                    Text(showsReset ? "Reset" : "Lap")
+                } icon: {
+                    ZStack {
+                        Image(systemName: showsReset ? "arrow.counterclockwise" : "forward.frame.fill")
+                            // The system leaves a tinted button's glyph white.
+                            // On the symbol rather than the button, so the one
+                            // blurring away keeps its color
+                            .foregroundStyle(phase == .running ? .black : Color.primary)
+                            .id(showsReset)
+                            .transition(.blurReplace)
+                    }
+                }
             }
             .tint(phase == .running ? .white : nil)
-            // The system leaves a tinted button's glyph white
-            .foregroundStyle(phase == .running ? .black : Color.primary)
             .disabled(phase == .idle)
-            Spacer()
+            // Animated here, as Start and Stop aren't, and on the transaction,
+            // as a tap on the toolbar doesn't play an implicit animation. The
+            // white fades with the symbols, as gone at once it leaves the one
+            // coming in blurred to the end
+            .transaction(value: showsReset) { $0.animation = .smooth }
+            // With no spacers either side, which leave it off center
+            figuresCapsule(at: date, phase: phase)
             if phase == .running {
                 Button("Stop", systemImage: "stop.fill") {
                     stopwatch.stop()
@@ -206,9 +279,9 @@ struct StopwatchHomeView: View {
 }
 
 private extension AnalogueDialLayout {
-    /// The minutes' dial, clear of the ring above it and of the second hands'
-    /// cap below.
-    var minuteDialCenter: CGPoint { CGPoint(x: center.x, y: center.y - innerRadius * 0.47) }
+    /// The minutes' dial, midway between the ring above it and the middle of
+    /// the face, as far from the one as from the other.
+    var minuteDialCenter: CGPoint { CGPoint(x: center.x, y: center.y - innerRadius / 2) }
     var minuteDialRadius: CGFloat { innerRadius * 0.32 }
     var minuteDialTickLength: CGFloat { minuteDialRadius * 0.14 }
     var minuteDialMajorTickLength: CGFloat { minuteDialRadius * 0.26 }

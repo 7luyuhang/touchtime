@@ -7,8 +7,9 @@ import SwiftUI
 
 /// The analogue face's ring as it counts the seconds round it once tapped,
 /// outlined rather than glass: a tick for each one round its outer edge,
-/// every fifth one longer, and inside them the fives, in two figures, from
-/// 00 at the top rather than 60. The timer's and the stopwatch's.
+/// every fifth one longer, and inside them the fives, in two figures from
+/// 00 at the top, or from 5 round to 60 there. The timer's and the
+/// stopwatch's.
 struct SecondsDial: View {
     /// The ring's edges, and the timer's boxes' unless focused.
     static let lineColor = Color.white.opacity(0.2)
@@ -18,6 +19,9 @@ struct SecondsDial: View {
     var litTicks = 0
     /// The tick a dot stands in for.
     var hiddenTick: Int?
+    /// Whether the fives go from 5 round to 60 at the top, as the iPhone's
+    /// stopwatch has them, rather than in two figures from 00.
+    var countsToSixty = false
 
     var body: some View {
         ZStack {
@@ -40,7 +44,7 @@ struct SecondsDial: View {
             }
 
             ForEach(1...12, id: \.self) { hour in
-                Text(verbatim: String(format: "%02d", hour * 5 % 60))
+                Text(verbatim: countsToSixty ? "\(hour * 5)" : String(format: "%02d", hour * 5 % 60))
                     // Shrunk as the face's seconds are, rather than set
                     // smaller, so they look the same
                     .font(.system(size: layout.hourFontSize, weight: .semibold, design: .rounded))

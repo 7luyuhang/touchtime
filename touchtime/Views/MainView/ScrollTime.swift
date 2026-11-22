@@ -922,7 +922,7 @@ struct ScrollTimeView: View {
         HStack(spacing: 8) {
             if stopwatchControlsState != .idle {
                 stopwatchControlButton(
-                    systemImage: isRunning ? "stopwatch" : "arrow.counterclockwise",
+                    systemImage: isRunning ? "forward.frame.fill" : "arrow.counterclockwise",
                     title: isRunning ? String(localized: "Lap") : String(localized: "Reset"),
                     isProminent: false,
                     glassID: "stopwatchLapResetControl",

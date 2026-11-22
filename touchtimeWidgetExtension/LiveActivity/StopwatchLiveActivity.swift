@@ -63,7 +63,7 @@ private struct StopwatchIslandButtons: View {
 
             IslandCircleButton(
                 intent: StopwatchLapResetIntent(),
-                systemImage: state.isRunning ? "stopwatch" : "arrow.counterclockwise",
+                systemImage: state.isRunning ? "forward.frame.fill" : "arrow.counterclockwise",
                 prominence: .secondary,
                 accessibilityLabel: state.isRunning ? "Lap" : "Reset"
             )

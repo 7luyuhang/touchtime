@@ -5,10 +5,10 @@
 
 import SwiftUI
 
-/// The stopwatch's laps, on the page to the right of its ring, newest first:
-/// each lap's time above its number, as the recent timers' times are above
-/// their names, with the fastest and the slowest marked as the iPhone marks
-/// them once there are two to compare.
+/// The stopwatch's laps, on the page to the right of its ring, newest first
+/// with a line between them: each lap's number with its time at the
+/// trailing edge, as the detail sheets' rows are, the fastest and the
+/// slowest marked as the iPhone marks them once there are two to compare.
 struct StopwatchLapsList: View {
     let laps: [TimeInterval]
 
@@ -31,28 +31,30 @@ struct StopwatchLapsList: View {
             let fastest = laps.count < 2 ? nil : laps.indices.min { laps[$0] < laps[$1] }
             let slowest = laps.count < 2 ? nil : laps.indices.max { laps[$0] < laps[$1] }
 
-            List(laps.indices.reversed(), id: \.self) { index in
-                HStack {
-                    VStack(alignment: .leading) {
-                        Text(verbatim: WatchStopwatchStore.figures(for: laps[index]))
-                            .monospacedDigit()
-                        Text("Lap \(index + 1)")
-                            .foregroundStyle(.secondary)
-                    }
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(laps.indices.reversed(), id: \.self) { index in
+                        DetailSheetRow("Lap \(index + 1)") {
+                            if index == fastest {
+                                Image(systemName: "circle")
+                                    .font(.caption2.weight(.semibold))
+                                    .imageScale(.small)
+                                    .accessibilityLabel("Fastest Lap")
+                            } else if index == slowest {
+                                Image(systemName: "circle.fill")
+                                    .font(.caption2.weight(.semibold))
+                                    .imageScale(.small)
+                                    .accessibilityLabel("Slowest Lap")
+                            }
+                            Text(verbatim: WatchStopwatchStore.figures(for: laps[index]))
+                        }
 
-                    Spacer()
-
-                    if index == fastest {
-                        Image(systemName: "circle")
-                            .font(.caption2)
-                            .accessibilityLabel("Fastest Lap")
-                    } else if index == slowest {
-                        Image(systemName: "circle.fill")
-                            .font(.caption2)
-                            .accessibilityLabel("Slowest Lap")
+                        if index > 0 {
+                            Divider()
+                        }
                     }
                 }
-                .accessibilityElement(children: .combine)
+                .scenePadding(.navigationBar, edges: .horizontal)
             }
         }
     }
