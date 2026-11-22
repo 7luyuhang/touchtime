@@ -48,8 +48,10 @@ struct StopwatchHomeView: View {
             .sensoryFeedback(trigger: phase) { _, phase in
                 switch phase {
                 case .running: .start
-                case .idle, .stopped: .stop
+                case .stopped: .stop
                 case .finished: .success
+                // Back to zero on reset, which goes without a sound
+                case .idle: nil
                 }
             }
         }
