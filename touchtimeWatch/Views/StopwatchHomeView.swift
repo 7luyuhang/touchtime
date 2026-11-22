@@ -131,11 +131,16 @@ struct StopwatchHomeView: View {
         isRunning: Bool,
         layout: AnalogueDialLayout
     ) -> some View {
-        Text(verbatim: WatchStopwatchStore.figures(for: elapsed, showsSeconds: showsSeconds))
+        let figures = WatchStopwatchStore.figures(for: elapsed, showsSeconds: showsSeconds)
+
+        return Text(verbatim: figures)
             .font(Self.digitsFont(size: layout.figuresFontSize))
             .foregroundStyle(.white)
-            // Straight to zero as the hands fly back, rather than cross-fading
-            .contentTransition(.identity)
+            // Straight to the new figures: to zero as the hands fly back,
+            // rather than cross-fading, and with the seconds back as the
+            // wrist comes up, rather than sliding over from the side as they
+            // widen
+            .animation(nil, value: figures)
             .lineLimit(1)
             .minimumScaleFactor(0.5)
             .frame(width: layout.figuresWidth)
@@ -172,11 +177,12 @@ struct StopwatchHomeView: View {
                 if page == .laps {
                     TimelineView(.animation(paused: phase != .running || isLuminanceReduced)) { frame in
                         let elapsed = stopwatch.elapsed(at: max(frame.date, date))
+                        let figures = WatchStopwatchStore.figures(for: elapsed, showsSeconds: !(isLuminanceReduced && phase == .running))
 
-                        Text(verbatim: WatchStopwatchStore.figures(for: elapsed, showsSeconds: !(isLuminanceReduced && phase == .running)))
+                        Text(verbatim: figures)
                             .foregroundStyle(.white)
-                            // Straight to zero on reset, as the ring's figures go
-                            .contentTransition(.identity)
+                            // Straight to the new figures, as the ring's go
+                            .animation(nil, value: figures)
                             .padding(.horizontal, 10)
                             .frame(maxWidth: .infinity, maxHeight: .infinity)
                             .glassEffect()
