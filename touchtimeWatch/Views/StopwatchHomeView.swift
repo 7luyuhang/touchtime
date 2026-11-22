@@ -183,7 +183,7 @@ struct StopwatchHomeView: View {
                             .accessibilityLabel(Self.spokenTime(elapsed))
                             .accessibilityAddTraits(phase == .running ? .updatesFrequently : [])
                     }
-                    .transition(.blurReplace)
+                    .transition(.blurReplace.combined(with: .move(edge: .bottom)).combined(with: .opacity))
                 }
             }
             .font(.system(.body, design: .rounded, weight: .medium).monospacedDigit())

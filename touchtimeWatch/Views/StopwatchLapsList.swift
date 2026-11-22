@@ -11,8 +11,28 @@ import SwiftUI
 /// slowest marked as the iPhone marks them once there are two to compare.
 struct StopwatchLapsList: View {
     let laps: [TimeInterval]
+    /// The lap just ended, its number lit up a moment as it joins the list.
+    @State private var newLap: Int?
 
     var body: some View {
+        list
+            .onChange(of: laps.count) { oldCount, newCount in
+                guard newCount > oldCount else { return }
+                let lap = newCount - 1
+                withAnimation(.easeOut(duration: 0.15)) {
+                    newLap = lap
+                } completion: {
+                    // Unless a newer lap has taken its place
+                    guard newLap == lap else { return }
+                    withAnimation(.smooth(duration: 0.6)) {
+                        newLap = nil
+                    }
+                }
+            }
+    }
+
+    /// The laps, or No Laps before the first.
+    @ViewBuilder private var list: some View {
         if laps.isEmpty {
             // Only the title, in a label with no icon: bare text in its place
             // isn't styled as the title
@@ -34,7 +54,7 @@ struct StopwatchLapsList: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(laps.indices.reversed(), id: \.self) { index in
-                        DetailSheetRow("Lap \(index + 1)") {
+                        DetailSheetRow("Lap \(index + 1)", isHighlighted: index == newLap) {
                             if index == fastest {
                                 Image(systemName: "circle")
                                     .font(.caption2.weight(.semibold))

@@ -25,20 +25,23 @@ struct DetailSheetPage<Rows: View>: View {
     }
 }
 
-/// A dimmed title with its value at the trailing edge.
+/// A dimmed title with its value at the trailing edge, the title lit up
+/// while it's highlighted.
 struct DetailSheetRow<Value: View>: View {
     let title: LocalizedStringKey
+    let isHighlighted: Bool
     let value: Value
 
-    init(_ title: LocalizedStringKey, @ViewBuilder value: () -> Value) {
+    init(_ title: LocalizedStringKey, isHighlighted: Bool = false, @ViewBuilder value: () -> Value) {
         self.title = title
+        self.isHighlighted = isHighlighted
         self.value = value()
     }
 
     var body: some View {
         HStack {
             Text(title)
-                .foregroundColor(.secondary)
+                .foregroundColor(isHighlighted ? .primary : .secondary)
                 .blendMode(.plusLighter)
 
             Spacer(minLength: 8)
