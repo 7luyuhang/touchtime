@@ -20,7 +20,7 @@ struct TimerHomeView: View {
         case seconds
     }
 
-    /// What the timer's doing, each change of it felt.
+    /// What the timer's doing, felt as it starts, pauses and finishes.
     private enum Status {
         case idle
         case running
@@ -111,8 +111,10 @@ struct TimerHomeView: View {
             .sensoryFeedback(trigger: status(of: phase, at: context.date)) { _, status in
                 switch status {
                 case .running: .start
-                case .idle, .paused: .stop
+                case .paused: .stop
                 case .finished: .success
+                // Cancelled or closed, which goes without a sound
+                case .idle: nil
                 }
             }
         }
