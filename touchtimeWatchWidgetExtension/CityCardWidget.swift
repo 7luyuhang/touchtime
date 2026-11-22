@@ -65,10 +65,11 @@ struct CityCardWidgetView: View {
 
     var body: some View {
         // Less space around the name than in the list's rows, which are
-        // taller, so the time is as big
-        CityCard(city: entry.city, date: entry.date, now: entry.date, dateStyle: entry.dateStyle, spacing: 10, timeSize: .widget)
+        // taller, so the time is as big. Above it, less than at the sides,
+        // its line having room over the capitals already
+        CityCard(city: entry.city, date: entry.date, now: entry.date, dateStyle: entry.dateStyle, spacing: 7, timeSize: .widget)
             .padding(.horizontal, 12)
-            .padding(.top, 4)
+            .padding(.top, 7)
             .padding(.bottom, 2)
             .defaultAppStorage(WatchWidgetStore.defaults)
             .containerBackground(for: .widget) {

@@ -8,8 +8,8 @@
 //  value being set, as on the system's time pickers, or set straight to one
 //  of the ring's numbers with a tap. Running, the time left counts down in
 //  the boxes' place, with a tick lit round the ring for each minute of it.
-//  Run down, the screen turns orange with Done in the middle for a while,
-//  unless dismissed sooner.
+//  Run down, the screen turns orange for a while, unless dismissed sooner,
+//  with Done in the middle over the time the timer was set to, shrunk.
 //
 
 import SwiftUI
@@ -37,8 +37,11 @@ struct TimerHomeView: View {
 
     var body: some View {
         TimelineView(CountdownSchedule(endDate: timerStore.endDate)) { context in
-            let phase = timerStore.phase(at: context.date)
-            let remaining = timerStore.remainingSeconds(at: context.date)
+            // As the timer starts, the timeline's date is from before it did
+            // for a moment, and would count too much time left.
+            let date = max(context.date, .now)
+            let phase = timerStore.phase(at: date)
+            let remaining = timerStore.remainingSeconds(at: date)
 
             VStack(spacing: 8) {
                 GeometryReader { geometry in
@@ -60,12 +63,10 @@ struct TimerHomeView: View {
                         case .idle:
                             numberBoxes(layout: layout)
                                 .transition(.blurReplace)
-                        case .running, .paused:
-                            let isPaused = if case .paused = phase { true } else { false }
-                            countdown(remaining, isPaused: isPaused, layout: layout)
-                                .transition(.blurReplace)
-                        case .done:
-                            doneText(layout: layout)
+                        // One through to the end, for the time to shrink
+                        // under Done rather than go.
+                        case .running, .paused, .done:
+                            countdown(remaining, phase: phase, layout: layout)
                                 .transition(.blurReplace)
                         }
                     }
@@ -108,7 +109,7 @@ struct TimerHomeView: View {
             .toolbar {
                 controls(for: phase)
             }
-            .sensoryFeedback(trigger: status(of: phase, at: context.date)) { _, status in
+            .sensoryFeedback(trigger: status(of: phase, at: date)) { _, status in
                 switch status {
                 case .running: .start
                 case .paused: .stop
@@ -227,18 +228,43 @@ struct TimerHomeView: View {
     }
 
     /// The time left where the boxes were. With the wrist down its seconds
-    /// hide, as they'd only turn over once a minute.
-    private func countdown(_ remaining: Int, isPaused: Bool, layout: AnalogueDialLayout) -> some View {
-        let seconds = isLuminanceReduced ? "--" : Self.twoDigits(remaining % 60)
-        return Text(verbatim: "\(Self.twoDigits(remaining / 60)):\(seconds)")
-            .font(Self.digitsFont(size: layout.countdownFontSize))
-            .contentTransition(.numericText(countsDown: true))
-            .animation(.smooth(duration: 0.2), value: remaining)
-            .accessibilityLabel(Duration.seconds(remaining).formatted(.units(allowed: [.minutes, .seconds], width: .wide)))
-            .accessibilityValue(isPaused ? Text("Paused") : Text(verbatim: ""))
+    /// hide, as they'd only turn over once a minute. Once it's run down, the
+    /// time the timer was set to, shrunk under Done and orange as it is, the
+    /// two of them in the middle together.
+    private func countdown(_ remaining: Int, phase: WatchTimerStore.Phase, layout: AnalogueDialLayout) -> some View {
+        let isDone = phase == .done
+        let isPaused = if case .paused = phase { true } else { false }
+        let shownSeconds = isDone ? timerStore.duration : remaining
+        let seconds = isLuminanceReduced && !isDone ? "--" : Self.twoDigits(shownSeconds % 60)
+
+        return ZStack {
+            // Blurred in its own place rather than toward the middle
+            ZStack {
+                if isDone {
+                    doneText(layout: layout)
+                        .transition(.blurReplace)
+                }
+            }
+            .offset(y: layout.doneTextOffset)
+
+            Text(verbatim: "\(Self.twoDigits(shownSeconds / 60)):\(seconds)")
+                .font(Self.digitsFont(size: layout.countdownFontSize))
+                .foregroundStyle(isDone ? Color.orange : Color.primary)
+                .contentTransition(.numericText(value: Double(shownSeconds)))
+                // Back up to the time set as it shrinks, rather than as
+                // quickly as a second turns over
+                .animation(isDone ? .smooth : .smooth(duration: 0.2), value: shownSeconds)
+                // Shrunk rather than set smaller, so that it rolls in the
+                // same font
+                .scaleEffect(isDone ? layout.doneTimeScale : 1)
+                .offset(y: isDone ? layout.doneTimeOffset : 0)
+                .accessibilityLabel(Duration.seconds(shownSeconds).formatted(.units(allowed: [.minutes, .seconds], width: .wide)))
+                .accessibilityValue(isPaused ? Text("Paused") : Text(verbatim: ""))
+        }
+        .accessibilityElement(children: .combine)
     }
 
-    /// Done where the time left ran out, as big as it was.
+    /// Done over the time set, as big as the time left was.
     private func doneText(layout: AnalogueDialLayout) -> some View {
         Text("Done")
             .font(.system(size: layout.countdownFontSize, weight: .semibold, design: .rounded))
@@ -337,6 +363,15 @@ private extension AnalogueDialLayout {
     var countdownFontSize: CGFloat { innerRadius * 0.5 }
     /// Done's room inside the ring once the timer's done.
     var doneTextWidth: CGFloat { innerRadius * 1.5 }
+    /// The time set's size under Done, to the time left's.
+    var doneTimeScale: CGFloat { 0.75 }
+    /// From Done's baseline to the top of the time set's figures.
+    var doneGap: CGFloat { innerRadius * 0.2 }
+    /// Done's and the time set's middles above and below the ring's, for the
+    /// two of them to be in the middle together, Done's capital and the
+    /// figures each two thirds of the type size tall.
+    var doneTextOffset: CGFloat { -(countdownFontSize * 2 / 3 * doneTimeScale + doneGap) / 2 }
+    var doneTimeOffset: CGFloat { (countdownFontSize * 2 / 3 + doneGap) / 2 }
     /// How far from one of the ring's numbers a tap sets its value: halfway
     /// to the next number round.
     var numberReach: CGFloat { secondNumberRadius * sin(.pi / 12) }
