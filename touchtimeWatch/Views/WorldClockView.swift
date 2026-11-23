@@ -182,11 +182,17 @@ struct WorldClockView: View {
     /// after its list button clears it, so the getter reads the stored ID
     /// rather than a city looked up when the body ran. Only the page showing
     /// has the selection, so the details shrink back into its row, not into
-    /// the same city's row on another page.
+    /// the same city's row on another page. A city tapped on the list opens
+    /// on the Default View.
     private func selection(among cities: [ClockCity], in collectionID: WatchCollection.ID?) -> Binding<String?> {
         Binding {
             selectedCollection?.id == collectionID && cities.contains { $0.id == selectedCityID } ? selectedCityID : nil
         } set: { id in
+            // Ahead of the selection, so the details never open on the view
+            // last chosen and then turn to the default.
+            if let id, id != selectedCityID {
+                showDefaultDisplay()
+            }
             selectedCityID = id ?? ""
         }
     }

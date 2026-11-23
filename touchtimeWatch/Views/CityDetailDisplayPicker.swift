@@ -96,8 +96,8 @@ enum CityDetailDisplay: String, CaseIterable, Identifiable {
     }
 }
 
-/// The watch app's Default View setting: the view the app opens on, or the
-/// one last chosen.
+/// The watch app's Default View setting: the view a city's details open on,
+/// from the list or as the app opens, or the one last chosen.
 enum DefaultCityDetailDisplay: RawRepresentable, Hashable {
     case lastUsed
     case display(CityDetailDisplay)
