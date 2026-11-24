@@ -25630,9 +25630,6 @@
         }
       }
     },
-    "SwiftUI-Shimmer" : {
-
-    },
     "Swipe right for precise time adjustment or set alarms" : {
       "comment" : "Home View",
       "localizations" : {
@@ -28636,9 +28633,6 @@
           }
         }
       }
-    },
-    "VariableBlur" : {
-
     },
     "Vatican" : {
       "extractionState" : "manual",

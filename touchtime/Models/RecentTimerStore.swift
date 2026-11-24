@@ -33,7 +33,7 @@ extension RecentTimer {
 /// Persists recently started timers in UserDefaults, most recently used first.
 enum RecentTimerStore {
     private static let storageKey = "recentTimers"
-    private static let maxCount = 24
+    private static let maxCount = WatchRecentTimer.maxCount
 
     static func load() -> [RecentTimer] {
         guard let data = UserDefaults.standard.data(forKey: storageKey),
@@ -113,4 +113,10 @@ enum RecentTimerStore {
         guard let trimmed, !trimmed.isEmpty else { return nil }
         return trimmed
     }
+}
+
+extension Notification.Name {
+    /// Posted when a timer started on the Apple Watch joins Recents, so an
+    /// open timer sheet shows it, and doesn't save over it.
+    static let recentTimersDidChange = Notification.Name("RecentTimersDidChange")
 }

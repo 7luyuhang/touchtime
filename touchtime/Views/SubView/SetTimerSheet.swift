@@ -276,6 +276,9 @@ struct SetTimerSheet: View {
                     recentTimers = RecentTimerStore.load()
                 }
             }
+            .onReceive(NotificationCenter.default.publisher(for: .recentTimersDidChange)) { _ in
+                recentTimers = RecentTimerStore.load()
+            }
             .navigationTitle(isShowingRecents ? String(localized: "Recents") : String(localized: "New Timer"))
             .navigationBarTitleDisplayMode(.inline)
             .scrollEdgeEffectStyle(.soft, for: .top)

@@ -3,7 +3,7 @@
 //  touchtime
 //
 //  The saved cities the iPhone app sends to the Apple Watch app over
-//  WatchConnectivity, and the application context keys they travel under.
+//  WatchConnectivity, and the keys they and the rest travel under.
 //
 
 import Foundation
@@ -50,4 +50,8 @@ nonisolated enum WatchSyncKeys {
     /// JSON-encoded `[WatchRecentTimer]`, in the order the iPhone's timer
     /// sheet lists them under Recents.
     static let recentTimers = "recentTimers"
+    /// The other way, in user info from the watch: a JSON-encoded
+    /// `WatchRecentTimer` started there from its pickers, for the iPhone's
+    /// Recents.
+    static let startedTimer = "startedTimer"
 }

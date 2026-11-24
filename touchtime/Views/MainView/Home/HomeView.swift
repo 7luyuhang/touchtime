@@ -11,7 +11,6 @@ import UIKit
 import EventKit
 import EventKitUI
 import WeatherKit
-import Shimmer
 
 // Data struct for city time adjustment sheet
 struct CityTimeAdjustmentData: Identifiable {

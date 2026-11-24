@@ -4,7 +4,8 @@
 //
 //  The iPhone app's saved cities and collections, date style, first day of
 //  the week, temperature, wind speed and pressure units, countdowns and the
-//  unit they count in, and recent timers, received over WatchConnectivity.
+//  unit they count in, and recent timers, received over WatchConnectivity,
+//  and the timers started here, sent back for its Recents.
 //
 
 import Foundation
@@ -36,8 +37,9 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     /// The unit the countdowns count in: the largest one switched on in the
     /// iPhone app's countdown sheet's Time Display.
     private(set) var countdownUnit: CountdownUnit
-    /// The timers started on the iPhone, in the order its timer sheet lists
-    /// them under Recents.
+    /// The timers started on the iPhone or here, in the order its timer
+    /// sheet lists them under Recents, those started here that it's yet to
+    /// hear of put in as it will.
     private(set) var recentTimers: [WatchRecentTimer]
 
     private static let citiesKey = "cities"
@@ -172,10 +174,47 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         WatchWidgetStore.save(countdowns: countdowns, unit: self.countdownUnit)
         if let recentTimersData,
            let receivedRecentTimers = try? JSONDecoder().decode([WatchRecentTimer].self, from: recentTimersData) {
-            if receivedRecentTimers != recentTimers {
-                recentTimers = receivedRecentTimers
+            let timers = Self.unsentTimers().reduce(receivedRecentTimers) { Self.inserting($1, into: $0) }
+            if timers != recentTimers {
+                recentTimers = timers
             }
-            defaults.set(recentTimersData, forKey: Self.recentTimersKey)
+            defaults.set(try? JSONEncoder().encode(timers), forKey: Self.recentTimersKey)
+        }
+    }
+
+    /// Puts a timer started here from the pickers in Recents, and sends it to
+    /// the iPhone for its own, which come back with it.
+    func rememberTimer(durationSeconds: Int) {
+        guard durationSeconds > 0 else { return }
+        let timer = WatchRecentTimer(id: UUID(), name: nil, durationSeconds: durationSeconds)
+        let timers = Self.inserting(timer, into: recentTimers)
+        if timers != recentTimers {
+            recentTimers = timers
+            UserDefaults.standard.set(try? JSONEncoder().encode(timers), forKey: Self.recentTimersKey)
+        }
+
+        // Kept until the iPhone's in reach, and its app running
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated,
+              let timerData = try? JSONEncoder().encode(timer) else { return }
+        WCSession.default.transferUserInfo([WatchSyncKeys.startedTimer: timerData])
+    }
+
+    /// `timers` with `timer` first, unless one as long and named the same is
+    /// there already, which stays where it is, as the iPhone keeps Recents.
+    private static func inserting(_ timer: WatchRecentTimer, into timers: [WatchRecentTimer]) -> [WatchRecentTimer] {
+        guard !timers.contains(where: { $0.durationSeconds == timer.durationSeconds && $0.name == timer.name }) else {
+            return timers
+        }
+        return Array(([timer] + timers).prefix(WatchRecentTimer.maxCount))
+    }
+
+    /// The timers started here still on their way to the iPhone, in the
+    /// order they started.
+    private static func unsentTimers() -> [WatchRecentTimer] {
+        guard WCSession.isSupported() else { return [] }
+        return WCSession.default.outstandingUserInfoTransfers.compactMap { transfer in
+            (transfer.userInfo[WatchSyncKeys.startedTimer] as? Data)
+                .flatMap { try? JSONDecoder().decode(WatchRecentTimer.self, from: $0) }
         }
     }
 

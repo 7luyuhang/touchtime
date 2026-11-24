@@ -4,7 +4,8 @@
 //
 //  Sends the saved cities and collections, the date style, the first day of
 //  the week, the temperature, wind speed and pressure units, the countdowns
-//  and the unit they count in, and the recent timers to the Apple Watch app.
+//  and the unit they count in, and the recent timers to the Apple Watch app,
+//  and puts the timers started there in Recents.
 //
 
 import Foundation
@@ -14,7 +15,8 @@ import WatchConnectivity
 /// Keeps the Apple Watch app's cities, countdowns and recent timers in step
 /// with the iPhone's. The latest of them travel as the WatchConnectivity
 /// application context, which the watch receives even when its app isn't
-/// running.
+/// running. The timers started on the watch come back as user info, each
+/// queued there until it's delivered.
 final class WatchSyncManager: NSObject, WCSessionDelegate {
     static let shared = WatchSyncManager()
 
@@ -193,6 +195,17 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
     nonisolated func sessionWatchStateDidChange(_ session: WCSession) {
         Task { @MainActor in
             self.sync()
+        }
+    }
+
+    // A timer started on the watch from its pickers. Remembering it sends
+    // Recents back with it in.
+    nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
+        guard let timerData = userInfo[WatchSyncKeys.startedTimer] as? Data else { return }
+        Task { @MainActor in
+            guard let timer = try? JSONDecoder().decode(WatchRecentTimer.self, from: timerData) else { return }
+            RecentTimerStore.remember(durationSeconds: timer.durationSeconds, name: timer.name)
+            NotificationCenter.default.post(name: .recentTimersDidChange, object: nil)
         }
     }
 

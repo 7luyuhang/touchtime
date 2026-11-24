@@ -301,9 +301,8 @@ struct TimerHomeView: View {
 
     /// Start, Pause or Resume in the corner, as the system's time pickers
     /// confirm there, or Repeat once it's run down. Across from it, the
-    /// iPhone's recent timers to start instead, there once it's sent some,
-    /// Cancel while it runs or is paused, or Close to dismiss it once it's
-    /// run down.
+    /// recent timers to start instead, there once there are some, Cancel
+    /// while it runs or is paused, or Close to dismiss it once it's run down.
     @ToolbarContentBuilder
     private func controls(for phase: WatchTimerStore.Phase) -> some ToolbarContent {
         ToolbarItemGroup(placement: .bottomBar) {
@@ -327,6 +326,7 @@ struct TimerHomeView: View {
             case .idle:
                 Button("Start", systemImage: "play.fill") {
                     timerStore.start()
+                    cityStore.rememberTimer(durationSeconds: timerStore.duration)
                 }
                 .tint(timerStore.duration == 0 ? nil : .orange)
                 .disabled(timerStore.duration == 0)

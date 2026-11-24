@@ -7,8 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		5A5880A12EC78BEE00344D1D /* VariableBlur in Frameworks */ = {isa = PBXBuildFile; productRef = 5A5880A02EC78BEE00344D1D /* VariableBlur */; };
-		5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */ = {isa = PBXBuildFile; productRef = 5AD93C242EB62099001DF8F4 /* Shimmer */; };
 		5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5AEB89DE2EA8FA7A0089C60A /* StoreKit.framework */; };
 		E100000000000000000000AD /* touchtimeWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = E100000000000000000000A1 /* touchtimeWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		E200000000000000000000AD /* touchtimeCaptureExtension.appex in Embed ExtensionKit Extensions */ = {isa = PBXBuildFile; fileRef = E200000000000000000000A1 /* touchtimeCaptureExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
@@ -283,8 +281,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				5AD93C252EB62099001DF8F4 /* Shimmer in Frameworks */,
-				5A5880A12EC78BEE00344D1D /* VariableBlur in Frameworks */,
 				5AEB89DF2EA8FA7A0089C60A /* StoreKit.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -381,8 +377,6 @@
 			);
 			name = touchtime;
 			packageProductDependencies = (
-				5AD93C242EB62099001DF8F4 /* Shimmer */,
-				5A5880A02EC78BEE00344D1D /* VariableBlur */,
 			);
 			productName = touchtime;
 			productReference = 5A42D3782E82CDCE0048963E /* touchtime.app */;
@@ -519,10 +513,6 @@
 			);
 			mainGroup = 5A42D36F2E82CDCE0048963E;
 			minimizedProjectReferenceProxies = 1;
-			packageReferences = (
-				5AD93C232EB62099001DF8F4 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */,
-				5A58809F2EC78BEE00344D1D /* XCRemoteSwiftPackageReference "VariableBlur" */,
-			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 5A42D3792E82CDCE0048963E /* Products */;
 			projectDirPath = "";
@@ -1190,38 +1180,6 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		5A58809F2EC78BEE00344D1D /* XCRemoteSwiftPackageReference "VariableBlur" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/nikstar/VariableBlur.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
-			};
-		};
-		5AD93C232EB62099001DF8F4 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/markiv/SwiftUI-Shimmer.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.5.1;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		5A5880A02EC78BEE00344D1D /* VariableBlur */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 5A58809F2EC78BEE00344D1D /* XCRemoteSwiftPackageReference "VariableBlur" */;
-			productName = VariableBlur;
-		};
-		5AD93C242EB62099001DF8F4 /* Shimmer */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 5AD93C232EB62099001DF8F4 /* XCRemoteSwiftPackageReference "SwiftUI-Shimmer" */;
-			productName = Shimmer;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 5A42D3702E82CDCE0048963E /* Project object */;
 }

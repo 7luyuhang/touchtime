@@ -8,7 +8,6 @@
 import SwiftUI
 import StoreKit
 import UIKit
-import Shimmer
 
 // Circular glass icon for Tip Jar, optionally filled with a color
 struct CircularTipIcon: View {
@@ -183,9 +182,7 @@ struct TipJarView: View {
                                         Text(String(localized: "Support More"))
                                             .font(.subheadline.weight(.semibold))
                                             .transition(.blurReplace())
-                                            .shimmering(
-                                                animation: .easeInOut(duration: 1.5).repeatForever(autoreverses: false)
-                                            )
+                                            .shimmering()
                                             .blendMode(.plusLighter)
                                     }
                                 }

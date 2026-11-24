@@ -5,9 +5,9 @@
 
 import SwiftUI
 
-/// The timers started on the iPhone, as its timer sheet lists them under
-/// Recents: each its time above its name, or Timer as there without one,
-/// with a play symbol beside them, and started with a tap.
+/// The timers started on the iPhone or the watch, as the iPhone's timer
+/// sheet lists them under Recents: each its time above its name, or Timer as
+/// there without one, with a play symbol beside them, and started with a tap.
 struct RecentTimersSheet: View {
     let start: (WatchRecentTimer) -> Void
 

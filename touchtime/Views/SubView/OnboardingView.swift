@@ -7,7 +7,6 @@
 
 import SwiftUI
 import CoreHaptics
-import VariableBlur
 import Combine
 import WeatherKit
 
@@ -366,7 +365,7 @@ struct OnboardingView: View {
             
             // VariableBlur
             GeometryReader { geom in
-                VariableBlurView(maxBlurRadius: 10, direction: .blurredBottomClearTop)
+                VariableBlurView(maxRadius: 10, edge: .bottom)
                     .frame(height: geom.safeAreaInsets.bottom + 100)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .ignoresSafeArea()

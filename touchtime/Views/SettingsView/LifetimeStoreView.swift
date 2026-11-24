@@ -8,10 +8,8 @@
 import SwiftUI
 import StoreKit
 import UIKit
-import Shimmer
 import Combine
 import WeatherKit
-import VariableBlur
 
 struct LifetimeStoreView: View {
     /// The widest iPhone's width, for the store's column on wider screens.
@@ -140,7 +138,7 @@ struct LifetimeStoreView: View {
 
             // Progressive blur behind the bottom actions
             GeometryReader { geometry in
-                VariableBlurView(maxBlurRadius: 10, direction: .blurredBottomClearTop)
+                VariableBlurView(maxRadius: 10, edge: .bottom)
                     .frame(height: geometry.safeAreaInsets.bottom)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
                     .ignoresSafeArea()
