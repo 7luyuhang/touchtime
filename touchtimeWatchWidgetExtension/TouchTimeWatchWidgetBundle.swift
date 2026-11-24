@@ -10,5 +10,6 @@ import WidgetKit
 struct TouchTimeWatchWidgetBundle: WidgetBundle {
     var body: some Widget {
         CityCardWidget()
+        CountdownCardWidget()
     }
 }

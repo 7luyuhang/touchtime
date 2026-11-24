@@ -185,11 +185,15 @@
 		E400000000000000000000B0 /* Exceptions for "Shared" folder in "touchtimeWatchWidgetExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				CountdownItem.swift,
+				CountdownPhotoCrop.swift,
+				CountdownUnit.swift,
 				DateFormatting.swift,
 				SkyColorGradient.swift,
 				SolarCalculator.swift,
 				TimeZoneCoordinates.swift,
 				WatchCity.swift,
+				WatchCountdown.swift,
 				WeatherConditionHelper.swift,
 				WorldClock.swift,
 			);
@@ -205,6 +209,7 @@
 				Models/WatchWidgetStore.swift,
 				Views/CityCard.swift,
 				Views/ClockTimeText.swift,
+				Views/CountdownCard.swift,
 			);
 			target = E400000000000000000000A2 /* touchtimeWatchWidgetExtension */;
 		};

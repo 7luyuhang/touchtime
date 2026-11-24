@@ -30,7 +30,7 @@ struct CountdownDetailView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .padding(.bottom, 4)
 
-                CountdownDays(countdown: countdown, now: context.date, size: .large, unit: unit)
+                CountdownDays(countdown: countdown, now: context.date, size: .large, unit: unit ?? cityStore.countdownUnit)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     // The digits can shrink to fit, so the stack would
                     // otherwise squeeze them to make room for the cover

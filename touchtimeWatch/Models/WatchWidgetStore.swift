@@ -2,10 +2,11 @@
 //  WatchWidgetStore.swift
 //  touchtimeWatch
 //
-//  What the City Time widget shows, copied by the watch app into the App
-//  Group it shares with its widget extension, which can't read the app's own
-//  defaults: the iPhone's cities and date style, the 24-Hour Format and
-//  Additional Time settings, and each city's weather as last fetched.
+//  What the City Time and Countdown widgets show, copied by the watch app
+//  into the App Group it shares with its widget extension, which can't read
+//  the app's own defaults: the iPhone's cities, date style, countdowns and
+//  the unit they count in, the 24-Hour Format and Additional Time settings,
+//  and each city's weather as last fetched.
 //
 
 import Foundation
@@ -19,6 +20,8 @@ enum WatchWidgetStore {
 
     private static let citiesKey = "cities"
     private static let dateStyleKey = "dateStyle"
+    private static let countdownsKey = "countdowns"
+    private static let countdownUnitKey = "countdownUnit"
     private static let weatherConditionsKey = "weatherConditions"
     private static let settingsKeys = [WatchTimeFormat.use24HourFormatKey, AdditionalTime.storageKey]
     /// Weather fetched longer ago than this no longer shows, as stale rain is
@@ -43,6 +46,18 @@ enum WatchWidgetStore {
         defaults.string(forKey: dateStyleKey) ?? "Relative"
     }
 
+    /// The iPhone's countdowns, in the order the app lists them, once the
+    /// app has copied them.
+    static var countdowns: [WatchCountdown] {
+        savedCountdowns ?? []
+    }
+
+    /// The unit the countdowns count in: days, as in the app, until it has
+    /// copied the iPhone's.
+    static var countdownUnit: CountdownUnit {
+        defaults.string(forKey: countdownUnitKey).flatMap(CountdownUnit.init(rawValue:)) ?? .days
+    }
+
     /// The weather the app last fetched for `timeZoneIdentifier`, unless that
     /// was too long ago.
     static func weatherCondition(for timeZoneIdentifier: String) -> WeatherCondition? {
@@ -61,6 +76,15 @@ enum WatchWidgetStore {
         guard cities != savedCities || dateStyle != defaults.string(forKey: dateStyleKey) else { return }
         defaults.set(try? JSONEncoder().encode(cities), forKey: citiesKey)
         defaults.set(dateStyle, forKey: dateStyleKey)
+        WidgetCenter.shared.reloadAllTimelines()
+    }
+
+    /// Copies the countdowns the iPhone sent and the unit they count in, and
+    /// has the widget show them.
+    static func save(countdowns: [WatchCountdown], unit: CountdownUnit) {
+        guard countdowns != savedCountdowns || unit.rawValue != defaults.string(forKey: countdownUnitKey) else { return }
+        defaults.set(try? JSONEncoder().encode(countdowns), forKey: countdownsKey)
+        defaults.set(unit.rawValue, forKey: countdownUnitKey)
         WidgetCenter.shared.reloadAllTimelines()
     }
 
@@ -99,6 +123,10 @@ enum WatchWidgetStore {
 
     private static var savedCities: [WatchCity]? {
         defaults.data(forKey: citiesKey).flatMap { try? JSONDecoder().decode([WatchCity].self, from: $0) }
+    }
+
+    private static var savedCountdowns: [WatchCountdown]? {
+        defaults.data(forKey: countdownsKey).flatMap { try? JSONDecoder().decode([WatchCountdown].self, from: $0) }
     }
 
     private static func savedWeatherConditions() -> [String: StoredWeatherCondition] {

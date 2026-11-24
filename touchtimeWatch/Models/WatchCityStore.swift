@@ -90,6 +90,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             defaults.set(try? JSONEncoder().encode(cities), forKey: Self.citiesKey)
         }
         WatchWidgetStore.save(cities: cities, dateStyle: dateStyle)
+        WatchWidgetStore.save(countdowns: countdowns, unit: countdownUnit)
 
         if WCSession.isSupported() {
             WCSession.default.delegate = self
@@ -168,6 +169,7 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
             }
             defaults.set(countdownUnit.rawValue, forKey: Self.countdownUnitKey)
         }
+        WatchWidgetStore.save(countdowns: countdowns, unit: self.countdownUnit)
         if let recentTimersData,
            let receivedRecentTimers = try? JSONDecoder().decode([WatchRecentTimer].self, from: recentTimersData) {
             if receivedRecentTimers != recentTimers {
