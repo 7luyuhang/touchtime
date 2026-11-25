@@ -458,7 +458,7 @@ private struct WeatherRingConditions: View {
                 counterclockwiseLength: 0,
                 clockwiseLength: Self.glowReach
             )
-            .frame(width: diameter - lineWidth, height: diameter - lineWidth)
+            .frame(width: max(0, diameter - lineWidth), height: max(0, diameter - lineWidth))
             .rotationEffect(WeatherRing.angle(slot: nowSlot))
             .opacity(showsDays ? 0 : 1)
             .blendMode(.plusLighter)
