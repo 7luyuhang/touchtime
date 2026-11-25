@@ -7,7 +7,9 @@
 //  ring as it counts the seconds round it, with a dot round the ring at the
 //  value being set, as on the system's time pickers, or set straight to one
 //  of the ring's numbers with a tap. Running, the time left counts down in
-//  the boxes' place, with a tick lit round the ring for each minute of it.
+//  the boxes' place, with a tick lit round the ring for each minute of it,
+//  and a line round the ring's inner edge, closing round it as the timer
+//  starts and going back round to the top as it runs down.
 //  Run down, the screen turns orange for a while, unless dismissed sooner,
 //  with Done in the middle over the time the timer was set to, shrunk.
 //
@@ -42,6 +44,7 @@ struct TimerHomeView: View {
             let date = max(context.date, .now)
             let phase = timerStore.phase(at: date)
             let remaining = timerStore.remainingSeconds(at: date)
+            let isRunning = if case .running = phase { true } else { false }
 
             VStack(spacing: 8) {
                 GeometryReader { geometry in
@@ -57,6 +60,13 @@ struct TimerHomeView: View {
                             litTicks: (remaining + 59) / 60,
                             onNumberTap: { value(of: markedField).wrappedValue = $0 }
                         )
+                        .accessibilityHidden(true)
+
+                        // Every frame while it runs, but not with the wrist
+                        // down, when the minutes turning over are enough.
+                        TimelineView(.animation(paused: !isRunning || isLuminanceReduced)) { frame in
+                            countdownLine(remaining: timerStore.remaining(at: max(frame.date, date)), layout: layout)
+                        }
                         .accessibilityHidden(true)
 
                         switch phase {
@@ -264,6 +274,27 @@ struct TimerHomeView: View {
         .accessibilityElement(children: .combine)
     }
 
+    /// How long the countdown's line stays whole as the timer starts: a little
+    /// longer than the phase's smooth animation takes to draw it round, so
+    /// that it closes before going back.
+    private static let countdownLineClosingTime: TimeInterval = 0.75
+
+    /// Round the ring's inner edge, a line from the top clockwise for the time
+    /// left, which goes back round to the top as it runs down, as the lit
+    /// ticks go out. Drawn round from the top as the timer starts, it stays
+    /// whole until it's closed round the ring, then goes back a little quicker
+    /// than the time does, to reach the top as the timer runs out. Taken back
+    /// to the top as it's cancelled.
+    private func countdownLine(remaining: TimeInterval, layout: AnalogueDialLayout) -> some View {
+        let timeToGoBack = TimeInterval(timerStore.duration) - Self.countdownLineClosingTime
+
+        return CountdownLine(fraction: min(remaining / timeToGoBack, 1), lineWidth: layout.countdownLineWidth)
+            .fill(.orange)
+            // From the top rather than the right, where a circle's path starts
+            .rotationEffect(.degrees(-90))
+            .frame(width: layout.innerRadius * 2, height: layout.innerRadius * 2)
+    }
+
     /// Done over the time set, as big as the time left was.
     private func doneText(layout: AnalogueDialLayout) -> some View {
         Text("Done")
@@ -361,6 +392,9 @@ private extension AnalogueDialLayout {
     var colonDotGap: CGFloat { boxFontSize * 0.2 }
     /// The time left's, bigger, without the boxes round it.
     var countdownFontSize: CGFloat { innerRadius * 0.5 }
+    /// The line round the ring's inner edge while the timer counts down, as
+    /// thick as the arc of Conditions' temperatures round a circle as big.
+    var countdownLineWidth: CGFloat { diameter * 0.02 }
     /// Done's room inside the ring once the timer's done.
     var doneTextWidth: CGFloat { innerRadius * 1.5 }
     /// The time set's size under Done, to the time left's.
@@ -449,6 +483,28 @@ private struct TimerDial: View {
             return hypot(number.x - location.x, number.y - location.y) <= layout.numberReach
         }
         return hour.map { $0 * 5 % 60 }
+    }
+}
+
+/// A circle trimmed to `fraction` of the way round and stroked with round
+/// ends. Shorter than it's thick, the line's thinner too, so that it goes to
+/// nothing as it's taken back, rather than staying a dot while the animation
+/// settles.
+private struct CountdownLine: Shape {
+    var fraction: CGFloat
+    let lineWidth: CGFloat
+
+    var animatableData: CGFloat {
+        get { fraction }
+        set { fraction = newValue }
+    }
+
+    func path(in rect: CGRect) -> Path {
+        let length = .pi * min(rect.width, rect.height) * fraction
+        guard length > 0 else { return Path() }
+        return Circle().path(in: rect)
+            .trimmedPath(from: 0, to: fraction)
+            .strokedPath(StrokeStyle(lineWidth: min(lineWidth, length), lineCap: .round))
     }
 }
 

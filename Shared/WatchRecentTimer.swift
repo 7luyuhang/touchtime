@@ -3,8 +3,8 @@
 //  touchtime
 //
 //  The recent timers the iPhone app sends to the Apple Watch app over
-//  WatchConnectivity, and those started on the watch, which it sends back
-//  for them.
+//  WatchConnectivity, and those started or removed on the watch, which it
+//  sends back for them.
 //
 
 import Foundation

@@ -7,10 +7,11 @@
 //  one sweeping round with the time on the stopwatch, and from the first lap
 //  a blue one with the lap's, back at the top for each new lap. The minutes
 //  go round a small dial above the middle, and the time shows in figures
-//  below it, as on that face. Tapped, the figures grow in the ring's place,
-//  under the minutes' dial, the seconds' and the tenths' in a row, as the
-//  system's Stopwatch has its three dials. The laps are listed on a page to
-//  its right.
+//  below it, as on that face, with the lap under way's number under them
+//  from the first lap. With a tap anywhere on the ring, the figures
+//  grow in its place, under the minutes' dial, the seconds' and the tenths'
+//  in a row, as the system's Stopwatch has its three dials. The laps are
+//  listed on a page to its right.
 //
 
 import SwiftUI
@@ -35,8 +36,14 @@ struct StopwatchHomeView: View {
     /// to the ring when the first lap takes No Laps' place.
     @State private var page = Page.dial
     /// Whether the figures show large in the ring's place, under the small
-    /// dials in a row, from a tap on them.
+    /// dials in a row, from a tap anywhere there.
     @State private var isDigital = false
+    /// From the toolbar buttons' outer edges on one side to the other's,
+    /// which the small dials reach across in a row.
+    @State private var dialRowWidth: CGFloat = 0
+    /// Where the page view ends on the screen, and the toolbar's buttons
+    /// start, which the large figures are midway between the row and.
+    @State private var pagesBottom: CGFloat = 0
 
     var body: some View {
         TimelineView(StopwatchSchedule(zeroDate: stopwatch.zeroDate)) { context in
@@ -49,6 +56,12 @@ struct StopwatchHomeView: View {
                     .tag(Page.laps)
             }
             .tabViewStyle(.page)
+            // On the screen, as the pages are each in a space of their own
+            .onGeometryChange(for: CGFloat.self) { proxy in
+                proxy.frame(in: .global).maxY
+            } action: { newBottom in
+                pagesBottom = newBottom
+            }
             .toolbar {
                 controls(at: context.date, phase: phase)
             }
@@ -76,6 +89,10 @@ struct StopwatchHomeView: View {
                 let layout = AnalogueDialLayout(
                     diameter: max(0, min(geometry.size.width - 16, geometry.size.height))
                 )
+                // From the ring's top
+                let buttonsTop = pagesBottom
+                    - geometry.frame(in: .global).minY
+                    - (geometry.size.height - layout.diameter) / 2
 
                 ZStack {
                     SecondsDial(layout: layout, countsToSixty: true)
@@ -85,11 +102,30 @@ struct StopwatchHomeView: View {
                     // Every frame while it runs, but not with the wrist
                     // down, when the minutes turning over are enough.
                     TimelineView(.animation(paused: phase != .running || isLuminanceReduced)) { frame in
-                        face(at: max(frame.date, date), phase: phase, layout: layout)
+                        face(at: max(frame.date, date), phase: phase, layout: layout, buttonsTop: buttonsTop)
                     }
                 }
                 .frame(width: layout.diameter, height: layout.diameter)
+                .contentShape(.circle)
+                .onTapGesture {
+                    // Back to the ring once the seconds' and the tenths'
+                    // dials are back under the minutes'
+                    withAnimation(isDigital ? .smooth.delay(0.15) : .smooth) {
+                        isDigital.toggle()
+                    }
+                }
                 .frame(width: geometry.size.width, height: geometry.size.height)
+            }
+            // The toolbar buttons' outer edges are where the navigation
+            // bar's padding ends either side.
+            .background {
+                Color.clear
+                    .onGeometryChange(for: CGFloat.self) { proxy in
+                        proxy.size.width
+                    } action: { newWidth in
+                        dialRowWidth = newWidth
+                    }
+                    .scenePadding(.navigationBar, edges: .horizontal)
             }
 
             // A line's room under the circle, as the timer leaves, for the
@@ -106,8 +142,9 @@ struct StopwatchHomeView: View {
         .sensoryFeedback(.impact(flexibility: .soft), trigger: isDigital)
     }
 
-    /// The figures, the small dials and the hands at `date`.
-    private func face(at date: Date, phase: WatchStopwatchStore.Phase, layout: AnalogueDialLayout) -> some View {
+    /// The figures, the small dials and the hands at `date`, over the
+    /// toolbar's buttons from `buttonsTop` down.
+    private func face(at date: Date, phase: WatchStopwatchStore.Phase, layout: AnalogueDialLayout, buttonsTop: CGFloat) -> some View {
         let elapsed = stopwatch.elapsed(at: date)
         let lapElapsed = stopwatch.laps.isEmpty ? nil : stopwatch.currentLapElapsed(at: date)
         // With the wrist down while it runs, they'd only turn over once a
@@ -115,12 +152,25 @@ struct StopwatchHomeView: View {
         let showsSeconds = !(isLuminanceReduced && phase == .running)
         let secondAngle = secondTurns * 360 + Self.secondAngle(of: elapsed)
         let lapAngle = lapElapsed.map { Self.secondAngle(of: $0) }
+        let figuresMiddle = isDigital
+            ? layout.largeFiguresMiddle(rowWidth: dialRowWidth, bottom: buttonsTop)
+            : layout.figuresMiddle
 
         return ZStack {
-            figures(elapsed: elapsed, lapElapsed: lapElapsed, showsSeconds: showsSeconds, isRunning: phase == .running, layout: layout)
+            figures(
+                elapsed: elapsed,
+                lapElapsed: lapElapsed,
+                showsSeconds: showsSeconds,
+                isRunning: phase == .running,
+                middle: figuresMiddle,
+                layout: layout
+            )
+
+            lapNumber(middle: figuresMiddle, layout: layout)
 
             SmallDials(
                 layout: layout,
+                rowWidth: dialRowWidth,
                 isInRow: isDigital,
                 minuteAngle: (minuteTurns * 30 + (elapsed / 60).rounded(.down)) * 12,
                 secondAngle: secondAngle,
@@ -132,19 +182,19 @@ struct StopwatchHomeView: View {
 
             StopwatchHands(layout: layout, angle: secondAngle, lapAngle: lapAngle, showsSecondHands: showsSeconds)
                 .accessibilityHidden(true)
-                // Taps on the figures under them reach them.
-                .allowsHitTesting(false)
                 .blurredOut(isDigital)
         }
     }
 
-    /// The time on the stopwatch in figures, as far below the middle as the
-    /// minutes' dial is above it, or large under the small dials in a row.
+    /// The time on the stopwatch in figures below the middle, or large under
+    /// the small dials in a row, around `middle`, or a little higher with the
+    /// lap's number under them from the first lap.
     private func figures(
         elapsed: TimeInterval,
         lapElapsed: TimeInterval?,
         showsSeconds: Bool,
         isRunning: Bool,
+        middle: CGFloat,
         layout: AnalogueDialLayout
     ) -> some View {
         let figures = WatchStopwatchStore.figures(for: elapsed, showsSeconds: showsSeconds)
@@ -160,18 +210,13 @@ struct StopwatchHomeView: View {
             .lineLimit(1)
             .minimumScaleFactor(0.5)
             .frame(width: layout.largeFiguresWidth)
-            .contentShape(.rect)
-            .onTapGesture {
-                // Back to the ring once the seconds' and the tenths' dials
-                // are back under the minutes'
-                withAnimation(isDigital ? .smooth.delay(0.15) : .smooth) {
-                    isDigital.toggle()
-                }
-            }
             // Shrunk on the ring rather than set smaller, so that it grows
             // into the large figures in the same font
             .scaleEffect(isDigital ? 1 : layout.figuresScale)
-            .position(x: layout.center.x, y: layout.center.y + (isDigital ? layout.largeFiguresOffset : layout.figuresOffset))
+            .position(x: layout.center.x, y: layout.center.y + layout.figuresOffset(middle: middle, isLarge: isDigital, showsLap: lapElapsed != nil))
+            // Up for the lap's number as it comes with the first lap, which
+            // isn't animated, for the lap hand to show at once
+            .animation(.smooth, value: lapElapsed != nil)
             .accessibilityLabel(Self.spokenTime(elapsed))
             .accessibilityAddTraits(isRunning ? .updatesFrequently : [])
             // The lap's time too, which only the lap hand shows, hidden from
@@ -181,6 +226,34 @@ struct StopwatchHomeView: View {
                 lapElapsed.map { Text(Self.spokenTime($0)) },
                 importance: .high
             )
+    }
+
+    /// The lap under way's number under the figures from the first lap, the
+    /// two around `middle`, smaller than them, and growing less than they do
+    /// under the row.
+    private func lapNumber(middle: CGFloat, layout: AnalogueDialLayout) -> some View {
+        let lap = stopwatch.laps.isEmpty ? nil : stopwatch.laps.count + 1
+
+        return ZStack {
+            // Blurred in with the first lap and out on reset in its own
+            // place, rather than toward the middle
+            if let lap {
+                Text("Lap \(lap)")
+                    .font(.system(size: layout.largeLapFontSize, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .contentTransition(.numericText(value: Double(lap)))
+                    .transition(.blurReplace)
+            }
+        }
+        // Its room, there with no lap too, as room growing round the number
+        // from nothing would bring it in from the bottom right
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        // Shrunk on the ring, as the figures are
+        .scaleEffect(isDigital ? 1 : layout.lapScale)
+        .position(x: layout.center.x, y: layout.center.y + layout.lapOffset(middle: middle, isLarge: isDigital))
+        .animation(.smooth, value: lap)
+        // Read out with the figures instead, with the lap's time
+        .accessibilityHidden(true)
     }
 
     /// The time on the stopwatch in figures on glass on the laps' page, at
@@ -339,19 +412,58 @@ private extension AnalogueDialLayout {
     /// Round a small dial, clear of its ticks, the ones further along the row
     /// hide under.
     var smallDialCutoutRadius: CGFloat { smallDialRadius * 1.15 }
-    /// The minutes' dial first in a row of the small dials in the ring's
-    /// place, bigger, as far above the middle as the figures are below it on
-    /// the ring, and the space from one's middle to the next at that size.
-    var minuteDialRowCenter: CGPoint { CGPoint(x: center.x - dialRowSpacing, y: center.y - figuresOffset) }
-    var dialRowScale: CGFloat { 1.38 }
-    var dialRowSpacing: CGFloat { innerRadius * 1.1 }
+    /// A small dial's number, a little nearer its middle than its edge, for
+    /// room under the top tick, its type nearly half the dial's radius.
+    var smallDialNumberRadius: CGFloat { smallDialRadius * 0.45 }
+    var smallDialNumberScale: CGFloat { smallDialRadius * 0.45 / hourFontSize }
+    /// The small dials in a row in the ring's place, reaching across `width`
+    /// from the minutes' outer edge to the tenths', with the gap between
+    /// each two: how much bigger each one is there, the space from one's
+    /// middle to the next, and the minutes' middle, first in the row, as high
+    /// as on the ring.
+    var dialRowGap: CGFloat { innerRadius * 0.22 }
+    func dialRowScale(width: CGFloat) -> CGFloat { max(0, width - dialRowGap * 2) / 6 / smallDialRadius }
+    func dialRowSpacing(width: CGFloat) -> CGFloat { max(0, width - dialRowGap * 2) / 3 + dialRowGap }
+    func minuteDialRowCenter(width: CGFloat) -> CGPoint {
+        CGPoint(x: center.x - dialRowSpacing(width: width), y: minuteDialCenter.y)
+    }
     /// The time on the stopwatch, large under the row, or on the ring shrunk
-    /// to half that.
-    var figuresOffset: CGFloat { innerRadius * 0.47 }
+    /// to half that, and the lap under way's number, large under the row, or
+    /// on the ring as big as the ring's fives.
     var figuresScale: CGFloat { 0.5 }
-    var largeFiguresOffset: CGFloat { innerRadius * 0.65 }
     var largeFiguresFontSize: CGFloat { innerRadius * 0.6 }
     var largeFiguresWidth: CGFloat { innerRadius * 3 }
+    var largeLapFontSize: CGFloat { innerRadius * 0.28 }
+    var lapScale: CGFloat { hourFontSize * secondNumberScale / largeLapFontSize }
+    /// Below the middle, the middle of the space the figures are in the
+    /// middle of, with the lap's number under them from the first lap: on the
+    /// ring, between the middle and the inside of the line a point wide on the
+    /// ring's inner edge, or large, between the row across `rowWidth` and
+    /// `bottom`.
+    var figuresMiddle: CGFloat { (innerRadius - 0.5) / 2 }
+    func largeFiguresMiddle(rowWidth: CGFloat, bottom: CGFloat) -> CGFloat {
+        let rowBottom = minuteDialRowCenter(width: rowWidth).y + smallDialRadius * dialRowScale(width: rowWidth)
+        return (rowBottom + bottom) / 2 - center.y
+    }
+    /// How far below the middle the figures are, and the lap's number, for
+    /// what shows of them to be in the middle together around `middle`: the
+    /// figures' digits a third of their type size up from their own middle
+    /// and three eighths of it down, and the number's characters, the Chinese
+    /// ones the tallest, a third of its type size up and 0.45 of it down, that
+    /// much of it under the digits.
+    func figuresOffset(middle: CGFloat, isLarge: Bool, showsLap: Bool) -> CGFloat {
+        let figuresSize = figuresFontSize(isLarge: isLarge)
+        let height = figuresSize * (1.0 / 3 + 3.0 / 8)
+            + (showsLap ? lapFontSize(isLarge: isLarge) * (0.45 + 1.0 / 3 + 0.45) : 0)
+        return middle - height / 2 + figuresSize / 3
+    }
+    func lapOffset(middle: CGFloat, isLarge: Bool) -> CGFloat {
+        figuresOffset(middle: middle, isLarge: isLarge, showsLap: true)
+            + figuresFontSize(isLarge: isLarge) * 3 / 8
+            + lapFontSize(isLarge: isLarge) * (0.45 + 1.0 / 3)
+    }
+    func figuresFontSize(isLarge: Bool) -> CGFloat { largeFiguresFontSize * (isLarge ? 1 : figuresScale) }
+    func lapFontSize(isLarge: Bool) -> CGFloat { largeLapFontSize * (isLarge ? 1 : lapScale) }
     /// The second hands' cap, a ring as thick as their bars round its hole.
     var stopwatchCapDiameter: CGFloat { radius * 0.08 }
     var stopwatchHoleDiameter: CGFloat { max(0, stopwatchCapDiameter - secondHandWidth * 2) }
@@ -416,9 +528,12 @@ private struct StopwatchHands: View {
 /// The small dials, as the system Stopwatch has its three: the minutes'
 /// above the middle, with the seconds' and the tenths' under it, or bigger
 /// in a row in the ring's place, the minutes' first, the other two fanning
-/// out from under it once it's most of the way there.
+/// out from under it once it's most of the way there, with the numbers at
+/// the tops of all three.
 private struct SmallDials: View {
     let layout: AnalogueDialLayout
+    /// From the minutes' outer edge to the tenths' once in a row.
+    let rowWidth: CGFloat
     let isInRow: Bool
     /// In degrees clockwise from the top, counting whole turns. The minutes'
     /// hand steps on a tick as each comes round.
@@ -431,19 +546,19 @@ private struct SmallDials: View {
 
     var body: some View {
         ZStack {
-            dial(place: 2, longTicks: 12, between: 2, fades: true) {
+            dial(place: 2, longTicks: 12, between: 2, number: 10, fades: true) {
                 if showsSecondHands {
                     SmallDialHands(layout: layout, angle: tenthAngle)
                         .transition(.blurReplace)
                 }
             }
-            dial(place: 1, longTicks: 12, between: 2) {
+            dial(place: 1, longTicks: 12, between: 2, number: 60) {
                 if showsSecondHands {
                     SmallDialHands(layout: layout, angle: secondAngle, lapAngle: lapAngle)
                         .transition(.blurReplace)
                 }
             }
-            dial(place: 0, longTicks: 6, between: 4) {
+            dial(place: 0, longTicks: 6, between: 4, number: 30) {
                 SmallDialHands(layout: layout, angle: minuteAngle)
                     .animation(.smooth(duration: 0.3), value: minuteAngle)
             }
@@ -452,8 +567,8 @@ private struct SmallDials: View {
         // the wrist down while it runs
         .animation(.smooth, value: showsSecondHands)
         .frame(width: layout.smallDialRadius * 2, height: layout.smallDialRadius * 2)
-        .scaleEffect(isInRow ? layout.dialRowScale : 1)
-        .position(isInRow ? layout.minuteDialRowCenter : layout.minuteDialCenter)
+        .scaleEffect(isInRow ? layout.dialRowScale(width: rowWidth) : 1)
+        .position(isInRow ? layout.minuteDialRowCenter(width: rowWidth) : layout.minuteDialCenter)
         .compositingGroup()
     }
 
@@ -463,6 +578,7 @@ private struct SmallDials: View {
         place: Int,
         longTicks: Int,
         between: Int,
+        number: Int,
         fades: Bool = false,
         @ViewBuilder hands: () -> some View
     ) -> some View {
@@ -470,10 +586,10 @@ private struct SmallDials: View {
             Circle()
                 .frame(width: layout.smallDialCutoutRadius * 2, height: layout.smallDialCutoutRadius * 2)
                 .blendMode(.destinationOut)
-            SmallDial(layout: layout, longTicks: longTicks, between: between)
+            SmallDial(layout: layout, longTicks: longTicks, between: between, number: number, showsNumber: isInRow)
             hands()
         }
-        .offset(x: isInRow ? CGFloat(place) * layout.dialRowSpacing / layout.dialRowScale : 0)
+        .offset(x: isInRow ? CGFloat(place) * layout.dialRowSpacing(width: rowWidth) / layout.dialRowScale(width: rowWidth) : 0)
         .opacity(fades && !isInRow ? 0 : 1)
         // Back under the minutes' before that goes back
         .animation(isInRow ? .smooth.delay(0.2) : .smooth(duration: 0.3), value: isInRow)
@@ -484,11 +600,14 @@ private struct SmallDials: View {
 /// `longTicks` round it, as bright as the ring's, the first at the top, and
 /// `between` shorter, dimmer ones between each two: half an hour a turn for
 /// the minutes, as round the ring, a minute for the seconds and a second for
-/// the tenths.
+/// the tenths. Inside the top one, while it `showsNumber`, the `number` a
+/// turn counts to, as the ring has 60 inside its top one.
 private struct SmallDial: View {
     let layout: AnalogueDialLayout
     let longTicks: Int
     let between: Int
+    let number: Int
+    let showsNumber: Bool
 
     var body: some View {
         let ticks = longTicks * (between + 1)
@@ -504,6 +623,15 @@ private struct SmallDial: View {
                 .fill(.white.opacity(isLong ? 1 : 0.375))
                 .rotationEffect(.degrees(Double(tick) * 360 / Double(ticks)))
             }
+
+            Text(verbatim: "\(number)")
+                // Shrunk as the ring's fives are, rather than set smaller,
+                // so they look the same
+                .font(.system(size: layout.hourFontSize, weight: .semibold, design: .rounded))
+                .scaleEffect(layout.smallDialNumberScale)
+                .foregroundStyle(.white)
+                .offset(y: -layout.smallDialNumberRadius)
+                .opacity(showsNumber ? 1 : 0)
         }
         .frame(width: layout.smallDialRadius * 2, height: layout.smallDialRadius * 2)
     }

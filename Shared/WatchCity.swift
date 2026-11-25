@@ -54,4 +54,6 @@ nonisolated enum WatchSyncKeys {
     /// `WatchRecentTimer` started there from its pickers, for the iPhone's
     /// Recents.
     static let startedTimer = "startedTimer"
+    /// Or one removed from Recents there, for the iPhone's too.
+    static let removedTimer = "removedTimer"
 }

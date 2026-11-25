@@ -97,13 +97,18 @@ final class WatchTimerStore: NSObject, UNUserNotificationCenterDelegate {
     /// Whole seconds left at `date`, rounded up as on iPhone, so the last
     /// second shows as 00:01 rather than 00:00.
     func remainingSeconds(at date: Date) -> Int {
+        Int(remaining(at: date).rounded(.up))
+    }
+
+    /// The time left at `date`, to the fraction of a second.
+    func remaining(at date: Date) -> TimeInterval {
         switch phase(at: date) {
         case .idle, .done:
             0
         case .running(let endDate):
-            Int(endDate.timeIntervalSince(date).rounded(.up))
+            endDate.timeIntervalSince(date)
         case .paused(let remaining):
-            Int(remaining.rounded(.up))
+            remaining
         }
     }
 

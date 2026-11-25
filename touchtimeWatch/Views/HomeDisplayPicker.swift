@@ -59,6 +59,7 @@ struct HomeDisplayPicker: View {
                         }
                         .buttonBorderShape(.capsule)
                         .accessibilityAddTraits(selection == display ? .isSelected : [])
+                        .modifier(ShrinkTowardBottom())
                         // Keeps the pill's first layout, which lands in the same
                         // update, from stretching it out from the left with the rise
                         .animation(nil, value: showsPills)
@@ -115,6 +116,33 @@ private struct RiseIn: ViewModifier, Animatable {
                     .offset(y: rise * (1 - progress))
                     .blur(radius: Self.blurRadius * (1 - progress))
                     .opacity(progress)
+            }
+    }
+}
+
+/// Shrinks and dims a pill as its top nears the bottom of the screen, slowly
+/// at first and then faster, as the watch's own lists do their rows. Its top
+/// stays where it is.
+private struct ShrinkTowardBottom: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        let screenHeight = WKInterfaceDevice.current().screenBounds.height
+        // An Ultra's lists, the only ones on a screen this tall, start
+        // shrinking their rows further up, and shrink them more
+        let isUltra = screenHeight > 250
+        // How far up from the screen's bottom edge a pill starts to shrink
+        let reach = screenHeight * (isUltra ? 0.35 : 0.26)
+        // How much smaller a pill is with its top on the bottom edge
+        let edgeShrink: CGFloat = isUltra ? 0.68 : 0.59
+        content
+            .visualEffect { [reduceMotion] content, geometry in
+                let distance = screenHeight - geometry.frame(in: .global).minY
+                // From the pill's top at the reach or above (0) to on the edge (1)
+                let progress = reduceMotion ? 0 : min(max(1 - distance / reach, 0), 1)
+                return content
+                    .scaleEffect(1 - edgeShrink * (exp(4 * progress) - 1) / (exp(4) - 1), anchor: .top)
+                    .opacity(1 - 0.7 * pow(progress, 1.5))
             }
     }
 }

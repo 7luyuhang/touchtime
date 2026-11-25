@@ -93,6 +93,16 @@ enum RecentTimerStore {
         save(timers)
     }
 
+    /// Removes the entry matching the given duration and name. Used when it's
+    /// removed from Recents on the Apple Watch.
+    static func removeMatching(durationSeconds: Int, name: String?) {
+        var timers = load()
+        let count = timers.count
+        timers.removeAll { $0.durationSeconds == durationSeconds && $0.name == name }
+        guard timers.count < count else { return }
+        save(timers)
+    }
+
     /// Counts one completed run for the entry matching the given duration and
     /// name. Called when the home timer runs all the way down to zero.
     static func recordCompletion(durationSeconds: Int, name: String?) {
@@ -116,7 +126,8 @@ enum RecentTimerStore {
 }
 
 extension Notification.Name {
-    /// Posted when a timer started on the Apple Watch joins Recents, so an
-    /// open timer sheet shows it, and doesn't save over it.
+    /// Posted when a timer started on the Apple Watch joins Recents, or one
+    /// removed there leaves, so an open timer sheet shows it, and doesn't
+    /// save over it.
     static let recentTimersDidChange = Notification.Name("RecentTimersDidChange")
 }

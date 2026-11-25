@@ -2344,7 +2344,7 @@
       }
     },
     "Lap %lld" : {
-      "comment" : "A lap of the stopwatch by its number, counting from 1, e.g. \"Lap 3\": under each lap's time in the list of laps, and read by VoiceOver for the time of the lap under way.",
+      "comment" : "A lap of the stopwatch by its number, counting from 1, e.g. \"Lap 3\": under each lap's time in the list of laps, and for the lap under way, under the time on the stopwatch's dial and read by VoiceOver for its time.",
       "localizations" : {
         "ja" : {
           "stringUnit" : {
@@ -3058,6 +3058,35 @@
         }
       }
     },
+    "No Recent" : {
+      "comment" : "Shown in the timer's Recents once the last of them is removed.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "最近の項目なし"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "최근 항목 없음"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暂无最近使用"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "暫無最近使用"
+          }
+        }
+      }
+    },
     "Notification" : {
       "localizations" : {
         "ja" : {
@@ -3309,6 +3338,35 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "最近使用"
+          }
+        }
+      }
+    },
+    "Remove" : {
+      "comment" : "Swipe action that removes a timer from Recents, on the iPhone too.",
+      "localizations" : {
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "削除"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "제거"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "移除"
           }
         }
       }

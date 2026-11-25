@@ -5,7 +5,8 @@
 //  Sends the saved cities and collections, the date style, the first day of
 //  the week, the temperature, wind speed and pressure units, the countdowns
 //  and the unit they count in, and the recent timers to the Apple Watch app,
-//  and puts the timers started there in Recents.
+//  and puts the timers started there in Recents, and takes those removed
+//  there out.
 //
 
 import Foundation
@@ -198,13 +199,20 @@ final class WatchSyncManager: NSObject, WCSessionDelegate {
         }
     }
 
-    // A timer started on the watch from its pickers. Remembering it sends
-    // Recents back with it in.
+    // A timer started on the watch from its pickers, or removed from Recents
+    // there. Remembering or removing it sends Recents back with the change.
     nonisolated func session(_ session: WCSession, didReceiveUserInfo userInfo: [String: Any]) {
-        guard let timerData = userInfo[WatchSyncKeys.startedTimer] as? Data else { return }
+        let startedTimerData = userInfo[WatchSyncKeys.startedTimer] as? Data
+        let removedTimerData = userInfo[WatchSyncKeys.removedTimer] as? Data
         Task { @MainActor in
-            guard let timer = try? JSONDecoder().decode(WatchRecentTimer.self, from: timerData) else { return }
-            RecentTimerStore.remember(durationSeconds: timer.durationSeconds, name: timer.name)
+            let decoder = JSONDecoder()
+            if let timer = startedTimerData.flatMap({ try? decoder.decode(WatchRecentTimer.self, from: $0) }) {
+                RecentTimerStore.remember(durationSeconds: timer.durationSeconds, name: timer.name)
+            } else if let timer = removedTimerData.flatMap({ try? decoder.decode(WatchRecentTimer.self, from: $0) }) {
+                RecentTimerStore.removeMatching(durationSeconds: timer.durationSeconds, name: timer.name)
+            } else {
+                return
+            }
             NotificationCenter.default.post(name: .recentTimersDidChange, object: nil)
         }
     }

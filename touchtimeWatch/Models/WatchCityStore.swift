@@ -5,7 +5,7 @@
 //  The iPhone app's saved cities and collections, date style, first day of
 //  the week, temperature, wind speed and pressure units, countdowns and the
 //  unit they count in, and recent timers, received over WatchConnectivity,
-//  and the timers started here, sent back for its Recents.
+//  and the timers started or removed here, sent back for its Recents.
 //
 
 import Foundation
@@ -38,8 +38,8 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
     /// iPhone app's countdown sheet's Time Display.
     private(set) var countdownUnit: CountdownUnit
     /// The timers started on the iPhone or here, in the order its timer
-    /// sheet lists them under Recents, those started here that it's yet to
-    /// hear of put in as it will.
+    /// sheet lists them under Recents, those started or removed here that
+    /// it's yet to hear of put in or taken out as it will.
     private(set) var recentTimers: [WatchRecentTimer]
 
     private static let citiesKey = "cities"
@@ -174,7 +174,12 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         WatchWidgetStore.save(countdowns: countdowns, unit: self.countdownUnit)
         if let recentTimersData,
            let receivedRecentTimers = try? JSONDecoder().decode([WatchRecentTimer].self, from: recentTimersData) {
-            let timers = Self.unsentTimers().reduce(receivedRecentTimers) { Self.inserting($1, into: $0) }
+            let timers = Self.unsentChanges().reduce(receivedRecentTimers) { timers, change in
+                switch change {
+                case .started(let timer): Self.inserting(timer, into: timers)
+                case .removed(let timer): Self.removing(timer, from: timers)
+                }
+            }
             if timers != recentTimers {
                 recentTimers = timers
             }
@@ -199,6 +204,21 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         WCSession.default.transferUserInfo([WatchSyncKeys.startedTimer: timerData])
     }
 
+    /// Takes a timer out of Recents, and sends it to the iPhone to take out
+    /// of its own, which come back without it.
+    func removeTimer(_ timer: WatchRecentTimer) {
+        let timers = Self.removing(timer, from: recentTimers)
+        if timers != recentTimers {
+            recentTimers = timers
+            UserDefaults.standard.set(try? JSONEncoder().encode(timers), forKey: Self.recentTimersKey)
+        }
+
+        // Kept until the iPhone's in reach, and its app running
+        guard WCSession.isSupported(), WCSession.default.activationState == .activated,
+              let timerData = try? JSONEncoder().encode(timer) else { return }
+        WCSession.default.transferUserInfo([WatchSyncKeys.removedTimer: timerData])
+    }
+
     /// `timers` with `timer` first, unless one as long and named the same is
     /// there already, which stays where it is, as the iPhone keeps Recents.
     private static func inserting(_ timer: WatchRecentTimer, into timers: [WatchRecentTimer]) -> [WatchRecentTimer] {
@@ -208,13 +228,33 @@ final class WatchCityStore: NSObject, WCSessionDelegate {
         return Array(([timer] + timers).prefix(WatchRecentTimer.maxCount))
     }
 
-    /// The timers started here still on their way to the iPhone, in the
-    /// order they started.
-    private static func unsentTimers() -> [WatchRecentTimer] {
+    /// `timers` without the one as long and named the same as `timer`, as
+    /// the iPhone takes it out of Recents.
+    private static func removing(_ timer: WatchRecentTimer, from timers: [WatchRecentTimer]) -> [WatchRecentTimer] {
+        timers.filter { $0.durationSeconds != timer.durationSeconds || $0.name != timer.name }
+    }
+
+    /// A timer started or removed here, on its way to the iPhone.
+    private enum UnsentChange {
+        case started(WatchRecentTimer)
+        case removed(WatchRecentTimer)
+    }
+
+    /// The timers started or removed here still on their way to the iPhone,
+    /// in the order they were, so a timer removed and started again is back.
+    private static func unsentChanges() -> [UnsentChange] {
         guard WCSession.isSupported() else { return [] }
+        let decoder = JSONDecoder()
         return WCSession.default.outstandingUserInfoTransfers.compactMap { transfer in
-            (transfer.userInfo[WatchSyncKeys.startedTimer] as? Data)
-                .flatMap { try? JSONDecoder().decode(WatchRecentTimer.self, from: $0) }
+            if let data = transfer.userInfo[WatchSyncKeys.startedTimer] as? Data,
+               let timer = try? decoder.decode(WatchRecentTimer.self, from: data) {
+                return .started(timer)
+            }
+            if let data = transfer.userInfo[WatchSyncKeys.removedTimer] as? Data,
+               let timer = try? decoder.decode(WatchRecentTimer.self, from: data) {
+                return .removed(timer)
+            }
+            return nil
         }
     }
 
