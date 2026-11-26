@@ -42,7 +42,7 @@ struct SkyColorGradient {
     private let isRainy: Bool
 
     // Solar elevation in degrees above the horizon (negative below it).
-    private let solarAltitude: Double
+    let solarAltitude: Double
 
     // 0 = pure dawn palette, 1 = pure dusk palette. Crosses 0.5 exactly at
     // solar noon and solar midnight so the handoff never produces a seam.

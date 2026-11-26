@@ -326,8 +326,8 @@ struct CityCardSnapshotView: View {
                             date: date,
                             timeZoneIdentifier: timeZoneIdentifier,
                             weatherCondition: weatherCondition,
-                            showRainEffect: true,
-                            staticRainElapsed: 30.0,
+                            showWeatherEffects: true,
+                            staticWeatherElapsed: 30.0,
                             appliesCardChrome: false
                         )
                         .background(Color.black)

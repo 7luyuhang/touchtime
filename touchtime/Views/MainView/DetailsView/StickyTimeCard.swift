@@ -87,7 +87,8 @@ struct StickyTimeCard: View {
                 StickyTimeSky(
                     date: currentDate.addingTimeInterval(timeOffset),
                     timeZoneIdentifier: timeZoneIdentifier,
-                    weatherCondition: skyWeatherCondition
+                    weatherCondition: skyWeatherCondition,
+                    cityName: cityName
                 ) : nil
             )
             .clipShape(
@@ -101,8 +102,8 @@ struct StickyTimeCard: View {
     }
 }
 
-/// The sky behind the sticky time card. Its rain and stars land out of step
-/// with the card as the card changes size, as when the iPhone Duo's panes
+/// The sky behind the sticky time card. Its rain, clouds and stars land out of
+/// step with the card as the card changes size, as when the iPhone Duo's panes
 /// resize: the stars jump straight to where the final size puts them while the
 /// card's outline is still on its way. So a plain sky stands in until the size
 /// settles.
@@ -110,6 +111,8 @@ private struct StickyTimeSky: View {
     let date: Date
     let timeZoneIdentifier: String
     let weatherCondition: WeatherCondition?
+    /// The city's row on Home goes by the same name, for the same clouds.
+    let cityName: String
 
     @State private var isResizing = false
     @State private var resizeCount = 0
@@ -121,7 +124,9 @@ private struct StickyTimeSky: View {
             weatherCondition: weatherCondition
         )
         // A plain sky keeps pace with the card on its own
-        let needsStandIn = (weatherCondition?.rainIntensity ?? 0) > 0 || skyColorGradient.starOpacity > 0
+        let needsStandIn = (weatherCondition?.rainIntensity ?? 0) > 0
+            || (weatherCondition?.cloudCover ?? 0) > 0
+            || skyColorGradient.starOpacity > 0
 
         ZStack {
             if needsStandIn {
@@ -132,7 +137,8 @@ private struct StickyTimeSky: View {
                 date: date,
                 timeZoneIdentifier: timeZoneIdentifier,
                 weatherCondition: weatherCondition,
-                showRainEffect: true,
+                showWeatherEffects: true,
+                cloudVariation: cityName,
                 drawsOverBlack: true
             )
             .opacity(needsStandIn && isResizing ? 0 : 1)
@@ -144,7 +150,7 @@ private struct StickyTimeSky: View {
             isResizing = true
             resizeCount += 1
         }
-        // Back to the rain or stars once the size has held still for a moment
+        // Back to the rain, clouds or stars once the size has held still for a moment
         .task(id: resizeCount) {
             guard isResizing else { return }
             try? await Task.sleep(for: .milliseconds(600))

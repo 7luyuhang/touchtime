@@ -4,6 +4,7 @@
 //
 
 import SwiftUI
+import TipKit
 
 @main
 struct TouchTimeWatchApp: App {
@@ -15,6 +16,7 @@ struct TouchTimeWatchApp: App {
     init() {
         // Settings changed by a version without the widget
         WatchWidgetStore.saveSettings()
+        try? Tips.configure()
     }
 
     var body: some Scene {

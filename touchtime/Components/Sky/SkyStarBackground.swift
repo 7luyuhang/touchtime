@@ -15,13 +15,17 @@ struct SkyBackgroundView: View {
     let date: Date
     let timeZoneIdentifier: String
     var weatherCondition: WeatherCondition? = nil
-    /// When true, an animated rainy-glass shader is layered on top of the sky
-    /// background whenever `weatherCondition` represents a rainy condition.
-    var showRainEffect: Bool = false
-    /// When non-nil, the rain shader is rendered as a single static frame at
-    /// the given elapsed time. Used by `ImageRenderer` snapshots since
+    /// When true, the weather shows in the sky: clouds drift across it
+    /// whenever `weatherCondition` is a cloudy one, and an animated
+    /// rainy-glass shader is layered on top whenever it's a rainy one.
+    var showWeatherEffects: Bool = false
+    /// When non-nil, the weather shaders are rendered as a single static frame
+    /// at the given elapsed time. Used by `ImageRenderer` snapshots since
     /// `TimelineView` animations don't run during rendering.
-    var staticRainElapsed: Float? = nil
+    var staticWeatherElapsed: Float? = nil
+    /// Tells this sky's clouds from another's: skies given the same text show
+    /// the same clouds. Nil goes by the time zone, which cities can share.
+    var cloudVariation: String? = nil
     /// Set to false when the containing card already applies clipping and
     /// border chrome around the complete card.
     var appliesCardChrome: Bool = true
@@ -36,8 +40,12 @@ struct SkyBackgroundView: View {
         SkyColorGradient(date: date, timeZoneIdentifier: timeZoneIdentifier, weatherCondition: weatherCondition)
     }
 
+    /// The sky is drawn this translucent, or as it looks this translucent
+    /// over black.
+    private static let skyOpacity = 0.65
+
     private var rainIntensity: Float {
-        guard showRainEffect, let condition = weatherCondition else { return 0 }
+        guard showWeatherEffects, let condition = weatherCondition else { return 0 }
         return condition.rainIntensity
     }
 
@@ -48,12 +56,13 @@ struct SkyBackgroundView: View {
         // read 5x per body. Reuse a single instance and its derived values.
         let gradient = skyColorGradient
         let starOpacity = gradient.starOpacity
+        let cloudCover = weatherCondition?.cloudCover ?? 0
         return ZStack {
             // Fill the full bounding rectangle so the rain shader never samples
             // transparent pixels (which would show as black refractive halos
             // around drops near the rounded corners).
             Rectangle()
-                .fill(drawsOverBlack ? gradient.linearGradientOverBlack(opacity: 0.65) : gradient.linearGradient(opacity: 0.65))
+                .fill(drawsOverBlack ? gradient.linearGradientOverBlack(opacity: Self.skyOpacity) : gradient.linearGradient(opacity: Self.skyOpacity))
                 .animation(.easeInOut(duration: 0.5), value: gradient.animationValue)
 
             // Stars overlay for nighttime
@@ -64,8 +73,23 @@ struct SkyBackgroundView: View {
                     .animation(.easeInOut(duration: 0.5), value: starOpacity)
                     .allowsHitTesting(false)
             }
+
+            // Clouds for cloudy weather, over the stars they hide. Kept in
+            // place under a clear sky too, so that they gather and clear
+            // rather than cut in and out as the weather changes.
+            if showWeatherEffects {
+                CloudDriftView(
+                    cover: cloudCover,
+                    lighting: gradient.cloudLighting,
+                    skyOpacity: Self.skyOpacity,
+                    variation: cloudVariation ?? timeZoneIdentifier,
+                    staticElapsed: staticWeatherElapsed
+                )
+                .animation(.easeInOut(duration: 0.5), value: gradient.animationValue)
+                .animation(.easeInOut(duration: 1.0), value: cloudCover)
+            }
         }
-        .rainFallEffect(intensity: rainIntensity, staticElapsed: staticRainElapsed)
+        .rainFallEffect(intensity: rainIntensity, staticElapsed: staticWeatherElapsed)
     }
 
     @ViewBuilder

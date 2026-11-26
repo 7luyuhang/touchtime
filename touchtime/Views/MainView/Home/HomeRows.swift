@@ -10,6 +10,7 @@ private struct HomeSkyListRowBackground: View {
     let date: Date
     let timeZoneIdentifier: String
     let weatherCondition: WeatherCondition?
+    let cloudVariation: String
     /// Displayed time minus now, which the stars turn with.
     let timeOffset: TimeInterval
 
@@ -18,7 +19,8 @@ private struct HomeSkyListRowBackground: View {
             date: date,
             timeZoneIdentifier: timeZoneIdentifier,
             weatherCondition: weatherCondition,
-            showRainEffect: true,
+            showWeatherEffects: true,
+            cloudVariation: cloudVariation,
             appliesCardChrome: false,
             starsMotion: StarsView.Motion(timeOffset: timeOffset, timeZoneIdentifier: timeZoneIdentifier)
         )
@@ -139,6 +141,9 @@ enum RowTimeFormat {
 /// pruned on frames where the quantized date and weather did not change.
 struct RowSkyBackground: View {
     let timeZoneIdentifier: String
+    /// The row's name, as its details show it. Rows over one time zone get
+    /// clouds of their own by it, and a row's details the row's clouds.
+    let cityName: String
     @Binding var currentDate: Date
     @Binding var timeOffset: TimeInterval
     @ObservedObject var weatherManager: WeatherManager
@@ -149,6 +154,7 @@ struct RowSkyBackground: View {
             date: RowTimeFormat.minuteQuantized(date: currentDate, offset: timeOffset),
             timeZoneIdentifier: timeZoneIdentifier,
             weatherCondition: showWeather ? weatherManager.weatherData[timeZoneIdentifier]?.condition : nil,
+            cloudVariation: cityName,
             timeOffset: RowTimeFormat.minuteQuantized(offset: timeOffset)
         )
     }

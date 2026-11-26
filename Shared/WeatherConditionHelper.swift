@@ -230,4 +230,19 @@ extension WeatherCondition {
     var isRainy: Bool {
         rainIntensity > 0
     }
+
+    // Approximate share of the sky under cloud in [0, 1] for the cloud shader.
+    // Returns 0 for conditions that aren't named for their cloud.
+    var cloudCover: Float {
+        switch self {
+        case .partlyCloudy:
+            return 0.3
+        case .mostlyCloudy:
+            return 0.6
+        case .cloudy:
+            return 0.88
+        default:
+            return 0
+        }
+    }
 }

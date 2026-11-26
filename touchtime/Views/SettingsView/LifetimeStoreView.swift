@@ -666,7 +666,7 @@ private struct LocalAvailableTimePreview: View {
                             date: skyDate,
                             timeZoneIdentifier: TimeZone.current.identifier,
                             weatherCondition: skyWeatherCondition,
-                            showRainEffect: true
+                            showWeatherEffects: true
                         )
                     }
                 )

@@ -67,6 +67,17 @@ struct WorldClockView: View {
                     StopwatchHomeView()
                 }
             }
+            // The timer's and stopwatch's runs at the foot of the lists, just
+            // above the collections' page dots: from the screen's edge, as the
+            // safe area ends well above them
+            .overlay(alignment: .bottom) {
+                if homeDisplay == .list || homeDisplay == .countdowns {
+                    RunningTips()
+                        .padding(.horizontal, 10)
+                        .padding(.bottom, 14)
+                        .ignoresSafeArea(edges: .bottom)
+                }
+            }
             .toolbar {
                 // While adjusting time, a reset button takes Choose View's
                 // place, as it takes the back button's on a city's details.
