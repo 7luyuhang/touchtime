@@ -429,12 +429,12 @@ private extension AnalogueDialLayout {
     }
     /// The time on the stopwatch, large under the row, or on the ring shrunk
     /// to half that, and the lap under way's number, large under the row, or
-    /// on the ring as big as the ring's fives.
+    /// on the ring four fifths the size of the figures there.
     var figuresScale: CGFloat { 0.5 }
     var largeFiguresFontSize: CGFloat { innerRadius * 0.6 }
     var largeFiguresWidth: CGFloat { innerRadius * 3 }
     var largeLapFontSize: CGFloat { innerRadius * 0.28 }
-    var lapScale: CGFloat { hourFontSize * secondNumberScale / largeLapFontSize }
+    var lapScale: CGFloat { figuresFontSize(isLarge: false) * 0.8 / largeLapFontSize }
     /// Below the middle, the middle of the space the figures are in the
     /// middle of, with the lap's number under them from the first lap: on the
     /// ring, between the middle and the inside of the line a point wide on the
