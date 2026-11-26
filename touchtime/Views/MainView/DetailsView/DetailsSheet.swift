@@ -56,6 +56,9 @@ struct SunriseSunsetSheet: View {
     @State private var upcomingMoonPhases: [UpcomingMoonPhase] = []
     @State private var isMoonPhasesExpanded = false // Track upcoming phases expansion
     @State private var astronomyDayCacheKey: String = ""
+    /// The bottom of the sticky time card, in global coordinates, which the
+    /// sky's clouds stop at. Nil while the card isn't shown.
+    @State private var timeCardBottom: CGFloat?
 
     init(
         cityName: String,
@@ -257,6 +260,14 @@ struct SunriseSunsetSheet: View {
                 date: currentDate.addingTimeInterval(timeOffset),
                 timeZoneIdentifier: timeZoneIdentifier,
                 weatherCondition: weatherConditionForSky,
+                showClouds: true,
+                cloudVariation: cityName,
+                // Smaller than the sheet's height alone would make them, so a
+                // few more show across its top
+                cloudScale: 0.7,
+                // Over the top of the sheet, down to the time card, and clear
+                // over the list below it
+                cloudsBottom: timeCardBottom,
                 appliesCardChrome: false
             )
             .animation(skyFadeAnimation) { sky in
@@ -385,6 +396,12 @@ struct SunriseSunsetSheet: View {
                         // Beside the list, level with its first card
                         // (the list starts 24pt down)
                         .padding(.top, isEmbedded ? 24 : 8)
+                        .onGeometryChange(for: CGFloat.self) { proxy in
+                            proxy.frame(in: .global).maxY
+                        } action: { bottom in
+                            timeCardBottom = bottom
+                        }
+                        .onDisappear { timeCardBottom = nil }
                         .transition(.blurReplace())
                     }
                 }

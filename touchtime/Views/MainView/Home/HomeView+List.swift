@@ -282,7 +282,6 @@ extension HomeView {
                 .listRowBackground(
                     showSkyDot ? RowSkyBackground(
                         timeZoneIdentifier: TimeZone.current.identifier,
-                        cityName: String(localized: "Local"),
                         currentDate: $currentDate,
                         timeOffset: $timeOffset,
                         weatherManager: weatherManager
@@ -378,7 +377,6 @@ extension HomeView {
             .listRowBackground(
                 showSkyDot ? RowSkyBackground(
                     timeZoneIdentifier: clock.timeZoneIdentifier,
-                    cityName: getLocalizedCityName(for: clock),
                     currentDate: $currentDate,
                     timeOffset: $timeOffset,
                     weatherManager: weatherManager

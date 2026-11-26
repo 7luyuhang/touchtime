@@ -232,15 +232,22 @@ extension WeatherCondition {
     }
 
     // Approximate share of the sky under cloud in [0, 1] for the cloud shader.
-    // Returns 0 for conditions that aren't named for their cloud.
+    // Returns 0 for conditions that aren't named for their cloud or rain.
     var cloudCover: Float {
         switch self {
         case .partlyCloudy:
             return 0.3
-        case .mostlyCloudy:
+        case .sunShowers:
+            // Showers out of a sky that still lets the sun through
+            return 0.45
+        case .mostlyCloudy, .isolatedThunderstorms, .scatteredThunderstorms:
             return 0.6
-        case .cloudy:
+        case .drizzle, .freezingDrizzle:
+            return 0.8
+        case .cloudy, .rain, .freezingRain, .sleet, .wintryMix:
             return 0.88
+        case .heavyRain, .thunderstorms, .strongStorms, .hurricane, .tropicalStorm:
+            return 0.95
         default:
             return 0
         }

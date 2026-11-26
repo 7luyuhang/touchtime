@@ -154,6 +154,7 @@ static Layer layer(float2 p, float t, float threshold, float2 toLight, bool isNe
 } // namespace clouds
 
 // `size`     view size in points.
+// `unit`     how big the clouds are, in points; they grow and shrink with it.
 // `time`     seconds, for the drift; the clouds also change shape with it.
 // `cover`    how much of the sky is under cloud, in [0, 1]. Close to 0 the
 //            clouds thin out to nothing.
@@ -166,6 +167,7 @@ static Layer layer(float2 p, float t, float threshold, float2 toLight, bool isNe
 half4 cloudDrift(float2 position,
                  half4 color,
                  float2 size,
+                 float unit,
                  float time,
                  float cover,
                  float seed,
@@ -179,10 +181,8 @@ half4 cloudDrift(float2 position,
         return half4(0.0h);
     }
 
-    // The clouds grow with the view's height, within limits, so a short row
-    // and a tall card both hold a few. They're wider than they are tall.
-    float unit = clamp(size.y, 72.0, 200.0);
-    float2 uv = position * float2(1.1, 1.485) / unit;
+    // The clouds are wider than they are tall
+    float2 uv = position * float2(1.1, 1.485) / max(unit, 1.0);
     // 0 at the top edge, 1 at the bottom
     float down = clamp(position.y / max(size.y, 1.0), 0.0, 1.0);
 
