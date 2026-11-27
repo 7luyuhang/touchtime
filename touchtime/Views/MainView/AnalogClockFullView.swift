@@ -847,6 +847,18 @@ struct AnalogClockFullView: View {
         splitAxis == .vertical && !(displayedClocks.isEmpty && !showLocalTime)
     }
 
+    /// Where the clouds over the top of the sky give out, in global
+    /// coordinates, or nil for none: on the open iPhone Duo in portrait,
+    /// where the List tab's do, and with the digital time over the clock in
+    /// one column, at `faceTop`, the top of the clock face's circle.
+    private func skyCloudsBottom(faceTop: CGFloat) -> CGFloat? {
+        if usesPortraitSplit {
+            return cloudsBottom
+        }
+        guard splitAxis == nil, !(displayedClocks.isEmpty && !showLocalTime) else { return nil }
+        return faceTop
+    }
+
     private var moreMenu: some View {
         Menu {
             leadingMenuContent
@@ -1590,8 +1602,10 @@ struct AnalogClockFullView: View {
                         isBlurFilterEnabled: cameraPreviewFilter == .blur,
                         showSkyDot: showSkyDot,
                         skyGradient: skyGradient,
-                        // Over the digits above the iPhone Duo's fold
-                        cloudsBottom: usesPortraitSplit ? cloudsBottom : nil,
+                        // Over the digital time
+                        cloudsBottom: skyCloudsBottom(
+                            faceTop: geometry.frame(in: .global).minY + sectionHeight + clockFaceInset
+                        ),
                         cloudVariation: selectedCityName,
                         selectedTimeZoneIdentifier: selectedTimeZone.identifier,
                         timeOffset: timeOffset
