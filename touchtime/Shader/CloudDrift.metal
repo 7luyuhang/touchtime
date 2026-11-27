@@ -25,6 +25,13 @@ constant float billowAmount = 0.16;
 constant float billowReach = 0.1;
 // How far the field rises past the threshold from lit to fully shaded.
 constant float shadeSoftness = 0.3;
+// What the threshold rises to where the clouds thin out, by the time they're
+// gone. The more of the sky they cover, the more of them breaks up on the
+// way, rather than fading as one sheet; scattered clouds mostly just fade.
+constant float thinnedThreshold = 0.65;
+// How many times as soft the clouds' edges are by then, fraying into wisps
+// rather than staying as crisp as the clouds above.
+constant float thinnedSoftening = 5.0;
 
 // A hash on whole numbers, so a lattice point gets the same value whichever
 // cell asks for it, however far the clouds have drifted.
@@ -93,13 +100,20 @@ struct Layer {
 };
 
 // One layer of clouds at `p`, where the field has to reach `threshold` to
-// count as cloud. A near layer looks toward the light, `toLight` away in
-// the layer's own space, for cloud standing in the way; a far one has
-// fewer billows and no such look.
-static Layer layer(float2 p, float t, float threshold, float2 toLight, bool isNear) {
+// count as cloud, and further where they thin out, `thinning` of the way to
+// gone. A near layer looks toward the light, `toLight` away in the layer's
+// own space, for cloud standing in the way; a far one has fewer billows and
+// no such look.
+static Layer layer(float2 p, float t, float threshold, float thinning, float2 toLight, bool isNear) {
     Layer result;
     result.coverage = 0.0;
     result.light = 0.0;
+
+    // Only what counts as cloud thins out. The shading still goes by
+    // `threshold`, as it would in the full clouds, so that what's left of
+    // them doesn't light up along its edges.
+    float cutoff = mix(threshold, max(threshold, thinnedThreshold), thinning);
+    float softness = edgeSoftness * mix(1.0, thinnedSoftening, thinning);
 
     // The masses of the clouds: three octaves, bunched around 0.5
     float masses = 0.55 * gradientNoise(p);
@@ -111,7 +125,7 @@ static Layer layer(float2 p, float t, float threshold, float2 toLight, bool isNe
     masses = 0.5 + (masses + 0.17 * gradientNoise(q)) * massGain;
 
     // Clear sky, further from a cloud than any billow reaches
-    if (masses < threshold - billowReach) {
+    if (masses < cutoff - billowReach) {
         return result;
     }
 
@@ -129,7 +143,7 @@ static Layer layer(float2 p, float t, float threshold, float2 toLight, bool isNe
     }
     float detail = billows - 0.4;
 
-    result.coverage = smoothstep(0.0, edgeSoftness, masses + detail * billowAmount - threshold);
+    result.coverage = smoothstep(0.0, softness, masses + detail * billowAmount - cutoff);
     if (result.coverage <= 0.0) {
         return result;
     }
@@ -163,6 +177,10 @@ static Layer layer(float2 p, float t, float threshold, float2 toLight, bool isNe
 // `shade`    where it doesn't, both premultiplied by the opacity of the sky
 //            they drift across.
 // `toLight`  points from a cloud toward the light, with y running down.
+// `fade`     the y, in points, where the clouds start to thin out, and where
+//            they're gone. On the way they break up into fewer and smaller
+//            clouds, and fade, rather than fading evenly across the view.
+//            Equal values leave them as they are.
 [[ stitchable ]]
 half4 cloudDrift(float2 position,
                  half4 color,
@@ -173,10 +191,14 @@ half4 cloudDrift(float2 position,
                  float seed,
                  half4 lit,
                  half4 shade,
-                 float2 toLight)
+                 float2 toLight,
+                 float2 fade)
 {
     float amount = clamp(cover, 0.0, 1.0);
-    float presence = smoothstep(0.0, 0.2, amount) * float(color.a);
+    // 0 above where the clouds thin out, 1 where they're gone
+    float thinning = fade.y > fade.x ? smoothstep(fade.x, fade.y, position.y) : 0.0;
+    // What's left of them fades as they go
+    float presence = smoothstep(0.0, 0.2, amount) * float(color.a) * (1.0 - smoothstep(0.4, 1.0, thinning));
     if (presence <= 0.0) {
         return half4(0.0h);
     }
@@ -208,6 +230,7 @@ half4 cloudDrift(float2 position,
     clouds::Layer near = clouds::layer(nearPoint,
                                        t,
                                        threshold + 0.06 * (down - 0.5),
+                                       thinning,
                                        nearTurn * light * 0.18,
                                        true);
     half nearAlpha = half(near.coverage * 0.95 * haze);
@@ -221,6 +244,7 @@ half4 cloudDrift(float2 position,
         clouds::Layer far = clouds::layer(farPoint,
                                           t * 0.6,
                                           threshold + 0.02 - 0.10 * (down - 0.5),
+                                          thinning,
                                           float2(0.0),
                                           false);
         half farAlpha = half(far.coverage * 0.6 * haze * (1.0 - near.coverage));

@@ -35,7 +35,7 @@ struct SkyBackgroundView: View {
     var cloudScale: CGFloat = 1
     /// Where the clouds give out, in global coordinates, as the bottom edge of
     /// what sits over the top of the sky. The clouds are only drawn above it,
-    /// fading out toward it. Nil leaves them to thin out down the top half.
+    /// thinning out toward it. Nil leaves them to thin out down the top half.
     var cloudsBottom: CGFloat? = nil
     /// Set to false when the containing card already applies clipping and
     /// border chrome around the complete card.
@@ -134,7 +134,7 @@ struct SkyCloudsView: View {
     var scale: CGFloat = 1
     /// Where the clouds give out, in global coordinates, as the bottom edge of
     /// what sits over the top of the sky. The clouds are only drawn above it,
-    /// fading out toward it. Nil leaves them to thin out down the top half.
+    /// thinning out toward it. Nil leaves them to thin out down the top half.
     var bottom: CGFloat? = nil
     /// When non-nil, the clouds hold still as they are this many seconds in.
     /// Used for `ImageRenderer` snapshots, where animations don't run.
@@ -143,10 +143,13 @@ struct SkyCloudsView: View {
     /// How far down the sky the clouds reach, as a share of its height, when
     /// nothing sets `bottom`.
     private static let depth: CGFloat = 0.45
+    /// How far up from `bottom` the clouds thin out, as a share of the way
+    /// from the top of the sky.
+    private static let bottomFade: CGFloat = 0.6
 
     var body: some View {
         let cover = gradient.weatherCondition?.cloudCover ?? 0
-        let clouds = { (skyHeight: CGFloat) in
+        let clouds = { (skyHeight: CGFloat, bottomFade: CGFloat) in
             CloudDriftView(
                 cover: cover,
                 lighting: gradient.cloudLighting(cover: cover),
@@ -154,6 +157,7 @@ struct SkyCloudsView: View {
                 variation: variation,
                 scale: scale,
                 skyHeight: skyHeight,
+                bottomFade: bottomFade,
                 staticElapsed: staticElapsed
             )
         }
@@ -163,37 +167,17 @@ struct SkyCloudsView: View {
                 // Cut off, not resized, as that edge moves
                 GeometryReader { proxy in
                     let height = max(bottom - proxy.frame(in: .global).minY, 0)
-                    clouds(proxy.size.height)
+                    clouds(proxy.size.height, Self.bottomFade)
                         .frame(height: height)
-                        .mask {
-                            LinearGradient(
-                                stops: [
-                                    .init(color: .black, location: 0),
-                                    .init(color: .black, location: 0.55),
-                                    .init(color: .clear, location: 1),
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        }
+                        .clipped()
                 }
             } else {
                 // Only the top of the sky is cloudy; they thin out and are
                 // gone before what sits further down
                 GeometryReader { proxy in
-                    clouds(proxy.size.height)
+                    clouds(proxy.size.height, 1 - 0.15 / Self.depth)
                         .frame(height: proxy.size.height * Self.depth)
-                        .mask {
-                            LinearGradient(
-                                stops: [
-                                    .init(color: .black, location: 0),
-                                    .init(color: .black, location: 0.15 / Self.depth),
-                                    .init(color: .clear, location: 1),
-                                ],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-                        }
+                        .clipped()
                 }
             }
         }

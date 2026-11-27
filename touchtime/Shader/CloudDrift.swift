@@ -144,6 +144,10 @@ struct CloudDriftView: View {
     /// changes rather than growing and shrinking with it. Nil goes by the
     /// view's own height.
     var skyHeight: CGFloat? = nil
+    /// How far up from the view's bottom edge the clouds thin out, as a share
+    /// of its height, to be gone by the edge: they break up into fewer and
+    /// smaller clouds, and fade. 0 leaves them cut off by it.
+    var bottomFade: CGFloat = 0
     /// When non-nil, the clouds hold still as they are this many seconds in,
     /// rather than drifting. Used for `ImageRenderer` snapshots, where
     /// animations don't run.
@@ -175,6 +179,7 @@ struct CloudDriftView: View {
                 seed: seed,
                 scale: scale,
                 skyHeight: skyHeight,
+                bottomFade: bottomFade,
                 staticElapsed: staticElapsed
             )
             .id(seed)
@@ -205,6 +210,7 @@ private struct CloudDriftLayer: View {
     let seed: Float
     let scale: CGFloat
     let skyHeight: CGFloat?
+    let bottomFade: CGFloat
     let staticElapsed: Float?
 
     @State private var isVisible = false
@@ -229,6 +235,7 @@ private struct CloudDriftLayer: View {
                 seed: seed,
                 scale: scale,
                 skyHeight: skyHeight,
+                bottomFade: bottomFade,
                 elapsed: elapsed
             )
         } else {
@@ -243,6 +250,7 @@ private struct CloudDriftLayer: View {
                     seed: seed,
                     scale: scale,
                     skyHeight: skyHeight,
+                    bottomFade: bottomFade,
                     elapsed: Self.elapsed(at: context.date)
                 )
             }
@@ -269,6 +277,7 @@ private struct CloudDriftFrame: View, Animatable {
     let seed: Float
     let scale: CGFloat
     let skyHeight: CGFloat?
+    let bottomFade: CGFloat
     let elapsed: Float
 
     @Environment(\.displayScale) private var displayScale
@@ -289,8 +298,9 @@ private struct CloudDriftFrame: View, Animatable {
         let overdraw = (3 * unitRange.upperBound * scale * blurPerUnit).rounded(.up)
 
         // Fills its space even with no clouds to draw. Shrunk to nothing, it
-        // would take the frame and mask around it along, and as clouds came
-        // or went in an animation, those would wipe them across the sky.
+        // would take the frame it's clipped to along, and as clouds came or
+        // went in an animation, that frame's edge would wipe them across the
+        // sky.
         GeometryReader { proxy in
             if cover > 0 {
                 // Premultiplied by the sky's opacity on their way to the shader
@@ -305,6 +315,9 @@ private struct CloudDriftFrame: View, Animatable {
                 // As tall as the sky, overdraw included, however much of it
                 // the view covers
                 let size = CGSize(width: proxy.size.width, height: height + 2 * overdraw)
+                // Gone by the view's bottom edge, short of the overdraw below
+                let fadeEnd = proxy.size.height - overdraw
+                let fadeStart = fadeEnd - bottomFade * (proxy.size.height - 2 * overdraw)
 
                 // The shader runs once for each of the smaller view's
                 // pixels, and is given its sizes in that view's points
@@ -320,7 +333,8 @@ private struct CloudDriftFrame: View, Animatable {
                             .float(seed),
                             .color(lit),
                             .color(shade),
-                            .float2(toLight)
+                            .float2(toLight),
+                            .float2(fadeStart / reduction, fadeEnd / reduction)
                         )
                     )
                     .blur(radius: blur / reduction)

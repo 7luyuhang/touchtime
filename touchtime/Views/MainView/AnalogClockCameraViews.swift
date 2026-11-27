@@ -18,7 +18,7 @@ struct AnalogClockCameraBackgroundLayer: View {
     let showSkyDot: Bool
     let skyGradient: SkyColorGradient
     /// When non-nil, clouds drift over the top of the sky whenever its
-    /// weather is cloudy, down to here, in global coordinates, fading out
+    /// weather is cloudy, down to here, in global coordinates, thinning out
     /// toward it.
     let cloudsBottom: CGFloat?
     /// The selected city's name, which tells its clouds from another city's.
