@@ -282,19 +282,22 @@ private struct CloudDriftFrame: View, Animatable {
     }
 
     var body: some View {
-        if cover > 0 {
-            // Premultiplied by the sky's opacity on their way to the shader
-            let lit = SkyColorGradient.color(fromOKLab: lighting.lit).opacity(skyOpacity)
-            let shade = SkyColorGradient.color(fromOKLab: lighting.shade).opacity(skyOpacity)
-            // y runs down
-            let toLight = CGPoint(x: -sin(lighting.lightAngle), y: -cos(lighting.lightAngle))
-            let unitRange = CloudDriftView.unitRange
-            let blurPerUnit = CloudDriftView.blurPerUnit
-            // The blur thins the clouds out toward the edges it runs into, so
-            // they're drawn that far past the view's edges, out of sight
-            let overdraw = (3 * unitRange.upperBound * scale * blurPerUnit).rounded(.up)
+        let unitRange = CloudDriftView.unitRange
+        let blurPerUnit = CloudDriftView.blurPerUnit
+        // The blur thins the clouds out toward the edges it runs into, so
+        // they're drawn that far past the view's edges, out of sight
+        let overdraw = (3 * unitRange.upperBound * scale * blurPerUnit).rounded(.up)
 
-            GeometryReader { proxy in
+        // Fills its space even with no clouds to draw. Shrunk to nothing, it
+        // would take the frame and mask around it along, and as clouds came
+        // or went in an animation, those would wipe them across the sky.
+        GeometryReader { proxy in
+            if cover > 0 {
+                // Premultiplied by the sky's opacity on their way to the shader
+                let lit = SkyColorGradient.color(fromOKLab: lighting.lit).opacity(skyOpacity)
+                let shade = SkyColorGradient.color(fromOKLab: lighting.shade).opacity(skyOpacity)
+                // y runs down
+                let toLight = CGPoint(x: -sin(lighting.lightAngle), y: -cos(lighting.lightAngle))
                 let height = skyHeight ?? (proxy.size.height - 2 * overdraw)
                 let unit = min(max(height, unitRange.lowerBound), unitRange.upperBound) * scale
                 let blur = unit * blurPerUnit
@@ -323,7 +326,7 @@ private struct CloudDriftFrame: View, Animatable {
                     .blur(radius: blur / reduction)
                     .scaleEffect(reduction, anchor: .topLeading)
             }
-            .padding(-overdraw)
         }
+        .padding(-overdraw)
     }
 }
