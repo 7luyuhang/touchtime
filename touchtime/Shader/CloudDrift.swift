@@ -60,6 +60,9 @@ extension SkyColorGradient {
     /// there's none in the rainy sky behind them. Under a deck of cloud, as
     /// on an overcast day, the sun's colors don't get through either: the
     /// glow is gone and the clouds gray toward the colors' lightness alone.
+    /// Only the rain grays the sky as well, so a deck without rain, seen
+    /// against a clear sky, keeps a little of its blue and, until dark,
+    /// stays pale.
     func cloudLighting(cover: Float) -> CloudLighting {
         let stops = oklabStops
         guard let zenith = stops.first, let horizon = stops.last else { return .zero }
@@ -93,12 +96,17 @@ extension SkyColorGradient {
         // Toward mauve
         shade.y += 0.025 * glow
 
-        // A deck takes most of the color out of both, lit faces and shade
-        let gray = 1 - 0.7 * overcast
+        // A deck takes most of the color out of both, lit faces and shade.
+        // Against a clear sky's blue, a shade as dark and colorless as under
+        // the rain looks grimy
+        let gray = 1 - (isRaining ? 0.7 : 0.45) * overcast
         lit.y *= gray
         lit.z *= gray
         shade.y *= gray
         shade.z *= gray
+        if !isRaining {
+            shade.x += 0.11 * overcast * (1 - night)
+        }
 
         // 0 with the sun on the horizon or under it, 1 once it is high
         let high = Self.cloudRamp(from: 1, to: 14, at: solarAltitude)
