@@ -158,6 +158,10 @@ struct CloudDriftView: View {
     /// How far the clouds are blurred, as a share of their size, so they're
     /// as soft whatever size they are.
     nonisolated fileprivate static let blurPerUnit: CGFloat = 0.0175
+    /// How many pixels the clouds are drawn with to their blur's radius. The
+    /// blur leaves no detail that more would show, so they're drawn smaller
+    /// than the view, with only this many, and scaled up to fill it.
+    nonisolated fileprivate static let pixelsPerBlur: CGFloat = 2
 
     var body: some View {
         let seed = Self.seed(for: variation)
@@ -226,6 +230,8 @@ private struct CloudDriftFrame: View, Animatable {
     let skyHeight: CGFloat?
     let elapsed: Float
 
+    @Environment(\.displayScale) private var displayScale
+
     var animatableData: AnimatablePair<Float, CloudLighting> {
         get { AnimatablePair(cover, lighting) }
         set {
@@ -241,41 +247,42 @@ private struct CloudDriftFrame: View, Animatable {
             let shade = SkyColorGradient.color(fromOKLab: lighting.shade).opacity(skyOpacity)
             // y runs down
             let toLight = CGPoint(x: -sin(lighting.lightAngle), y: -cos(lighting.lightAngle))
-            let cover = cover
-            let seed = seed
-            let scale = scale
-            let skyHeight = skyHeight
-            let elapsed = elapsed
             let unitRange = CloudDriftView.unitRange
             let blurPerUnit = CloudDriftView.blurPerUnit
             // The blur thins the clouds out toward the edges it runs into, so
             // they're drawn that far past the view's edges, out of sight
             let overdraw = (3 * unitRange.upperBound * scale * blurPerUnit).rounded(.up)
 
-            Rectangle()
-                .fill(.white)
-                .visualEffect { content, proxy in
-                    let height = skyHeight ?? (proxy.size.height - 2 * overdraw)
-                    let unit = min(max(height, unitRange.lowerBound), unitRange.upperBound) * scale
-                    // As tall as the sky, overdraw included, however much of
-                    // it the view covers
-                    let size = CGSize(width: proxy.size.width, height: height + 2 * overdraw)
-                    return content
-                        .colorEffect(
-                            ShaderLibrary.cloudDrift(
-                                .float2(size),
-                                .float(unit),
-                                .float(elapsed),
-                                .float(cover),
-                                .float(seed),
-                                .color(lit),
-                                .color(shade),
-                                .float2(toLight)
-                            )
+            GeometryReader { proxy in
+                let height = skyHeight ?? (proxy.size.height - 2 * overdraw)
+                let unit = min(max(height, unitRange.lowerBound), unitRange.upperBound) * scale
+                let blur = unit * blurPerUnit
+                let reduction = max(displayScale * blur / CloudDriftView.pixelsPerBlur, 1)
+                // As tall as the sky, overdraw included, however much of it
+                // the view covers
+                let size = CGSize(width: proxy.size.width, height: height + 2 * overdraw)
+
+                // The shader runs once for each of the smaller view's
+                // pixels, and is given its sizes in that view's points
+                Rectangle()
+                    .fill(.white)
+                    .frame(width: proxy.size.width / reduction, height: proxy.size.height / reduction)
+                    .colorEffect(
+                        ShaderLibrary.cloudDrift(
+                            .float2(size.width / reduction, size.height / reduction),
+                            .float(unit / reduction),
+                            .float(elapsed),
+                            .float(cover),
+                            .float(seed),
+                            .color(lit),
+                            .color(shade),
+                            .float2(toLight)
                         )
-                        .blur(radius: unit * blurPerUnit)
-                }
-                .padding(-overdraw)
+                    )
+                    .blur(radius: blur / reduction)
+                    .scaleEffect(reduction, anchor: .topLeading)
+            }
+            .padding(-overdraw)
         }
     }
 }
