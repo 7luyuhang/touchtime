@@ -849,14 +849,27 @@ struct AnalogClockFullView: View {
 
     /// Where the clouds over the top of the sky give out, in global
     /// coordinates, or nil for none: on the open iPhone Duo in portrait,
-    /// where the List tab's do, and with the digital time over the clock in
-    /// one column, at `faceTop`, the top of the clock face's circle.
+    /// where the List tab's do, and otherwise at `faceTop`, the top of the
+    /// clock face's circle, with the digital time over the clock in one
+    /// column or beside it in landscape.
     private func skyCloudsBottom(faceTop: CGFloat) -> CGFloat? {
         if usesPortraitSplit {
             return cloudsBottom
         }
-        guard splitAxis == nil, !(displayedClocks.isEmpty && !showLocalTime) else { return nil }
+        guard !(displayedClocks.isEmpty && !showLocalTime) else { return nil }
         return faceTop
+    }
+
+    /// The top of the clock face beside the digits on the open iPhone Duo in
+    /// landscape, in global coordinates, where `clockPane` puts it: centered
+    /// in the pane, which spans the full height less the bottom inset at
+    /// either end, and as large as the pane is tall, up to its largest. The
+    /// pane is wider than that.
+    private func sideBySideFaceTop(in geometry: GeometryProxy) -> CGFloat {
+        let insets = geometry.safeAreaInsets
+        let screenHeight = geometry.size.height + insets.top + insets.bottom
+        let size = min(screenHeight - 2 * insets.bottom, Self.maximumClockWidth)
+        return geometry.frame(in: .global).minY - insets.top + (screenHeight - size) / 2
     }
 
     private var moreMenu: some View {
@@ -1602,9 +1615,10 @@ struct AnalogClockFullView: View {
                         isBlurFilterEnabled: cameraPreviewFilter == .blur,
                         showSkyDot: showSkyDot,
                         skyGradient: skyGradient,
-                        // Over the digital time
                         cloudsBottom: skyCloudsBottom(
-                            faceTop: geometry.frame(in: .global).minY + sectionHeight + clockFaceInset
+                            faceTop: splitAxis == .horizontal
+                                ? sideBySideFaceTop(in: geometry) + clockFaceInset
+                                : geometry.frame(in: .global).minY + sectionHeight + clockFaceInset
                         ),
                         cloudVariation: selectedCityName,
                         selectedTimeZoneIdentifier: selectedTimeZone.identifier,
