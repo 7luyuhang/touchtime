@@ -17,8 +17,17 @@ struct AnalogClockCameraBackgroundLayer: View {
     let isBlurFilterEnabled: Bool
     let showSkyDot: Bool
     let skyGradient: SkyColorGradient
+    /// When non-nil, clouds drift over the top of the sky whenever its
+    /// weather is cloudy, down to here, in global coordinates, fading out
+    /// toward it.
+    let cloudsBottom: CGFloat?
+    /// The selected city's name, which tells its clouds from another city's.
+    let cloudVariation: String
     let selectedTimeZoneIdentifier: String
     let timeOffset: TimeInterval
+
+    /// The sky is drawn this translucent.
+    private static let skyOpacity = 0.65
 
     private var starsMotion: StarsView.Motion {
         StarsView.Motion(timeOffset: timeOffset, timeZoneIdentifier: selectedTimeZoneIdentifier)
@@ -48,7 +57,7 @@ struct AnalogClockCameraBackgroundLayer: View {
                     ZStack {
                         skyGradient.linearGradient()
                             .ignoresSafeArea()
-                            .opacity(0.65)
+                            .opacity(Self.skyOpacity)
                             .animation(.spring(), value: selectedTimeZoneIdentifier)
 
                         // Stars overlay for nighttime. Kept in place while hidden so
@@ -58,6 +67,24 @@ struct AnalogClockCameraBackgroundLayer: View {
                             .animation(.spring()) { $0.opacity(skyGradient.starOpacity) }
                             .blendMode(.plusLighter)
                             .allowsHitTesting(false)
+
+                        // Clouds for cloudy weather, over the stars they hide.
+                        // Kept in place under a clear sky too, so that they
+                        // gather and clear as the weather changes.
+                        if let cloudsBottom {
+                            let cloudCover = skyGradient.weatherCondition?.cloudCover ?? 0
+                            SkyCloudsView(
+                                gradient: skyGradient,
+                                skyOpacity: Self.skyOpacity,
+                                variation: cloudVariation,
+                                // Sized like the details', so a city's clouds
+                                // are the same here as over its details
+                                scale: SunriseSunsetSheet.cloudScale,
+                                bottom: cloudsBottom
+                            )
+                            .animation(.easeInOut(duration: 1.0), value: cloudCover)
+                            .ignoresSafeArea()
+                        }
                     }
                 } else {
                     Color(UIColor.systemBackground)

@@ -84,9 +84,10 @@ struct HomeView: View {
     @Environment(\.isWindowLandscape) private var isLandscape
     // City shown in the detail pane; nil means the local time
     @State var detailPaneCityId: UUID? = nil
-    // Bottom of the detail pane's time card, in global coordinates, which
-    // the clouds of the sky behind the panes stop at
-    @State private var detailPaneTimeCardBottom: CGFloat? = nil
+    // Bottom of the detail pane's time card when stacked above the list, in
+    // global coordinates. The clouds of the sky behind the panes stop there,
+    // and the Clock tab's.
+    @Binding var detailPaneTimeCardBottom: CGFloat?
     @State var showArrangeListSheet = false
     @State var showSetAlarmSheet = false
     @State var showSetTimerSheet = false
@@ -382,7 +383,11 @@ struct HomeView: View {
                 initialDate: currentDate,
                 timeOffset: timeOffset,
                 splitAxis: splitAxis,
-                onTimeCardBottomChanged: { detailPaneTimeCardBottom = $0 }
+                onTimeCardBottomChanged: { bottom in
+                    if splitAxis == .vertical {
+                        detailPaneTimeCardBottom = bottom
+                    }
+                }
             )
             .environmentObject(weatherManager)
             // Above the list its cards line up with the list's: they sit 16pt

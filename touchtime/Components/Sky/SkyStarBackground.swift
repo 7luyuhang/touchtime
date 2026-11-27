@@ -54,9 +54,6 @@ struct SkyBackgroundView: View {
     /// The sky is drawn this translucent, or as it looks this translucent
     /// over black.
     private static let skyOpacity = 0.65
-    /// How far down the sky the clouds reach, as a share of its height, when
-    /// nothing sets `cloudsBottom`.
-    private static let cloudsDepth: CGFloat = 0.45
 
     private var rainIntensity: Float {
         guard showWeatherEffects, let condition = weatherCondition else { return 0 }
@@ -92,65 +89,16 @@ struct SkyBackgroundView: View {
             // place under a clear sky too, so that they gather and clear
             // rather than cut in and out as the weather changes.
             if showClouds {
-                let clouds = { (skyHeight: CGFloat?) in
-                    CloudDriftView(
-                        cover: cloudCover,
-                        lighting: gradient.cloudLighting(cover: cloudCover),
-                        skyOpacity: Self.skyOpacity,
-                        variation: cloudVariation ?? timeZoneIdentifier,
-                        scale: cloudScale,
-                        skyHeight: skyHeight,
-                        staticElapsed: staticWeatherElapsed
-                    )
-                    .animation(.easeInOut(duration: 0.5), value: gradient.animationValue)
-                    .animation(.easeInOut(duration: 1.0), value: cloudCover)
-                }
-
-                if let cloudsBottom {
-                    // Drawn only as far down as they show, so the shader and
-                    // its blur cover no more of the sky than that. They're
-                    // sized by the whole sky, so they're cut off, not resized,
-                    // as that edge moves.
-                    GeometryReader { proxy in
-                        let height = max(cloudsBottom - proxy.frame(in: .global).minY, 0)
-                        clouds(proxy.size.height)
-                            .frame(height: height)
-                            .mask {
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: .black, location: 0),
-                                        .init(color: .black, location: 0.55),
-                                        .init(color: .clear, location: 1),
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            }
-                    }
-                    .allowsHitTesting(false)
-                } else {
-                    // Only the top of the sky is cloudy; they thin out and are
-                    // gone before the cards further down. Drawn only that far
-                    // down, so the shader covers no more of the sky than shows,
-                    // and sized by the whole sky so they look as they would
-                    // drawn over all of it.
-                    GeometryReader { proxy in
-                        clouds(proxy.size.height)
-                            .frame(height: proxy.size.height * Self.cloudsDepth)
-                            .mask {
-                                LinearGradient(
-                                    stops: [
-                                        .init(color: .black, location: 0),
-                                        .init(color: .black, location: 0.15 / Self.cloudsDepth),
-                                        .init(color: .clear, location: 1),
-                                    ],
-                                    startPoint: .top,
-                                    endPoint: .bottom
-                                )
-                            }
-                    }
-                    .allowsHitTesting(false)
-                }
+                SkyCloudsView(
+                    gradient: gradient,
+                    skyOpacity: Self.skyOpacity,
+                    variation: cloudVariation ?? timeZoneIdentifier,
+                    scale: cloudScale,
+                    bottom: cloudsBottom,
+                    staticElapsed: staticWeatherElapsed
+                )
+                .animation(.easeInOut(duration: 0.5), value: gradient.animationValue)
+                .animation(.easeInOut(duration: 1.0), value: cloudCover)
             }
         }
         .rainFallEffect(intensity: rainIntensity, staticElapsed: staticWeatherElapsed)
@@ -165,6 +113,91 @@ struct SkyBackgroundView: View {
         } else {
             skyContent
         }
+    }
+}
+
+/// Clouds drifting over the top of a sky that fills the view, for cloudy
+/// weather. They're sized by the whole sky, so they look as they would drawn
+/// over all of it, but drawn only as far down as they show, so the shader and
+/// its blur cover no more of it than that.
+struct SkyCloudsView: View {
+    /// The sky the clouds drift across: it lights them, and its weather says
+    /// how cloudy it is.
+    let gradient: SkyColorGradient
+    /// Opacity of the sky, which the clouds take on too.
+    let skyOpacity: Double
+    /// Tells this sky's clouds from another's: skies given the same text show
+    /// the same clouds.
+    let variation: String
+    /// How big the clouds are, as a share of the size they'd take from the
+    /// sky's height. Below 1 they're smaller, and more of them show.
+    var scale: CGFloat = 1
+    /// Where the clouds give out, in global coordinates, as the bottom edge of
+    /// what sits over the top of the sky. The clouds are only drawn above it,
+    /// fading out toward it. Nil leaves them to thin out down the top half.
+    var bottom: CGFloat? = nil
+    /// When non-nil, the clouds hold still as they are this many seconds in.
+    /// Used for `ImageRenderer` snapshots, where animations don't run.
+    var staticElapsed: Float? = nil
+
+    /// How far down the sky the clouds reach, as a share of its height, when
+    /// nothing sets `bottom`.
+    private static let depth: CGFloat = 0.45
+
+    var body: some View {
+        let cover = gradient.weatherCondition?.cloudCover ?? 0
+        let clouds = { (skyHeight: CGFloat) in
+            CloudDriftView(
+                cover: cover,
+                lighting: gradient.cloudLighting(cover: cover),
+                skyOpacity: skyOpacity,
+                variation: variation,
+                scale: scale,
+                skyHeight: skyHeight,
+                staticElapsed: staticElapsed
+            )
+        }
+
+        Group {
+            if let bottom {
+                // Cut off, not resized, as that edge moves
+                GeometryReader { proxy in
+                    let height = max(bottom - proxy.frame(in: .global).minY, 0)
+                    clouds(proxy.size.height)
+                        .frame(height: height)
+                        .mask {
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .black, location: 0),
+                                    .init(color: .black, location: 0.55),
+                                    .init(color: .clear, location: 1),
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        }
+                }
+            } else {
+                // Only the top of the sky is cloudy; they thin out and are
+                // gone before what sits further down
+                GeometryReader { proxy in
+                    clouds(proxy.size.height)
+                        .frame(height: proxy.size.height * Self.depth)
+                        .mask {
+                            LinearGradient(
+                                stops: [
+                                    .init(color: .black, location: 0),
+                                    .init(color: .black, location: 0.15 / Self.depth),
+                                    .init(color: .clear, location: 1),
+                                ],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+                        }
+                }
+            }
+        }
+        .allowsHitTesting(false)
     }
 }
 

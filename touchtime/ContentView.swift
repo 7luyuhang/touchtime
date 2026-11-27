@@ -26,6 +26,10 @@ struct ContentView: View {
     @State private var clockShowScrollTimeButtons = false
     // Asks the Clock tab to open its camera, for the Camera Control; the tab clears it
     @State private var clockOpensCamera = false
+    // Where the clouds over the top of the open iPhone Duo's sky give out in
+    // portrait: the bottom of the List tab's details time card, which the
+    // Clock tab's clouds stop at too
+    @State private var duoCloudsBottom: CGFloat?
     
     @AppStorage("hapticEnabled") private var hapticEnabled = true
     @AppStorage("dateStyle") private var dateStyle = "Relative"
@@ -61,7 +65,8 @@ struct ContentView: View {
                     worldClocks: $worldClocks,
                     timeOffset: $timeOffset,
                     showScrollTimeButtons: $listShowScrollTimeButtons,
-                    weatherManager: weatherManager
+                    weatherManager: weatherManager,
+                    detailPaneTimeCardBottom: $duoCloudsBottom
                 )
             }
             
@@ -71,7 +76,8 @@ struct ContentView: View {
                     timeOffset: $timeOffset,
                     showScrollTimeButtons: $clockShowScrollTimeButtons,
                     opensCamera: $clockOpensCamera,
-                    weatherManager: weatherManager
+                    weatherManager: weatherManager,
+                    cloudsBottom: duoCloudsBottom
                 )
             }
             

@@ -30,9 +30,9 @@ struct SunriseSunsetSheet: View {
     /// Opens at the large detent, with no medium detent to shrink to.
     let largeDetentOnly: Bool
     /// Called with the sticky time card's bottom, in global coordinates,
-    /// whenever it moves, and with nil once the card is gone. The sky
-    /// HomeView draws behind the detail pane stops its clouds there.
-    let onTimeCardBottomChanged: (CGFloat?) -> Void
+    /// whenever it moves. The sky HomeView draws behind the detail pane stops
+    /// its clouds there.
+    let onTimeCardBottomChanged: (CGFloat) -> Void
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -61,7 +61,9 @@ struct SunriseSunsetSheet: View {
     @State private var isMoonPhasesExpanded = false // Track upcoming phases expansion
     @State private var astronomyDayCacheKey: String = ""
     /// The bottom of the sticky time card, in global coordinates, which the
-    /// sky's clouds stop at. Nil while the card isn't shown.
+    /// sky's clouds stop at. Nil until the card is first laid out; it stays
+    /// put at the medium detent, which drops the card, as the sky is hidden
+    /// there.
     @State private var timeCardBottom: CGFloat?
 
     init(
@@ -71,7 +73,7 @@ struct SunriseSunsetSheet: View {
         timeOffset: TimeInterval,
         splitAxis: Axis? = nil,
         largeDetentOnly: Bool = false,
-        onTimeCardBottomChanged: @escaping (CGFloat?) -> Void = { _ in }
+        onTimeCardBottomChanged: @escaping (CGFloat) -> Void = { _ in }
     ) {
         self.cityName = cityName
         self.timeZoneIdentifier = timeZoneIdentifier
@@ -404,15 +406,14 @@ struct SunriseSunsetSheet: View {
                         // Beside the list, level with its first card
                         // (the list starts 24pt down)
                         .padding(.top, isEmbedded ? 24 : 8)
+                        // Kept while the card is out of sight, behind another
+                        // tab: back on screen in the same place, it isn't
+                        // reported again
                         .onGeometryChange(for: CGFloat.self) { proxy in
                             proxy.frame(in: .global).maxY
                         } action: { bottom in
                             timeCardBottom = bottom
                             onTimeCardBottomChanged(bottom)
-                        }
-                        .onDisappear {
-                            timeCardBottom = nil
-                            onTimeCardBottomChanged(nil)
                         }
                         .transition(.blurReplace())
                     }

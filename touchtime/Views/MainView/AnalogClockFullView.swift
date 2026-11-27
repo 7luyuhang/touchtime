@@ -44,6 +44,11 @@ struct AnalogClockFullView: View {
     /// Set by the Camera Control to open the camera; cleared once handled
     @Binding var opensCamera: Bool
     @ObservedObject var weatherManager: WeatherManager
+    /// Where the clouds over the top of the open iPhone Duo's sky give out in
+    /// portrait, in global coordinates: the bottom of the List tab's details
+    /// time card, so both tabs' clouds stop at the same height. Nil until the
+    /// List tab has shown its details there.
+    let cloudsBottom: CGFloat?
     @State private var currentDate = Date()
     @State private var selectedCityId: UUID? = nil // nil means Local is selected
     @State private var showDetailsSheet = false
@@ -1585,6 +1590,9 @@ struct AnalogClockFullView: View {
                         isBlurFilterEnabled: cameraPreviewFilter == .blur,
                         showSkyDot: showSkyDot,
                         skyGradient: skyGradient,
+                        // Over the digits above the iPhone Duo's fold
+                        cloudsBottom: usesPortraitSplit ? cloudsBottom : nil,
+                        cloudVariation: selectedCityName,
                         selectedTimeZoneIdentifier: selectedTimeZone.identifier,
                         timeOffset: timeOffset
                     )
