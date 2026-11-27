@@ -124,7 +124,8 @@ struct CloudDriftView: View {
     /// Opacity of the sky the clouds drift across, which they take on too.
     var skyOpacity: Double = 1
     /// Tells one sky from another: skies given the same text show the same
-    /// clouds, others different ones.
+    /// clouds, others different ones. Changing it fades one sky's clouds out
+    /// as the other's fade in.
     var variation: String = ""
     /// How big the clouds are, as a share of the size they take from the
     /// view's height. Below 1 they're smaller, and more of them show.
@@ -140,18 +141,6 @@ struct CloudDriftView: View {
     /// animations don't run.
     var staticElapsed: Float? = nil
 
-    @State private var isVisible = false
-    @Environment(\.scenePhase) private var scenePhase
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    /// Seconds between frames. The clouds move a pixel a frame at most at
-    /// this rate, so a higher one wouldn't show.
-    private static let frameInterval: TimeInterval = 1.0 / 20.0
-    /// Seconds after which the clouds' time starts over, as the shader's
-    /// arithmetic gets coarser the larger the time is.
-    private static let timePeriod: TimeInterval = 6 * 60 * 60
-    /// Where the clouds hold still with Reduce Motion, in seconds.
-    private static let stillElapsed: Float = 30
     /// The clouds grow with the view's height, within these limits, so a
     /// short row and a tall card both hold a few.
     nonisolated fileprivate static let unitRange: ClosedRange<CGFloat> = 72...200
@@ -166,44 +155,25 @@ struct CloudDriftView: View {
     var body: some View {
         let seed = Self.seed(for: variation)
 
-        Group {
-            if let elapsed = staticElapsed ?? (reduceMotion ? Self.stillElapsed : nil) {
-                CloudDriftFrame(
-                    cover: cover,
-                    lighting: lighting,
-                    skyOpacity: skyOpacity,
-                    seed: seed,
-                    scale: scale,
-                    skyHeight: skyHeight,
-                    elapsed: elapsed
-                )
-            } else {
-                // Only drive the shader while there are clouds to draw, the
-                // view is on-screen and the app is in the foreground
-                TimelineView(.animation(minimumInterval: Self.frameInterval,
-                                        paused: cover <= 0 || !isVisible || scenePhase != .active)) { context in
-                    CloudDriftFrame(
-                        cover: cover,
-                        lighting: lighting,
-                        skyOpacity: skyOpacity,
-                        seed: seed,
-                        scale: scale,
-                        skyHeight: skyHeight,
-                        elapsed: Self.elapsed(at: context.date)
-                    )
-                }
-                .onAppear { isVisible = true }
-                .onDisappear { isVisible = false }
-            }
+        // SwiftUI animates a shader's arguments, the seed among them, and on
+        // its way from one sky's to another's the seed would sweep the clouds
+        // past by the dozen. So each sky's clouds are a view of their own,
+        // and another sky's fade in as they fade out.
+        ZStack {
+            CloudDriftLayer(
+                cover: cover,
+                lighting: lighting,
+                skyOpacity: skyOpacity,
+                seed: seed,
+                scale: scale,
+                skyHeight: skyHeight,
+                staticElapsed: staticElapsed
+            )
+            .id(seed)
+            .transition(.opacity)
         }
+        .animation(.easeInOut(duration: 0.5), value: seed)
         .allowsHitTesting(false)
-    }
-
-    /// The clouds' time, read off the clock rather than counted from when the
-    /// view appeared, so a sky's clouds carry on from where they had got to
-    /// and are the same wherever that sky shows.
-    private static func elapsed(at date: Date) -> Float {
-        Float(date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: timePeriod))
     }
 
     /// A number in [0, 1) that stays the same for the same text, from one
@@ -215,6 +185,69 @@ struct CloudDriftView: View {
             hash = (hash ^ UInt32(byte)) &* 16_777_619
         }
         return Float(hash >> 8) / Float(1 << 24)
+    }
+}
+
+/// One sky's clouds, drifting while there are any to draw and they're on
+/// screen.
+private struct CloudDriftLayer: View {
+    let cover: Float
+    let lighting: CloudLighting
+    let skyOpacity: Double
+    let seed: Float
+    let scale: CGFloat
+    let skyHeight: CGFloat?
+    let staticElapsed: Float?
+
+    @State private var isVisible = false
+    @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Seconds between frames. The clouds move a pixel a frame at most at
+    /// this rate, so a higher one wouldn't show.
+    private static let frameInterval: TimeInterval = 1.0 / 20.0
+    /// Seconds after which the clouds' time starts over, as the shader's
+    /// arithmetic gets coarser the larger the time is.
+    private static let timePeriod: TimeInterval = 6 * 60 * 60
+    /// Where the clouds hold still with Reduce Motion, in seconds.
+    private static let stillElapsed: Float = 30
+
+    var body: some View {
+        if let elapsed = staticElapsed ?? (reduceMotion ? Self.stillElapsed : nil) {
+            CloudDriftFrame(
+                cover: cover,
+                lighting: lighting,
+                skyOpacity: skyOpacity,
+                seed: seed,
+                scale: scale,
+                skyHeight: skyHeight,
+                elapsed: elapsed
+            )
+        } else {
+            // Only drive the shader while there are clouds to draw, the
+            // view is on-screen and the app is in the foreground
+            TimelineView(.animation(minimumInterval: Self.frameInterval,
+                                    paused: cover <= 0 || !isVisible || scenePhase != .active)) { context in
+                CloudDriftFrame(
+                    cover: cover,
+                    lighting: lighting,
+                    skyOpacity: skyOpacity,
+                    seed: seed,
+                    scale: scale,
+                    skyHeight: skyHeight,
+                    elapsed: Self.elapsed(at: context.date)
+                )
+            }
+            .onAppear { isVisible = true }
+            .onDisappear { isVisible = false }
+        }
+    }
+
+    /// The clouds' time, read off the clock rather than counted from when the
+    /// view appeared, so a sky's clouds carry on from where they had got to
+    /// and are the same wherever that sky shows.
+    private static func elapsed(at date: Date) -> Float {
+        Float(date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: timePeriod))
     }
 }
 

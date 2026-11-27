@@ -1,6 +1,8 @@
 //
 //  MarqueeText.swift
-//  touchtimeWatch
+//  touchtime
+//
+//  Shared between the iPhone and Apple Watch apps.
 //
 
 import SwiftUI
@@ -19,12 +21,20 @@ struct MarqueeText: View {
     @State private var width: CGFloat = 0
     @State private var textWidth: CGFloat = 0
     @State private var travelled: CGFloat = 0
+    /// True until an enclosing scroll view reports the line out of view, so a
+    /// line below the fold waits to scroll until it's actually seen.
+    @State private var isVisible = true
 
     private static let gap: CGFloat = 16
     private static let fadeWidth: CGFloat = 15
     /// In points a second.
     private static let speed: CGFloat = 30
     private static let delay: Duration = .seconds(1)
+
+    private struct ScrollKey: Equatable {
+        let content: String
+        let distance: CGFloat
+    }
 
     init(_ content: String, alignment: HorizontalAlignment = .center) {
         self.content = content
@@ -34,8 +44,13 @@ struct MarqueeText: View {
     /// From the text's start to where it comes around again, or zero when
     /// the text fits.
     private var distance: CGFloat {
-        // Not for an overflow that's only rounding.
-        textWidth > width + 0.5 ? textWidth + Self.gap : 0
+        // Not before layout, and not for an overflow that's only rounding.
+        width > 0 && textWidth > width + 0.5 ? textWidth + Self.gap : 0
+    }
+
+    private var scrollKey: ScrollKey? {
+        guard distance > 0, isVisible, !reduceMotion, !isLuminanceReduced else { return nil }
+        return ScrollKey(content: content, distance: distance)
     }
 
     var body: some View {
@@ -63,22 +78,31 @@ struct MarqueeText: View {
                 .fixedSize()
                 .modifier(MarqueeScroll(travelled: travelled, distance: distance, fadeWidth: Self.fadeWidth, alignment: alignment))
             }
-            .task(id: reduceMotion || isLuminanceReduced ? 0 : distance) {
-                travelled = 0
-                guard distance > 0, !reduceMotion, !isLuminanceReduced else { return }
+            .onScrollVisibilityChange { isVisible = $0 }
+            .task(id: scrollKey) {
+                resetTravelled()
+                guard let scrollKey else { return }
                 try? await Task.sleep(for: Self.delay)
                 guard !Task.isCancelled else { return }
-                let duration = distance / Self.speed
+                let duration = scrollKey.distance / Self.speed
                 withAnimation(.linear(duration: duration)) {
-                    travelled = distance
+                    travelled = scrollKey.distance
                 }
                 try? await Task.sleep(for: .seconds(duration))
                 guard !Task.isCancelled else { return }
                 // The second copy now sits where the first began.
-                travelled = 0
+                resetTravelled()
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(Text(content))
+    }
+
+    private func resetTravelled() {
+        var reset = Transaction()
+        reset.disablesAnimations = true
+        withTransaction(reset) {
+            travelled = 0
+        }
     }
 }
 

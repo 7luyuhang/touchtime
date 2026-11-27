@@ -29,6 +29,10 @@ struct SunriseSunsetSheet: View {
     var splitAxis: Axis? = nil
     /// Opens at the large detent, with no medium detent to shrink to.
     let largeDetentOnly: Bool
+    /// Called with the sticky time card's bottom, in global coordinates,
+    /// whenever it moves, and with nil once the card is gone. The sky
+    /// HomeView draws behind the detail pane stops its clouds there.
+    let onTimeCardBottomChanged: (CGFloat?) -> Void
     
     @AppStorage("use24HourFormat") private var use24HourFormat = false
     @AppStorage("showSkyDot") private var showSkyDot = true
@@ -66,7 +70,8 @@ struct SunriseSunsetSheet: View {
         initialDate: Date,
         timeOffset: TimeInterval,
         splitAxis: Axis? = nil,
-        largeDetentOnly: Bool = false
+        largeDetentOnly: Bool = false,
+        onTimeCardBottomChanged: @escaping (CGFloat?) -> Void = { _ in }
     ) {
         self.cityName = cityName
         self.timeZoneIdentifier = timeZoneIdentifier
@@ -74,6 +79,7 @@ struct SunriseSunsetSheet: View {
         self.timeOffset = timeOffset
         self.splitAxis = splitAxis
         self.largeDetentOnly = largeDetentOnly
+        self.onTimeCardBottomChanged = onTimeCardBottomChanged
         _currentDetent = State(initialValue: largeDetentOnly ? .large : .medium)
         _showsResetButton = State(initialValue: timeOffset != 0)
     }
@@ -83,6 +89,10 @@ struct SunriseSunsetSheet: View {
     }
 
     private static let dstZoomSourceID = "dst"
+
+    /// The clouds over the top of the details are smaller than their sky's
+    /// height alone would make them, so a few more show across it.
+    static let cloudScale: CGFloat = 0.7
 
     // Large detent layout: sticky time section and full-sheet sky
     private var isExpanded: Bool {
@@ -262,9 +272,7 @@ struct SunriseSunsetSheet: View {
                 weatherCondition: weatherConditionForSky,
                 showClouds: true,
                 cloudVariation: cityName,
-                // Smaller than the sheet's height alone would make them, so a
-                // few more show across its top
-                cloudScale: 0.7,
+                cloudScale: Self.cloudScale,
                 // Over the top of the sheet, down to the time card, and clear
                 // over the list below it
                 cloudsBottom: timeCardBottom,
@@ -400,8 +408,12 @@ struct SunriseSunsetSheet: View {
                             proxy.frame(in: .global).maxY
                         } action: { bottom in
                             timeCardBottom = bottom
+                            onTimeCardBottomChanged(bottom)
                         }
-                        .onDisappear { timeCardBottom = nil }
+                        .onDisappear {
+                            timeCardBottom = nil
+                            onTimeCardBottomChanged(nil)
+                        }
                         .transition(.blurReplace())
                     }
                 }

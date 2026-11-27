@@ -19,7 +19,8 @@ struct SkyBackgroundView: View {
     /// shader is layered on top whenever `weatherCondition` is a rainy one.
     var showWeatherEffects: Bool = false
     /// When true, clouds drift across the sky whenever `weatherCondition` is
-    /// a cloudy one. Only the sky behind the whole details sheet shows them;
+    /// a cloudy one. Only the sky behind the whole details sheet, or behind
+    /// the iPhone Duo's details pane stacked above the list, shows them;
     /// cards, Home's rows and the details' time card among them, stay clear.
     var showClouds: Bool = false
     /// When non-nil, the weather shaders are rendered as a single static frame

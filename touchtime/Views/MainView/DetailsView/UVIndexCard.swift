@@ -46,19 +46,13 @@ struct UVIndexCard: View {
                     .overlay(.white.opacity(0.10))
                     .blendMode(.plusLighter)
 
-                ScrollView(.horizontal) {
-                    Text(summary)
-                        .font(.body)
-                        .lineLimit(1)
-                        .contentTransition(.numericText())
-                        .animation(.spring(), value: summary)
-                }
-                .scrollIndicators(.hidden)
-                .scrollBounceBehavior(.basedOnSize, axes: .horizontal)
-                .horizontalScrollEdgeFade()
-                // The fade mask composites the text offscreen, out of reach
-                // of the card's plusLighter blend
-                .blendMode(.plusLighter)
+                MarqueeText(summary, alignment: .leading)
+                    .font(.body)
+                    .contentTransition(.numericText())
+                    .animation(.spring(), value: summary)
+                    // The fade mask composites the text offscreen, out of reach
+                    // of the card's plusLighter blend
+                    .blendMode(.plusLighter)
             }
 
             Color.clear

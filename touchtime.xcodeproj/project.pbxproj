@@ -154,6 +154,7 @@
 				DaylightRing.swift,
 				DotsWorldMap.swift,
 				DotsWorldMapGlobe.swift,
+				MarqueeText.swift,
 				MoonAstronomy.swift,
 				MoonPhase.swift,
 				PressureUnit.swift,
